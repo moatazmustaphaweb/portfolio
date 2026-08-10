@@ -113,6 +113,40 @@ async function main() {
 
       const stillEnglish = await resolve("ui_string", probe.id, "en");
       check("English unaffected", stillEnglish.label === "English only");
+
+      /*
+       * The realistic case. docs/sync-contract.md says missing Arabic is
+       * normal, and it is normal PER FIELD, not per entity: a chapter often
+       * has an Arabic title but no Arabic reflection yet. Fallback must
+       * therefore mix locales within one entity, which the whole-entity test
+       * above would not catch.
+       */
+      await supabaseServer.from("translations").insert([
+        { entity_type: "ui_string", entity_id: probe.id, locale: "en", field: "context", value: "English context" },
+        { entity_type: "ui_string", entity_id: probe.id, locale: "en", field: "note", value: "English note" },
+        { entity_type: "ui_string", entity_id: probe.id, locale: "ar", field: "note", value: "ملاحظة عربية" },
+      ]);
+
+      const mixed = await resolve("ui_string", probe.id, "ar");
+      check(
+        "partial: translated field uses Arabic",
+        mixed.note === "ملاحظة عربية",
+        `got ${JSON.stringify(mixed.note)}`,
+      );
+      check(
+        "partial: untranslated field falls back to English",
+        mixed.context === "English context",
+        `got ${JSON.stringify(mixed.context)}`,
+      );
+      check(
+        "partial: both fields present in one resolve",
+        mixed.note !== undefined && mixed.context !== undefined && mixed.label !== undefined,
+        `fields: ${Object.keys(mixed).sort().join(", ")}`,
+      );
+
+      // A field that exists in neither locale must be absent, not empty
+      // string — the caller omits the element rather than rendering a blank.
+      check("absent field is undefined", mixed.nonexistent === undefined);
     } finally {
       await supabaseServer.from("translations").delete().eq("entity_id", probe.id);
       await supabaseServer.from("ui_strings").delete().eq("id", probe.id);

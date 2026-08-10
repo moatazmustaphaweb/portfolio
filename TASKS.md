@@ -10,7 +10,9 @@
 | Task | Blocked by | Owner |
 |---|---|---|
 | 0.5 query-layer verification | `SUPABASE_SERVICE_ROLE_KEY` missing from `.env.local`. Supabase dashboard → Project Settings → API keys → `service_role`. Then `npm run verify:content` | Moataz |
-| `settings` values | name, tagline, email, linkedin_url, cv_url, og_image — personal facts, not mine to invent (rule 7) | Moataz |
+| **`settings.tagline`** | Undecided, both languages. The line under the name on the landing page — the site's one-sentence claim about itself. **Launch-gate blocker** | Moataz |
+| **`settings.og_image`** | Not designed. Controls how every shared link renders on LinkedIn and WhatsApp — the first impression for anyone the site is forwarded to. **Launch-gate blocker** | Moataz |
+| **`settings.cv_url`** | Hosting location not chosen. The CV link appears in the footer on every page. **Launch-gate blocker** | Moataz |
 | 0.4 Sync script correctness | Stale Cervello rows in Notion: route collision at `/work/cervello` + 5 orphaned chapters | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
@@ -63,9 +65,11 @@
 ### 0.3 Seed non-content tables
 - [x] `navigation` — 8 rows (header + footer), 16 translations (en + ar)
 - [x] `ui_strings` — 50 keys, 100 translations (en + ar), zero missing Arabic
-- [x] `settings` — **keys only, values NULL.** name/tagline/email/linkedin_url/cv_url/og_image are personal facts; inventing them would break rule 7
-- [ ] 🔴 **Moataz:** supply the six `settings` values
-- [ ] 🔴 Native Arabic review of the 50 seeded UI strings before launch
+- [x] `settings.name` — en `Moataz Mustapha` / ar `مُعتز مصطفى`
+- [x] `settings.email` — `moataz.mustapha@outlook.com`
+- [x] `settings.linkedin_url`
+- [ ] 🔴 `settings.tagline` · `og_image` · `cv_url` — deliberately NULL, **launch-gate blockers** (see BLOCKED)
+- [ ] 🔴 Native Arabic review of the 50 seeded UI strings — sent for review 2026-08-11
 
 ### 0.4 Notion → Supabase sync
 - [ ] `scripts/sync-notion.ts` per `docs/sync-contract.md`
@@ -129,6 +133,10 @@
 ---
 
 ## ⬜ QUEUE — PHASE 2: LAUNCH GATE
+- [ ] **`settings.tagline` written and seeded (en + ar)** — must not launch with the landing page's one-line claim absent
+- [ ] **`settings.og_image` designed, uploaded to Cloudinary, seeded** — every shared link renders without it otherwise
+- [ ] **`settings.cv_url` hosted and seeded** — footer CV link is dead until then
+- [ ] Arabic UI strings corrected per Moataz's review pass
 - [ ] All four Case Files complete, every declared target closed
 - [ ] Metric truth table applied (Egypt = projected; UAE public wording only; ~30% recovery-rate framing corrected)
 - [ ] No unredacted NDA material in site or repo
