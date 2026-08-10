@@ -31,7 +31,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: 0.3 (seed) then 0.5 (query layer)
+### Next: 0.8 (Cloudinary + CloudinaryImage) then 0.9 (instrumentation)
 
 ---
 
@@ -69,7 +69,7 @@
 - [x] `settings.email` — `moataz.mustapha@outlook.com`
 - [x] `settings.linkedin_url`
 - [ ] 🔴 `settings.tagline` · `og_image` · `cv_url` — deliberately NULL, **launch-gate blockers** (see BLOCKED)
-- [ ] 🔴 Native Arabic review of the 50 seeded UI strings — sent for review 2026-08-11
+- [ ] 🔴 Native Arabic review of the **52** seeded UI strings — sent for review 2026-08-11 (50 + `linkedin`/`cv` added during 0.7)
 
 ### 0.4 Notion → Supabase sync
 - [ ] `scripts/sync-notion.ts` per `docs/sync-contract.md`
@@ -95,10 +95,12 @@
 - [ ] Re-verify the type scale once a permanent Arabic face is chosen (open question F)
 
 ### 0.7 i18n + RTL shell
-- [ ] `next-intl` + `[locale]` routing
-- [ ] `dir` at layout level, logical CSS properties throughout
-- [ ] Header, Footer, Nav, LocaleSwitch, Breadcrumb — all from the database
-- [ ] Verify full mirroring in `ar`
+- [x] `next-intl` + `[locale]` routing (`localePrefix: always`) + middleware
+- [x] `dir` set once at layout level from the locale segment; logical properties throughout
+- [x] Header, Footer, Nav, LocaleSwitch, ThemeToggle — all rendered from the database
+- [x] Verified: `/en` → `lang=en dir=ltr`, `/ar` → `lang=ar dir=rtl`; both prerendered (SSG); `/` → 307 → `/en`
+- [x] Rule-1 audit — swept for JSX text literals and hardcoded aria-label/alt/title; found and fixed a hardcoded `LinkedIn` label
+- [ ] Breadcrumb — deferred until there are nested routes to render it on (Phase 1)
 
 ### 0.8 Media
 - [ ] Cloudinary + `next-cloudinary`
@@ -157,5 +159,6 @@
 - **2026-08-11** — Step 2: moved all documentation into `/docs/` (`tokens.md` → `docs/design/tokens.md`); fixed every cross-reference so paths resolve.
 - **2026-08-11** — Step 3: replaced the visual language with the Vercel-style system (decision 018). `docs/design/tokens.md` written from the design; implemented in `globals.css` + `tailwind.config.ts`; Geist + Geist Mono self-hosted.
 - **2026-08-11** — 0.3 seed: navigation + 50 UI strings in both locales, verified idempotent. `settings` seeded as keys only — values left NULL rather than invented.
+- **2026-08-11** — 0.7 i18n + RTL shell: `next-intl` `[locale]` routing, `dir` from the locale segment, and Header/Footer/Nav/LocaleSwitch/ThemeToggle rendering entirely from Supabase. Verified against the running server in both locales.
 - **2026-08-11** — 0.5 query layer: Supabase clients, generated DB types, translation resolver with English fallback and batched lookups, case-file/chapter/settings/navigation/ui accessors, and a secret-guarded `/api/revalidate`.
 - **2026-08-11** — Step 4: Layer 0 schema applied to `cidxctilamdxbzjjzppb`. Verified behaviourally in both directions — draft content and `translations` invisible to anon, published content visible. Cleared two security-advisor `WARN`s by revoking the `PUBLIC` EXECUTE grant on the platform's `rls_auto_enable()`. Resolved manifesto open item 8: it was an account mismatch, not a permissions bug.
