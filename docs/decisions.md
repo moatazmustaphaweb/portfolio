@@ -150,6 +150,22 @@
 **Consequence:** The Results Table renders three states from the enum. No status is inferrable or defaulted; the sync script still aborts on a missing marker.
 **Status:** ACTIVE
 
+### 2026-08-11 — 025 — No anonymous read access to `translations`
+**Decision:** `translations` has RLS enabled and **no select policy**. The anon key cannot read it at all. All content reads go through the service role in `lib/content/*`. Supersedes the `for select using (true)` policy specified in `docs/schema.md`.
+**Why:** Every human-readable string on the site lives in `translations`, including the copy of unpublished case files. A permissive policy would have published all draft writing — and anything drafted about an NDA project before redaction review — to anyone holding the anon key, which is public by construction: it ships in the browser bundle as `NEXT_PUBLIC_SUPABASE_ANON_KEY`. That breaks rule 6 and the launch gate. It cannot be fixed with a join, because `translations` is polymorphic (`entity_type` + `entity_id`) and has no single parent to check.
+**Consequence:** RLS with zero policies denies by default, so the *absence* of a policy is the enforcement — do not later "fix" this by adding one. `lib/supabase/client.ts` (anon) has no content role until comments arrive in Layer 3. Nothing legitimate breaks: rule 2 and decision 009 already route every content read through the server. `docs/schema.md` corrected in the same session.
+**Verified:** a draft case file with a translation row was inserted and queried as `anon` — 0 rows. Positive control: after publishing, the case file became visible while `translations` stayed at 0.
+**Status:** ACTIVE — supersedes the translations policy in `docs/schema.md`
+
+### 2026-08-11 — 026 — `settings` identity, and RLS for child content tables
+**Decision:** Two corrections to `docs/schema.md`, applied in migration `0001_layer0_schema.sql`:
+1. `settings` is `id uuid primary key default gen_random_uuid()` + `key text not null unique`, matching its sibling `ui_strings`. Replaces `key` as primary key plus an `id uuid` bolted on by `ALTER`.
+2. `chapters`, `features`, `outcomes` and `targets` get parent-derived read policies rather than being left open.
+**Why:** (1) The original left the table with two identities and — critically — no unique constraint on the uuid that `translations.entity_id` must join to, so nothing prevented a translation pointing at a duplicate id. (2) `schema.md` said "repeat for every content table" but only demonstrated `case_files`. Those four tables have no `status` of their own, so a permissive policy would have exposed chapters and outcomes belonging to unpublished case files.
+**Consequence:** Lookup by `settings.key` is unchanged and still index-backed. A chapter is visible only when both it *and* its parent case file are published.
+**Verified:** a `published` chapter under a `draft` parent returned 0 rows to `anon`, and flipped to 1 only once the parent was published.
+**Status:** ACTIVE — supersedes the `settings` definition and the RLS section in `docs/schema.md`
+
 ---
 
 ## OPEN — NOT YET DECIDED

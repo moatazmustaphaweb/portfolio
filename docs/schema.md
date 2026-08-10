@@ -186,14 +186,18 @@ Adding a third language is rows, never a migration. A missing row is partial tra
 ## SITE-WIDE DYNAMISM
 
 ```sql
+-- Corrected 2026-08-11 per decision 026. The previous version declared `key`
+-- as primary key then added `id uuid` via ALTER, leaving two identities and no
+-- unique constraint on the uuid that translations.entity_id joins to.
+-- Now matches its sibling ui_strings.
 create table settings (
-  key         text primary key,                -- name · tagline · email · linkedin_url · cv_url
+  id          uuid primary key default gen_random_uuid(),
+  key         text not null unique,            -- name · tagline · email · linkedin_url · cv_url
   value       text,                            -- locale-independent values (URLs)
   sort_order  int not null default 0
 );
 -- locale-dependent values (name, tagline) live in translations with
--- entity_type='setting' and entity_id = the uuid below
-alter table settings add column id uuid not null default gen_random_uuid();
+-- entity_type='setting' and entity_id = settings.id
 
 create table navigation (
   id          uuid primary key default gen_random_uuid(),
@@ -296,16 +300,37 @@ create index on events (session_id, created_at);
 
 ## ROW LEVEL SECURITY
 
-```sql
-alter table case_files enable row level security;
--- …repeat for every content table
+*Corrected 2026-08-11 per decisions 025 and 026. The authoritative version is the applied migration, `supabase/migrations/0001_layer0_schema.sql`.*
 
+```sql
+-- Enabled on all 17 tables.
+alter table case_files enable row level security;
+
+-- Top-level content: published only.
 create policy "public reads published"
   on case_files for select
   using (status = 'published');
 
-create policy "public reads translations"
-  on translations for select using (true);
+-- Child tables have no status of their own — visibility derives from the
+-- parent. A chapter is readable only when it AND its case file are published.
+create policy "public reads published" on chapters
+  for select using (
+    status = 'published'
+    and exists (select 1 from case_files c
+                where c.id = chapters.case_file_id and c.status = 'published')
+  );
+-- …same shape for features (via chapter), outcomes and targets (via case_file)
+
+-- Site chrome is public by definition.
+create policy "public reads media"      on media      for select using (true);
+create policy "public reads settings"   on settings   for select using (true);
+create policy "public reads ui_strings" on ui_strings for select using (true);
+create policy "public reads navigation" on navigation for select using (visible = true);
 ```
-- **Anon key:** read-only, published rows only
-- **Service role:** all writes (sync script, `/api/events`, later the admin panel) — server-side only, never exposed to the browser
+
+**`translations` has NO select policy — deliberately.** RLS is enabled and no policy exists, so anon is denied by default. Every human-readable string lives in this table, including draft and pre-redaction copy, and the anon key is public by construction. See decision 025. **Do not add a policy here.**
+
+The same applies to `revisions`, `sessions` and `events`: RLS enabled, no policies, service-role access only. Supabase's linter reports these four as `rls_enabled_no_policy` at INFO level — that is the intended state, not a defect.
+
+- **Anon key:** read-only; published content, media, and site chrome only. No access to `translations`.
+- **Service role:** all reads of `translations` and all writes (sync script, `/api/events`, later the admin panel) — server-side only, never exposed to the browser

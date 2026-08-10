@@ -9,7 +9,6 @@
 
 | Task | Blocked by | Owner |
 |---|---|---|
-| 0.2 Supabase schema | Awaiting `claude /mcp` authentication in a regular terminal (not the IDE extension). Also: `settings` table design issue needs resolving before apply — see decision 025 | Moataz |
 | 0.4 Sync script correctness | Stale Cervello rows in Notion: route collision at `/work/cervello` + 5 orphaned chapters | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
@@ -26,7 +25,9 @@
 - [x] **Step 1** — `git init` + clean baseline commit (disputed content removed first)
 - [x] **Step 2** — documentation moved into `/docs/`, cross-references fixed
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
-- [ ] **Step 4** — Layer 0 schema applied to Supabase (blocked on `/mcp` auth; `settings` fix proposed, awaiting sign-off)
+- [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
+
+### Next: 0.3 (seed) then 0.5 (query layer)
 
 ---
 
@@ -42,20 +43,20 @@
 
 ### 0.2 Supabase schema
 - [x] Draft the full migration — `supabase/migrations/0001_layer0_schema.sql` (**not applied**)
-- [ ] 🔴 Sign-off on [FIX 1] (`settings` shape) and the translations RLS decision
-- [ ] Apply once `claude /mcp` is authenticated
-- [ ] Create enums
-- [ ] `media`
-- [ ] `case_files` → `chapters` → `features`
-- [ ] `outcomes`, `targets`
-- [ ] `series` → `articles`
-- [ ] `studio_works`, `experiments`
-- [ ] `settings`, `navigation`, `ui_strings`
-- [ ] `translations` (with the unique constraint)
-- [ ] `revisions`
-- [ ] `sessions`, `events`
-- [ ] Indexes
-- [ ] RLS policies
+- [x] Sign-off received on [FIX 1] (`settings`) and [FIX 2] (translations RLS = Option B)
+- [x] Applied to `cidxctilamdxbzjjzppb` 2026-08-11 — 17 tables, 9 enums, 13 policies, 37 indexes, RLS on all 17
+- [x] Create enums
+- [x] `media`
+- [x] `case_files` → `chapters` → `features`
+- [x] `outcomes`, `targets`
+- [x] `series` → `articles`
+- [x] `studio_works`, `experiments`
+- [x] `settings`, `navigation`, `ui_strings`
+- [x] `translations` (with the unique constraint)
+- [x] `revisions`
+- [x] `sessions`, `events`
+- [x] Indexes
+- [x] RLS policies — verified behaviourally, both directions
 
 ### 0.3 Seed non-content tables
 - [ ] `settings` rows + translations (en + ar)
@@ -139,3 +140,5 @@
 - **2026-08-11** — Read the full doc set; connected Claude Design (`DesignSync` project `f6113c80`) and added the Supabase MCP server to `.mcp.json`. Surfaced the two-visual-languages conflict and the decision-007 metric violations.
 - **2026-08-11** — Step 1: `git init` + clean foundation baseline. Deleted `content/caseFiles/*.ts`, `app/work/`, and `components/` before the first commit so client names and disputed metrics never entered history. Pre-rebuild tree backed up outside the repo at `~/Moataz_Next_pre_rebuild_backup_2026-08-10`.
 - **2026-08-11** — Step 2: moved all documentation into `/docs/` (`tokens.md` → `docs/design/tokens.md`); fixed every cross-reference so paths resolve.
+- **2026-08-11** — Step 3: replaced the visual language with the Vercel-style system (decision 018). `docs/design/tokens.md` written from the design; implemented in `globals.css` + `tailwind.config.ts`; Geist + Geist Mono self-hosted.
+- **2026-08-11** — Step 4: Layer 0 schema applied to `cidxctilamdxbzjjzppb`. Verified behaviourally in both directions — draft content and `translations` invisible to anon, published content visible. Cleared two security-advisor `WARN`s by revoking the `PUBLIC` EXECUTE grant on the platform's `rls_auto_enable()`. Resolved manifesto open item 8: it was an account mismatch, not a permissions bug.

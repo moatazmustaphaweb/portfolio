@@ -150,7 +150,11 @@ Per Architecture v2.0 layers: **L2** Door + result screens + how-this-site-works
 | 5 | NDA asset audit + redaction rules | every Evidence block | Moataz |
 | 6 | Neobiz Mobile feature lists | 2 chapters | Moataz |
 | ~~7~~ | ~~Arabic typeface choice~~ | permanent face still open (question F) | **Interim resolved — decision 020** |
-| 8 | Supabase MCP permission error | direct DB access from chat | Moataz — server added to `.mcp.json`, awaiting `claude /mcp` auth |
+| ~~8~~ | ~~Supabase MCP permission error~~ | — | **Resolved 2026-08-11** |
+
+**Item 8, resolved 2026-08-11.** It was never a permissions or feature-flag problem — it was an account mismatch. The originally connected Supabase login saw only one organisation (*Onebrain*) holding two unrelated projects, so every call against `cidxctilamdxbzjjzppb` returned "You do not have permission to perform this action". Re-authenticating with the account that owns the project resolved it: `cidxctilamdxbzjjzppb` / **moatazmustaphaweb**, org `ooxuyyzekffbrjoebfbf`, ap-northeast-1, Postgres 17.6, `ACTIVE_HEALTHY`. The Layer 0 schema is applied.
+
+*If this error ever recurs, check which account is connected before assuming a permissions problem — `list_projects` is the fastest diagnostic.*
 
 ---
 
