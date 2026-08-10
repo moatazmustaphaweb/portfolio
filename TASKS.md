@@ -41,6 +41,9 @@
 - [ ] First deploy succeeds
 
 ### 0.2 Supabase schema
+- [x] Draft the full migration — `supabase/migrations/0001_layer0_schema.sql` (**not applied**)
+- [ ] 🔴 Sign-off on [FIX 1] (`settings` shape) and the translations RLS decision
+- [ ] Apply once `claude /mcp` is authenticated
 - [ ] Create enums
 - [ ] `media`
 - [ ] `case_files` → `chapters` → `features`
