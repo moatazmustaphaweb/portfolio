@@ -9,6 +9,8 @@
 
 | Task | Blocked by | Owner |
 |---|---|---|
+| 0.5 query-layer verification | `SUPABASE_SERVICE_ROLE_KEY` missing from `.env.local`. Supabase dashboard → Project Settings → API keys → `service_role`. Then `npm run verify:content` | Moataz |
+| `settings` values | name, tagline, email, linkedin_url, cv_url, og_image — personal facts, not mine to invent (rule 7) | Moataz |
 | 0.4 Sync script correctness | Stale Cervello rows in Notion: route collision at `/work/cervello` + 5 orphaned chapters | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
@@ -59,9 +61,11 @@
 - [x] RLS policies — verified behaviourally, both directions
 
 ### 0.3 Seed non-content tables
-- [ ] `settings` rows + translations (en + ar)
-- [ ] `navigation` rows + translations (en + ar)
-- [ ] `ui_strings` rows + translations (en + ar)
+- [x] `navigation` — 8 rows (header + footer), 16 translations (en + ar)
+- [x] `ui_strings` — 50 keys, 100 translations (en + ar), zero missing Arabic
+- [x] `settings` — **keys only, values NULL.** name/tagline/email/linkedin_url/cv_url/og_image are personal facts; inventing them would break rule 7
+- [ ] 🔴 **Moataz:** supply the six `settings` values
+- [ ] 🔴 Native Arabic review of the 50 seeded UI strings before launch
 
 ### 0.4 Notion → Supabase sync
 - [ ] `scripts/sync-notion.ts` per `docs/sync-contract.md`
@@ -69,11 +73,14 @@
 - [ ] First real sync
 
 ### 0.5 Query layer
-- [ ] `lib/supabase/client.ts` + `server.ts`
-- [ ] `lib/content/types.ts`
-- [ ] `lib/content/translate.ts` (with English fallback)
-- [ ] `lib/content/{case-files,chapters,settings,navigation,ui}.ts`
-- [ ] ISR config + `/api/revalidate`
+- [x] `lib/supabase/client.ts` + `server.ts` (+ generated `database.types.ts`)
+- [x] `lib/content/types.ts`
+- [x] `lib/content/translate.ts` (English fallback, batched to avoid N+1)
+- [x] `lib/content/{case-files,chapters,settings,navigation,ui}.ts`
+- [x] `/api/revalidate` — secret-guarded, invalidates both locales per path
+- [x] `scripts/verify-content.ts` smoke test + `npm run verify:content`
+- [ ] 🔴 Blocked on `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` — cannot run the smoke test until then
+- [ ] ISR `revalidate` values on content routes (set when the routes exist, 0.7/Phase 1)
 
 ### 0.6 Design tokens
 - [x] Extract token values from the Vercel-style `*.dc.html` designs
@@ -141,4 +148,6 @@
 - **2026-08-11** — Step 1: `git init` + clean foundation baseline. Deleted `content/caseFiles/*.ts`, `app/work/`, and `components/` before the first commit so client names and disputed metrics never entered history. Pre-rebuild tree backed up outside the repo at `~/Moataz_Next_pre_rebuild_backup_2026-08-10`.
 - **2026-08-11** — Step 2: moved all documentation into `/docs/` (`tokens.md` → `docs/design/tokens.md`); fixed every cross-reference so paths resolve.
 - **2026-08-11** — Step 3: replaced the visual language with the Vercel-style system (decision 018). `docs/design/tokens.md` written from the design; implemented in `globals.css` + `tailwind.config.ts`; Geist + Geist Mono self-hosted.
+- **2026-08-11** — 0.3 seed: navigation + 50 UI strings in both locales, verified idempotent. `settings` seeded as keys only — values left NULL rather than invented.
+- **2026-08-11** — 0.5 query layer: Supabase clients, generated DB types, translation resolver with English fallback and batched lookups, case-file/chapter/settings/navigation/ui accessors, and a secret-guarded `/api/revalidate`.
 - **2026-08-11** — Step 4: Layer 0 schema applied to `cidxctilamdxbzjjzppb`. Verified behaviourally in both directions — draft content and `translations` invisible to anon, published content visible. Cleared two security-advisor `WARN`s by revoking the `PUBLIC` EXECUTE grant on the platform's `rls_auto_enable()`. Resolved manifesto open item 8: it was an account mismatch, not a permissions bug.
