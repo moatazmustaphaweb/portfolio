@@ -25,8 +25,8 @@
 ### Phase 0 foundation — steps 1–4 of the current work order
 - [x] **Step 1** — `git init` + clean baseline commit (disputed content removed first)
 - [x] **Step 2** — documentation moved into `/docs/`, cross-references fixed
-- [ ] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
-- [ ] **Step 4** — Layer 0 schema applied to Supabase (blocked on `/mcp` auth)
+- [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
+- [ ] **Step 4** — Layer 0 schema applied to Supabase (blocked on `/mcp` auth; `settings` fix proposed, awaiting sign-off)
 
 ---
 
@@ -72,10 +72,12 @@
 - [ ] ISR config + `/api/revalidate`
 
 ### 0.6 Design tokens
-- [ ] Extract token values from the Vercel-style `*.dc.html` designs
-- [ ] Write `docs/design/tokens.md` (semantic names, light + dark, RTL-safe)
-- [ ] Implement in `app/globals.css` + `tailwind.config.ts`
-- [ ] Swap Space Grotesk → Geist + Geist Mono in `app/layout.tsx`
+- [x] Extract token values from the Vercel-style `*.dc.html` designs
+- [x] Write `docs/design/tokens.md` (semantic names, light + dark, RTL-safe)
+- [x] Implement in `app/globals.css` + `tailwind.config.ts`
+- [x] Swap Space Grotesk → Geist + Geist Mono in `app/layout.tsx`
+- [ ] 🔴 Redaction treatment — structure only for now, crafted language undecided (open question H)
+- [ ] Re-verify the type scale once a permanent Arabic face is chosen (open question F)
 
 ### 0.7 i18n + RTL shell
 - [ ] `next-intl` + `[locale]` routing

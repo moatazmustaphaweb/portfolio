@@ -3,132 +3,201 @@
 @tailwind utilities;
 
 /*
- * Neubrutalist Design System — tokens.
+ * Design tokens — see docs/design/tokens.md for the full spec and rationale.
  *
- * Colour is expressed as semantic CSS variables so the system inverts cleanly in
- * dark mode ("inverted ink": the 2px strokes and hard offset shadows flip from
- * black-on-light to off-white-on-dark, preserving the poster-like language).
- * The Tailwind config maps its colour + shadow tokens onto these variables, so
- * components need no `dark:` variants.
+ * Values are extracted from the *.dc.html page designs in Claude Design project
+ * f6113c80 (decision 018). Names are semantic, never literal, so a palette
+ * change is a value edit rather than a find-and-replace across components.
  *
- * Non-colour tokens (type, space, borders, radii, motion) are transcribed 1:1
- * from the original design-system token files.
+ * Dark is the default. Light is applied when the OS asks for it and the user
+ * hasn't chosen otherwise, or when data-theme="light" is set explicitly. Only
+ * colour tokens differ between themes; type, space and form are shared.
  */
 :root {
-  /* --- Colour (light) --- */
-  --page: #f0f0f0; /* page background */
-  --surface: #ffffff; /* card / raised surface */
-  --ink: #000000; /* text, borders, hard shadows */
-  --ink-inverse: #ffffff; /* text/marks sitting ON an ink fill */
-  --accent: #1f4fff; /* accent fill */
-  --accent-text: #ffffff; /* text on an accent fill */
-  --accent-ink: #1f4fff; /* accent used AS text/links */
-  --success: #00a651;
-  --warning: #ffb000;
-  --error: #e5233d;
-  color-scheme: light;
+  /* --- Colour: dark (default) --- */
+  --color-bg: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-raised: #111111;
+  --color-scrim: rgba(0, 0, 0, 0.72);
+  --color-border: #1f1f1f;
+  --color-border-strong: #333333;
+  --color-border-subtle: #2a2a2a;
+  --color-fg: #ffffff;
+  --color-fg-body: #ededed;
+  --color-fg-muted: #a1a1a1;
+  --color-fg-dim: #8f8f8f;
+  --color-accent: #0070f3;
+  --color-accent-fg: #ffffff;
 
-  /* --- Typography --- */
-  --font-sans: var(--font-space-grotesk), "Helvetica Neue", Arial, sans-serif;
-  --type-display-size: 56px; --type-display-weight: 700; --type-display-lh: 1.05;
-  --type-h1-size: 36px; --type-h1-weight: 700; --type-h1-lh: 1.1;
-  --type-h2-size: 28px; --type-h2-weight: 700; --type-h2-lh: 1.1;
-  --type-h3-size: 20px; --type-h3-weight: 600; --type-h3-lh: 1.15;
-  --type-body-size: 15px; --type-body-weight: 400; --type-body-lh: 1.5;
-  --type-caption-size: 12px; --type-caption-weight: 500; --type-caption-lh: 1.4;
-  --type-label-weight: 700;
-  --type-badge-size: 11px;
+  /* Redaction: structure only — the crafted treatment is undecided
+   * (tokens.md open question H). Composed from existing tokens so nothing
+   * is invented; RedactedEvidence renders a plain bordered surface for now. */
+  --color-redacted-fill: var(--color-surface-raised);
+  --color-redacted-stroke: var(--color-border-strong);
 
-  /* --- Spacing (4px base) --- */
-  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-  --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
-  --layout-max-width: 1200px;
-  --layout-gutter: 24px;
+  color-scheme: dark;
 
-  /* --- Borders --- */
-  --border-width: 2px;
-  --border-width-focus: 3px;
-  --border: var(--border-width) solid var(--ink);
-  --radius-0: 0; --radius-sm: 8px; --radius-md: 16px; --radius-lg: 24px; --radius-pill: 999px;
-  --focus-outline: 3px solid var(--ink);
+  /* --- Type families ---
+   * --font-arabic is deliberately a separate token from --font-sans even
+   * though both resolve to Geist today: the interim (decision 020) is then a
+   * one-line swap. next/font injects the variables (see app/layout.tsx). */
+  --font-sans: var(--font-geist), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-arabic: var(--font-geist), "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* --- Type scale — fluid display, fixed body. Tracking tightens with size. --- */
+  --text-hero: clamp(44px, 7.5vw, 80px);
+  --text-title: clamp(38px, 6vw, 60px);
+  --text-h2: clamp(28px, 4.4vw, 44px);
+  --text-h3: clamp(22px, 3vw, 28px);
+  --text-lead: clamp(20px, 3vw, 28px);
+  --text-statement: clamp(20px, 2.6vw, 26px);
+  --text-metric: clamp(28px, 4vw, 38px);
+
+  --measure-prose: 68ch;
+  --measure-lead: 42ch;
+
+  /* --- Space: 4px base, enumerated steps only --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-14: 56px;
+  --space-18: 72px;
+  --space-22: 88px;
+
+  --section-y: clamp(40px, 6vw, 72px);
+  --section-y-hero: clamp(64px, 10vw, 140px);
+  --card-p: clamp(24px, 3vw, 32px);
+
+  /* --- Layout --- */
+  --container-max: 1200px;
+  --container-prose: 1000px;
+  --gutter: 24px;
+  --header-h: 56px;
+
+  /* --- Form: one stroke weight, three radii, one blur --- */
+  --radius-control: 6px;
+  --radius-panel: 12px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --blur-header: 12px;
+  --control-h: 40px;
+  --control-h-sm: 32px;
+
+  /* --- Motion: colour and opacity only, never transform or size --- */
+  --duration: 150ms;
+  --ease: ease;
+
+  /* --- Focus --- */
+  --focus-ring-width: 2px;
   --focus-offset: 2px;
-
-  /* --- Elevation — hard offsets only, no blur ever --- */
-  --shadow-flat: none;
-  --shadow-raised: 4px 4px 0 var(--ink);
-  --shadow-pressed: 2px 2px 0 var(--ink);
-  --shadow-active: 0 0 0 var(--ink);
-
-  /* --- Motion --- */
-  --motion-fast: 100ms ease-out;
 }
 
-/*
- * Dark theme ("inverted ink"). Applied when the OS prefers dark AND the user
- * hasn't explicitly chosen light, OR when data-theme="dark" is set by the header
- * toggle. Only the colour tokens change; everything else is shared.
- */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --page: #141414;
-    --surface: #1e1e1e;
-    --ink: #f0f0f0;
-    --ink-inverse: #141414;
-    --accent-ink: #7c93ff; /* brighter blue for accent-as-text on dark */
-    color-scheme: dark;
+/* Light theme. Only colour tokens change. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --color-bg: #ffffff;
+    --color-surface: #fafafa;
+    --color-surface-raised: #f4f4f4;
+    --color-scrim: rgba(255, 255, 255, 0.8);
+    --color-border: #eaeaea;
+    --color-border-strong: #d4d4d4;
+    --color-border-subtle: #e5e5e5;
+    --color-fg: #000000;
+    --color-fg-body: #171717;
+    --color-fg-muted: #666666;
+    --color-fg-dim: #888888;
+    --color-accent: #0060df;
+    color-scheme: light;
   }
 }
-:root[data-theme="dark"] {
-  --page: #141414;
-  --surface: #1e1e1e;
-  --ink: #f0f0f0;
-  --ink-inverse: #141414;
-  --accent-ink: #7c93ff;
-  color-scheme: dark;
+
+:root[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-surface: #fafafa;
+  --color-surface-raised: #f4f4f4;
+  --color-scrim: rgba(255, 255, 255, 0.8);
+  --color-border: #eaeaea;
+  --color-border-strong: #d4d4d4;
+  --color-border-subtle: #e5e5e5;
+  --color-fg: #000000;
+  --color-fg-body: #171717;
+  --color-fg-muted: #666666;
+  --color-fg-dim: #888888;
+  --color-accent: #0060df;
+  color-scheme: light;
 }
 
 /*
- * Base element styles — ported from the design system's base.css, now reading
- * the semantic variables so bare tags invert with the theme.
+ * Reduced motion, as a token override rather than a per-component media
+ * query — nothing downstream needs to know about it.
  */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration: 0ms;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 @layer base {
   body {
     margin: 0;
+    background: var(--color-bg);
+    color: var(--color-fg-body);
     font-family: var(--font-sans);
-    font-size: var(--type-body-size);
-    font-weight: var(--type-body-weight);
-    line-height: var(--type-body-lh);
-    color: var(--ink);
-    background: var(--page);
+    font-size: 16px;
+    line-height: 1.7;
     -webkit-font-smoothing: antialiased;
   }
 
-  h1, h2, h3, h4 { margin: 0; color: var(--ink); }
-  h1 { font-size: var(--type-h1-size); font-weight: var(--type-h1-weight); line-height: var(--type-h1-lh); }
-  h2 { font-size: var(--type-h2-size); font-weight: var(--type-h2-weight); line-height: var(--type-h2-lh); }
-  h3 { font-size: var(--type-h3-size); font-weight: var(--type-h3-weight); line-height: var(--type-h3-lh); }
+  /*
+   * Arabic never uses the mono metadata face — Geist Mono has no Arabic
+   * coverage, and tracked-out uppercase is meaningless in Arabic script.
+   * Scoped with :lang(ar) rather than the design files' global
+   * `letter-spacing: normal !important`, which decision 020 rejects because
+   * it also flattens Latin text embedded inside an Arabic page.
+   */
+  :lang(ar) {
+    font-family: var(--font-arabic);
+  }
 
-  p { margin: 0; }
+  :lang(ar) .font-mono,
+  :lang(ar) [class*="tracking-"] {
+    font-family: var(--font-arabic);
+    letter-spacing: normal;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 0;
+    color: var(--color-fg);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  p {
+    margin: 0;
+    text-wrap: pretty;
+  }
 
   a {
-    color: var(--ink);
-    font-weight: 700;
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 2px;
+    color: inherit;
+    text-decoration: none;
   }
-  a:hover { color: var(--accent-ink); }
 
-  /* Focus ring: 3px ink outline, 2px offset, on every interactive element. */
+  /* Focus ring on every interactive element. Never removed without a
+   * replacement — see the accessibility baseline in docs/conventions.md. */
   :focus-visible {
-    outline: var(--focus-outline);
+    outline: var(--focus-ring-width) solid var(--color-accent);
     outline-offset: var(--focus-offset);
-  }
-
-  hr { border: none; border-top: var(--border); margin: 0; }
-
-  /* Smooth in-page journey navigation (case file chapter jumps) — opt-out. */
-  @media (prefers-reduced-motion: no-preference) {
-    html { scroll-behavior: smooth; }
   }
 }
