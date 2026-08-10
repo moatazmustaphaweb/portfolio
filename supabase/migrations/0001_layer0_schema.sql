@@ -1,9 +1,9 @@
 -- Layer 0 foundation schema — moatazmustapha.com
--- Source of truth: docs/schema.md. Follows it exactly except where marked
--- [FIX] or [GAP], both of which are called out in the report and await sign-off.
+-- Source of truth: docs/schema.md, which this follows exactly except for the
+-- departures marked [FIX 1], [FIX 2] and [GAP 1] — all approved 2026-08-11 and
+-- logged as decisions 025 and 026.
 --
--- ⚠️  NOT YET APPLIED. Pending: (a) `claude /mcp` authentication,
---     (b) sign-off on [FIX 1] and the [DECISION NEEDED] block at the end.
+-- Applied to project cidxctilamdxbzjjzppb (moatazmustaphaweb) 2026-08-11.
 --
 -- Deferred to their layers: comments (L3), documents + pgvector (L4).
 
@@ -319,37 +319,43 @@ create policy "public reads navigation" on navigation for select using (visible 
 -- the intent. Writes happen server-side through the service role.
 
 -- ---------------------------------------------------------------------------
--- [DECISION NEEDED] — translations read policy
+-- [FIX 2] translations — no anon read access. Decision 025.
 --
--- docs/schema.md specifies:
---     create policy "public reads translations" on translations
---       for select using (true);
+-- docs/schema.md specified `for select using (true)`, which would publish the
+-- copy of every DRAFT case file to anyone holding the anon key — and that key
+-- is public by construction, shipping in the browser bundle as
+-- NEXT_PUBLIC_SUPABASE_ANON_KEY. Unreleased writing, and anything drafted
+-- about an NDA project before redaction review, would be readable.
 --
--- That publishes the copy of every DRAFT case file and chapter to anyone
--- holding the anon key — which is public by construction, since it ships in
--- the browser bundle as NEXT_PUBLIC_SUPABASE_ANON_KEY. Unreleased case-study
--- text, and anything written about an NDA project before redaction review,
--- would be readable. Rule 6 and the launch gate both make that unacceptable.
---
--- It cannot be fixed with a simple join: translations is polymorphic
+-- It cannot be fixed with a join: translations is polymorphic
 -- (entity_type + entity_id), so there is no single parent to check.
 --
--- RECOMMENDED — no anon access to translations at all:
---     (declare no select policy; RLS then denies anon by default)
+-- Resolution: no select policy for anon. RLS is enabled above, and RLS with
+-- zero policies denies by default — so the absence below is the enforcement,
+-- not an omission. Content is read server-side through the service role in
+-- lib/content/*, which rule 2 and decision 009 already require.
 --
--- Content is read server-side through the service role in lib/content/*, which
--- is already mandated by rule 2 ("pages never query Supabase directly") and
--- decision 009 (ISR — "visitors never touch the database on a normal page
--- load"). So nothing legitimate breaks, and the anon key stops being a way to
--- read unpublished writing. Consequence: lib/supabase/client.ts (anon) has no
--- content role until comments arrive in Layer 3.
---
--- Uncomment ONE of the following once decided.
-
--- Option A — as specified in docs/schema.md (leaks draft copy):
--- create policy "public reads translations" on translations
---   for select using (true);
-
--- Option B — recommended: no anon policy. Nothing to uncomment; leaving this
--- block commented out IS option B, since RLS with no policy denies by default.
+-- Consequence: lib/supabase/client.ts (anon) has no content role until
+-- comments arrive in Layer 3. Deliberate — do not "fix" this later by adding
+-- a permissive policy.
 -- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- [FIX 3] Lock down the platform's rls_auto_enable() event-trigger function.
+--
+-- Supabase ships this SECURITY DEFINER function to auto-enable RLS on new
+-- public tables. It is created with the default `EXECUTE ... TO PUBLIC` grant,
+-- which anon and authenticated inherit — flagged WARN by the security advisor
+-- on two separate lints.
+--
+-- Practical risk is nil: it returns `event_trigger`, so PostgREST cannot expose
+-- it as an RPC and a direct call errors. Revoked anyway as defence in depth.
+--
+-- Note the grant is on PUBLIC, not on the roles themselves — revoking from
+-- anon/authenticated alone is a no-op, because neither ever held a direct
+-- grant. Verified after applying: the event trigger still fires (a new table
+-- still gets RLS enabled automatically), service_role retains EXECUTE, and
+-- both advisor WARNs clear.
+-- ---------------------------------------------------------------------------
+
+revoke execute on function public.rls_auto_enable() from public;
