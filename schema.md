@@ -1,0 +1,311 @@
+# docs/schema.md — Database Schema
+
+**Database:** Supabase (Postgres) · project `cidxctilamdxbzjjzppb`
+**IDs:** UUID (`gen_random_uuid()`) everywhere
+**Rule:** structure lives in typed tables; every human-readable string lives in `translations`.
+
+---
+
+## TRANSLATION FALLBACK RULE (product decision, enforced in the query layer)
+
+When a translation row is missing for the requested locale, **fall back to English.** Never hide a page, never show an empty section, never show a "not translated" notice. Partial translation is normal and expected.
+
+Implementation lives in `lib/content/translate.ts`:
+```
+resolve(entity, locale, field):
+  1. try translations WHERE locale = requested
+  2. else  translations WHERE locale = 'en'
+  3. else  return null → caller omits the element entirely
+```
+
+---
+
+## ENUMS
+
+```sql
+create type content_status  as enum ('draft', 'published', 'archived');
+create type outcome_status  as enum ('projected', 'achieved', 'not-measurable');
+create type target_status   as enum ('achieved', 'missed', 'not-measurable');
+create type grammar_type    as enum ('country-culture', 'ecosystem', 'design-system');
+create type locale_code     as enum ('en', 'ar');
+create type article_stream  as enum ('build-log', 'field-notes', 'positions');
+create type nav_location    as enum ('header', 'footer');
+create type comment_status  as enum ('pending', 'approved', 'spam');   -- Layer 3
+create type entity_type     as enum (
+  'case_file','chapter','feature','outcome','target',
+  'article','series','studio_work','experiment',
+  'media','nav_item','setting','ui_string'
+);
+```
+
+---
+
+## MEDIA
+
+```sql
+create table media (
+  id                    uuid primary key default gen_random_uuid(),
+  cloudinary_public_id  text not null unique,
+  width                 int,
+  height                int,
+  format                text,
+  redacted              boolean not null default false,
+  sort_order            int not null default 0,
+  created_at            timestamptz not null default now()
+);
+```
+**Never store URLs.** `redacted = true` triggers the NDA visual treatment. Alt text and captions live in `translations`.
+
+---
+
+## CONTENT STRUCTURE
+
+```sql
+create table case_files (
+  id              uuid primary key default gen_random_uuid(),
+  slug            text not null unique,
+  grammar         grammar_type not null,
+  domain          text not null,               -- banking | smart-things | ai | branding
+  sort_order      int not null default 0,
+  status          content_status not null default 'draft',
+  nda             boolean not null default false,
+  cover_media_id  uuid references media(id) on delete set null,
+  published_at    timestamptz,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create table chapters (
+  id              uuid primary key default gen_random_uuid(),
+  case_file_id    uuid not null references case_files(id) on delete cascade,
+  slug            text not null,
+  sort_order      int not null default 0,
+  status          content_status not null default 'draft',
+  hero_media_id   uuid references media(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  unique (case_file_id, slug)
+);
+
+create table features (
+  id          uuid primary key default gen_random_uuid(),
+  chapter_id  uuid not null references chapters(id) on delete cascade,
+  sort_order  int not null default 0
+);
+
+create table outcomes (
+  id            uuid primary key default gen_random_uuid(),
+  case_file_id  uuid not null references case_files(id) on delete cascade,
+  value         text not null,                 -- '1,500+' · 'over a year and a half'
+  status        outcome_status not null,       -- NO DEFAULT: an explicit call every time
+  sort_order    int not null default 0
+);
+
+create table targets (
+  id            uuid primary key default gen_random_uuid(),
+  case_file_id  uuid not null references case_files(id) on delete cascade,
+  status        target_status not null,        -- NO DEFAULT
+  sort_order    int not null default 0
+);
+
+create table series (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text not null unique,
+  sort_order  int not null default 0,
+  status      content_status not null default 'draft'
+);
+
+create table articles (
+  id             uuid primary key default gen_random_uuid(),
+  slug           text not null unique,
+  stream         article_stream not null,
+  series_id      uuid references series(id) on delete set null,
+  sort_order     int not null default 0,
+  status         content_status not null default 'draft',
+  hero_media_id  uuid references media(id) on delete set null,
+  published_at   timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
+create table studio_works (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text not null unique,
+  year        int,
+  media_id    uuid references media(id) on delete set null,
+  sort_order  int not null default 0,
+  status      content_status not null default 'draft'
+);
+
+create table experiments (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text not null unique,
+  domain      text,
+  state       text,                            -- live | prototype | write-up
+  url         text,
+  sort_order  int not null default 0,
+  status      content_status not null default 'draft'
+);
+```
+
+**Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role` and `decision` translations present in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
+
+---
+
+## THE TRANSLATION LAYER
+
+```sql
+create table translations (
+  id           uuid primary key default gen_random_uuid(),
+  entity_type  entity_type not null,
+  entity_id    uuid not null,
+  locale       locale_code not null,
+  field        text not null,
+  value        text not null,                  -- Markdown for long-form fields
+  updated_at   timestamptz not null default now(),
+  unique (entity_type, entity_id, locale, field)
+);
+```
+
+**Common `field` values by entity:**
+| Entity | Fields |
+|---|---|
+| case_file | title · thesis · role · reflection |
+| chapter | title · objective · context · decision · evidence_note · result · milestone |
+| feature | label · description |
+| outcome | label · note |
+| target | target · note |
+| article | title · excerpt · body |
+| media | alt · caption |
+| nav_item / setting / ui_string | label / value |
+
+Adding a third language is rows, never a migration. A missing row is partial translation, not an error.
+
+---
+
+## SITE-WIDE DYNAMISM
+
+```sql
+create table settings (
+  key         text primary key,                -- name · tagline · email · linkedin_url · cv_url
+  value       text,                            -- locale-independent values (URLs)
+  sort_order  int not null default 0
+);
+-- locale-dependent values (name, tagline) live in translations with
+-- entity_type='setting' and entity_id = the uuid below
+alter table settings add column id uuid not null default gen_random_uuid();
+
+create table navigation (
+  id          uuid primary key default gen_random_uuid(),
+  route       text not null,
+  parent_id   uuid references navigation(id) on delete cascade,
+  sort_order  int not null default 0,
+  location    nav_location not null,
+  visible     boolean not null default true
+);
+
+create table ui_strings (
+  id       uuid primary key default gen_random_uuid(),
+  key      text not null unique,               -- read_more · next_chapter · back_to_work
+  context  text
+);
+```
+
+---
+
+## OPERATIONS
+
+```sql
+create table revisions (
+  id           uuid primary key default gen_random_uuid(),
+  entity_type  entity_type not null,
+  entity_id    uuid not null,
+  snapshot     jsonb not null,
+  created_at   timestamptz not null default now(),
+  created_by   text
+);
+
+create table sessions (
+  id             uuid primary key default gen_random_uuid(),
+  started_at     timestamptz not null default now(),
+  locale         locale_code,
+  referrer_type  text,
+  device         text
+);
+
+create table events (
+  id          uuid primary key default gen_random_uuid(),
+  session_id  uuid references sessions(id) on delete cascade,
+  type        text not null,
+  payload     jsonb,
+  created_at  timestamptz not null default now()
+);
+```
+
+**Event types:** `page_view · scroll_depth · chapter_complete · entry_handle · door_card · door_budget · door_hypothesis · door_action · door_persona · feedback_response · email_capture · stat_note_seen`
+
+**Privacy (hard constraint):** anonymous session IDs only, no PII in `events.payload`, disclosed on `/how-this-site-works`, aggregate-facing only.
+
+---
+
+## DEFERRED TO THEIR LAYERS
+
+```sql
+-- Layer 3
+create table comments (
+  id           uuid primary key default gen_random_uuid(),
+  entity_type  entity_type not null,
+  entity_id    uuid not null,
+  parent_id    uuid references comments(id) on delete cascade,
+  author_name  text,
+  body         text not null,
+  status       comment_status not null default 'pending',
+  created_at   timestamptz not null default now()
+);
+
+-- Layer 4 (requires: create extension vector;)
+create table documents (
+  id           uuid primary key default gen_random_uuid(),
+  source_type  entity_type not null,
+  source_id    uuid not null,
+  locale       locale_code not null,
+  content      text not null,
+  embedding    vector(1536)
+);
+```
+`documents` is generated *from* published content — never authored directly.
+
+---
+
+## INDEXES
+
+```sql
+create index on translations (entity_type, entity_id, locale);
+create index on translations (entity_type, entity_id, locale, field);
+create index on chapters (case_file_id, sort_order);
+create index on features (chapter_id, sort_order);
+create index on outcomes (case_file_id, sort_order);
+create index on targets (case_file_id, sort_order);
+create index on case_files (status, sort_order);
+create index on articles (status, published_at desc);
+create index on navigation (location, sort_order);
+create index on events (session_id, created_at);
+```
+
+---
+
+## ROW LEVEL SECURITY
+
+```sql
+alter table case_files enable row level security;
+-- …repeat for every content table
+
+create policy "public reads published"
+  on case_files for select
+  using (status = 'published');
+
+create policy "public reads translations"
+  on translations for select using (true);
+```
+- **Anon key:** read-only, published rows only
+- **Service role:** all writes (sync script, `/api/events`, later the admin panel) — server-side only, never exposed to the browser
