@@ -108,14 +108,59 @@
 **Consequence:** Rejected as unnecessary: a separate BRD, MVP2–5 plans, a credentials file, content `.md` files.
 **Status:** ACTIVE
 
+### 2026-08-11 — 018 — Visual language: the Vercel-style pages win
+**Decision:** The visual language is the one used by the twelve `*.dc.html` page files in Claude Design project `f6113c80` — Geist + Geist Mono, dark-first `#000`, accent `#0070f3`, 1px hairline borders, 6–12px radii, subtle blur and gradients. The Neubrutalist `_ds/` system in the same project is **abandoned**: it was an earlier iteration that was explicitly asked to be replaced. The two are not to be blended.
+**Why:** The project contained two incompatible languages and the repo had implemented the abandoned one. Neubrutalist forbids exactly what the page designs rely on (blur, gradients, hairline borders, mixed radii), so no reconciliation exists.
+**Consequence:** `docs/design/tokens.md` is written by extracting values from the `.dc.html` pages, not from `_ds/tokens/*.css`. The existing `app/globals.css` and `tailwind.config.ts` are replaced, not salvaged. Space Grotesk → Geist in `app/layout.tsx`. Closes open question A.
+**Status:** ACTIVE — supersedes the Neubrutalist token system previously implemented in the repo
+
+### 2026-08-11 — 019 — Light and dark mode are both required
+**Decision:** The site ships both themes. Dark is the default; an explicit user choice overrides the OS preference and persists.
+**Why:** Both palettes are fully specified in the design files. This had already been implemented in code (a `data-theme` attribute plus a pre-paint script) without ever being logged — `docs/design/tokens.md` still listed it as an open question.
+**Consequence:** Every colour token is defined twice. Retro-logging an undocumented decision; the token file's "Dark mode: yes or no?" checkbox is resolved.
+**Status:** ACTIVE
+
+### 2026-08-11 — 020 — Geist for Arabic, as an explicit interim
+**Decision:** Arabic is set in Geist for now. This is a stated interim choice, to be replaced when a proper Arabic typeface is selected. The design files' `letter-spacing: normal !important` override is **not** carried over.
+**Why:** Geist has usable Arabic coverage and unblocks the RTL shell. Choosing a real Arabic face is a craft decision that shouldn't gate foundation work — but pretending the interim is a pairing would violate "Arabic is not an afterthought".
+**Consequence:** `--font-arabic` exists as a distinct token from day one, so swapping the face later is a one-line change. The typeface choice stays on the blocked list.
+**Status:** ACTIVE — interim, pending replacement
+
+### 2026-08-11 — 021 — All content comes from Notion → Supabase; the design carries none
+**Decision:** Every string in the Claude Design project is dummy content and is ignored entirely — every metric, headline, and paragraph. Specifically the 30%, the 85%+ satisfaction score, and the 10k+ downloads are **dummy** and do not enter the codebase in any form.
+**Why:** The design files were built to demonstrate layout, not to carry copy. Their metrics contradict decision 007 (the ~30% appears there as a UAE *conversion increase*, when it is an Egypt *recovery rate*, projected). Treating layout copy as content is exactly how fabricated figures get published.
+**Consequence:** The `.dc.html` files are read for structure and styling only. Decision 007 stands unchanged. Reinforces rule 1 (nothing hardcoded) and rule 7 (no fabricated content).
+**Status:** ACTIVE — reinforces 007
+
+### 2026-08-11 — 022 — Rebuild, not migrate
+**Decision:** `app/`, `components/`, and `content/` are rebuilt against the architecture rather than adapted. `content/caseFiles/*.ts` was deleted **before** the first commit so client names and disputed metrics never entered git history. The old token files are not salvaged.
+**Why:** The existing code had no `[locale]` routing, no Supabase, no query layer, static content superseded by decision 008, and the abandoned visual language. Nearly every layer needed replacing; adapting would have cost more than rebuilding and left the disputed material in history permanently.
+**Consequence:** The repo's first commit is a near-empty foundation. Pages come last, per the build order. The pre-rebuild tree is backed up outside the repo.
+**Status:** ACTIVE
+
+### 2026-08-11 — 023 — MVP-1 is deliberately plain
+**Decision:** MVP-1 ships plain text and plain images. No animation, no scroll effects, no living-map visualisation. The distinctive interaction layer is Phase 2.
+**Why:** Content is what gets interviews. Shipping simple and correct first protects the 6–9 week target; the interaction layer is where time overruns hide.
+**Consequence:** `LivingMap` renders as a plain hierarchical list in MVP-1, not the positioned SVG node graph shown in the design. The three grammars still drive structure, just not bespoke visuals. Motion tokens are defined but barely used.
+**Status:** ACTIVE — refines 015
+
+### 2026-08-11 — 024 — Results Table uses the schema enums
+**Decision:** Target status is `achieved | missed | not-measurable` and outcome status is `projected | achieved | not-measurable`, exactly as in `docs/schema.md`. The design's "Confirmed / In progress / Directional" legend is dummy and is discarded.
+**Why:** The schema enums encode the integrity rule — every declared target must be closed, and "projected" must be distinguishable from "achieved". "Directional" and "In progress" are soft labels that let an unclosed target look closed.
+**Consequence:** The Results Table renders three states from the enum. No status is inferrable or defaulted; the sync script still aborts on a missing marker.
+**Status:** ACTIVE
+
 ---
 
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |
 |---|---|---|
-| A | **Visual language** — colour, type scale, Arabic typeface, redaction palette | All page building. Resolves when the Claude Design link is provided |
 | B | Mini case files — in MVP-1 or cut? | Gallery scope |
 | C | Stale Cervello rows — route collision + 5 orphaned chapters | Sync correctness |
 | D | Contact form delivery — Supabase table or email service? | Contact page |
 | E | Ask layer: lead capture yes/no; answer boundaries | Layer 4 |
+| F | Permanent Arabic typeface | Replaces the interim in decision 020 |
+| G | `settings` table shape — see the proposal in Step 4 below | Schema apply |
+
+*Question A (visual language) closed by decision 018.*

@@ -224,6 +224,8 @@ components/
 
 **LivingMap** takes `grammar` and renders one of three layouts from the same component: journey (country-culture), atom-and-orbit (ecosystem), or docs-tree (design-system). Static, hierarchical, collapses to a list on mobile — never a force-directed graph.
 
+> **Corrected 2026-08-11 per decision 023.** In MVP-1 the LivingMap renders as a plain hierarchical list at every breakpoint — no positioned nodes, no connector lines, no visualisation. The three grammars still determine grouping and order; only the bespoke visual treatment is deferred to Phase 2.
+
 **CloudinaryImage** is the only component allowed to construct image URLs. Transform presets (thumbnail, hero, gallery, redacted) are defined once and referenced by name.
 
 ---

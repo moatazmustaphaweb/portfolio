@@ -20,7 +20,7 @@ Supabase schema · seed script (settings, navigation, ui_strings) · Notion→Su
 
 **Content:** Egypt Acquisition Web (4 chapters) · Neobiz Mobile (2) · UAE Acquisition (cover + 1) · Cervello Cloud (3)
 
-**Exit:** the launch gate in `manifesto.md` passes; `moatazmustapha.com` points at Vercel; Webflow retired.
+**Exit:** the launch gate in `docs/manifesto.md` passes; `moatazmustapha.com` points at Vercel; Webflow retired.
 
 ---
 

@@ -9,32 +9,33 @@
 
 | Task | Blocked by | Owner |
 |---|---|---|
-| Design tokens (`tokens.md`) | **Two conflicting visual languages in Claude Design project `f6113c80`.** The `_ds/` folder is a Neubrutalist system (Space Grotesk, #F0F0F0 page, 2px black borders, hard offset shadows, no blur/gradients). All 12 `*.dc.html` page designs use a *different* language (Geist + Geist Mono, dark-first #000, accent #0070f3, 1px borders, 6–12px radii, backdrop blur, radial gradient). Pick one before tokens can be written | Moataz |
-| All page building | Tokens above | — |
-| Repo is not under version control | `git init` never run — no history exists, so rule 6 (NDA discipline: "git history is permanent") has no baseline and manifesto rule 5 ("every commit deploys") cannot hold | Moataz |
-| Existing repo code conflicts with the architecture | Static content in `content/caseFiles/*.ts`, hardcoded copy in `app/page.tsx`, no `[locale]` routing, no Supabase/next-intl/Cloudinary deps. Decide: delete and rebuild per Layer 0, or migrate | Moataz |
-| Published metrics | **Decision 007 violated in both the design and the repo.** The ~30% appears as a *conversion increase* on the **UAE** case file (design + `content/caseFiles/uaeBusinessBanking.ts`) and as **"confirmed"** on Egypt (`egyptBusinessBanking.ts`), but 007 states it is a *recovery rate* for abandoned branch applicants, that Egypt figures are **projected**, and that it must be removed from UAE entirely | Moataz |
-| Results Table statuses | Design uses `Confirmed / In progress / Directional`; schema enums are `targets: achieved\|missed\|not-measurable` and `outcomes: projected\|achieved\|not-measurable`. Reconcile — schema wins unless a new decision is logged | Moataz |
-| Supabase MCP | Server added to `.mcp.json`; awaiting `claude /mcp` authentication in a regular terminal. The claude.ai Supabase connector still returns the permission error noted as manifesto open item #8 | Moataz |
-| Sync script correctness | Stale Cervello rows in Notion: route collision at `/work/cervello` + 5 orphaned chapters | Moataz |
+| 0.2 Supabase schema | Awaiting `claude /mcp` authentication in a regular terminal (not the IDE extension). Also: `settings` table design issue needs resolving before apply — see decision 025 | Moataz |
+| 0.4 Sync script correctness | Stale Cervello rows in Notion: route collision at `/work/cervello` + 5 orphaned chapters | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
-| Arabic typography | Typeface choice | Moataz |
+| Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
+
+*Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
 
 ---
 
 ## 🟡 IN PROGRESS
 
-*(nothing yet)*
+### Phase 0 foundation — steps 1–4 of the current work order
+- [x] **Step 1** — `git init` + clean baseline commit (disputed content removed first)
+- [x] **Step 2** — documentation moved into `/docs/`, cross-references fixed
+- [ ] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
+- [ ] **Step 4** — Layer 0 schema applied to Supabase (blocked on `/mcp` auth)
 
 ---
 
 ## ⬜ QUEUE — PHASE 0: FOUNDATION
 
 ### 0.1 Repo & environment
-- [ ] `create-next-app` — TypeScript, App Router, Tailwind, ESLint
-- [ ] Verify `.gitignore` covers `.env*.local` **before first commit**
+- [x] `create-next-app` — TypeScript, App Router, Tailwind *(ESLint not installed — add)*
+- [x] Verify `.gitignore` covers `.env*.local` **before first commit** — covered by `.env*`
+- [ ] Add ESLint
 - [ ] Create `.env.local` with all keys (see `docs/conventions.md` for the list)
 - [ ] Connect Vercel to the repo; add the same env vars in Vercel
 - [ ] First deploy succeeds
@@ -71,7 +72,10 @@
 - [ ] ISR config + `/api/revalidate`
 
 ### 0.6 Design tokens
-- [ ] 🔴 BLOCKED — see above
+- [ ] Extract token values from the Vercel-style `*.dc.html` designs
+- [ ] Write `docs/design/tokens.md` (semantic names, light + dark, RTL-safe)
+- [ ] Implement in `app/globals.css` + `tailwind.config.ts`
+- [ ] Swap Space Grotesk → Geist + Geist Mono in `app/layout.tsx`
 
 ### 0.7 i18n + RTL shell
 - [ ] `next-intl` + `[locale]` routing
@@ -127,4 +131,6 @@
 
 ## ✅ DONE
 
-*(nothing yet)*
+- **2026-08-11** — Read the full doc set; connected Claude Design (`DesignSync` project `f6113c80`) and added the Supabase MCP server to `.mcp.json`. Surfaced the two-visual-languages conflict and the decision-007 metric violations.
+- **2026-08-11** — Step 1: `git init` + clean foundation baseline. Deleted `content/caseFiles/*.ts`, `app/work/`, and `components/` before the first commit so client names and disputed metrics never entered history. Pre-rebuild tree backed up outside the repo at `~/Moataz_Next_pre_rebuild_backup_2026-08-10`.
+- **2026-08-11** — Step 2: moved all documentation into `/docs/` (`tokens.md` → `docs/design/tokens.md`); fixed every cross-reference so paths resolve.
