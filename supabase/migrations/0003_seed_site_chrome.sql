@@ -17,8 +17,8 @@
 --                 personal facts. Inventing a tagline would break rule 7, and
 --                 guessing a public contact address would be worse. The rows
 --                 exist so the structure is real; the values are Moataz's to
---                 supply. Until then the fallback rule omits the element,
---                 which is the correct behaviour rather than a bug.
+--                 supply — see 0004, which fills in name, email and
+--                 linkedin_url. tagline, cv_url and og_image remain NULL.
 --
 -- Arabic below is translation of structural labels, not authored content.
 -- It still needs a native review pass before launch — see the language QA
@@ -127,8 +127,8 @@ with strings(key, context, en, ar) as (values
   ('form_message',     'Contact form field',                  'Message',                'الرسالة'),
   ('form_submit',      'Contact form button',                 'Send',                   'إرسال'),
   ('form_sending',     'Submit button, pending state',        'Sending…',               'جارٍ الإرسال…'),
-  ('form_success',     'Contact form confirmation',           'Thanks — I''ll reply soon.', 'شكراً — سأردّ قريباً.'),
-  ('form_error',       'Contact form failure',                'That didn''t send. Try again, or email me directly.', 'لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة.'),
+  ('form_success',     'Contact form confirmation',           'Thanks — I’ll reply soon.', 'شكراً — سأردّ قريباً.'),
+  ('form_error',       'Contact form failure',                'That didn’t send. Try again, or email me directly.', 'لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة.'),
   ('form_required',    'Validation message',                  'This field is required.', 'هذا الحقل مطلوب.'),
 
   -- Language and theme
@@ -140,7 +140,7 @@ with strings(key, context, en, ar) as (values
   ('theme_dark',       'Theme option',                        'Dark',                   'داكن'),
 
   -- 404 and errors
-  ('not_found_title',  '404 heading',                         'That page doesn''t exist', 'هذه الصفحة غير موجودة'),
+  ('not_found_title',  '404 heading',                         'That page doesn’t exist', 'هذه الصفحة غير موجودة'),
   ('not_found_body',   '404 body',                            'The link may be out of date. The work is all still here.', 'قد يكون الرابط قديماً. جميع الأعمال ما زالت هنا.'),
   ('not_found_cta',    '404 primary action',                  'Go to the work',         'اذهب إلى الأعمال'),
   ('error_title',      'Error boundary heading',              'Something went wrong',   'حدث خطأ ما'),
