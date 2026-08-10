@@ -68,4 +68,8 @@ docs/                 all project documentation
 
 ## CURRENT STATE
 
-Phase 0 (Foundation). Nothing built yet. Visual tokens are pending — do not build pages until `docs/design/tokens.md` is filled in. Content lives in Notion and has not yet been synced.
+*Updated 2026-08-11.*
+
+Phase 0 (Foundation). The repo is under version control as of the first commit; documentation lives in `/docs`. The visual language is decided — Vercel-style, per decision 018 — and the abandoned Neubrutalist system has been removed along with all static content, per decision 022.
+
+Still to come, in order: design tokens (0.6) · Supabase schema (0.2) · seed (0.3) · sync script (0.4) · query layer (0.5) · i18n + RTL shell (0.7). Content lives in Notion and has not yet been synced. **Pages are built last** — nothing in `app/` beyond a placeholder until the query layer and shell exist.

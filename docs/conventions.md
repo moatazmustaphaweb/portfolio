@@ -1,6 +1,6 @@
 # docs/conventions.md — Coding Conventions
 
-Standard conventions, chosen so Claude Code doesn't have to ask. Deviate only with a logged decision in `decisions.md`.
+Standard conventions, chosen so Claude Code doesn't have to ask. Deviate only with a logged decision in `docs/decisions.md`.
 
 ---
 

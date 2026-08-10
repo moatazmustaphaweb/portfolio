@@ -91,7 +91,7 @@ Arabic content lives as a **child page** under each English page, titled `الع
 
 - English body → `translations` rows with `locale = 'en'`
 - Arabic child page body → same fields, `locale = 'ar'`
-- **Missing Arabic is normal.** Do not warn, do not block. The English fallback rule in `schema.md` covers it.
+- **Missing Arabic is normal.** Do not warn, do not block. The English fallback rule in `docs/schema.md` covers it.
 
 ---
 

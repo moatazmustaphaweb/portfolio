@@ -1,4 +1,4 @@
-# Implementation Manifesto — moatazmustapha.com
+# docs/manifesto.md — Implementation Manifesto — moatazmustapha.com
 ### The executable build plan. Derived from Architecture v2.0. Written to be handed to Claude Code.
 
 **Repo:** `github.com/moatazmustaphaweb/portfolio`
@@ -139,16 +139,18 @@ Per Architecture v2.0 layers: **L2** Door + result screens + how-this-site-works
 
 ## OPEN ITEMS BLOCKING WORK
 
+*Updated 2026-08-11 — items 1 and 7 resolved by decisions 018 and 020.*
+
 | # | Item | Blocks | Owner |
 |---|---|---|---|
-| 1 | **Design tokens / visual language** | all visual work | Moataz |
+| ~~1~~ | ~~Design tokens / visual language~~ | — | **Resolved — decision 018** |
 | 2 | Stale Cervello rows in Notion (route collision + 5 orphaned chapters) | sync script correctness | Moataz |
 | 3 | Mini case files — in MVP-1 or cut? | gallery scope | Moataz |
 | 4 | Metric truth table application | Results Tables, gallery cards | Moataz |
 | 5 | NDA asset audit + redaction rules | every Evidence block | Moataz |
 | 6 | Neobiz Mobile feature lists | 2 chapters | Moataz |
-| 7 | Arabic typeface choice | tokens, RTL shell | Moataz |
-| 8 | Supabase MCP permission error | direct DB access from chat | Moataz |
+| ~~7~~ | ~~Arabic typeface choice~~ | permanent face still open (question F) | **Interim resolved — decision 020** |
+| 8 | Supabase MCP permission error | direct DB access from chat | Moataz — server added to `.mcp.json`, awaiting `claude /mcp` auth |
 
 ---
 
