@@ -34,6 +34,36 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — contract corrected to match the content
+
+### `docs/sync-contract.md` Step 3 rewritten
+
+The code was right and the doc wasn't, which is the drift that makes the next person write content in the wrong shape. Step 3 now describes:
+
+- **Two kinds of content under a heading** — prose (paragraphs, list items) and a **table**, which is the item list. When a table is present it is authoritative and loose paragraphs above it are prose intro.
+- **The outcomes/targets table shape** — column 1 carries the label *and* the status marker, column 2 carries the note, with a worked example.
+- **A new rule: "A baseline is not an outcome."** Your call on the paper-model figure generalises, so I wrote it down rather than leaving it as a one-off. None of the three statuses fits a baseline honestly — not achieved, not projected, and it *is* measurable — and it has no marker because it is not that kind of claim. It belongs in `Context` prose, attributed. A baseline in context makes the other numbers mean something; the same figure in a results table reads as a claim about the work.
+
+Step 5 updated to match, with one line added that your reasoning on marker 1 earned:
+
+> **The note is not decoration.** A figure marked `[achieved]` on prototype evidence is defensible only if the note says so — the marker records *whether* it happened, the note records *how it is known*.
+
+### Code brought in line
+
+The parser joined table cells before parsing, which would have folded the delimiter and the note into the label. Cells are now split on a unit separator first, so column 1 is parsed for the marker and column 2 becomes the note. Four tests added over the real Egypt rows, including that the baseline row **still fails if left in the table** rather than being guessed at.
+
+Confirmed working: the dry-run error now names `"~15 minutes to complete an application"` — the label cell alone — rather than the whole joined row.
+
+### 404 locale — promoted
+
+Moved from a Phase 1 nice-to-have to a **launch-gate item**. An Arabic visitor hitting a bad link getting an English page is small, but it undermines a bilingual claim, and the positioning is doing Arabic properly rather than approximately.
+
+### Waiting on
+
+The four Notion edits. Current dry run: **18 would write, 8 skipped, 1 failure** — still the unmarked first outcome row. Once the markers land I re-run the dry run, and if it comes back clean, the first real sync.
+
+---
+
 ## 2026-08-11 — Cervello resolved, route scaffolding
 
 ### Dry run after your Notion fixes

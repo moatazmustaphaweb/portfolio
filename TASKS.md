@@ -148,7 +148,6 @@
 ## ⬜ QUEUE — PHASE 1: MVP-1 PAGES
 *Every route below is now scaffolded and navigable — see the route map in `docs/status.md`. Phase 1 is filling them, not creating them.*
 
-- [ ] **404 locale** — a `not-found` boundary gets no route params, so an Arabic visitor hitting a bad URL sees an English 404
 - [ ] 1. Landing
 - [ ] 2. Classic Gallery
 - [ ] 3. Case File Cover (LivingMap × 3 grammars)
@@ -166,6 +165,7 @@
 ---
 
 ## ⬜ QUEUE — PHASE 2: LAUNCH GATE
+- [ ] **404 renders in the visitor's locale.** A `not-found` boundary receives no route params, so an Arabic visitor hitting a bad link currently gets an English page. Small, but it undermines a bilingual claim — and the positioning is doing Arabic properly, not approximately. **Launch-gate item, not a nice-to-have**
 - [ ] **`settings.tagline` written and seeded (en + ar)** — must not launch with the landing page's one-line claim absent
 - [ ] **`settings.og_image` designed, uploaded to Cloudinary, seeded** — every shared link renders without it otherwise
 - [ ] **`settings.cv_url` hosted and seeded** — footer CV link is dead until then
