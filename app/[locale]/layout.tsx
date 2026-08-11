@@ -5,8 +5,11 @@ import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
+import { Analytics } from "@/components/analytics/Analytics";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
 import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
@@ -119,6 +122,10 @@ export default async function LocaleLayout({
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT}
         </Script>
+
+        <PersonJsonLd locale={typedLocale} />
+        <Analytics locale={typedLocale} />
+        <GoogleAnalytics />
 
         <NextIntlClientProvider>
           {/* Skip link: first focusable element, visible only on focus. */}

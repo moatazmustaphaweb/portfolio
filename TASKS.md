@@ -18,7 +18,7 @@
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
 | Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
-| Cloudinary cloud name | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` unset — every image is omitted until it exists | Moataz |
+| Analytics: GA or not | GA4 sets cookies and processes IPs. Incompatible with an unqualified "no IP, no fingerprinting" claim on `/how-this-site-works`. Three options in `components/analytics/GoogleAnalytics.tsx` | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
 
 *Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
@@ -33,7 +33,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: 0.9 (instrumentation + machine legibility), then Phase 1 pages
+### Next: Phase 1 pages — Landing, then Classic Gallery
 
 ---
 
@@ -119,10 +119,15 @@
 - [ ] Upload the first real assets and confirm they render
 
 ### 0.9 Instrumentation & machine legibility
-- [ ] `/api/events` → Supabase (anonymous session IDs)
-- [ ] GA
-- [ ] Person JSON-LD, `llms.txt`, `sitemap.xml`, `robots.txt`
-- [ ] Gate: paste live URL into ChatGPT/Claude, verify accurate summary
+- [x] `/api/events` → Supabase. Anonymous session IDs (sessionStorage, not cookies), per-type payload allowlist, PII backstop, no IP, no UA, referrer category only
+- [x] Person JSON-LD — from `settings`, localised, NULL values omitted
+- [x] `llms.txt` — generated from the database, never hand-written
+- [x] `sitemap.xml` — both locales with `hreflang` alternates
+- [x] `robots.txt` — GPTBot / ClaudeBot / OAI-SearchBot / PerplexityBot explicitly allowed
+- [x] Migrated `middleware.ts` → `proxy.ts` (Next 16.3 deprecation)
+- [ ] 🔴 **GA deliberately stubbed** — GA4 sets cookies and processes IPs, which conflicts with the stated privacy posture. Decision needed: skip GA / run it with disclosure + consent banner / use a cookieless service
+- [ ] `NEXT_PUBLIC_SITE_URL` at custom-domain cutover (Vercel supplies its own until then)
+- [ ] Gate: paste a live URL into ChatGPT/Claude and verify the summary — needs real content first
 
 ---
 
