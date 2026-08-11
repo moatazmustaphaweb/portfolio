@@ -13,9 +13,9 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 |---|---|---|---|
 | `/[locale]` | 🟡 stub | Shell, nav, JSON-LD, analytics | Everything. The Landing page is Phase 1 #1 |
 | `/[locale]/work` | 🟡 stub | Title, breadcrumb | ProjectGrid, ProjectCard, FilterBar |
-| `/[locale]/work/[caseFile]` | 🟡 stub · **live data** | Slug resolves against the database; unknown or unpublished 404s. Title from `translations` | LivingMap, OutcomeStrip, EntryHandles, thesis, role, sibling link |
-| `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **live data** | Chapter AND parent both resolve; 404 if either is missing or unpublished | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
-| `/[locale]/work/[caseFile]/all` | 🟡 stub · **live data** | Renders the real chapter list in order | Chapter bodies inline |
+| `/[locale]/work/[caseFile]` | 🟡 stub · **🟢 CONTENT LIVE** | 4 published case files render, both locales. Unknown/draft 404s | LivingMap, OutcomeStrip, EntryHandles — data is there, components are not |
+| `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 10 chapters render, both locales, with objective/context/result in the database | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
+| `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Renders the real chapter list | ⚠️ Order is wrong — see below. Chapter bodies inline |
 | `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
 | `/[locale]/about` | 🟡 stub | Title, breadcrumb | Timeline component, copy |
 | `/[locale]/about/philosophy` | 🟡 stub | Title, breadcrumb (3 levels) | Docs-style prose template |
@@ -30,7 +30,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 > ⚠️ **404 locale caveat.** A `not-found` boundary receives no route params, so it cannot read the locale from the URL and falls back to English. An Arabic visitor hitting a bad URL currently gets an English 404. Known gap, tracked in `TASKS.md`.
 
-> ⚠️ **The three `[caseFile]` routes currently 404 for every slug** because no content has been synced. That is correct behaviour, not a bug — they come alive with the first real sync.
+> ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
+> `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
+> The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — FIRST REAL SYNC. Content is in the database.
+
+Dry run came back clean — exit 0, zero failures, Cervello notice only — and the sync ran. **But it took three runs**, because the first two exposed bugs that the dry run could not see.
+
+### What landed
+
+| Table | Rows |
+|---|---|
+| `case_files` | 8 (4 published, 4 draft mini case files) |
+| `chapters` | 10 |
+| `outcomes` | 3 |
+| `targets` | 11 |
+| `translations` | 230 |
+| `features` · `media` | 0 |
+
+**Every marker survived the trip.** Statuses in Supabase are identical to Notion, in both locales:
+
+| Case file | Outcomes | Targets |
+|---|---|---|
+| egypt-acquisition | `achieved` `projected` `projected` | `achieved` `not-measurable` `achieved` `achieved` `not-measurable` `not-measurable` |
+| neobiz-mobile | — | `achieved` ×4, `not-measurable` |
+| cervello | — | — (notice: limits in prose) |
+
+Nothing invented, nothing coerced. All 14 rows carry their note in **both** locales.
+
+### Three bugs the sync itself exposed
+
+**1. No Arabic synced at all — silently.** `findArabicChild` matched the title exactly against `العربية`; the live pages are titled `النسخة العربية — الغلاف`. Nothing matched. It hid perfectly because decision 013 makes a missing Arabic translation the *normal* state — the one design decision that guaranteed this would look like content rather than a bug. Now matched by containment.
+
+**2. Arabic headings were never mapped.** Even after the pages were found, `## الأطروحة` / `## دوري` / `## النتائج` matched nothing, because the heading→field map was English-only. Added a synonym table. Arabic now lands on 10/10 chapters and all outcomes and targets.
+
+**3. Orphaned translations accumulated on every re-sync.** Outcomes and targets are replaced wholesale, but `translations` is polymorphic — no foreign key, so no cascade. Deleting the rows left their translations behind, and the second run turned 11 targets into 22 entity_ids, half pointing at rows that no longer existed. Translations are now deleted first. Existing orphans purged; verified zero across all four entity types.
+
+### Still missing — reported, not worked around
+
+- **`decision` is absent on all 10 chapters.** Rule 3 is non-negotiable: *"`role` and `decision` required before a chapter publishes — no Case File publishes without the 'I'."* No chapter currently has one, so strictly none should publish. Either the Notion chapters have no `Decision` heading, or it is worded differently.
+- **`features` = 0.** The sync creates no feature rows at all. The contract specifies them; the code never implemented them.
+- **Chapter order is wrong.** The linear view reads *Portal, Onboarding, Workflow, Fulfilment*; your cover says *Onboarding → Workflow → Portal → Fulfilment*. The sync never sets `sort_order`, so everything defaults to 0 and order is arbitrary. Notion has no order property — this needs a source of truth before it can be fixed.
+- **Arabic titles fall back to English.** The Arabic child pages carry no title heading, so `/ar/work/egypt-acquisition` shows *"Egypt Acquisition (Web)"*. That is decision 013 working correctly, not a defect — but it is visible.
+- **`media` = 0**, as designed: images are uploaded to Cloudinary manually (contract Step 6).
 
 ---
 

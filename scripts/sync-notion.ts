@@ -257,7 +257,7 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
       const heading =
         b.heading_1?.rich_text ?? b.heading_2?.rich_text ?? b.heading_3?.rich_text;
       if (heading) {
-        current = heading.map((t) => t.plain_text).join("").trim().toLowerCase();
+        current = canonicalHeading(heading.map((t) => t.plain_text).join(""));
         if (!sections.has(current)) sections.set(current, []);
         continue;
       }
@@ -297,19 +297,64 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
   return sections;
 }
 
-/** Arabic lives as a child page titled العربية (or Arabic). */
+/**
+ * Find the Arabic child page.
+ *
+ * The contract says the child is titled `العربية` (or `Arabic`) and the
+ * matcher tested for exactly that. The live pages are titled
+ * `النسخة العربية — الغلاف`, `النسخة العربية — النتائج` and so on, so nothing
+ * matched and NO ARABIC SYNCED AT ALL — silently, because a missing Arabic
+ * translation is indistinguishable from "not written yet" (decision 013 makes
+ * that the normal state, which is exactly what hid this).
+ *
+ * Now matched by containment, which is robust to the trailing section name.
+ */
 async function findArabicChild(pageId: string): Promise<string | null> {
   const res = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
   for (const block of res.results) {
     const b = block as { type: string; id: string; child_page?: { title: string } };
     if (b.type !== "child_page") continue;
     const t = (b.child_page?.title ?? "").trim().toLowerCase();
-    if (t === "العربية" || t === "arabic") return b.id;
+    if (t.includes("العربية") || t.includes("arabic")) return b.id;
   }
   return null;
 }
 
 /* -------------------------------------------------------------- field maps */
+
+/**
+ * Arabic headings → the canonical English heading key.
+ *
+ * The Arabic child pages use Arabic headings (`## الأطروحة`, `## دوري`,
+ * `## النتائج`), and the field map was English-only — so every Arabic heading
+ * failed to match and NO Arabic prose synced at all. It failed silently
+ * because decision 013 makes a missing Arabic translation the normal state,
+ * which is precisely what disguised it.
+ *
+ * Normalised when the body is read, so everything downstream sees one key.
+ */
+const HEADING_SYNONYMS: Record<string, string> = {
+  // Cover
+  "الأطروحة": "thesis",
+  "دوري": "role",
+  "خلاصة": "reflection",
+  "تأمّل": "reflection",
+  "النتائج": "outcomes",
+  // Chapter
+  "الغاية": "objective",
+  "الهدف": "objective",
+  "السياق": "context",
+  "القرار": "decision",
+  "الدليل": "evidence",
+  "النتيجة": "result",
+  "المعالم": "milestone",
+  "الخلاصة": "milestone",
+};
+
+function canonicalHeading(raw: string): string {
+  const trimmed = raw.trim();
+  return HEADING_SYNONYMS[trimmed] ?? trimmed.toLowerCase();
+}
 
 const CHAPTER_FIELDS: Record<string, string> = {
   objective: "objective",
@@ -629,9 +674,58 @@ async function main() {
       continue;
     }
 
+    /*
+     * Parse the Arabic table the same way, so the loop below can pair by
+     * position. Status markers are read from the English table only — the
+     * marker is the fact, and the Arabic side must not be able to disagree
+     * with it.
+     */
+    const arabicItems: { label: string; note: string | null }[] = [];
+    const arabicId = await findArabicChild(row.id);
+    if (arabicId) {
+      const arBody = await readBody(arabicId);
+      const arSelection = selectItemLines(arBody, isTargets);
+      for (const arLine of arSelection.lines) {
+        const [arLabelCell, arNoteCell] = arLine.split(CELL_SEP);
+        // Strip any marker from the Arabic label; the status is English-side.
+        const label = arLabelCell.replace(/\[[^\]]+\]/, "").trim();
+        if (label) arabicItems.push({ label, note: arNoteCell?.trim() || null });
+      }
+      if (arabicItems.length > 0 && arabicItems.length !== parsed.length) {
+        notices.push(
+          `${row.title}: Arabic ${isTargets ? "targets" : "outcomes"} table has ` +
+            `${arabicItems.length} rows but English has ${parsed.length}. Arabic skipped ` +
+            "for the mismatched rows — pairing by position across different lengths " +
+            "would attach the wrong note to the wrong figure.",
+        );
+        arabicItems.length = 0;
+      }
+    }
+
     const table = isTargets ? "targets" : "outcomes";
-    // Replace wholesale: an outcome removed in Notion must disappear here, and
-    // there is no stable key to match individual items on.
+    /*
+     * Replace wholesale: an outcome removed in Notion must disappear here, and
+     * there is no stable key to match individual items on.
+     *
+     * The translations MUST go first. `translations` is polymorphic, so it has
+     * no foreign key to cascade — deleting the rows alone orphans their
+     * translations, and every re-sync then accumulates another dead set. That
+     * happened on the second run: 11 targets became 22 entity_ids, half of them
+     * pointing at rows that no longer exist.
+     */
+    const { data: doomed } = await (await db())
+      .from(table)
+      .select("id")
+      .eq("case_file_id", parentId);
+
+    if (doomed && doomed.length > 0) {
+      await (await db())
+        .from("translations")
+        .delete()
+        .eq("entity_type", isTargets ? "target" : "outcome")
+        .in("entity_id", doomed.map((d) => d.id));
+    }
+
     await (await db()).from(table).delete().eq("case_file_id", parentId);
 
     for (const [i, item] of parsed.entries()) {
@@ -663,6 +757,28 @@ async function main() {
           ? { target: item.label, ...(item.note ? { note: item.note } : {}) }
           : { label: item.label, ...(item.note ? { note: item.note } : {}) },
       );
+
+      /*
+       * Arabic, matched by POSITION in the table. Outcomes and targets have no
+       * stable key of their own, so row order is the only correspondence
+       * available — which is why the Arabic table must have the same rows in
+       * the same order as the English one.
+       *
+       * If the counts differ the Arabic is skipped for this entity and
+       * reported: pairing row 3 of one table with row 3 of a differently
+       * ordered table would silently attach the wrong note to the wrong figure.
+       */
+      const arItem = arabicItems[i];
+      if (arItem) {
+        await upsertTranslations(
+          isTargets ? "target" : "outcome",
+          data.id,
+          "ar",
+          isTargets
+            ? { target: arItem.label, ...(arItem.note ? { note: arItem.note } : {}) }
+            : { label: arItem.label, ...(arItem.note ? { note: arItem.note } : {}) },
+        );
+      }
     }
   }
 
