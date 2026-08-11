@@ -307,6 +307,9 @@ export type Database = {
           locale: Database["public"]["Enums"]["locale_code"] | null;
           referrer_type: string | null;
           device: string | null;
+          // Resolved at the edge. The IP itself is never read or stored.
+          country: string | null;
+          city: string | null;
         };
         Insert: {
           id?: string;
@@ -314,6 +317,8 @@ export type Database = {
           locale?: Database["public"]["Enums"]["locale_code"] | null;
           referrer_type?: string | null;
           device?: string | null;
+          country?: string | null;
+          city?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["sessions"]["Insert"]>;
         Relationships: [];

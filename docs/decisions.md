@@ -186,6 +186,20 @@
 **Consequence:** The `redacted` preset uses `c_fit`. Covers and OG images use non-NDA imagery only. A redacted media id in either slot **fails loudly** rather than rendering.
 **Status:** ACTIVE — implements the answers to `docs/redaction-brief.md` §7
 
+### 2026-08-11 — 029 — Approximate geography, without storing IP addresses
+**Decision:** `sessions` records `country` (ISO alpha-2) and `city`, taken from the `x-vercel-ip-country` and `x-vercel-ip-city` headers Vercel resolves at the edge. The IP address is **never read by our code and never stored**. No region, no coordinates, no postal code, no timezone.
+**Why:** Knowing which countries and cities the work reaches is genuinely useful and does not require holding an address. Taking geography from edge-resolved headers is stronger than resolving it ourselves and deleting the IP afterwards: there is no window in which we hold it, and no code path that could log it by accident. City is already the most identifying field in the table, so the line is drawn there — anything finer turns approximate geography into a location trail.
+**Consequence:** Two nullable columns and an index on `(country, started_at desc)` for rollups. Geography is null in local development, which is correct: an unknown location beats a guessed one. Next strips client-supplied `x-vercel-*` headers in some paths, so this cannot be spoofed from a browser.
+**Verified:** a request carrying `x-forwarded-for: 194.170.101.55`, `x-real-ip`, and `Referer: …?q=moataz+private+search` stored `AE` / `Dubai` and nothing else. A full-text scan of `sessions` and `events` for the address and the query string returns nothing.
+**Status:** ACTIVE
+
+### 2026-08-11 — 030 — Google Analytics, consent-gated. Our own analytics are not
+**Decision:** GA4 runs, but only after an explicit accept. The GA `<script>` is not rendered at all until consent is granted — before that there is no request to Google, no `gtag`, and no cookie. The banner appears once, persists the answer, and offers accept and decline at **equal visual weight**, with decline first in the tab order. Dismissal is not consent; there is no X.
+**The banner gates GA and nothing else.** The site's own Supabase analytics run regardless of the answer. They are anonymous, session-scoped, store no IP, set no cookie, and cannot follow anyone between visits, so there is nothing to consent to. Someone who declines GA is still counted in our own store, with geography.
+**Why:** GA supplies a ready-made dashboard with maps and charts that would otherwise have to be built from the Supabase data, and those hours do not exist. But GA4 sets persistent cookies and processes IPs for geolocation, which cannot be reconciled with an unqualified "no IP, no fingerprinting" claim. Consent is what makes both true at once: the claim holds for everyone who declines, and everyone who accepts was asked plainly. A pre-ticked or dismissal-as-consent pattern would forfeit exactly the credibility the site is built on.
+**Consequence:** Nothing loads when `NEXT_PUBLIC_GA_ID` is unset — no banner, no script. `/how-this-site-works` (Layer 2) states the four claims in plain language. The consent hook must not be reused to gate anything else without deciding that thing needs consent on its own merits.
+**Status:** ACTIVE — supersedes the "do not run GA" recommendation made during 0.9
+
 ---
 
 ## OPEN — NOT YET DECIDED
@@ -197,6 +211,7 @@
 | D | Contact form delivery — Supabase table or email service? | Contact page |
 | E | Ask layer: lead capture yes/no; answer boundaries | Layer 4 |
 | F | Permanent Arabic typeface | Replaces the interim in decision 020 |
-| G | `settings` table shape — see the proposal in Step 4 below | Schema apply |
+| G | ~~`settings` table shape~~ | *Closed by decision 026* |
+| I | **Analytics retention window** — see the proposal in `docs/status.md` | Nothing; accumulating meanwhile |
 
 *Question A (visual language) closed by decision 018.*

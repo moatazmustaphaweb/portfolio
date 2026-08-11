@@ -22,6 +22,7 @@ import type { Locale } from "@/lib/content/types";
 const SEED_FILES = [
   "supabase/migrations/0003_seed_site_chrome.sql",
   "supabase/migrations/0005_seed_footer_link_labels.sql",
+  "supabase/migrations/0009_seed_consent_and_privacy_copy.sql",
 ];
 const CORRECTIONS = "supabase/migrations/0006_arabic_review_corrections.sql";
 
@@ -56,30 +57,42 @@ function parseTuple(line: string): string[] | null {
   return fields.length >= 4 ? fields : null;
 }
 
+/**
+ * Extract the `strings(key, context, en, ar)` tuples from a seed file.
+ *
+ * Tuples may span several lines — 0009 wraps long copy — so the block is
+ * joined before matching rather than parsed line by line. A line-based parser
+ * silently skipped the wrapped tuples and reported them as missing from the
+ * migrations, which is a false positive that would erode trust in this check.
+ */
 async function parseSeed(file: string): Promise<Expected[]> {
   const sql = await readFile(path.join(process.cwd(), file), "utf8");
   const out: Expected[] = [];
-  let inBlock = false;
 
-  for (const raw of sql.split("\n")) {
-    const line = raw.trim();
-    if (line.startsWith("--")) continue;
-    if (/with strings\(key, context, en, ar\) as \(values/.test(line)) {
-      inBlock = true;
-      continue;
-    }
-    if (!inBlock) continue;
-    if (/^\)/.test(line) || /^, ?upsert_keys/.test(line)) {
-      inBlock = false;
-      continue;
-    }
-    if (!line.startsWith("('")) continue;
+  const start = sql.indexOf("with strings(key, context, en, ar) as (values");
+  if (start === -1) return out;
 
-    const fields = parseTuple(line);
-    if (!fields) continue;
+  const rest = sql.slice(start);
+  const end = rest.search(/^\)\s*,?\s*upsert_keys/m);
+  const block = end === -1 ? rest : rest.slice(0, end);
+
+  // Strip comment lines so a commented-out tuple is not picked up.
+  const cleaned = block
+    .split("\n")
+    .filter((l) => !l.trim().startsWith("--"))
+    .join("\n");
+
+  // A tuple is four single-quoted SQL strings ('' escapes a quote) in parens.
+  const q = "'(?:[^']|'')*'";
+  const tupleRe = new RegExp(`\\(\\s*${q}\\s*,\\s*${q}\\s*,\\s*${q}\\s*,\\s*${q}\\s*\\)`, "g");
+
+  for (const match of cleaned.matchAll(tupleRe)) {
+    const fields = parseTuple(match[0]);
+    if (!fields || fields.length < 4) continue;
     const [key, , en, ar] = fields;
     out.push({ key, en, ar });
   }
+
   return out;
 }
 
