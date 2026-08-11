@@ -92,6 +92,34 @@ check(
 
 const wrongStatus = parseStatusItem("Some outcome [confirmed]", OUTCOME_STATUSES);
 check("design-file status vocabulary rejected", wrongStatus instanceof Error);
+
+/*
+ * An invented-but-plausible status must be REJECTED, not coerced to the
+ * nearest valid one. [reported] appeared in the real database and reads like
+ * it could mean "achieved" — which is exactly why coercion would be dangerous:
+ * it would silently upgrade an unverified figure to a confirmed outcome.
+ */
+const reported = parseStatusItem(
+  "Thousands of new business accounts through the digital journey [reported]",
+  OUTCOME_STATUSES,
+);
+check("[reported] REJECTED, not coerced", reported instanceof Error);
+check(
+  "  ...error names what was found and what was expected",
+  reported instanceof Error &&
+    reported.message.includes("reported") &&
+    reported.message.includes("[achieved]"),
+);
+check(
+  "  ...and returns no usable status at all",
+  reported instanceof Error && !("status" in (reported as object)),
+);
+for (const invented of ["[verified]", "[confirmed]", "[measured]", "[live]", "[done]", "[estimated]"]) {
+  check(
+    `  ${invented} rejected`,
+    parseStatusItem(`Some figure ${invented}`, OUTCOME_STATUSES) instanceof Error,
+  );
+}
 check(
   "target status not accepted for an outcome",
   parseStatusItem("Something [missed]", OUTCOME_STATUSES) instanceof Error,

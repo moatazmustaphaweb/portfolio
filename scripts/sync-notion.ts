@@ -79,6 +79,7 @@ const created: string[] = [];
 const updated: string[] = [];
 const skipped: string[] = [];
 const failed: string[] = [];
+const notices: string[] = [];
 
 function fail(entity: string, reason: string) {
   failed.push(`${entity}: ${reason}`);
@@ -558,12 +559,49 @@ async function main() {
      * spanning several figures, which is not an outcome and must not be parsed
      * as one.
      */
-    const tableRows = headings.flatMap((h) => body.get(`${h}::table`) ?? []);
+    let tableRows = headings.flatMap((h) => body.get(`${h}::table`) ?? []);
+
+    /*
+     * A "Results Table — X" page IS a results table, whatever its headings are
+     * called. The live pages use "Every number, and where it came from", which
+     * matched nothing — so targets were skipped silently and the run reported
+     * a clean zero-failure result while writing no targets at all.
+     *
+     * For a targets page, fall back to any table on the page.
+     */
+    if (isTargets && tableRows.length === 0) {
+      for (const [key, value] of body) {
+        if (key.endsWith("::table") && value.length > 0) {
+          tableRows = value;
+          break;
+        }
+      }
+    }
+
     const lines =
       tableRows.length > 0
         ? tableRows
         : headings.flatMap((h) => body.get(h) ?? []);
-    if (lines.length === 0) continue;
+
+    if (lines.length === 0) {
+      /*
+       * A results page with no table at all is legitimate: a case file may
+       * declare no targets and state its limits in prose instead, and
+       * "every declared target closed" is satisfied vacuously when none were
+       * declared. So this is a NOTICE, not a failure.
+       *
+       * It is still reported loudly, because the indistinguishable bad case —
+       * a table that exists but was not found — must never pass silently. The
+       * difference between the two is exactly what this line tells you.
+       */
+      if (isTargets) {
+        notices.push(
+          `${row.title}: no targets table found. Legitimate if this case file ` +
+            "declares its limits in prose; a problem if a table exists and was missed.",
+        );
+      }
+      continue;
+    }
 
     if (tableRows.length > 0 && DRY_RUN) {
       console.log(`  ${isTargets ? "targets" : "outcomes"} source: table (${tableRows.length} rows)`);
@@ -690,10 +728,16 @@ async function main() {
 
   /* ---- Summary ---------------------------------------------------------- */
 
+  if (notices.length > 0) {
+    console.log("\nNOTICES — not failures, but check them:\n");
+    for (const n of notices) console.log(`  • ${n}`);
+  }
+
   console.log("\n─────────────────────────────────────────");
   console.log(`created  ${created.length}`);
   console.log(`updated  ${updated.length}`);
   console.log(`skipped  ${skipped.length}`);
+  console.log(`notices  ${notices.length}`);
   console.log(`failed   ${failed.length}`);
 
   if (failed.length > 0) {

@@ -34,6 +34,51 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — the dry run's "clean" was false. Targets were never syncing.
+
+### ⚠️ I did not run the real sync, and here is why
+
+The dry run came back **exit 0, zero failures** after your fixes. It was wrong, and I checked the Results Table pages before writing rather than trusting it.
+
+**No targets were being parsed at all — across all three case files.** My parser looked for headings named `Targets` or `Results`; the live pages use `## Every number, and where it came from`. No match, so it fell through the `lines.length === 0` guard and **skipped silently**. Exactly the class of silent gap I fixed for static pages, and it produced a zero-failure run that would have written 18 entities and zero targets while reporting success.
+
+Fixed two ways: a `Results Table —` page now falls back to *any* table on the page whatever its heading is called, and a targets page yielding nothing is reported rather than skipped.
+
+### The honest picture
+
+```
+updated 18 · skipped 8 · notices 1 · failed 2
+```
+
+**Failures (2):** the Egypt and Neobiz Results Tables.
+
+**Notice (1):** Cervello has no targets table. That is legitimate — a case file may declare no targets and state its limits in prose, and "every declared target closed" is satisfied vacuously when none were declared. So it is a notice, not a failure. But it is reported loudly, because *"a table exists and was missed"* looks identical to *"there is no table"* and only this line tells them apart. I nearly shipped it as a failure, which would have been the collision-detector mistake again.
+
+### The real blocker: two different axes, one column
+
+The Results Table pages are a **three-column** table, not two:
+
+| Claim | Source | Status |
+|---|---|---|
+| ~15 minutes to complete an application | Timed across ten prototype-testing sessions | **Measured** |
+| 24 hours – 3 days to an active account | The service level agreed with the business | **Agreed target** — not my measurement |
+| 2 weeks – 1 month under the paper model | The bank's internal figures | **Baseline, internal data** |
+| The same language-switching behaviour after go-live | Reported to me by the team | **Reported** |
+| 1,500+ new SME accounts in year one | Business projection | **Projected** |
+
+**That Status column is not the schema's status.** *Measured*, *Agreed target*, *Reported*, *Baseline* answer **"how do I know this?"** — provenance. `target_status` (`achieved` / `missed` / `not-measurable`) answers **"was the declared target closed?"** — closure. They are different axes, and only two of the five values even gesture at closure.
+
+Mapping one onto the other would be coercion, and coercion is what decision 007 exists to prevent. *Measured* → `achieved` is defensible; *Reported* → `achieved` quietly upgrades hearsay; *Baseline* → anything is a category error, and by the rule we just wrote it should not be in the table at all.
+
+**So I need a decision, not a guess.** Two options:
+
+- **A. Marker in column 1, provenance stays in the Source column.** Consistent with the cover outcomes, no new parsing, both axes preserved — the marker records closure, the note records how it is known. This is what Step 5 already says the note is for.
+- **B. Extend the contract to a three-column form** where column 3 is the status, with an explicit prose→enum vocabulary that you define. More faithful to how you already write, but it needs the mapping written down and it loses whatever the enum cannot express.
+
+I would take **A**. It requires no new vocabulary, and the richness you want is already carried by the Source column.
+
+---
+
 ## 2026-08-11 — contract corrected to match the content
 
 ### `docs/sync-contract.md` Step 3 rewritten
