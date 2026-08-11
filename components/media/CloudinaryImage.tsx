@@ -43,7 +43,16 @@ export function CloudinaryImage({
   const alt = decorative ? "" : media.fields.alt;
   if (alt === undefined) return null;
 
-  const config = PRESETS[preset];
+  /*
+   * A redacted image is FORCED onto the redacted preset, whatever the caller
+   * asked for (decision 028). This is the enforcement, not a default: the
+   * redacted preset is the only non-cropping one, and an off-centre crop can
+   * clip a mask and expose the data beneath it. That failure is silent — the
+   * image still looks normal — so it cannot be left to callers passing the
+   * right preset. The redacted path is structurally incapable of cropping.
+   */
+  const effectivePreset: PresetName = media.redacted ? "redacted" : preset;
+  const config = PRESETS[effectivePreset];
 
   /*
    * Preserve the intrinsic aspect ratio for `limit` crops so the browser

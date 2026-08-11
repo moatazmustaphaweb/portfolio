@@ -166,6 +166,26 @@
 **Verified:** a `published` chapter under a `draft` parent returned 0 rows to `anon`, and flipped to 1 only once the parent was published.
 **Status:** ACTIVE — supersedes the `settings` definition and the RLS section in `docs/schema.md`
 
+### 2026-08-11 — 027 — Redaction is baked into the asset before upload
+**Decision:** NDA redaction is baked into the pixels **before** the asset is uploaded. The unredacted original **never reaches Cloudinary at all.** Cloudinary transforms handle only sizing, cropping, format and quality — never concealment. This is a security posture, not a styling preference.
+**Why:** A live Cloudinary transform does not remove anything. `…/t_redacted/abc123` is a *derived* asset; the base URL `…/abc123` still returns the untouched original. Anyone who sees a redacted image URL can delete the transform segment and fetch the unredacted screen. `docs/brief.md` calls published NDA material "a hard failure regardless of any other outcome" — a guessable URL away from an unredacted Mashreq screen is not an acceptable posture. Cloudinary's strict transformations and authenticated delivery do restrict base-asset access, but they add signing to every image request and make a single misconfiguration the difference between compliant and not. Baking has no failure mode.
+**Consequence:**
+- The redaction treatment is produced in the design tool, not by a transform chain — which also means no Cloudinary effect vocabulary constrains the design.
+- The asset **is** the record. A wrong redaction is re-exported and re-uploaded under a new `public_id`; it is never "fixed with a URL parameter".
+- Rule 3 still holds: only `public_id` is stored, presets stay named.
+- No reveal interaction of any kind — hover-to-unblur or click-to-reveal would imply a recoverable original, which by this decision does not exist.
+- Anything that would upload an original "to transform later" is a violation, including any future admin panel or bulk-import script.
+**Status:** ACTIVE — reinforces 002 and 010
+
+### 2026-08-11 — 028 — Redacted images: never cropped, never a cover or OG image
+**Decision:** Three constraints on redacted media, enforced structurally rather than by convention:
+1. **Never cropped.** The redacted path uses a non-cropping fit and cannot be configured otherwise — `CloudinaryImage` overrides the requested preset when `media.redacted` is true.
+2. **Never a case-file cover.** A redacted `cover_media_id` is rejected by a database trigger and throws in the query layer.
+3. **Never the OG image.** `settings.og_image` pointing at a redacted asset is rejected by a database trigger.
+**Why:** An off-centre crop can clip a mask and expose the data beneath it — the failure is silent and looks like a normal image. Covers and OG images are the two places the site's imagery travels **outside** our control, into LinkedIn and WhatsApp link previews, where it cannot be recalled. Both are exactly the "hard failure" case, so neither may depend on a component being called correctly.
+**Consequence:** The `redacted` preset uses `c_fit`. Covers and OG images use non-NDA imagery only. A redacted media id in either slot **fails loudly** rather than rendering.
+**Status:** ACTIVE — implements the answers to `docs/redaction-brief.md` §7
+
 ---
 
 ## OPEN — NOT YET DECIDED

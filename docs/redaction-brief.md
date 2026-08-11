@@ -1,9 +1,40 @@
 # docs/redaction-brief.md — Redaction Treatment Brief
 
 **For:** designing the NDA redaction language in Claude Design (open question H).
-**Status:** brief, not a spec. Written 2026-08-11 so the design can be made against real constraints rather than guessed at.
+**Status:** answered 2026-08-11 — see **§0 Working spec** below. The design is being made against it; the treatment itself is still to come.
 
 Decision 002 calls redaction "a deliberate, crafted treatment — not hidden, not omitted". Everything below is about making that buildable.
+
+---
+
+## 0. Working spec — answered, and implemented where it can be
+
+Moataz's answers to §7, treated as the working spec pending the finished design. Logged as decisions 027 and 028.
+
+| # | Answer | Status |
+|---|---|---|
+| **Baking** | Redaction is baked into the pixels before upload. The unredacted original never reaches Cloudinary | ✅ Decision 027. In `CLAUDE.md` rule 6 |
+| **1 Uniform vs per-image** | **Per-image.** Only the sensitive fields are masked; the interface stays legible. Showing the design while hiding the data is the point | ✅ Follows from baking — no transform could do this |
+| **2 Geometry** | **Solid filled blocks** over data fields. Not blur, not pixelation: blur reads as a broken screenshot, a crisp block reads as deliberate, and it echoes the Required Fields art concept — data replaced by shape | ⏳ Design |
+| **3 Values** | `--color-redacted-fill` / `--color-redacted-stroke` stay the interface. Fill is a mid-tone that reads intentional in both themes; stroke is a 1px hairline consistent with the design language | ⏳ Values to come. Tokens exist as placeholders |
+| **4 Badge** | **Always visible, bottom-left**, sitting with the caption rule. Quiet, not stamped across the image | ⏳ Position to implement; badge already renders |
+| **5 Small sizes** | **No simplified variant.** Blocks scale. Verify legibility at 200px | ⏳ Verify when the treatment lands |
+| **6 Aspect** | **Never cropped.** `c_fit`, never `c_fill` — an off-centre crop clipping a mask would leak | ✅ Structural: `CloudinaryImage` forces the redacted preset when `media.redacted`, so the redacted path *cannot* crop |
+| **7 Cover / OG** | **Never.** Those get shared into LinkedIn and WhatsApp previews outside our control. A redacted media id in either slot must fail, not render | ✅ Enforced by three database triggers plus a query-layer guard |
+
+### What "enforced" means, concretely
+
+Three triggers, each verified against a live attempt:
+
+| Attack | Result |
+|---|---|
+| Insert a case file with a redacted cover | blocked |
+| Update a case file's cover to a redacted asset | blocked |
+| **Bypass** — upload a clean cover, then mark it redacted | blocked |
+| Point `settings.og_image` at a redacted asset | blocked |
+| *Control:* clean cover, clean OG image | accepted |
+
+The database is the enforcement point rather than `lib/content` alone, because the writers are plural and growing: the Notion sync script today, an admin panel in Layer 4, and the Supabase table editor at any time. A rule that lives only in application code is a rule the table editor does not have.
 
 ---
 

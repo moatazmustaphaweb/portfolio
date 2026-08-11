@@ -19,7 +19,7 @@
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
 | Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
 | Cloudinary cloud name | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` unset — every image is omitted until it exists | Moataz |
-| Redaction treatment (question H) | Designing now against `docs/redaction-brief.md`. `redacted` preset is a placeholder | Moataz |
+| Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
 
 *Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
 
@@ -111,7 +111,10 @@
 - [x] Presets `thumb` / `card` / `hero` / `gallery` — verified against live Cloudinary URLs (200, correct transforms)
 - [x] `RedactedEvidence` — plain bordered surface + badge + caption
 - [x] `docs/redaction-brief.md` written for the design pass
-- [ ] 🔴 `redacted` preset is a placeholder identical to `gallery` — open question H
+- [x] Redacted path made structurally non-cropping — `CloudinaryImage` forces the `redacted` preset (`c_fit`) when `media.redacted`, verified
+- [x] Redacted media blocked from cover / `og_image` — 3 database triggers + query-layer guard, all verified including the retroactive-redaction bypass
+- [ ] 🔴 Redaction *treatment* — awaiting the design and token values (open question H). Blocks are solid fills, per-image, badge bottom-left
+- [ ] Verify redaction block legibility at 200px once the treatment lands (no simplified variant by decision)
 - [ ] 🔴 **Moataz:** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` in `.env.local` — no image can render without it
 - [ ] Upload the first real assets and confirm they render
 

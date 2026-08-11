@@ -17,7 +17,7 @@ A bilingual (English/Arabic, full RTL) portfolio for a senior product designer w
 3. **Image URLs are never stored.** Cloudinary `public_id` + a named transform preset. `CloudinaryImage` is the only component that builds URLs.
 4. **Build in order.** Schema → seed → query layer → tokens → shell → pages. Pages last.
 5. **Secrets never enter the repo.** `.env.local` is gitignored. Service-role key is server-side only.
-6. **NDA discipline.** No Mashreq screens, files, or unredacted assets in this repo, ever. Git history is permanent.
+6. **NDA discipline.** No Mashreq screens, files, or unredacted assets in this repo, ever. Git history is permanent. **Unredacted assets never reach Cloudinary either** — redaction is baked into the pixels before upload, because a live transform leaves the original fetchable at its base URL (decision 027).
 7. **No fabricated content.** Never invent metrics, outcomes, project details, or copy. If content is missing, stop and ask.
 
 ---

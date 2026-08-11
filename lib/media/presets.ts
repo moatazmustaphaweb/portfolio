@@ -17,7 +17,12 @@ export type Preset = {
   /** Intended rendered width in CSS pixels at the largest breakpoint. */
   width: number;
   height?: number;
-  /** Cloudinary crop mode. `fill` crops to fit; `limit` never upscales. */
+  /**
+   * Cloudinary crop mode.
+   *   fill  — crops to the box. NEVER valid for redacted media (decision 028).
+   *   limit — fits inside the box, never upscales.
+   *   fit   — fits inside the box, may upscale. Neither fit nor limit crops.
+   */
   crop: "fill" | "limit" | "fit";
   /** Focus point for `fill` crops. */
   gravity?: "auto" | "center";
@@ -67,26 +72,26 @@ export const PRESETS: Record<PresetName, Preset> = {
   },
 
   /**
-   * ⚠️ PLACEHOLDER — open question H.
+   * Redacted evidence. SIZING ONLY — this preset never conceals anything.
    *
-   * Deliberately identical to `gallery`: no blur, no pixelation, no tint. The
-   * NDA treatment is a design decision (decision 002 calls it a crafted
-   * signature), and inventing one would both pre-empt that decision and risk
-   * looking like a broken asset rather than an intentional one.
+   * Decision 027: the redaction is baked into the pixels before upload and the
+   * unredacted original never reaches Cloudinary. A live transform would not
+   * have protected anything — stripping the transform segment from the URL
+   * returns the untouched original — so concealment cannot live here.
    *
-   * `RedactedEvidence` currently renders a plain bordered surface with the
-   * shared `redacted_notice` badge and its caption. See docs/redaction-brief.md.
+   * `c_fit` is load-bearing, not a style choice (decision 028). A redacted
+   * image must NEVER be cropped: an off-centre crop can clip a mask and expose
+   * the data beneath it, and the failure is silent — it just looks like a
+   * normal image. `CloudinaryImage` forces this preset whenever
+   * `media.redacted` is true, so the redacted path is structurally incapable
+   * of cropping rather than merely configured not to.
    *
-   * IMPORTANT once the treatment exists: a live Cloudinary transform does not
-   * remove the original — stripping the transform segment from the URL returns
-   * the untouched image. The brief recommends baking redaction into the asset
-   * before upload so no unredacted original ever reaches Cloudinary. If that
-   * recommendation is followed, this preset stays a sizing preset and never
-   * becomes the thing protecting NDA material.
+   * The visual treatment itself is open question H. `RedactedEvidence` renders
+   * a plain bordered surface with the shared badge and caption until it lands.
    */
   redacted: {
     width: 1000,
-    crop: "limit",
+    crop: "fit",
     sizes: "(max-width: 1000px) 100vw, 1000px",
   },
 };
