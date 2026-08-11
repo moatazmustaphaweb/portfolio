@@ -23,8 +23,12 @@ const SEED_FILES = [
   "supabase/migrations/0003_seed_site_chrome.sql",
   "supabase/migrations/0005_seed_footer_link_labels.sql",
   "supabase/migrations/0009_seed_consent_and_privacy_copy.sql",
+  "supabase/migrations/0012_seed_stub_and_page_strings.sql",
 ];
-const CORRECTIONS = "supabase/migrations/0006_arabic_review_corrections.sql";
+const CORRECTIONS = [
+  "supabase/migrations/0006_arabic_review_corrections.sql",
+  "supabase/migrations/0011_arabic_privacy_copy_corrections.sql",
+];
 
 type Expected = { key: string; en: string; ar: string };
 
@@ -54,7 +58,14 @@ function parseTuple(line: string): string[] | null {
     }
     fields.push(value);
   }
-  return fields.length >= 4 ? fields : null;
+  /*
+   * Return whatever was found; callers decide how many fields they need.
+   * This used to require 4, which silently discarded every 2-field correction
+   * tuple — so the corrections files were parsed into nothing and the check
+   * only passed because the base seed had been edited directly. A checker that
+   * quietly skips its own input is worse than no checker.
+   */
+  return fields.length > 0 ? fields : null;
 }
 
 /**
@@ -98,8 +109,13 @@ async function parseSeed(file: string): Promise<Expected[]> {
 
 /** Later corrections override the base seed's Arabic. */
 async function parseCorrections(): Promise<Map<string, string>> {
-  const sql = await readFile(path.join(process.cwd(), CORRECTIONS), "utf8");
   const map = new Map<string, string>();
+  for (const file of CORRECTIONS) await parseOneCorrection(file, map);
+  return map;
+}
+
+async function parseOneCorrection(file: string, map: Map<string, string>): Promise<void> {
+  const sql = await readFile(path.join(process.cwd(), file), "utf8");
   let inBlock = false;
 
   for (const raw of sql.split("\n")) {
@@ -117,7 +133,6 @@ async function parseCorrections(): Promise<Map<string, string>> {
     const fields = parseTuple(line);
     if (fields && fields.length >= 2) map.set(fields[0], fields[1]);
   }
-  return map;
 }
 
 async function main() {

@@ -86,7 +86,7 @@ locale you are in.
 | `chapter` | Chapter | الفصل |  |
 | `chapter_of` | Chapter {current} of {total} | الفصل {current} من {total} |  |
 | `consent_accept` | Allow | أوافق | ⚠️ Review — must read as clearly as the decline |
-| `consent_decline` | No thanks | لا شكراً | ⚠️ Review — must not read as softer than accept |
+| `consent_decline` | No thanks | لا أوافق | ⚠️ Review — must not read as softer than accept |
 | `consent_message` | I use Google Analytics to see which countries my work reaches. It sets cookies. You can say no. | أستخدم Google Analytics لأعرف الدول التي تصل إليها أعمالي. يضع ملفات تعريف الارتباط. يمكنك الرفض. | ⚠️ Review — longest string; also check banner width |
 | `context` | Context | السياق |  |
 | `cv` | CV | السيرة الذاتية |  |
@@ -108,6 +108,7 @@ locale you are in.
 | `lang_ar` | العربية | العربية | By design — labelled in its own script in both locales |
 | `lang_en` | English | English | By design — labelled in its own script in both locales |
 | `language` | Language | اللغة |  |
+| `linear_view` | Read start to finish | اقرأ من البداية إلى النهاية |  |
 | `linkedin` | LinkedIn | LinkedIn | Brand name — stays Latin in Arabic |
 | `next_chapter` | Next chapter | الفصل التالي |  |
 | `no_results` | Nothing matches that filter yet. | لا يوجد ما يطابق هذه التصفية بعد. |  |
@@ -116,11 +117,16 @@ locale you are in.
 | `not_found_title` | That page doesn’t exist | هذه الصفحة غير موجودة |  |
 | `objective` | Objective | الغاية | ✅ Corrected — `الغاية`, freeing `الهدف` for `target` |
 | `outcome` | Outcome | الحصيلة | ✅ Corrected — `الحصيلة`, freeing `النتيجة` for `result` |
+| `page_about` | About | عن مُعتز |  |
+| `page_contact` | Contact | تواصل |  |
+| `page_philosophy` | Philosophy | الفلسفة |  |
+| `page_systems` | Systems | الأنظمة |  |
+| `page_work` | Work | الأعمال |  |
 | `previous_chapter` | Previous chapter | الفصل السابق |  |
 | `privacy_ga` | I use Google Analytics only if you allow it, and you can decline. | أستخدم Google Analytics فقط إذا سمحت بذلك، ويمكنك الرفض. | ⚠️ Review — register |
 | `privacy_location` | I record approximate location — country and city. | أسجّل الموقع التقريبي — الدولة والمدينة. | ⚠️ Review — register |
-| `privacy_no_ip` | I never store IP addresses. | لا أخزّن عناوين IP إطلاقاً. | ⚠️ Review — `عناوين IP` keeps IP Latin per convention |
-| `privacy_no_tracking` | I cannot follow you between visits. | لا أستطيع تتبّعك بين الزيارات. | 🔴 **Hardest to state naturally** — see notes above |
+| `privacy_no_ip` | I never store IP addresses. | لا أخزّن عناوين IP. | ⚠️ Review — `عناوين IP` keeps IP Latin per convention |
+| `privacy_no_tracking` | I cannot follow you between visits. | لا يمكنني التعرّف عليك عند عودتك. | 🔴 **Hardest to state naturally** — see notes above |
 | `privacy_title` | What this site records | ما الذي يسجّله هذا الموقع | ⚠️ Review — heading register |
 | `read_linear` | Read start to finish | اقرأ من البداية إلى النهاية | Kept — correct Arabic; length is a layout problem |
 | `read_more` | Read more | اقرأ المزيد |  |
@@ -134,6 +140,7 @@ locale you are in.
 | `status_missed` | Missed | غير محقَّق | ✅ Corrected — adjective form |
 | `status_not_measurable` | Not measurable | غير قابل للقياس | ⚠️ Layout — status pills need a shared min-width |
 | `status_projected` | Projected | تقديري | ✅ Corrected — `تقديري`; `متوقّع` over-claimed against decision 007 |
+| `stub_in_progress` | This page is being built. The structure is in place; the writing is not. | هذه الصفحة قيد الإنشاء. البنية جاهزة، أمّا المحتوى فلا. |  |
 | `target` | Target | الهدف |  |
 | `theme_dark` | Dark | داكن |  |
 | `theme_light` | Light | فاتح |  |
@@ -141,7 +148,7 @@ locale you are in.
 | `view_all` | View all | عرض الكل |  |
 ---
 
-**60 strings.** Every one present in both locales.
+**67 strings.** Every one present in both locales.
 
 To apply corrections: update the database, then re-run
 `npm run export:ui-strings` so this document stays true. The seed migration

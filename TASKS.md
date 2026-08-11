@@ -13,8 +13,8 @@
 | **`settings.tagline`** | Undecided, both languages. The line under the name on the landing page — the site's one-sentence claim about itself. **Launch-gate blocker** | Moataz |
 | **`settings.og_image`** | Not designed. Controls how every shared link renders on LinkedIn and WhatsApp — the first impression for anyone the site is forwarded to. **Launch-gate blocker** | Moataz |
 | **`settings.cv_url`** | Hosting location not chosen. The CV link appears in the footer on every page. **Launch-gate blocker** | Moataz |
-| Egypt outcomes missing a status marker | *"Two weeks to one month → …"* has no `[projected]`/`[achieved]`/`[not-measurable]`. Blocks the whole outcomes block for that case file | Moataz |
-| 4 Notion data issues | Cervello route collision · 5 orphaned Cervello chapters · 4 empty mini case files · `FOUNDATION` rows flagged into MVP-1 | Moataz |
+| **Egypt outcomes — 4 markers needed** | The outcomes are a 4-row TABLE, not one line. Each needs its own marker: a prototype-measured timing, an agreed SLA, a historical baseline, and a stated projection. Add a Status column or append markers to each label cell | Moataz |
+| Notion data issues | ~~Cervello collision~~ ✅ · ~~5 orphaned chapters~~ ✅ · 4 empty mini case files still flagged into MVP-1 (sync as draft, harmless) | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
@@ -35,7 +35,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: Moataz fixes the 4 Notion issues → first real sync → Phase 1 Landing
+### Next: 4 Egypt outcome markers → clean dry run → first real sync → Phase 1 Landing
 
 ---
 
@@ -146,8 +146,9 @@
 ---
 
 ## ⬜ QUEUE — PHASE 1: MVP-1 PAGES
-*Build in this order.*
+*Every route below is now scaffolded and navigable — see the route map in `docs/status.md`. Phase 1 is filling them, not creating them.*
 
+- [ ] **404 locale** — a `not-found` boundary gets no route params, so an Arabic visitor hitting a bad URL sees an English 404
 - [ ] 1. Landing
 - [ ] 2. Classic Gallery
 - [ ] 3. Case File Cover (LivingMap × 3 grammars)
