@@ -5,6 +5,33 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 (later still) — redaction posture enforced
+
+Moataz confirmed the §3 finding and answered the brief. Logged as **decisions 027 and 028**; `docs/redaction-brief.md` §0 now carries the working spec.
+
+**027 — redaction is baked into the pixels before upload.** The unredacted original never reaches Cloudinary. This is a security posture, not a preference: a live transform leaves the original fetchable at its base URL, one deleted path segment away. Now also stated in `CLAUDE.md` rule 6, so it is in the file read every session rather than only in a doc.
+
+**028 — redacted images are never cropped, never a cover, never the OG image.** Enforced structurally rather than by convention:
+
+- **Never cropped** — `CloudinaryImage` *forces* the `redacted` preset (`c_fit`) whenever `media.redacted` is true, overriding whatever the caller passed. Verified: a redacted image requested as `card` or `thumb` renders `c_fit,w_1000`, while clean images still crop normally.
+- **Never a cover or OG image** — three database triggers, plus a query-layer guard that throws rather than silently dropping the cover.
+
+Every path was tested against a live attempt, including the bypass and two controls:
+
+| Attack | Result |
+|---|---|
+| Insert case file with redacted cover | blocked |
+| Update cover to a redacted asset | blocked |
+| **Bypass** — clean cover, then mark it redacted | blocked |
+| `settings.og_image` → redacted asset | blocked |
+| *Control:* clean cover / clean OG | accepted |
+
+The database is the enforcement point because the writers are plural and growing — sync script, Layer 4 admin panel, and the Supabase table editor at any time. A rule living only in `lib/content` is a rule the table editor does not have.
+
+**One thing worth remembering:** the triggers first went in as `SECURITY DEFINER` and tripped six advisor warnings. Supabase grants `EXECUTE` on new public functions to `anon`/`authenticated` **explicitly** via default privileges — so `revoke ... from public` was a no-op, the opposite of the earlier `rls_auto_enable()` case where the grant *was* on `PUBLIC`. Switched to `SECURITY INVOKER` (they need no elevated privileges) and revoked from the named roles. All warnings clear; triggers still fire.
+
+---
+
 ## 2026-08-11 (later) — 0.8 media
 
 ### Built

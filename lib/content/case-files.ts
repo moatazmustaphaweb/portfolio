@@ -21,6 +21,26 @@ import type {
  * of the policy — omitting it would publish drafts.
  */
 
+/**
+ * Covers travel outside the site — into LinkedIn and WhatsApp link previews —
+ * where they cannot be recalled. A redacted asset must never end up there
+ * (decision 028).
+ *
+ * This throws rather than returning null. A silently-dropped cover looks like
+ * a missing image and gets ignored; a thrown error gets fixed. The database
+ * has a trigger enforcing the same rule, so this is defence in depth against
+ * a writer that bypasses it.
+ */
+function assertNotRedacted(cover: Media | null, slug: string): void {
+  if (cover?.redacted) {
+    throw new Error(
+      `Case file "${slug}" has a redacted image (${cover.cloudinary_public_id}) ` +
+        "as its cover. Covers are shared into link previews outside our " +
+        "control and must use non-NDA imagery only — see decision 028.",
+    );
+  }
+}
+
 /** Attach resolved alt/caption to media rows. Returns a lookup by media id. */
 async function resolveMedia(
   rows: readonly MediaRow[],
@@ -67,10 +87,13 @@ export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> =
     ),
   ]);
 
-  return withText.map((row) => ({
-    ...row,
-    cover: row.cover_media_id ? (media.get(row.cover_media_id) ?? null) : null,
-  }));
+  return withText.map((row) => {
+    const cover = row.cover_media_id
+      ? (media.get(row.cover_media_id) ?? null)
+      : null;
+    assertNotRedacted(cover, row.slug);
+    return { ...row, cover };
+  });
 });
 
 /** Slugs for `generateStaticParams`. */
@@ -142,10 +165,15 @@ export const getCaseFile = cache(
       ),
     ]);
 
+    const cover = row.cover_media_id
+      ? (media.get(row.cover_media_id) ?? null)
+      : null;
+    assertNotRedacted(cover, row.slug);
+
     return {
       ...row,
       fields: caseFields.get(row.id) ?? {},
-      cover: row.cover_media_id ? (media.get(row.cover_media_id) ?? null) : null,
+      cover,
       chapters: chapters.map((c) => ({
         ...c,
         hero: c.hero_media_id ? (media.get(c.hero_media_id) ?? null) : null,
