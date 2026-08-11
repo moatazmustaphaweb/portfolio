@@ -101,6 +101,35 @@ check(
   parseStatusItem("Something [projected]", TARGET_STATUSES) instanceof Error,
 );
 
+/*
+ * Table form (contract Step 3): column 1 holds the label AND the marker,
+ * column 2 holds the note. The sync splits on the unit separator before
+ * parsing, so parseStatusItem only ever sees the label cell.
+ */
+console.log("\nTable-form outcomes — real Egypt rows");
+eq(
+  "label cell with marker, note in column 2",
+  parseStatusItem("~15 minutes to complete an application [achieved]", OUTCOME_STATUSES),
+  { label: "~15 minutes to complete an application", status: "achieved", note: null },
+);
+eq(
+  "SLA row",
+  parseStatusItem("24 hours – 3 days to an active account [projected]", OUTCOME_STATUSES),
+  { label: "24 hours – 3 days to an active account", status: "projected", note: null },
+);
+eq(
+  "projection row",
+  parseStatusItem("1,500+ new SME accounts in year one [projected]", OUTCOME_STATUSES),
+  { label: "1,500+ new SME accounts in year one", status: "projected", note: null },
+);
+// The baseline row has no marker BY DESIGN — it is not an outcome and belongs
+// in Context prose (contract Step 3, "A baseline is not an outcome"). If it is
+// left in the table it must still fail rather than be guessed at.
+check(
+  "baseline row without a marker still fails",
+  parseStatusItem("2 weeks – 1 month under the paper model", OUTCOME_STATUSES) instanceof Error,
+);
+
 console.log("\nRoute collisions — the real Cervello case");
 const collisions = findRouteCollisions([
   { title: "Case File Cover — Cervello", route: "/[locale]/work/cervello", kind: "case_file" },

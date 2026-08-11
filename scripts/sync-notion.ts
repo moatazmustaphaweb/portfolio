@@ -42,6 +42,9 @@ async function db(): Promise<SupabaseServer> {
 
 const DATA_SOURCE_ID = "7a8ab2e1-08d1-4286-a4df-f2e87b85c219";
 
+/** ASCII unit separator — cannot occur in Notion prose. */
+const CELL_SEP = "\u001f";
+
 const DRY_RUN = process.argv.includes("--dry-run");
 const ALL_LAYERS = process.argv.includes("--all");
 
@@ -283,7 +286,9 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
   for (const [heading, rows] of tables) {
     sections.set(
       `${heading}::table`,
-      rows.map((cells) => cells.join("  |  ")),
+      // A unit separator, not a pipe: the cells must stay individually
+      // recoverable, and a pipe can legitimately appear in prose.
+      rows.map((cells) => cells.join(CELL_SEP)),
     );
   }
 
@@ -569,14 +574,33 @@ async function main() {
     let aborted = false;
 
     for (const line of lines) {
-      const item = parseStatusItem(line, allowed);
+      /*
+       * Table form: column 1 carries the label AND the status marker, column 2
+       * is the note (contract Step 3). Splitting first matters — parsing the
+       * joined row would fold the delimiter and the note into the label's
+       * trailing text.
+       *
+       * Prose form (no separator present) still parses as `label [status] — note`.
+       */
+      const [labelCell, noteCell] = line.split(CELL_SEP);
+
+      const item = parseStatusItem(labelCell, allowed);
       if (item instanceof Error) {
         // Abort THIS entity, report it, keep going with the rest of the sync.
         fail(`${row.title} → ${isTargets ? "targets" : "outcomes"}`, item.message);
         aborted = true;
         break;
       }
-      parsed.push(item);
+
+      /*
+       * The note is not decoration. A figure marked [achieved] on prototype
+       * evidence is defensible only because the note says so — the marker
+       * records whether it happened, the note records how it is known.
+       */
+      parsed.push({
+        ...item,
+        note: (noteCell?.trim() || item.note) ?? null,
+      });
     }
     if (aborted) continue;
 

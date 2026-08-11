@@ -58,7 +58,16 @@ The `Page` property encodes the entity type in its prefix. Parse it:
 
 ## STEP 3 — PAGE BODY → TRANSLATIONS
 
-The script reads the Notion page body and maps headings to fields. Expected heading structure inside a chapter page:
+The script reads the Notion page body and maps headings to fields.
+
+**Two kinds of content live under a heading, and they are read differently:**
+
+- **Prose** — paragraphs and list items become the field's text, joined with blank lines.
+- **A table** — becomes the heading's *item list*. When a table is present under a heading, it is authoritative and any loose paragraphs above it are treated as prose intro, not as items.
+
+*Corrected 2026-08-11.* This section previously described outcomes as a list. The content is written as a **table**, and the mismatch had a real cost: the parser read a summary sentence sitting above the table as though it were an outcome, and marking it would have written one nonsense row while silently discarding four real ones.
+
+### Chapter pages
 
 | Notion heading | `translations.field` |
 |---|---|
@@ -69,9 +78,9 @@ The script reads the Notion page body and maps headings to fields. Expected head
 | `Evidence` | `evidence_note` |
 | `Result` | `result` |
 | `Milestone` / `Close` | `milestone` |
-| `Features` (list) | one `features` row per item; item text → `label` |
+| `Features` **(table or list)** | one `features` row per item; item text → `label` |
 
-For a case file cover:
+### Case file covers
 
 | Notion heading | Field |
 |---|---|
@@ -79,7 +88,31 @@ For a case file cover:
 | `Thesis` | `thesis` |
 | `Role` | `role` |
 | `Reflection` | `reflection` |
-| `Outcomes` (list) | one `outcomes` row each — see Step 4 |
+| `Outcomes` **(table)** | one `outcomes` row per table row — see Step 5 |
+
+### The outcomes and targets table
+
+Two columns. A header row is expected and skipped.
+
+| Column | Becomes |
+|---|---|
+| 1 — label | `outcomes.value` / the `target` translation, **and must carry the status marker** |
+| 2 — note | the `note` translation |
+
+```
+| ~15 minutes to complete an application [achieved] | Measured in prototype testing, ten documented sessions |
+| 1,500+ new SME accounts in year one [projected]   | Controlled release; commercial launch pending          |
+```
+
+A summary sentence may sit above the table as prose. It is not an item and is never parsed as one.
+
+### A baseline is not an outcome
+
+*Rule added 2026-08-11.*
+
+The "before" figure a programme was set against — *"2 weeks to 1 month under the paper model"* — does **not** belong in the outcomes table. None of the three statuses fits it honestly: it was not achieved, it is not projected, and it is measurable. It has no marker because it is not that kind of claim.
+
+Put it in the chapter's `Context` prose, attributed to its source. It is more useful there: a baseline stated in context is what makes the other numbers mean anything, whereas the same figure sitting in a results table reads as a claim about the work.
 
 **Body content is stored as Markdown** in `translations.value`, rendered at display time.
 
@@ -97,17 +130,23 @@ Arabic content lives as a **child page** under each English page, titled `الع
 
 ## STEP 5 — OUTCOMES & TARGETS (the integrity rule)
 
-Outcome and target items must carry an explicit status marker in the Notion text. The script parses it and **fails loudly if absent** — it must never guess.
+Outcome and target items must carry an explicit status marker. The script parses it and **fails loudly if absent** — it must never guess.
+
+The marker goes in the **first column** of the table (see Step 3), and the second column is the note:
 
 ```
-1,500+ SME accounts [projected]
-Live over a year and a half [achieved]
-Completion time reduction [not-measurable] — no baseline captured
+| 1,500+ SME accounts [projected]              | Controlled release; commercial launch pending |
+| Live over a year and a half [achieved]       | Verified against production telemetry         |
+| Completion time reduction [not-measurable]   | No baseline captured                          |
 ```
 
 - Marker → `outcomes.status` / `targets.status`
 - Text before the marker → `translations.field = 'label'` / `'target'`
-- Text after `—` → `note`
+- Second column → `note`
+
+**The note is not decoration.** A figure marked `[achieved]` on prototype evidence is defensible only if the note says so — the marker records *whether* it happened, the note records *how it is known*. That distinction is what survives an interview.
+
+A legacy prose form (`label [status] — note` on one line) is still parsed if no table is present.
 
 **If a status marker is missing, abort the sync for that row and report it.** No defaults. This is how the no-fabrication rule survives automation.
 
