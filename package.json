@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "verify:content": "tsx --conditions=react-server --env-file=.env.local scripts/verify-content.ts",
-    "export:ui-strings": "tsx --conditions=react-server --env-file=.env.local scripts/export-ui-strings.ts"
+    "export:ui-strings": "tsx --conditions=react-server --env-file=.env.local scripts/export-ui-strings.ts",
+    "check:seed-drift": "tsx --conditions=react-server --env-file=.env.local scripts/check-seed-drift.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",

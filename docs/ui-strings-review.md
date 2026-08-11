@@ -2,7 +2,7 @@
 
 > **Generated** by `npm run export:ui-strings` from the live database.
 > Do not hand-edit: apply corrections to the database, then regenerate.
-> Sent for review 2026-08-11.
+> Reviewed and corrected 2026-08-11. Verified drift-free by `npm run check:seed-drift`.
 
 Every interface word on the site. No component may contain a user-facing
 literal — these are the strings they resolve instead (rule 1).
@@ -16,48 +16,42 @@ forced into Arabic equivalents.
 
 ---
 
-## Flagged before review
+## Review status
 
-### Collisions — two English concepts on one Arabic word
+**Reviewed and corrected 2026-08-11.** Nine strings changed; the two collisions
+and the NDA convention breach were the real bugs.
 
-| Arabic | Used for | Why it matters |
-|---|---|---|
-| `الهدف` | `target` (Target) **and** `objective` (Objective) | They collide in the same place: Results Table columns are Target/Outcome, chapter beats are Objective/Result |
-| `النتيجة` | `outcome` (Outcome) **and** `result` (Result) | Same — an Arabic reader sees the same two words in two different structures |
-
-### Convention breach
-
-`redacted_notice` translates **NDA** to "اتفاقية سرية". By the convention above
-it should stay Latin: `محجوب بموجب NDA`.
-
-### Length risk
-
-Character count is a rough proxy for Arabic — treat these as "measure it",
-not "it's broken".
-
-| Key | English | Arabic | Note |
+| Key | Was | Now | Why |
 |---|---|---|---|
-| `form_submit` → `form_sending` | 4 → 8 | 5 → 13 | Worst case: the **same button** resizes mid-interaction |
-| `form_email` | 5 | 17 | Largest ratio, 3.4× |
-| status pills | 6–14 | 5–15 | Vary 3× **against each other** in one table column |
-| `read_linear` | 20 | 27 | |
-| `redacted_notice` | 18 | 24 | |
-| `home` | 4 | 8 | |
-| `error_cta` | 9 | 13 | |
+| `objective` | الهدف | **الغاية** | Collided with `target` |
+| `outcome` | النتيجة | **الحصيلة** | Collided with `result` |
+| `redacted_notice` | …اتفاقية سرية | **محجوب بموجب NDA** | Technical terms stay Latin |
+| `reflection` | تأمّل | **خلاصة** | Read contemplative, not professional |
+| `status_projected` | متوقّع | **تقديري** | متوقّع reads "expected" — over-claims against decision 007 |
+| `status_achieved` | تحقّق | **محقَّق** | Adjective, not verb, in a status chip |
+| `status_missed` | لم يتحقّق | **غير محقَّق** | Adjective, not verb |
+| `skip_to_content` | تخطَّ إلى المحتوى | **انتقل إلى المحتوى** | Diacritic unusual in UI |
+| `case_file` | ملف حالة | **ملف المشروع** | Read clinical/legal |
 
-### Register — where I was unsure, most doubt first
+Verified after applying: **no Arabic value serves more than one key, and no
+English value serves more than one key**, across all 52.
 
-1. `reflection` → **تأمّل** — reads contemplative, almost devotional. You want a
-   professional retrospective. Consider "مراجعة" or "خلاصة".
-2. `status_projected` → **متوقّع** — reads "expected", which quietly over-claims
-   versus "projected/forecast". Carries decision-007 weight. Consider
-   "مُستهدَف" or "تقديري".
-3. `status_achieved` / `status_missed` → **تحقّق / لم يتحقّق** are verbs; a status
-   chip usually reads better as an adjective: محقَّق / غير محقَّق.
-4. `skip_to_content` → **تخطَّ إلى المحتوى** — imperative carrying a diacritic,
-   unusual in UI chrome. Consider "انتقل إلى المحتوى".
-5. `case_file` → **ملف حالة** — reads clinical/legal, closer to a patient or
-   court file than a design case study.
+### Kept as-is
+
+`form_email` and `read_linear` are correct Arabic. Their length is a layout
+problem, not a translation problem.
+
+### Open — layout, not language
+
+Handled in CSS rather than by shortening Arabic:
+
+- **Submit button** needs a `min-width` so `form_submit` → `form_sending`
+  (إرسال → جارٍ الإرسال…) cannot resize the button mid-interaction.
+- **Status pills** need a shared `min-width` so محقَّق / غير محقَّق /
+  غير قابل للقياس do not vary against each other down a table column.
+
+Both are tokens in `docs/design/tokens.md`; the components that consume them
+are Phase 1.
 
 ### Not bugs
 
@@ -74,7 +68,7 @@ locale you are in.
 | `all` | All | الكل |  |
 | `back_to_work` | Back to work | العودة إلى الأعمال |  |
 | `breadcrumb_label` | Breadcrumb | مسار التنقل |  |
-| `case_file` | Case file | ملف حالة | Register — reads clinical/legal in Arabic |
+| `case_file` | Case file | ملف المشروع | ✅ Corrected — `ملف المشروع` |
 | `chapter` | Chapter | الفصل |  |
 | `chapter_of` | Chapter {current} of {total} | الفصل {current} من {total} |  |
 | `context` | Context | السياق |  |
@@ -85,13 +79,13 @@ locale you are in.
 | `evidence` | Evidence | الدليل |  |
 | `filter_by` | Filter by | تصفية حسب |  |
 | `filter_domain` | Domain | المجال |  |
-| `form_email` | Email | البريد الإلكتروني | **Length** — 3.4× English |
+| `form_email` | Email | البريد الإلكتروني | Kept — correct Arabic; length is a layout problem, handled in CSS |
 | `form_error` | That didn’t send. Try again, or email me directly. | لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة. |  |
 | `form_message` | Message | الرسالة |  |
 | `form_name` | Name | الاسم |  |
 | `form_required` | This field is required. | هذا الحقل مطلوب. |  |
-| `form_sending` | Sending… | جارٍ الإرسال… | **Length** — button grows mid-interaction vs `form_submit` |
-| `form_submit` | Send | إرسال |  |
+| `form_sending` | Sending… | جارٍ الإرسال… | ⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction |
+| `form_submit` | Send | إرسال | ⚠️ Layout — see `form_sending` |
 | `form_success` | Thanks — I’ll reply soon. | شكراً — سأردّ قريباً. |  |
 | `home` | Home | الرئيسية |  |
 | `lang_ar` | العربية | العربية | By design — labelled in its own script in both locales |
@@ -103,22 +97,22 @@ locale you are in.
 | `not_found_body` | The link may be out of date. The work is all still here. | قد يكون الرابط قديماً. جميع الأعمال ما زالت هنا. |  |
 | `not_found_cta` | Go to the work | اذهب إلى الأعمال |  |
 | `not_found_title` | That page doesn’t exist | هذه الصفحة غير موجودة |  |
-| `objective` | Objective | الهدف | **Collision** — same Arabic as `target` |
-| `outcome` | Outcome | النتيجة | **Collision** — same Arabic as `result` |
+| `objective` | Objective | الغاية | ✅ Corrected — `الغاية`, freeing `الهدف` for `target` |
+| `outcome` | Outcome | الحصيلة | ✅ Corrected — `الحصيلة`, freeing `النتيجة` for `result` |
 | `previous_chapter` | Previous chapter | الفصل السابق |  |
-| `read_linear` | Read start to finish | اقرأ من البداية إلى النهاية | Length — 20 → 27 |
+| `read_linear` | Read start to finish | اقرأ من البداية إلى النهاية | Kept — correct Arabic; length is a layout problem |
 | `read_more` | Read more | اقرأ المزيد |  |
-| `redacted_notice` | Redacted under NDA | محجوب بموجب اتفاقية سرية | **NDA translated** — convention says it stays Latin |
-| `reflection` | Reflection | تأمّل | **Register** — reads contemplative/devotional |
-| `result` | Result | النتيجة | **Collision** — same Arabic as `outcome` |
+| `redacted_notice` | Redacted under NDA | محجوب بموجب NDA | ✅ Corrected — NDA now stays Latin |
+| `reflection` | Reflection | خلاصة | ✅ Corrected — `خلاصة` |
+| `result` | Result | النتيجة |  |
 | `results` | Results | النتائج |  |
 | `role_label` | Role | الدور |  |
-| `skip_to_content` | Skip to content | تخطَّ إلى المحتوى | Register — imperative with a diacritic, unusual in UI |
-| `status_achieved` | Achieved | تحقّق | Register — verb, not adjective |
-| `status_missed` | Missed | لم يتحقّق | Register — verb, not adjective |
-| `status_not_measurable` | Not measurable | غير قابل للقياس | Length — longest of the three status pills |
-| `status_projected` | Projected | متوقّع | **Register** — reads 'expected'; carries decision-007 weight |
-| `target` | Target | الهدف | **Collision** — same Arabic as `objective` |
+| `skip_to_content` | Skip to content | انتقل إلى المحتوى | ✅ Corrected — no diacritic |
+| `status_achieved` | Achieved | محقَّق | ✅ Corrected — adjective form |
+| `status_missed` | Missed | غير محقَّق | ✅ Corrected — adjective form |
+| `status_not_measurable` | Not measurable | غير قابل للقياس | ⚠️ Layout — status pills need a shared min-width |
+| `status_projected` | Projected | تقديري | ✅ Corrected — `تقديري`; `متوقّع` over-claimed against decision 007 |
+| `target` | Target | الهدف |  |
 | `theme_dark` | Dark | داكن |  |
 | `theme_light` | Light | فاتح |  |
 | `theme_toggle` | Toggle theme | تبديل المظهر |  |

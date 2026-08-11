@@ -89,6 +89,23 @@
   --control-h: 40px;
   --control-h-sm: 32px;
 
+  /*
+   * Minimum widths for controls whose LABEL CHANGES while they are on screen.
+   * Without these the element resizes mid-interaction, which is far more
+   * noticeable in Arabic: the submit button goes إرسال → جارٍ الإرسال…, roughly
+   * 2.5× the character count, and the three status pills vary ~3× against each
+   * other down a single table column.
+   *
+   * The fix belongs in CSS, not in shorter Arabic — the translations are
+   * correct and shortening them to fit a box would be the wrong trade.
+   *
+   * ⚠️ Provisional: sized to the longest Arabic string in each set by estimate,
+   * not by measurement. Verify against rendered text in BOTH locales when the
+   * components land in Phase 1.
+   */
+  --control-min-w: 8rem;   /* submit button — fits جارٍ الإرسال… */
+  --pill-min-w: 7.5rem;    /* status pill — fits غير قابل للقياس */
+
   /* --- Motion: colour and opacity only, never transform or size --- */
   --duration: 150ms;
   --ease: ease;

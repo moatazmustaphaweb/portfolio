@@ -147,6 +147,29 @@ Section rhythm is fluid:
 
 Control heights: `--control-h: 40px` (primary), `--control-h-sm: 32px` (header controls).
 
+### Minimum widths — for controls whose label changes on screen
+
+```
+--control-min-w: 8rem     /* submit button — fits جارٍ الإرسال… */
+--pill-min-w:  7.5rem     /* status pill — fits غير قابل للقياس */
+```
+
+A control that changes its own label mid-interaction must not resize while the
+user is looking at it. Two cases exist, and both are worse in Arabic:
+
+- **Submit button** — إرسال → جارٍ الإرسال… is ~2.5× the character count.
+  Apply `min-w-control`.
+- **Status pills** — محقَّق / غير محقَّق / غير قابل للقياس vary ~3× against each
+  other down a single Results Table column. Apply `min-w-pill` so the column
+  reads as one shape.
+
+The fix belongs here, not in shorter Arabic: those translations are correct
+(reviewed 2026-08-11), and trimming them to fit a box would be the wrong trade.
+
+> ⚠️ **Provisional values.** Estimated from the longest Arabic string in each
+> set, not measured against rendered text. Verify in both locales when the
+> Contact form and Results Table land in Phase 1.
+
 ## MOTION
 
 ```

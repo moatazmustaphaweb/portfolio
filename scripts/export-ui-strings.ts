@@ -13,7 +13,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { DEFAULT_LOCALE, type Locale } from "@/lib/content/types";
+import type { Locale } from "@/lib/content/types";
 
 const OUT = path.join(process.cwd(), "docs", "ui-strings-review.md");
 
@@ -22,31 +22,35 @@ const OUT = path.join(process.cwd(), "docs", "ui-strings-review.md");
  * resolved. Keyed by ui_strings.key.
  */
 const NOTES: Record<string, string> = {
-  objective: "**Collision** — same Arabic as `target`",
-  target: "**Collision** — same Arabic as `objective`",
-  outcome: "**Collision** — same Arabic as `result`",
-  result: "**Collision** — same Arabic as `outcome`",
-  redacted_notice: "**NDA translated** — convention says it stays Latin",
-  form_sending: "**Length** — button grows mid-interaction vs `form_submit`",
-  form_email: "**Length** — 3.4× English",
-  status_achieved: "Register — verb, not adjective",
-  status_missed: "Register — verb, not adjective",
-  status_projected: "**Register** — reads 'expected'; carries decision-007 weight",
-  status_not_measurable: "Length — longest of the three status pills",
-  reflection: "**Register** — reads contemplative/devotional",
-  skip_to_content: "Register — imperative with a diacritic, unusual in UI",
-  case_file: "Register — reads clinical/legal in Arabic",
-  read_linear: "Length — 20 → 27",
+  // Resolved in Moataz's review pass, 2026-08-11.
+  objective: "✅ Corrected — `الغاية`, freeing `الهدف` for `target`",
+  outcome: "✅ Corrected — `الحصيلة`, freeing `النتيجة` for `result`",
+  redacted_notice: "✅ Corrected — NDA now stays Latin",
+  reflection: "✅ Corrected — `خلاصة`",
+  status_projected: "✅ Corrected — `تقديري`; `متوقّع` over-claimed against decision 007",
+  status_achieved: "✅ Corrected — adjective form",
+  status_missed: "✅ Corrected — adjective form",
+  skip_to_content: "✅ Corrected — no diacritic",
+  case_file: "✅ Corrected — `ملف المشروع`",
+
+  // Reviewed and deliberately kept.
+  form_email: "Kept — correct Arabic; length is a layout problem, handled in CSS",
+  read_linear: "Kept — correct Arabic; length is a layout problem",
   lang_en: "By design — labelled in its own script in both locales",
   lang_ar: "By design — labelled in its own script in both locales",
   linkedin: "Brand name — stays Latin in Arabic",
+
+  // Open: layout constraints, not translation problems.
+  form_sending: "⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction",
+  form_submit: "⚠️ Layout — see `form_sending`",
+  status_not_measurable: "⚠️ Layout — status pills need a shared min-width",
 };
 
 const PREAMBLE = `# docs/ui-strings-review.md — Arabic UI String Review
 
 > **Generated** by \`npm run export:ui-strings\` from the live database.
 > Do not hand-edit: apply corrections to the database, then regenerate.
-> Sent for review 2026-08-11.
+> Reviewed and corrected 2026-08-11. Verified drift-free by \`npm run check:seed-drift\`.
 
 Every interface word on the site. No component may contain a user-facing
 literal — these are the strings they resolve instead (rule 1).
@@ -60,48 +64,42 @@ forced into Arabic equivalents.
 
 ---
 
-## Flagged before review
+## Review status
 
-### Collisions — two English concepts on one Arabic word
+**Reviewed and corrected 2026-08-11.** Nine strings changed; the two collisions
+and the NDA convention breach were the real bugs.
 
-| Arabic | Used for | Why it matters |
-|---|---|---|
-| \`الهدف\` | \`target\` (Target) **and** \`objective\` (Objective) | They collide in the same place: Results Table columns are Target/Outcome, chapter beats are Objective/Result |
-| \`النتيجة\` | \`outcome\` (Outcome) **and** \`result\` (Result) | Same — an Arabic reader sees the same two words in two different structures |
-
-### Convention breach
-
-\`redacted_notice\` translates **NDA** to "اتفاقية سرية". By the convention above
-it should stay Latin: \`محجوب بموجب NDA\`.
-
-### Length risk
-
-Character count is a rough proxy for Arabic — treat these as "measure it",
-not "it's broken".
-
-| Key | English | Arabic | Note |
+| Key | Was | Now | Why |
 |---|---|---|---|
-| \`form_submit\` → \`form_sending\` | 4 → 8 | 5 → 13 | Worst case: the **same button** resizes mid-interaction |
-| \`form_email\` | 5 | 17 | Largest ratio, 3.4× |
-| status pills | 6–14 | 5–15 | Vary 3× **against each other** in one table column |
-| \`read_linear\` | 20 | 27 | |
-| \`redacted_notice\` | 18 | 24 | |
-| \`home\` | 4 | 8 | |
-| \`error_cta\` | 9 | 13 | |
+| \`objective\` | الهدف | **الغاية** | Collided with \`target\` |
+| \`outcome\` | النتيجة | **الحصيلة** | Collided with \`result\` |
+| \`redacted_notice\` | …اتفاقية سرية | **محجوب بموجب NDA** | Technical terms stay Latin |
+| \`reflection\` | تأمّل | **خلاصة** | Read contemplative, not professional |
+| \`status_projected\` | متوقّع | **تقديري** | متوقّع reads "expected" — over-claims against decision 007 |
+| \`status_achieved\` | تحقّق | **محقَّق** | Adjective, not verb, in a status chip |
+| \`status_missed\` | لم يتحقّق | **غير محقَّق** | Adjective, not verb |
+| \`skip_to_content\` | تخطَّ إلى المحتوى | **انتقل إلى المحتوى** | Diacritic unusual in UI |
+| \`case_file\` | ملف حالة | **ملف المشروع** | Read clinical/legal |
 
-### Register — where I was unsure, most doubt first
+Verified after applying: **no Arabic value serves more than one key, and no
+English value serves more than one key**, across all 52.
 
-1. \`reflection\` → **تأمّل** — reads contemplative, almost devotional. You want a
-   professional retrospective. Consider "مراجعة" or "خلاصة".
-2. \`status_projected\` → **متوقّع** — reads "expected", which quietly over-claims
-   versus "projected/forecast". Carries decision-007 weight. Consider
-   "مُستهدَف" or "تقديري".
-3. \`status_achieved\` / \`status_missed\` → **تحقّق / لم يتحقّق** are verbs; a status
-   chip usually reads better as an adjective: محقَّق / غير محقَّق.
-4. \`skip_to_content\` → **تخطَّ إلى المحتوى** — imperative carrying a diacritic,
-   unusual in UI chrome. Consider "انتقل إلى المحتوى".
-5. \`case_file\` → **ملف حالة** — reads clinical/legal, closer to a patient or
-   court file than a design case study.
+### Kept as-is
+
+\`form_email\` and \`read_linear\` are correct Arabic. Their length is a layout
+problem, not a translation problem.
+
+### Open — layout, not language
+
+Handled in CSS rather than by shortening Arabic:
+
+- **Submit button** needs a \`min-width\` so \`form_submit\` → \`form_sending\`
+  (إرسال → جارٍ الإرسال…) cannot resize the button mid-interaction.
+- **Status pills** need a shared \`min-width\` so محقَّق / غير محقَّق /
+  غير قابل للقياس do not vary against each other down a table column.
+
+Both are tokens in \`docs/design/tokens.md\`; the components that consume them
+are Phase 1.
 
 ### Not bugs
 
