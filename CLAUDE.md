@@ -55,6 +55,7 @@ docs/                 all project documentation
 | Asking who this is for / what success means | `docs/brief.md` |
 | Styling anything | `docs/design/tokens.md` |
 | Reviewing or correcting Arabic copy | `docs/ui-strings-review.md` |
+| Asking where the build stands | `docs/status.md` |
 
 ---
 

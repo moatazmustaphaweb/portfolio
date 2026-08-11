@@ -81,7 +81,7 @@ on conflict (entity_type, entity_id, locale, field) do update
 
 with strings(key, context, en, ar) as (values
   -- Navigation and wayfinding
-  ('skip_to_content',  'Skip link, first focusable element',  'Skip to content',        'تخطَّ إلى المحتوى'),
+  ('skip_to_content',  'Skip link, first focusable element',  'Skip to content',        'انتقل إلى المحتوى'),
   ('back_to_work',     'Case file cover → gallery',           'Back to work',           'العودة إلى الأعمال'),
   ('next_chapter',     'Chapter footer',                      'Next chapter',           'الفصل التالي'),
   ('previous_chapter', 'Chapter footer',                      'Previous chapter',       'الفصل السابق'),
@@ -91,26 +91,26 @@ with strings(key, context, en, ar) as (values
   ('breadcrumb_label', 'aria-label for the breadcrumb nav',   'Breadcrumb',             'مسار التنقل'),
 
   -- Case file structure
-  ('case_file',        'Kicker on a case file cover',         'Case file',              'ملف حالة'),
+  ('case_file',        'Kicker on a case file cover',         'Case file',              'ملف المشروع'),
   ('chapter',          'Chapter label',                       'Chapter',                'الفصل'),
   ('chapter_of',       'Progress, e.g. "Chapter 1 of 3"',     'Chapter {current} of {total}', 'الفصل {current} من {total}'),
   ('role_label',       'Role line on a cover',                'Role',                   'الدور'),
-  ('objective',        'Chapter beat heading',                'Objective',              'الهدف'),
+  ('objective',        'Chapter beat heading',                'Objective',              'الغاية'),
   ('context',          'Chapter beat heading',                'Context',                'السياق'),
   ('decision',         'Chapter beat heading',                'Decision',               'القرار'),
   ('evidence',         'Chapter beat heading',                'Evidence',               'الدليل'),
   ('result',           'Chapter beat heading',                'Result',                 'النتيجة'),
-  ('reflection',       'Cover reflection block',              'Reflection',             'تأمّل'),
+  ('reflection',       'Cover reflection block',              'Reflection',             'خلاصة'),
   ('read_linear',      'Cover → linear view',                 'Read start to finish',   'اقرأ من البداية إلى النهاية'),
 
   -- Results table. Labels match the schema enums exactly (decision 024).
   ('results',          'Results table heading',               'Results',                'النتائج'),
   ('target',           'Results table column',                'Target',                 'الهدف'),
-  ('outcome',          'Results table column',                'Outcome',                'النتيجة'),
-  ('status_achieved',       'target_status = achieved',       'Achieved',               'تحقّق'),
-  ('status_missed',         'target_status = missed',         'Missed',                 'لم يتحقّق'),
+  ('outcome',          'Results table column',                'Outcome',                'الحصيلة'),
+  ('status_achieved',       'target_status = achieved',       'Achieved',               'محقَّق'),
+  ('status_missed',         'target_status = missed',         'Missed',                 'غير محقَّق'),
   ('status_not_measurable', 'status = not-measurable',        'Not measurable',         'غير قابل للقياس'),
-  ('status_projected',      'outcome_status = projected',     'Projected',              'متوقّع'),
+  ('status_projected',      'outcome_status = projected',     'Projected',              'تقديري'),
 
   -- Gallery and filters
   ('all',              'Default filter option',               'All',                    'الكل'),
@@ -119,7 +119,7 @@ with strings(key, context, en, ar) as (values
   ('no_results',       'Empty filter state',                  'Nothing matches that filter yet.', 'لا يوجد ما يطابق هذه التصفية بعد.'),
 
   -- Media
-  ('redacted_notice',  'Caption on a redacted image',         'Redacted under NDA',     'محجوب بموجب اتفاقية سرية'),
+  ('redacted_notice',  'Caption on a redacted image',         'Redacted under NDA',     'محجوب بموجب NDA'),
 
   -- Contact form
   ('form_name',        'Contact form field',                  'Name',                   'الاسم'),

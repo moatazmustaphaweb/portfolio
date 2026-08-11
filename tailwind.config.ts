@@ -197,6 +197,11 @@ const config: Config = {
       backdropBlur: {
         header: "var(--blur-header)",
       },
+      minWidth: {
+        // For controls whose label changes on screen — see globals.css.
+        control: "var(--control-min-w)",
+        pill: "var(--pill-min-w)",
+      },
       height: {
         "header-h": "var(--header-h)",
         "control-h": "var(--control-h)",
