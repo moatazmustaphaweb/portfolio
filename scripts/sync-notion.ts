@@ -192,13 +192,37 @@ async function fetchRows(): Promise<Row[]> {
 }
 
 /**
+ * Read the rows of a Notion table block as `[cell, cell, …]` per row.
+ * The header row is dropped.
+ */
+async function readTable(tableId: string): Promise<string[][]> {
+  const rows: string[][] = [];
+  const res = await notion.blocks.children.list({ block_id: tableId, page_size: 100 });
+
+  for (const [i, block] of res.results.entries()) {
+    const b = block as { type: string; table_row?: { cells: { plain_text: string }[][] } };
+    if (b.type !== "table_row" || !b.table_row) continue;
+    if (i === 0) continue; // header row
+    const cells = b.table_row.cells.map((c) => c.map((t) => t.plain_text).join("").trim());
+    if (cells.some((c) => c)) rows.push(cells);
+  }
+  return rows;
+}
+
+/**
  * Read a page body as a flat list of headings and the text under each.
  * Contract Step 3 maps headings to translation fields.
+ *
+ * Tables are captured separately from prose. Outcomes and targets in this
+ * database are written as TABLES — label in one column, source note in
+ * another — not as the bullet lists the contract assumed. A heading's loose
+ * paragraphs are its prose; its table rows are its items.
  */
 async function readBody(pageId: string): Promise<Map<string, string[]>> {
   const sections = new Map<string, string[]>();
   let current = "__intro__";
   let cursor: string | undefined;
+  const tables = new Map<string, string[][]>();
 
   do {
     const res = await notion.blocks.children.list({
@@ -217,6 +241,13 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
         bulleted_list_item?: { rich_text: { plain_text: string }[] };
         numbered_list_item?: { rich_text: { plain_text: string }[] };
       };
+
+      if ((b as { type: string }).type === "table") {
+        const rows = await readTable((b as unknown as { id: string }).id);
+        const existing = tables.get(current) ?? [];
+        tables.set(current, [...existing, ...rows]);
+        continue;
+      }
 
       const heading =
         b.heading_1?.rich_text ?? b.heading_2?.rich_text ?? b.heading_3?.rich_text;
@@ -242,6 +273,19 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
 
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
   } while (cursor);
+
+  /*
+   * Table rows are stored under a "heading::table" key. Keeping them separate
+   * from prose is what lets the outcomes parser use the table as the item list
+   * and treat a loose summary sentence above it as prose — rather than reading
+   * that sentence as an outcome, which is what it did before.
+   */
+  for (const [heading, rows] of tables) {
+    sections.set(
+      `${heading}::table`,
+      rows.map((cells) => cells.join("  |  ")),
+    );
+  }
 
   return sections;
 }
@@ -501,10 +545,24 @@ async function main() {
 
     const body = await readBody(row.id);
     const isTargets = row.kind === "targets";
-    const lines = isTargets
-      ? [...(body.get("targets") ?? []), ...(body.get("results") ?? [])]
-      : (body.get("outcomes") ?? []);
+    const headings = isTargets ? ["targets", "results"] : ["outcomes"];
+
+    /*
+     * A table under the heading IS the item list. Loose paragraphs are prose —
+     * in this database the outcomes section opens with a summary sentence
+     * spanning several figures, which is not an outcome and must not be parsed
+     * as one.
+     */
+    const tableRows = headings.flatMap((h) => body.get(`${h}::table`) ?? []);
+    const lines =
+      tableRows.length > 0
+        ? tableRows
+        : headings.flatMap((h) => body.get(h) ?? []);
     if (lines.length === 0) continue;
+
+    if (tableRows.length > 0 && DRY_RUN) {
+      console.log(`  ${isTargets ? "targets" : "outcomes"} source: table (${tableRows.length} rows)`);
+    }
 
     const allowed = isTargets ? TARGET_STATUSES : OUTCOME_STATUSES;
     const parsed: { label: string; status: string; note: string | null }[] = [];

@@ -5,6 +5,93 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## ROUTE MAP — what is a stub and what is real
+
+*Kept current as pages fill. This is the progress view.*
+
+| Route | State | What is real | What is missing |
+|---|---|---|---|
+| `/[locale]` | 🟡 stub | Shell, nav, JSON-LD, analytics | Everything. The Landing page is Phase 1 #1 |
+| `/[locale]/work` | 🟡 stub | Title, breadcrumb | ProjectGrid, ProjectCard, FilterBar |
+| `/[locale]/work/[caseFile]` | 🟡 stub · **live data** | Slug resolves against the database; unknown or unpublished 404s. Title from `translations` | LivingMap, OutcomeStrip, EntryHandles, thesis, role, sibling link |
+| `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **live data** | Chapter AND parent both resolve; 404 if either is missing or unpublished | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
+| `/[locale]/work/[caseFile]/all` | 🟡 stub · **live data** | Renders the real chapter list in order | Chapter bodies inline |
+| `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
+| `/[locale]/about` | 🟡 stub | Title, breadcrumb | Timeline component, copy |
+| `/[locale]/about/philosophy` | 🟡 stub | Title, breadcrumb (3 levels) | Docs-style prose template |
+| `/[locale]/contact` | 🟡 stub | Title, breadcrumb | Form, delivery (open question D) |
+| `404` | 🟢 **real** | Title, body, CTA, all from `ui_strings` | Locale — see the caveat below |
+| `/robots.txt` · `/sitemap.xml` · `/llms.txt` | 🟢 **real** | Generated from the database | — |
+| `/api/events` · `/api/revalidate` | 🟢 **real** | Verified against live requests | — |
+| `/[locale]/work/[caseFile]/cut/[cut]` | ⚪ not built | — | Layer 3 |
+| `/[locale]/door` · `/for/[archetype]` · `/read` · `/studio` | ⚪ not built | — | Layers 2–3 |
+
+**Every stub renders its title and body copy from Supabase.** Rule 1 applies to scaffolding too — a hardcoded heading in a stub survives into the real page because nobody remembers to remove it.
+
+> ⚠️ **404 locale caveat.** A `not-found` boundary receives no route params, so it cannot read the locale from the URL and falls back to English. An Arabic visitor hitting a bad URL currently gets an English 404. Known gap, tracked in `TASKS.md`.
+
+> ⚠️ **The three `[caseFile]` routes currently 404 for every slug** because no content has been synced. That is correct behaviour, not a bug — they come alive with the first real sync.
+
+---
+
+## 2026-08-11 — Cervello resolved, route scaffolding
+
+### Dry run after your Notion fixes
+
+The collision is gone. `cervello` now syncs as published with its 3 completed chapters, and **all 8 previously-failing Cervello rows pass**. `Results Table — Cervello` and `Linear View — Cervello` are correctly not flagged — the results table is a different entity kind, and Linear Views are skipped by design.
+
+```
+Read 67 rows, 39 in scope.
+created 0 · updated 18 · skipped 8 · failed 1
+```
+
+### ⚠️ The Egypt outcome is not what my last report implied
+
+You said mark it `[projected]`, and I did not, because doing so would have been wrong.
+
+The line I reported — *"Two weeks to one month → about fifteen minutes to submit, twenty-four hours to three days to activate."* — is a **summary headline spanning three different figures**, not an outcome. Below it sits a **four-row table** carrying the real outcomes with their source notes:
+
+| Outcome | Source note in Notion |
+|---|---|
+| ~15 minutes to complete an application | Measured across ten prototype-testing sessions and documented |
+| 24 hours – 3 days to an active account | The service level agreed with the business |
+| 2 weeks – 1 month under the paper model | The bank's own internal figure, the objective the programme was set against |
+| 1,500+ new SME accounts in year one | A projection. Egypt is in controlled release; no commercial launch |
+
+Marking the headline `[projected]` would have created one nonsense row and **silently discarded all four real outcomes**.
+
+The root cause is a contract mismatch, not a content error: `docs/sync-contract.md` Step 3 says *"Outcomes (list) → one outcomes row each"*, but the content is written as a **table**. The sync now reads tables — a table under the heading is the item list, and loose paragraphs above it are prose. It correctly reports `outcomes source: table (4 rows)` and fails on the first real row instead of the headline.
+
+**What I need from you:** four separate markers, one per row, because they are genuinely different judgements — a prototype-measured timing, an agreed SLA, a historical baseline, and a stated projection. Decision 007 says these must be explicit and must not be guessed, and I am not the one who can make those four calls. The table has no Status column; either add one, or append the marker to each label cell.
+
+### Route scaffolding — all MVP-1 routes navigable
+
+See the route map at the top of this document, which I will keep current.
+
+Validated against a temporary fixture case file, then removed:
+
+| Check | Result |
+|---|---|
+| `/en/work/…/probe-chapter` | 200, breadcrumb `Home / Work / Route Probe Case File / Probe Chapter` |
+| `/ar/work/…/probe-chapter` | 200, `dir="rtl"`, breadcrumb `الرئيسية / الأعمال / ملف اختبار المسار / فصل الاختبار` |
+| Linear view ordering | `01 فصل الاختبار`, `02 الفصل الثاني` |
+| Unknown case file / unknown chapter | 404, both |
+
+Breadcrumb deliberately does not reverse itself or flip its separator for RTL — `dir` on `<html>` mirrors the row, and doing both would double-flip it.
+
+### Arabic corrections applied
+
+- `privacy_no_tracking` → **لا يمكنني التعرّف عليك عند عودتك.** Your call was right.
+- `privacy_no_ip` → **لا أخزّن عناوين IP.** Dropped `إطلاقاً` — `لا` already carries "never", and the emphatic particle tipped a plain fact into protesting.
+- `consent_accept` / `consent_decline` → **أوافق / لا أوافق**. Parallel construction is how equal weight is achieved. `لا شكراً` is polite where `أوافق` is decisive — an asymmetry in the opposite direction from the usual dark pattern, but an asymmetry.
+- `privacy_location` kept as `أسجّل` — no warmer alternative reads as precisely.
+
+### A dead check found while doing it
+
+`check-seed-drift` required 4 fields per tuple, so **every 2-field correction tuple was silently discarded** — the corrections files were parsed into nothing. It only ever passed because I had edited the base seed directly last time. Fixed; it now catches what it was built to catch.
+
+---
+
 ## 2026-08-11 — dry run, retention, Arabic review
 
 ### The dry run — and three fidelity bugs it had
