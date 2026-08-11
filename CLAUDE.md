@@ -54,6 +54,7 @@ docs/                 all project documentation
 | Naming things, structuring files, committing | `docs/conventions.md` |
 | Asking who this is for / what success means | `docs/brief.md` |
 | Styling anything | `docs/design/tokens.md` |
+| Reviewing or correcting Arabic copy | `docs/ui-strings-review.md` |
 
 ---
 
