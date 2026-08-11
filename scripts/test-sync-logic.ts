@@ -11,6 +11,7 @@
 
 import {
   classifyTitle,
+  selectItemLines,
   findEmptyMvpRows,
   findRouteCollisions,
   OUTCOME_STATUSES,
@@ -156,6 +157,64 @@ eq(
 check(
   "baseline row without a marker still fails",
   parseStatusItem("2 weeks – 1 month under the paper model", OUTCOME_STATUSES) instanceof Error,
+);
+
+/*
+ * The guard that the previous false-clean run depended on. These prove the
+ * behaviour, not that the current data happens to match it.
+ */
+console.log("\nItem selection — the any-heading fallback");
+
+// The real Egypt/Neobiz shape: a table under a heading the contract never named.
+const oddHeading = new Map<string, string[]>([
+  ["where this stands", ["prose line, not an item"]],
+  ["every number, and where it came from::table", ["A [achieved]", "B [projected]"]],
+]);
+eq(
+  "targets page finds a table under ANY heading",
+  selectItemLines(oddHeading, true),
+  { lines: ["A [achieved]", "B [projected]"], source: "table-fallback" },
+);
+eq(
+  "outcomes do NOT use the fallback — only a named heading",
+  selectItemLines(oddHeading, false),
+  { lines: [], source: "none" },
+);
+
+// An expected heading wins over the fallback.
+const bothTables = new Map<string, string[]>([
+  ["targets::table", ["expected [achieved]"]],
+  ["something else::table", ["stray [missed]"]],
+]);
+eq(
+  "expected heading beats the fallback",
+  selectItemLines(bothTables, true),
+  { lines: ["expected [achieved]"], source: "table" },
+);
+
+// A table beats loose prose under the same heading — the summary-sentence bug.
+const tableAndProse = new Map<string, string[]>([
+  ["outcomes", ["A summary sentence spanning several figures."]],
+  ["outcomes::table", ["Real outcome [achieved]"]],
+]);
+eq(
+  "table beats prose under the same heading",
+  selectItemLines(tableAndProse, false),
+  { lines: ["Real outcome [achieved]"], source: "table" },
+);
+
+// Legacy prose form still parses when there is no table at all.
+eq(
+  "prose form still works",
+  selectItemLines(new Map([["outcomes", ["Legacy [projected] — note"]]]), false),
+  { lines: ["Legacy [projected] — note"], source: "prose" },
+);
+
+// Cervello: no table anywhere. Must be reportable, never silently skipped.
+eq(
+  "no table anywhere returns source 'none'",
+  selectItemLines(new Map([["what i cannot claim", ["I don't have numbers for this."]]]), true),
+  { lines: [], source: "none" },
 );
 
 console.log("\nRoute collisions — the real Cervello case");
