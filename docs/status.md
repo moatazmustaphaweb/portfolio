@@ -5,6 +5,57 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — dry run, retention, Arabic review
+
+### The dry run — and three fidelity bugs it had
+
+`NOTION_API_KEY` is in. First run surfaced both failure modes on real data. But reviewing the output before showing it to you, **the dry run was lying about what a real run would do**, so I fixed it first:
+
+1. **It reported 22 updates when the truth is 14.** Chapters were listed as syncable without simulating parent resolution. In reality the Cervello route collision blocks the `cervello` case file, so **all 8 Cervello chapters fail** — including the three good ones. The dry run now records which case files *would* exist and resolves parents against that.
+2. **The "flagged into MVP-1 but not ready" list was 20 rows of mostly noise** — 4 `FOUNDATION` build tasks and 3 Linear Views that are skipped anyway, burying the 4 real mini case files. Skipped rows are now excluded.
+3. **Static pages vanished silently.** Landing, About, Contact, Systems, Classic Gallery, 404, both Comparisons and the Accessibility page appeared in neither the synced nor the skipped list — they looked handled. They are now reported under "NOT YET IMPLEMENTED", because a row absent from every list reads as success.
+
+### What it would write
+
+```
+Read 67 rows, 45 in scope.
+created 0 · updated 14 · skipped 8 · failed 10
+```
+
+**Would write (14):** 7 case files — `east`, `kshemam`, `pidetaxi`, `aam-advisor` as draft; `uae-acquisition`, `egypt-acquisition`, `neobiz-mobile` as published — and 7 chapters across Egypt, Neobiz and UAE.
+
+**Skipped (8), with reasons:** 5 `FOUNDATION —` build tasks, 3 Linear Views (derived at render).
+
+**Failed (10), nothing written:**
+
+- the `/[locale]/work/cervello` collision
+- **8 Cervello chapters**, each reported as a knock-on of that collision
+- **Egypt Acquisition outcomes** — decision 007 caught a real unmarked figure: *"Two weeks to one month → about fifteen minutes to submit, twenty-four hours to three days to activate."* has no `[projected]`/`[achieved]`/`[not-measurable]` marker, so the whole outcomes block aborted rather than guessing.
+
+That last one is the rule working exactly as intended on live content, not a test fixture.
+
+**Not yet implemented:** static, comparison and accessibility pages map to `ui_strings` scoped by route (contract Step 1). Listed in the output so they are visibly absent.
+
+### Retention — 180 days, implemented
+
+Decision 031. `pg_cron` job at 03:15 UTC daily: aggregate, then prune. Order is load-bearing.
+
+Verified with synthetic data: a 200-day-old session was deleted from raw **while its month survived in `analytics_monthly`**; a 10-day-old session was untouched; events cascaded; the aggregate has **no `city` column** (city + month + a small count is the combination that could narrow to a person; country cannot); the cron job is scheduled.
+
+### Notion error messages
+
+Your point about "bad key" vs "key valid, database not shared" is now handled explicitly — 401, 404 `object_not_found`, 403 `restricted_resource` and 429 each produce a different message naming the actual fix, including the Connections menu path for the 404 case.
+
+### Arabic — in the existing file
+
+The 8 new strings are in `docs/ui-strings-review.md`, same format, same export script. One file, as asked.
+
+**`privacy_no_tracking` is the one I am least confident in.** "I cannot follow you between visits" → `لا أستطيع تتبّعك بين الزيارات.` The problem is `تتبّع`: it reads closer to "stalk/trace" than neutral technical "track", so the sentence can sound defensive — protesting too much. Alternative in the doc: `لا يمكنني التعرّف عليك عند عودتك` ("I can't recognise you when you return"), which is softer and arguably more accurate to the mechanism, since the session id dies with the tab.
+
+Also flagged: `إطلاقاً` in the no-IP claim possibly tipping into overclaiming, `أسجّل` reading bureaucratically, and whether `لا شكراً` reads as *more* hesitant than `أوافق` is affirmative — which would be a soft dark pattern in the opposite direction from the usual one.
+
+---
+
 ## 2026-08-11 — 0.4 Notion sync script
 
 ### Built against the live database, not the contract alone

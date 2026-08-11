@@ -40,6 +40,19 @@ const NOTES: Record<string, string> = {
   lang_ar: "By design — labelled in its own script in both locales",
   linkedin: "Brand name — stays Latin in Arabic",
 
+  // Privacy + consent copy, added 2026-08-11. These four claims carry more
+  // weight than ordinary interface copy — they are the honesty the brand rests
+  // on, so a clumsy Arabic rendering undercuts exactly the regional audience
+  // the site most wants to reach.
+  privacy_no_tracking: "🔴 **Hardest to state naturally** — see notes above",
+  privacy_no_ip: "⚠️ Review — `عناوين IP` keeps IP Latin per convention",
+  privacy_location: "⚠️ Review — register",
+  privacy_ga: "⚠️ Review — register",
+  privacy_title: "⚠️ Review — heading register",
+  consent_message: "⚠️ Review — longest string; also check banner width",
+  consent_accept: "⚠️ Review — must read as clearly as the decline",
+  consent_decline: "⚠️ Review — must not read as softer than accept",
+
   // Open: layout constraints, not translation problems.
   form_sending: "⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction",
   form_submit: "⚠️ Layout — see `form_sending`",
@@ -100,6 +113,20 @@ Handled in CSS rather than by shortening Arabic:
 
 Both are tokens in \`docs/design/tokens.md\`; the components that consume them
 are Phase 1.
+
+### Privacy and consent copy — added 2026-08-11, needs review
+
+These eight are new. The four privacy claims are not ordinary interface copy: they are the site's honesty statement, and they are what an Arabic-speaking recruiter or curator reads before deciding whether to trust anything else. Flagging where I was least confident:
+
+1. **\`privacy_no_tracking\` — "I cannot follow you between visits."** The hardest to state naturally. My rendering is **\`لا أستطيع تتبّعك بين الزيارات.\`** The problem is \`تتبّع\` — it carries a surveillance connotation closer to "stalk/trace" than the neutral technical "track", so the sentence can read as protesting too much, almost defensive. Alternatives worth weighing: \`لا يمكنني التعرّف عليك عند عودتك\` ("I can't recognise you when you return") — softer and arguably more accurate to what actually happens, since the mechanism is that the session id dies with the tab. Your call which is more honest and less loaded.
+
+2. **\`privacy_no_ip\` — "I never store IP addresses."** Rendered **\`لا أخزّن عناوين IP إطلاقاً.\`** IP stays Latin per the convention. \`إطلاقاً\` is doing the work of "never" emphatically; check it does not tip into overclaiming.
+
+3. **\`privacy_location\` — "I record approximate location — country and city."** Rendered **\`أسجّل الموقع التقريبي — الدولة والمدينة.\`** Straightforward, but \`أسجّل\` ("I record/register") could also be read as "I register" in a bureaucratic sense.
+
+4. **\`privacy_ga\`** and **\`consent_message\`** both name Google Analytics in Latin, which follows the convention. \`consent_message\` is the longest string in the set — worth checking it does not wrap awkwardly in the banner at mobile width.
+
+5. **\`consent_accept\` / \`consent_decline\`** — \`أوافق\` / \`لا شكراً\`. Decision 030 requires decline to read as no harder a choice than accept. \`لا شكراً\` is polite and natural; confirm it does not read as *more* hesitant than \`أوافق\` is affirmative, which would be a soft dark pattern in the opposite direction from the usual one.
 
 ### Not bugs
 
