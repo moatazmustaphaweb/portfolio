@@ -71,6 +71,9 @@ locale you are in.
 | `case_file` | Case file | ملف المشروع | ✅ Corrected — `ملف المشروع` |
 | `chapter` | Chapter | الفصل |  |
 | `chapter_of` | Chapter {current} of {total} | الفصل {current} من {total} |  |
+| `consent_accept` | Allow | أوافق |  |
+| `consent_decline` | No thanks | لا شكراً |  |
+| `consent_message` | I use Google Analytics to see which countries my work reaches. It sets cookies. You can say no. | أستخدم Google Analytics لأعرف الدول التي تصل إليها أعمالي. يضع ملفات تعريف الارتباط. يمكنك الرفض. |  |
 | `context` | Context | السياق |  |
 | `cv` | CV | السيرة الذاتية |  |
 | `decision` | Decision | القرار |  |
@@ -100,6 +103,11 @@ locale you are in.
 | `objective` | Objective | الغاية | ✅ Corrected — `الغاية`, freeing `الهدف` for `target` |
 | `outcome` | Outcome | الحصيلة | ✅ Corrected — `الحصيلة`, freeing `النتيجة` for `result` |
 | `previous_chapter` | Previous chapter | الفصل السابق |  |
+| `privacy_ga` | I use Google Analytics only if you allow it, and you can decline. | أستخدم Google Analytics فقط إذا سمحت بذلك، ويمكنك الرفض. |  |
+| `privacy_location` | I record approximate location — country and city. | أسجّل الموقع التقريبي — الدولة والمدينة. |  |
+| `privacy_no_ip` | I never store IP addresses. | لا أخزّن عناوين IP إطلاقاً. |  |
+| `privacy_no_tracking` | I cannot follow you between visits. | لا أستطيع تتبّعك بين الزيارات. |  |
+| `privacy_title` | What this site records | ما الذي يسجّله هذا الموقع |  |
 | `read_linear` | Read start to finish | اقرأ من البداية إلى النهاية | Kept — correct Arabic; length is a layout problem |
 | `read_more` | Read more | اقرأ المزيد |  |
 | `redacted_notice` | Redacted under NDA | محجوب بموجب NDA | ✅ Corrected — NDA now stays Latin |
@@ -119,7 +127,7 @@ locale you are in.
 | `view_all` | View all | عرض الكل |  |
 ---
 
-**52 strings.** Every one present in both locales.
+**60 strings.** Every one present in both locales.
 
 To apply corrections: update the database, then re-run
 `npm run export:ui-strings` so this document stays true. The seed migration

@@ -5,6 +5,68 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — analytics: geography, consent-gated GA
+
+Decisions **029** (geography) and **030** (consent-gated GA) logged.
+
+### Geography — verified the way the referrer was
+
+`sessions` now records `country` and `city`, taken from headers Vercel resolves at the edge. The IP never enters our code, so there is nothing to discard carefully — it is never held.
+
+Test request carried `x-forwarded-for: 194.170.101.55`, `x-real-ip`, and `Referer: https://www.google.com/search?q=moataz+private+search`.
+
+| Stored | Not stored |
+|---|---|
+| `country: AE`, `city: Dubai` | the IP address, in any column |
+| `referrer_type: search` | the search query |
+| `device: desktop` | the User-Agent |
+
+A second request confirmed percent-decoding: `San%20Francisco` → `San Francisco`, `us` → `US`. A full-text scan of `sessions` and `events` for both IPs and the query string returns nothing.
+
+Deliberately **not** collected: region, coordinates, postal code, timezone. City is already the most identifying field; anything finer is a location trail.
+
+### Consent-gated GA
+
+`NEXT_PUBLIC_GA_ID` is set to the property you sent. The gate is that the GA `<script>` is **not rendered at all** until consent is granted — stronger than GA's own Consent Mode, which loads the script and then asks it to behave. Verified: no `googletagmanager` reference in the served HTML before a choice.
+
+The banner renders in both locales (`Allow` / `No thanks`, `أوافق` / `لا شكراً`) and mirrors via the existing logical properties. Decline is the same size and weight as accept and comes **first in the tab order**. There is no dismiss X — dismissal is not consent.
+
+**The banner gates GA and nothing else.** Our Supabase analytics are mounted outside it and run regardless, with geography. Someone who declines is still counted. There is a comment in `ConsentBanner.tsx` warning against reusing the hook to gate anything else without deciding that thing needs consent on its own merits.
+
+### `/how-this-site-works` copy — seeded, all four claims testable
+
+Seeded as `ui_strings` in both languages, ⚠️ **Arabic needs your review** like the last batch:
+
+| Claim | How it is true |
+|---|---|
+| I record approximate location — country and city | Verified above |
+| I never store IP addresses | No column in the schema can hold one; scan returns nothing |
+| I cannot follow you between visits | Session id lives in `sessionStorage`, dies with the tab |
+| I use Google Analytics only if you allow it | No GA script renders before an explicit accept |
+
+### Retention — proposal, needs your confirmation
+
+Indefinite accumulation is not a posture. My recommendation:
+
+**90 days for raw `sessions` and `events` rows.**
+
+- The Door validation in Layer 2 needs a few months of data at most, not years.
+- `city` + timestamp is the most identifying combination in the table; time-bounding it is the mitigation that keeps "approximate location" honest.
+- Anything longer needs a reason, and "we might want it" is not one.
+
+If you want year-over-year trends, the answer is to **pre-aggregate before deleting** — monthly counts by country, referrer type, and device, kept indefinitely — rather than keeping raw rows longer. Aggregates answer the trend questions and cannot be re-identified.
+
+Alternative if 90 feels short: **180 days**, which still bounds it and covers two full quarters. I would not go past that without a specific need.
+
+Implementation is a `pg_cron` job; I have not enabled it pending your answer.
+
+### Two process notes
+
+- **The port race cost real time.** `npm start` kept failing with `EADDRINUSE` while my kill was still settling, so several "failed" verifications were actually testing a stale server against new code. The geography code was correct from the first attempt. Using a fresh port per run is the fix; I have stopped reusing 3100.
+- Combined with the stale-`.next` issue already noted, the rule for verification runs is now: `rm -rf .next`, build, start on an **unused** port, and confirm the bind before trusting a single result.
+
+---
+
 ## 2026-08-11 — 0.9 instrumentation and machine legibility
 
 ### Cloudinary connected

@@ -18,7 +18,8 @@
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
 | Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
-| Analytics: GA or not | GA4 sets cookies and processes IPs. Incompatible with an unqualified "no IP, no fingerprinting" claim on `/how-this-site-works`. Three options in `components/analytics/GoogleAnalytics.tsx` | Moataz |
+| Analytics retention window | Proposed **90 days** raw + monthly pre-aggregation. Confirm and I will enable the `pg_cron` job | Moataz |
+| Arabic review — 8 new strings | Consent banner + the four privacy claims. `npm run export:ui-strings` regenerates the review doc | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
 
 *Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
@@ -33,7 +34,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: Phase 1 pages — Landing, then Classic Gallery
+### Next: 0.4 — Notion → Supabase sync script (`--dry-run` first)
 
 ---
 
@@ -125,7 +126,11 @@
 - [x] `sitemap.xml` — both locales with `hreflang` alternates
 - [x] `robots.txt` — GPTBot / ClaudeBot / OAI-SearchBot / PerplexityBot explicitly allowed
 - [x] Migrated `middleware.ts` → `proxy.ts` (Next 16.3 deprecation)
-- [ ] 🔴 **GA deliberately stubbed** — GA4 sets cookies and processes IPs, which conflicts with the stated privacy posture. Decision needed: skip GA / run it with disclosure + consent banner / use a cookieless service
+- [x] GA consent-gated (decision 030) — script does not render until explicit accept; banner bilingual, RTL-safe, decline equal weight and first in tab order
+- [x] Geography — `country`/`city` from edge headers, no IP stored (decision 029), verified
+- [x] `/how-this-site-works` copy seeded, all four claims testable
+- [ ] 🔴 **Retention window** — proposed 90 days raw + pre-aggregation. Awaiting confirmation, then a `pg_cron` job
+- [ ] 🔴 Arabic review of the 8 new consent/privacy strings
 - [ ] `NEXT_PUBLIC_SITE_URL` at custom-domain cutover (Vercel supplies its own until then)
 - [ ] Gate: paste a live URL into ChatGPT/Claude and verify the summary — needs real content first
 

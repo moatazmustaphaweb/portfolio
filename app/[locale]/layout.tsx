@@ -6,6 +6,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
 import { Analytics } from "@/components/analytics/Analytics";
+import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -111,6 +112,10 @@ export default async function LocaleLayout({
    */
   const dir = typedLocale === "ar" ? "rtl" : "ltr";
 
+  // Read on the server so the value is inlined; the banner is suppressed
+  // entirely when GA is not configured.
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
   return (
     <html
       lang={typedLocale}
@@ -124,8 +129,16 @@ export default async function LocaleLayout({
         </Script>
 
         <PersonJsonLd locale={typedLocale} />
+
+        {/*
+          Our own analytics: unconditional and deliberately outside the consent
+          gate. Anonymous, session-scoped, no IP, no cookie — nothing to
+          consent to. Declining GA must not silence these.
+        */}
         <Analytics locale={typedLocale} />
-        <GoogleAnalytics />
+
+        {/* GA: renders nothing until consent is explicitly granted. */}
+        <GoogleAnalytics id={gaId} />
 
         <NextIntlClientProvider>
           {/* Skip link: first focusable element, visible only on focus. */}
@@ -143,6 +156,13 @@ export default async function LocaleLayout({
           </main>
 
           <SiteFooter locale={typedLocale} />
+
+          <ConsentBanner
+            enabled={Boolean(gaId)}
+            message={ui.t("consent_message")}
+            accept={ui.t("consent_accept")}
+            decline={ui.t("consent_decline")}
+          />
         </NextIntlClientProvider>
       </body>
     </html>

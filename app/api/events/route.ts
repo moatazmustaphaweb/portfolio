@@ -10,6 +10,7 @@ import {
   PAYLOAD_KEYS,
   type PayloadValue,
   deviceType,
+  geography,
   referrerType,
 } from "@/lib/analytics/schema";
 import { isLocale } from "@/lib/content/types";
@@ -19,7 +20,8 @@ import { isLocale } from "@/lib/content/types";
  *
  * What this endpoint stores:
  *   sessions — an anonymous UUID the client generated, plus locale, a referrer
- *              CATEGORY, and a device bucket
+ *              CATEGORY, a device bucket, and approximate geography (country
+ *              and city, resolved at the edge — the IP is never read)
  *   events   — the session id, an allowlisted type, and an allowlisted payload
  *
  * What it deliberately does NOT store, and never will:
@@ -115,6 +117,10 @@ export async function POST(request: Request) {
    * rather than an overwrite — so the first-seen locale/referrer/device stand,
    * and one session cannot be rewritten by a later request.
    */
+  // Country and city come from headers Vercel resolved at the edge. The raw
+  // address is never present in this handler.
+  const { country, city } = geography(request.headers);
+
   const { error: sessionError } = await supabaseServer
     .from("sessions")
     .upsert(
@@ -125,6 +131,8 @@ export async function POST(request: Request) {
         referrer_type: referrerType(request.headers.get("referer")),
         // UA read here and discarded; only the bucket is persisted.
         device: deviceType(request.headers.get("user-agent")),
+        country,
+        city,
       },
       { onConflict: "id", ignoreDuplicates: true },
     );

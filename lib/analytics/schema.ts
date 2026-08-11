@@ -14,6 +14,9 @@
  *      of three literals, then discarded.
  *   5. No full referrer. Only a category — a referrer URL can itself carry
  *      personal information (a search query, a private document URL).
+ *   6. Approximate geography only — country and city, resolved at the edge.
+ *      The IP is never read by our code, so there is nothing to discard.
+ *      No region, no coordinates, no postal code, no timezone.
  *
  * The Layer 2 `/how-this-site-works` page will publish these claims. They have
  * to be true, not approximately true.
@@ -154,6 +157,42 @@ export function referrerType(referrer: string | null | undefined): string {
     return "ai";
   }
   return "referral";
+}
+
+/**
+ * Approximate geography, taken from headers Vercel resolves at the edge.
+ *
+ * The raw IP never enters this codebase — we read a country code and a city
+ * name that were already derived upstream. That is stronger than resolving it
+ * ourselves and deleting the address afterwards: there is no window in which
+ * we hold it, and no code path that could log it by accident.
+ *
+ * Returns nulls off-Vercel (local development), which is correct — an
+ * unknown location is better than a guessed one.
+ */
+export function geography(headers: Headers): {
+  country: string | null;
+  city: string | null;
+} {
+  const country = headers.get("x-vercel-ip-country");
+  const rawCity = headers.get("x-vercel-ip-city");
+
+  let city: string | null = null;
+  if (rawCity) {
+    // Vercel percent-encodes city names containing spaces or non-ASCII.
+    try {
+      city = decodeURIComponent(rawCity);
+    } catch {
+      city = rawCity;
+    }
+  }
+
+  return {
+    // Two-letter ISO code, or nothing. Guards against a malformed header
+    // becoming a junk value in the aggregate.
+    country: country && /^[A-Z]{2}$/i.test(country) ? country.toUpperCase() : null,
+    city: city && city.length <= 100 ? city : null,
+  };
 }
 
 /**
