@@ -56,6 +56,7 @@ docs/                 all project documentation
 | Styling anything | `docs/design/tokens.md` |
 | Reviewing or correcting Arabic copy | `docs/ui-strings-review.md` |
 | Asking where the build stands | `docs/status.md` |
+| Designing or implementing redaction | `docs/redaction-brief.md` |
 
 ---
 

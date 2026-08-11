@@ -18,6 +18,8 @@
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
 | Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
+| Cloudinary cloud name | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` unset — every image is omitted until it exists | Moataz |
+| Redaction treatment (question H) | Designing now against `docs/redaction-brief.md`. `redacted` preset is a placeholder | Moataz |
 
 *Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
 
@@ -31,7 +33,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: 0.8 (Cloudinary + CloudinaryImage) then 0.9 (instrumentation)
+### Next: 0.9 (instrumentation + machine legibility), then Phase 1 pages
 
 ---
 
@@ -92,7 +94,7 @@
 - [x] Implement in `app/globals.css` + `tailwind.config.ts`
 - [x] Swap Space Grotesk → Geist + Geist Mono in `app/layout.tsx`
 - [ ] 🔴 Redaction treatment — structure only for now, crafted language undecided (open question H)
-- [ ] Verify `--control-min-w` / `--pill-min-w` against rendered text in both locales when the Contact form and Results Table land (Phase 1)
+- [ ] Measure `--control-min-w` against the rendered **Contact form submit button** (Phase 1 #12) and `--pill-min-w` against the rendered **Results Table status pills** (Phase 1 #5), in **both** locales, and adjust. Current values are eyeballed from the longest Arabic string, not measured
 - [ ] Re-verify the type scale once a permanent Arabic face is chosen (open question F)
 
 ### 0.7 i18n + RTL shell
@@ -104,9 +106,14 @@
 - [ ] Breadcrumb — deferred until there are nested routes to render it on (Phase 1)
 
 ### 0.8 Media
-- [ ] Cloudinary + `next-cloudinary`
-- [ ] `CloudinaryImage` component
-- [ ] Transform presets: thumb, card, hero, gallery, redacted
+- [x] Cloudinary + `next-cloudinary`
+- [x] `CloudinaryImage` — the only place a URL is built; server component, no client JS
+- [x] Presets `thumb` / `card` / `hero` / `gallery` — verified against live Cloudinary URLs (200, correct transforms)
+- [x] `RedactedEvidence` — plain bordered surface + badge + caption
+- [x] `docs/redaction-brief.md` written for the design pass
+- [ ] 🔴 `redacted` preset is a placeholder identical to `gallery` — open question H
+- [ ] 🔴 **Moataz:** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` in `.env.local` — no image can render without it
+- [ ] Upload the first real assets and confirm they render
 
 ### 0.9 Instrumentation & machine legibility
 - [ ] `/api/events` → Supabase (anonymous session IDs)
