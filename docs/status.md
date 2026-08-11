@@ -5,6 +5,36 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 (later) — 0.8 media
+
+### Built
+
+`CloudinaryImage` is the only place an image URL is constructed (rule 3). Presets `thumb` / `card` / `hero` / `gallery` are live; `RedactedEvidence` renders a plain bordered surface with the shared badge and caption.
+
+**Verified against live Cloudinary, not just a passing build** — a temporary probe route confirmed each preset returns a real image, then was removed:
+
+| Preset | Transform | Result |
+|---|---|---|
+| `hero` | `c_limit,w_1200` | 200 · image/jpeg |
+| `thumb` | `c_fill,w_160,h_160,g_auto` | 200 · image/jpeg |
+| `card` | `c_fill,w_640,h_400,g_auto` | 200 · image/jpeg |
+
+Aspect ratio is preserved on `limit` crops (1600×1200 → 1000×750). A missing `alt` translation omits the image entirely; a `decorative` image renders `alt=""`. Those two cases are distinguished deliberately — shipping an unlabelled image would quietly fail the accessibility baseline.
+
+### One design decision worth recording
+
+Built as a **server component** using `getCldImageUrl` + a plain `<img>`, not next-cloudinary's `<CldImage>`. `CldImage` calls `useState`, so importing it into the server tree fails the build — caught during verification — and would have shipped client JS for every image on an otherwise fully server-rendered site. `next/image` was also rejected: it would re-optimise what Cloudinary has already optimised.
+
+### Redaction — still open by design
+
+The `redacted` preset is deliberately identical to `gallery`. No blur, no pixelation, no tint. `docs/redaction-brief.md` briefs the design pass; its central point is that a **live Cloudinary transform does not remove the original** — stripping the transform segment from the URL returns the untouched image — so redaction should be baked into the asset before upload, and no unredacted original should ever reach Cloudinary.
+
+### Blocked
+
+`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` is unset. Every image is omitted until it exists.
+
+---
+
 ## 2026-08-11 — Arabic corrections applied · Phase 0 foundation complete
 
 ### Arabic review pass — applied
@@ -59,8 +89,8 @@ Available as `min-w-control` and `min-w-pill`. The components that consume them 
 | 0.5 Query layer | ✅ Verified, 13/13 |
 | 0.6 Design tokens | ✅ Except the redaction treatment (question H) |
 | 0.7 i18n + RTL shell | ✅ Except Breadcrumb, deferred to Phase 1 |
-| 0.8 Cloudinary + media | **Next** |
-| 0.9 Instrumentation | Not started |
+| 0.8 Cloudinary + media | ✅ Except the redaction treatment (question H) and the cloud name |
+| 0.9 Instrumentation | **Next** |
 
 ### 0.7 was completed in the previous session
 
@@ -76,6 +106,7 @@ The only deferred piece is **Breadcrumb** — there are no nested routes for it 
 
 | Item | Why it blocks launch |
 |---|---|
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Not set. Every image on the site is omitted until it exists |
 | `settings.tagline` | The line under the name on the landing page — the site's one-sentence claim about itself |
 | `settings.og_image` | Controls how every shared link renders on LinkedIn and WhatsApp |
 | `settings.cv_url` | The footer CV link is absent until it exists |
@@ -84,7 +115,7 @@ The only deferred piece is **Breadcrumb** — there are no nested routes for it 
 
 | Item | Blocks |
 |---|---|
-| Redaction treatment (question H) | `RedactedEvidence`, the `redacted` Cloudinary preset. Currently a plain bordered surface — deliberately not elaborated |
+| Redaction treatment (question H) | `RedactedEvidence`, the `redacted` Cloudinary preset. Being designed against `docs/redaction-brief.md` |
 | Permanent Arabic typeface (question F) | Geist is an explicit interim (decision 020). The type scale is verified for Latin only |
 
 ### Content — Moataz
