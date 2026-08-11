@@ -102,16 +102,67 @@ function checkbox(prop: unknown): boolean {
   return p?.type === "checkbox" ? Boolean(p.checkbox) : false;
 }
 
+/**
+ * Turn a Notion API failure into a message that says what to actually do.
+ *
+ * "Bad key" and "key is fine but the database was never shared with the
+ * integration" are the two common setup failures, and they look nearly
+ * identical from the API — one is a 401, the other a 404 object_not_found.
+ * The second is the one that costs an hour, because the token is obviously
+ * valid and the natural conclusion is that the ID is wrong.
+ */
+function explainNotionError(err: unknown): string {
+  const e = err as { code?: string; status?: number; message?: string };
+
+  if (e?.code === "unauthorized" || e?.status === 401) {
+    return (
+      "Notion rejected the API key (401 unauthorized).\n" +
+      "  The key itself is wrong, expired, or revoked.\n" +
+      "  Fix: regenerate it at notion.so/my-integrations and update NOTION_API_KEY."
+    );
+  }
+
+  if (e?.code === "object_not_found" || e?.status === 404) {
+    return (
+      "Notion authenticated the key, but cannot see the database (404 object_not_found).\n" +
+      "  This almost always means the integration was created but never CONNECTED\n" +
+      "  to the database — a separate step from creating the key.\n" +
+      "  Fix: open 'Portfolio — Pages & Content' in Notion → ••• menu → Connections\n" +
+      "       → add your integration. Then re-run.\n" +
+      `  (Data source: ${DATA_SOURCE_ID})`
+    );
+  }
+
+  if (e?.code === "restricted_resource" || e?.status === 403) {
+    return (
+      "Notion allowed the key but refused the operation (403 restricted_resource).\n" +
+      "  The integration is connected but lacks read capability.\n" +
+      "  Fix: notion.so/my-integrations → your integration → Capabilities → Read content."
+    );
+  }
+
+  if (e?.code === "rate_limited" || e?.status === 429) {
+    return "Notion rate-limited the sync (429). Wait a minute and re-run — the sync is idempotent.";
+  }
+
+  return `Notion request failed${e?.code ? ` (${e.code})` : ""}: ${e?.message ?? String(err)}`;
+}
+
 async function fetchRows(): Promise<Row[]> {
   const rows: Row[] = [];
   let cursor: string | undefined;
 
   do {
-    const res = await notion.dataSources.query({
-      data_source_id: DATA_SOURCE_ID,
-      start_cursor: cursor,
-      page_size: 100,
-    });
+    let res;
+    try {
+      res = await notion.dataSources.query({
+        data_source_id: DATA_SOURCE_ID,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+    } catch (err) {
+      throw new Error(explainNotionError(err));
+    }
 
     for (const page of res.results) {
       if (!isFullPage(page)) continue;
@@ -305,7 +356,7 @@ async function main() {
     );
   }
 
-  const empties = findEmptyMvpRows(rows);
+  const empties = findEmptyMvpRows(rows);  // kind is on Row, so skips are excluded
   if (empties.length > 0) {
     console.log("FLAGGED IN MVP-1 BUT NOT READY — synced as draft:\n");
     for (const e of empties) console.log(`  - ${e}`);
@@ -330,6 +381,10 @@ async function main() {
     if (DRY_RUN) {
       console.log(`  case_file  ${caseFile}  (${status})`);
       updated.push(`case_file ${caseFile}`);
+      // Record it so chapter parent resolution below is simulated too. Without
+      // this the dry run reports chapters as syncable when a real run would
+      // fail them for a missing parent — the dry run would be lying.
+      caseFileIdBySlug.set(caseFile, `dry-run:${caseFile}`);
       continue;
     }
 
@@ -385,8 +440,12 @@ async function main() {
     }
 
     const parentId = caseFileIdBySlug.get(caseFile);
-    if (!parentId && !DRY_RUN) {
-      fail(row.title, `parent case file "${caseFile}" was not synced`);
+    if (!parentId) {
+      fail(
+        row.title,
+        `parent case file "${caseFile}" was not synced — the chapter cannot be ` +
+          "written without it. Usually a knock-on from a route collision above.",
+      );
       continue;
     }
 
@@ -515,12 +574,36 @@ async function main() {
     }
   }
 
-  /* ---- Skips ------------------------------------------------------------ */
+  /* ---- Skips, and gaps -------------------------------------------------- */
 
   for (const row of rows) {
     if (row.kind === "skip") {
       skipped.push(`${row.title} — ${classifyTitle(row.title).reason}`);
     }
+  }
+
+  /*
+   * Static pages (Landing, About, Contact, 404, …) map to ui_strings scoped by
+   * route per contract Step 1. NOT IMPLEMENTED yet — reported rather than
+   * silently dropped, because a row that appears in neither the synced list nor
+   * the skipped list looks like it worked.
+   */
+  const staticRows = rows.filter(
+    (r) => r.kind === "static" || r.kind === "comparison" || r.kind === "accessibility",
+  );
+
+  console.log("\nSKIPPED — build tasks and derived pages:\n");
+  for (const s of skipped) console.log(`  - ${s}`);
+
+  if (staticRows.length > 0) {
+    console.log("\nNOT YET IMPLEMENTED — static, comparison and accessibility pages:\n");
+    for (const r of staticRows) {
+      console.log(`  - ${r.title}  (${r.kind}, route ${r.route ?? "none"})`);
+    }
+    console.log(
+      "\n  These map to ui_strings scoped by route (contract Step 1). Listed here\n" +
+        "  so they are visibly absent rather than quietly missing.\n",
+    );
   }
 
   /* ---- Summary ---------------------------------------------------------- */

@@ -200,6 +200,15 @@
 **Consequence:** Nothing loads when `NEXT_PUBLIC_GA_ID` is unset — no banner, no script. `/how-this-site-works` (Layer 2) states the four claims in plain language. The consent hook must not be reused to gate anything else without deciding that thing needs consent on its own merits.
 **Status:** ACTIVE — supersedes the "do not run GA" recommendation made during 0.9
 
+### 2026-08-11 — 031 — Analytics retention: 180 days raw, aggregates forever
+**Decision:** Raw `sessions` and `events` are deleted after **180 days**. Before each delete, a monthly rollup is written to `analytics_monthly` — counts by month, country, referrer type and device — and kept indefinitely. A `pg_cron` job runs daily at 03:15 UTC.
+**Why 180 and not 90:** the raw data exists to serve Layer 2's validation of archetype inference against real behaviour, and those thresholds need roughly 200 sessions per signal. At portfolio traffic that can take months to accumulate. A 90-day window would bound the data correctly but destroy the early sessions before the sample was large enough to conclude anything — bounding the data at the cost of its purpose. 180 covers two full quarters and still expires.
+**Why a bound at all:** indefinite accumulation is neglect, not a posture. `city` + timestamp is the most identifying combination the system holds, and time-bounding it is what keeps "approximate location" honest rather than a slowly-growing location history.
+**Why aggregates are safe to keep forever:** they carry no session id and — deliberately — **no city**. City plus month plus a small count is the combination that could narrow to a person; country cannot. Aggregates answer the year-over-year questions that motivated a longer window, without the re-identification risk that motivated a shorter one.
+**Consequence:** `analytics_monthly` with RLS enabled and no policy, matching `sessions`/`events`. `prune_analytics()` aggregates *before* deleting — the order is load-bearing. Both functions are `SECURITY INVOKER` with EXECUTE revoked from `anon` and `authenticated`.
+**Verified:** a 200-day-old session with events was deleted from raw while its month survived in `analytics_monthly`; a 10-day-old session was untouched; events cascaded with their session; `analytics_monthly` has no `city` column; the cron job is scheduled.
+**Status:** ACTIVE
+
 ---
 
 ## OPEN — NOT YET DECIDED
@@ -212,6 +221,6 @@
 | E | Ask layer: lead capture yes/no; answer boundaries | Layer 4 |
 | F | Permanent Arabic typeface | Replaces the interim in decision 020 |
 | G | ~~`settings` table shape~~ | *Closed by decision 026* |
-| I | **Analytics retention window** — see the proposal in `docs/status.md` | Nothing; accumulating meanwhile |
+| ~~I~~ | ~~Analytics retention window~~ | *Closed by decision 031 — 180 days* |
 
 *Question A (visual language) closed by decision 018.*

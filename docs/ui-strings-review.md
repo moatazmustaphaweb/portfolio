@@ -53,6 +53,20 @@ Handled in CSS rather than by shortening Arabic:
 Both are tokens in `docs/design/tokens.md`; the components that consume them
 are Phase 1.
 
+### Privacy and consent copy — added 2026-08-11, needs review
+
+These eight are new. The four privacy claims are not ordinary interface copy: they are the site's honesty statement, and they are what an Arabic-speaking recruiter or curator reads before deciding whether to trust anything else. Flagging where I was least confident:
+
+1. **`privacy_no_tracking` — "I cannot follow you between visits."** The hardest to state naturally. My rendering is **`لا أستطيع تتبّعك بين الزيارات.`** The problem is `تتبّع` — it carries a surveillance connotation closer to "stalk/trace" than the neutral technical "track", so the sentence can read as protesting too much, almost defensive. Alternatives worth weighing: `لا يمكنني التعرّف عليك عند عودتك` ("I can't recognise you when you return") — softer and arguably more accurate to what actually happens, since the mechanism is that the session id dies with the tab. Your call which is more honest and less loaded.
+
+2. **`privacy_no_ip` — "I never store IP addresses."** Rendered **`لا أخزّن عناوين IP إطلاقاً.`** IP stays Latin per the convention. `إطلاقاً` is doing the work of "never" emphatically; check it does not tip into overclaiming.
+
+3. **`privacy_location` — "I record approximate location — country and city."** Rendered **`أسجّل الموقع التقريبي — الدولة والمدينة.`** Straightforward, but `أسجّل` ("I record/register") could also be read as "I register" in a bureaucratic sense.
+
+4. **`privacy_ga`** and **`consent_message`** both name Google Analytics in Latin, which follows the convention. `consent_message` is the longest string in the set — worth checking it does not wrap awkwardly in the banner at mobile width.
+
+5. **`consent_accept` / `consent_decline`** — `أوافق` / `لا شكراً`. Decision 030 requires decline to read as no harder a choice than accept. `لا شكراً` is polite and natural; confirm it does not read as *more* hesitant than `أوافق` is affirmative, which would be a soft dark pattern in the opposite direction from the usual one.
+
 ### Not bugs
 
 `lang_en` is "English" and `lang_ar` is "العربية" in **both** locales — each
@@ -71,9 +85,9 @@ locale you are in.
 | `case_file` | Case file | ملف المشروع | ✅ Corrected — `ملف المشروع` |
 | `chapter` | Chapter | الفصل |  |
 | `chapter_of` | Chapter {current} of {total} | الفصل {current} من {total} |  |
-| `consent_accept` | Allow | أوافق |  |
-| `consent_decline` | No thanks | لا شكراً |  |
-| `consent_message` | I use Google Analytics to see which countries my work reaches. It sets cookies. You can say no. | أستخدم Google Analytics لأعرف الدول التي تصل إليها أعمالي. يضع ملفات تعريف الارتباط. يمكنك الرفض. |  |
+| `consent_accept` | Allow | أوافق | ⚠️ Review — must read as clearly as the decline |
+| `consent_decline` | No thanks | لا شكراً | ⚠️ Review — must not read as softer than accept |
+| `consent_message` | I use Google Analytics to see which countries my work reaches. It sets cookies. You can say no. | أستخدم Google Analytics لأعرف الدول التي تصل إليها أعمالي. يضع ملفات تعريف الارتباط. يمكنك الرفض. | ⚠️ Review — longest string; also check banner width |
 | `context` | Context | السياق |  |
 | `cv` | CV | السيرة الذاتية |  |
 | `decision` | Decision | القرار |  |
@@ -103,11 +117,11 @@ locale you are in.
 | `objective` | Objective | الغاية | ✅ Corrected — `الغاية`, freeing `الهدف` for `target` |
 | `outcome` | Outcome | الحصيلة | ✅ Corrected — `الحصيلة`, freeing `النتيجة` for `result` |
 | `previous_chapter` | Previous chapter | الفصل السابق |  |
-| `privacy_ga` | I use Google Analytics only if you allow it, and you can decline. | أستخدم Google Analytics فقط إذا سمحت بذلك، ويمكنك الرفض. |  |
-| `privacy_location` | I record approximate location — country and city. | أسجّل الموقع التقريبي — الدولة والمدينة. |  |
-| `privacy_no_ip` | I never store IP addresses. | لا أخزّن عناوين IP إطلاقاً. |  |
-| `privacy_no_tracking` | I cannot follow you between visits. | لا أستطيع تتبّعك بين الزيارات. |  |
-| `privacy_title` | What this site records | ما الذي يسجّله هذا الموقع |  |
+| `privacy_ga` | I use Google Analytics only if you allow it, and you can decline. | أستخدم Google Analytics فقط إذا سمحت بذلك، ويمكنك الرفض. | ⚠️ Review — register |
+| `privacy_location` | I record approximate location — country and city. | أسجّل الموقع التقريبي — الدولة والمدينة. | ⚠️ Review — register |
+| `privacy_no_ip` | I never store IP addresses. | لا أخزّن عناوين IP إطلاقاً. | ⚠️ Review — `عناوين IP` keeps IP Latin per convention |
+| `privacy_no_tracking` | I cannot follow you between visits. | لا أستطيع تتبّعك بين الزيارات. | 🔴 **Hardest to state naturally** — see notes above |
+| `privacy_title` | What this site records | ما الذي يسجّله هذا الموقع | ⚠️ Review — heading register |
 | `read_linear` | Read start to finish | اقرأ من البداية إلى النهاية | Kept — correct Arabic; length is a layout problem |
 | `read_more` | Read more | اقرأ المزيد |  |
 | `redacted_notice` | Redacted under NDA | محجوب بموجب NDA | ✅ Corrected — NDA now stays Latin |

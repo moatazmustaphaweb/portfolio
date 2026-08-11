@@ -254,9 +254,19 @@ export function findRouteCollisions(
  * case file with nothing in it produces an empty page that looks broken.
  */
 export function findEmptyMvpRows(
-  rows: readonly { title: string; inMvp: boolean; contentReady: string | null }[],
+  rows: readonly {
+    title: string;
+    inMvp: boolean;
+    contentReady: string | null;
+    kind?: EntityKind;
+  }[],
 ): string[] {
   return rows
     .filter((r) => r.inMvp && r.contentReady !== "Done")
+    // A skipped row is not synced at all, so reporting it as "flagged into
+    // MVP-1 but not ready" is noise that buries the rows this is actually
+    // about. In the live data that is 4 FOUNDATION rows and 3 Linear Views
+    // drowning 4 real mini case files.
+    .filter((r) => r.kind !== "skip")
     .map((r) => `${r.title} (Content ready: ${r.contentReady ?? "unset"})`);
 }

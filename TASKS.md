@@ -13,13 +13,13 @@
 | **`settings.tagline`** | Undecided, both languages. The line under the name on the landing page — the site's one-sentence claim about itself. **Launch-gate blocker** | Moataz |
 | **`settings.og_image`** | Not designed. Controls how every shared link renders on LinkedIn and WhatsApp — the first impression for anyone the site is forwarded to. **Launch-gate blocker** | Moataz |
 | **`settings.cv_url`** | Hosting location not chosen. The CV link appears in the footer on every page. **Launch-gate blocker** | Moataz |
-| `NOTION_API_KEY` | Script built and unit-tested but never run. Needed for `--dry-run` | Moataz |
+| Egypt outcomes missing a status marker | *"Two weeks to one month → …"* has no `[projected]`/`[achieved]`/`[not-measurable]`. Blocks the whole outcomes block for that case file | Moataz |
 | 4 Notion data issues | Cervello route collision · 5 orphaned Cervello chapters · 4 empty mini case files · `FOUNDATION` rows flagged into MVP-1 | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
 | Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
-| Analytics retention window | Proposed **90 days** raw + monthly pre-aggregation. Confirm and I will enable the `pg_cron` job | Moataz |
+| ~~Analytics retention~~ | **Resolved** — 180 days + indefinite monthly aggregates, `pg_cron` enabled (decision 031) | — |
 | Arabic review — 8 new strings | Consent banner + the four privacy claims. `npm run export:ui-strings` regenerates the review doc | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
 
@@ -35,7 +35,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: first `--dry-run`, then Phase 1 pages
+### Next: Moataz fixes the 4 Notion issues → first real sync → Phase 1 Landing
 
 ---
 
@@ -80,9 +80,12 @@
 - [x] `scripts/test-sync-logic.ts` — 35 checks, no credentials needed (`npm run test:sync`)
 - [x] `scripts/sync-notion.ts` with `--dry-run` and `--all`
 - [x] Fails loudly on missing status markers (decision 007) and same-kind route collisions
-- [ ] 🔴 **Moataz:** `NOTION_API_KEY` in `.env.local` — the script has never run against Notion
+- [x] `NOTION_API_KEY` set; first `--dry-run` run successfully
+- [x] Distinct errors for bad key / database-not-shared / no read capability / rate limit
+- [x] Dry-run fidelity fixed — simulates parent resolution, excludes skipped rows from the not-ready list, reports unimplemented page types
 - [ ] 🔴 **Moataz:** resolve the 4 known data issues in Notion (see `docs/status.md`)
-- [ ] First `--dry-run`, then the first real sync
+- [ ] 🔴 First **real** sync — blocked on the 4 Notion data issues
+- [ ] Static / comparison / accessibility pages → `ui_strings` scoped by route (contract Step 1) — not yet implemented
 - [ ] Verify body→field mapping against real page bodies (untested until it runs)
 
 ### 0.5 Query layer
