@@ -5,6 +5,67 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — 0.9 instrumentation and machine legibility
+
+### Cloudinary connected
+
+Cloud name `vewhrkzj` is set. The account is live and ships with default sample assets, so all five presets were verified against the **real** account rather than the demo cloud — `c_limit,w_1200`, `c_fill,w_640,h_400,g_auto`, `c_fill,w_160,h_160,g_auto`, `c_limit,w_1000` and `c_fit,w_1000` all return 200 image/jpeg. A nonexistent asset returns 404 and a nonexistent cloud returns 404, so the 200s are meaningful.
+
+### Privacy — enforced, then tested
+
+Every claim was verified against the running endpoint, because these get published on `/how-this-site-works` and have to be true rather than approximately true.
+
+| Request | Result |
+|---|---|
+| Valid `page_view` | 204, written |
+| Email address under an allowlisted key | **422 rejected** |
+| Disallowed key (`ip`) | **400 rejected** |
+| Nested object under an allowed key | **400 rejected** |
+| 13-digit string | **422 rejected** |
+| Non-UUID session id | **400 rejected** |
+| Unknown event type | **400 rejected** |
+
+The rejected six wrote nothing.
+
+**The referrer test is the one that matters.** The request carried
+`Referer: https://www.google.com/search?q=secret+query`. What was stored:
+
+```
+referrer_type: "search"   device: "desktop"   locale: "en"
+payload: { "route": "/en", "locale": "en" }
+```
+
+The query string never landed. Only the category. The User-Agent was read to bucket the device and discarded.
+
+**Structural proof:** a scan of every column in `public` for anything matching `ip|agent|fingerprint|referrer|user|email|name` or typed `inet` returns exactly one row — `sessions.referrer_type`, which holds a category. There is nowhere an IP or UA *could* be stored.
+
+Design choices behind that:
+
+- Session id lives in **sessionStorage**, not a cookie and not localStorage. It dies with the tab. This undercounts unique visitors, and that is the correct trade: an identifier surviving the visit would make "we cannot follow you" false.
+- Payload keys are **allowlisted per event type**, and values must be primitives — a nested object is how personal data arrives under an allowlisted top-level key.
+- `email_capture` deliberately has **no key for the address**. The schema names the event, which makes it look like where an email would go. It is not: an address has its own consent and retention questions and belongs in its own table.
+
+### GA is stubbed, and I'd flag it rather than wire it
+
+Not only because the property ID is missing. GA4 sets persistent cookies, processes the visitor's IP for geolocation, collects the full User-Agent, and may enable Google Signals depending on property config. None of that is compatible with claiming "anonymous session IDs only, no IP, no fingerprinting" without qualification — and that claim is load-bearing for decision 001.
+
+Three honest options are written up in `components/analytics/GoogleAnalytics.tsx`. My recommendation is **A: don't run GA** — the Supabase store already answers the questions that matter, and it is the one Layer 2 depends on. Nothing is collected until `NEXT_PUBLIC_GA_ID` is set, so the decision stays open.
+
+### Machine legibility
+
+- **Person JSON-LD** — from `settings`, localised (`Moataz Mustapha` / `مُعتز مصطفى`), with `description` omitted because `tagline` is still NULL. Nothing invented: this markup is quoted back verbatim by models, so rule 7 binds hardest here.
+- **`llms.txt`** — generated from the database. A hand-maintained one drifts within a month and then actively misinforms the exact audience it was written for. Includes notes for summarisers: that redaction is deliberate rather than broken, and that metric labels must be preserved when quoted.
+- **`sitemap.xml`** — both locales with `hreflang` alternates, so the two languages don't compete as duplicate content.
+- **`robots.txt`** — GPTBot, ClaudeBot, OAI-SearchBot, PerplexityBot and Google-Extended explicitly allowed. Deliberate: the LLM read test is a launch gate, and blocking the crawlers would protect nothing while forfeiting the channel.
+
+The read test itself can't be run yet — there is no real content to summarise. The plumbing is built so it can pass.
+
+### Incidental
+
+Next auto-updated to 16.3.0, which deprecates the `middleware` convention. Migrated `middleware.ts` → `proxy.ts`; warning gone, routing verified unchanged.
+
+---
+
 ## 2026-08-11 (later still) — redaction posture enforced
 
 Moataz confirmed the §3 finding and answered the brief. Logged as **decisions 027 and 028**; `docs/redaction-brief.md` §0 now carries the working spec.
@@ -117,7 +178,7 @@ Available as `min-w-control` and `min-w-pill`. The components that consume them 
 | 0.6 Design tokens | ✅ Except the redaction treatment (question H) |
 | 0.7 i18n + RTL shell | ✅ Except Breadcrumb, deferred to Phase 1 |
 | 0.8 Cloudinary + media | ✅ Except the redaction treatment (question H) and the cloud name |
-| 0.9 Instrumentation | **Next** |
+| 0.9 Instrumentation | ✅ Except the GA decision |
 
 ### 0.7 was completed in the previous session
 
@@ -133,7 +194,6 @@ The only deferred piece is **Breadcrumb** — there are no nested routes for it 
 
 | Item | Why it blocks launch |
 |---|---|
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Not set. Every image on the site is omitted until it exists |
 | `settings.tagline` | The line under the name on the landing page — the site's one-sentence claim about itself |
 | `settings.og_image` | Controls how every shared link renders on LinkedIn and WhatsApp |
 | `settings.cv_url` | The footer CV link is absent until it exists |
