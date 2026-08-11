@@ -247,6 +247,52 @@ export function findRouteCollisions(
   return collisions;
 }
 
+/* -------------------------------------------------------------------------
+ * Choosing the item lines for an outcomes or targets section.
+ * ---------------------------------------------------------------------- */
+
+export type ItemSelection = {
+  lines: string[];
+  /** How they were found — reported in the dry run so the source is visible. */
+  source: "table" | "table-fallback" | "prose" | "none";
+};
+
+/**
+ * Pick the lines that become outcome or target rows.
+ *
+ * Order matters and each step earned its place:
+ *
+ *  1. A table under an EXPECTED heading. Authoritative when present.
+ *  2. For a targets page only: ANY table on the page. A "Results Table — X"
+ *     page IS a results table whatever its headings are called, and relying on
+ *     the heading is what made an earlier run report zero failures while
+ *     syncing zero targets — the parser found nothing and skipped in silence.
+ *  3. Prose under an expected heading (the legacy one-line form).
+ *  4. Nothing — which the caller reports rather than skipping.
+ */
+export function selectItemLines(
+  body: ReadonlyMap<string, string[]>,
+  isTargets: boolean,
+): ItemSelection {
+  const headings = isTargets ? ["targets", "results"] : ["outcomes"];
+
+  const expected = headings.flatMap((h) => body.get(`${h}::table`) ?? []);
+  if (expected.length > 0) return { lines: expected, source: "table" };
+
+  if (isTargets) {
+    for (const [key, value] of body) {
+      if (key.endsWith("::table") && value.length > 0) {
+        return { lines: value, source: "table-fallback" };
+      }
+    }
+  }
+
+  const prose = headings.flatMap((h) => body.get(h) ?? []);
+  if (prose.length > 0) return { lines: prose, source: "prose" };
+
+  return { lines: [], source: "none" };
+}
+
 /**
  * Rows flagged into MVP-1 with no content written.
  *

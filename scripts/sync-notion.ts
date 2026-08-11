@@ -23,6 +23,7 @@ import {
   OUTCOME_STATUSES,
   parseStatusItem,
   routeToSlug,
+  selectItemLines,
   TARGET_STATUSES,
   type EntityKind,
 } from "@/lib/sync/classify";
@@ -551,48 +552,17 @@ async function main() {
 
     const body = await readBody(row.id);
     const isTargets = row.kind === "targets";
-    const headings = isTargets ? ["targets", "results"] : ["outcomes"];
+    const selection = selectItemLines(body, isTargets);
+    const lines = selection.lines;
 
-    /*
-     * A table under the heading IS the item list. Loose paragraphs are prose —
-     * in this database the outcomes section opens with a summary sentence
-     * spanning several figures, which is not an outcome and must not be parsed
-     * as one.
-     */
-    let tableRows = headings.flatMap((h) => body.get(`${h}::table`) ?? []);
-
-    /*
-     * A "Results Table — X" page IS a results table, whatever its headings are
-     * called. The live pages use "Every number, and where it came from", which
-     * matched nothing — so targets were skipped silently and the run reported
-     * a clean zero-failure result while writing no targets at all.
-     *
-     * For a targets page, fall back to any table on the page.
-     */
-    if (isTargets && tableRows.length === 0) {
-      for (const [key, value] of body) {
-        if (key.endsWith("::table") && value.length > 0) {
-          tableRows = value;
-          break;
-        }
-      }
-    }
-
-    const lines =
-      tableRows.length > 0
-        ? tableRows
-        : headings.flatMap((h) => body.get(h) ?? []);
-
-    if (lines.length === 0) {
+    if (selection.source === "none") {
       /*
        * A results page with no table at all is legitimate: a case file may
-       * declare no targets and state its limits in prose instead, and
-       * "every declared target closed" is satisfied vacuously when none were
-       * declared. So this is a NOTICE, not a failure.
+       * declare no targets and state its limits in prose, and "every declared
+       * target closed" is satisfied vacuously when none were declared.
        *
-       * It is still reported loudly, because the indistinguishable bad case —
-       * a table that exists but was not found — must never pass silently. The
-       * difference between the two is exactly what this line tells you.
+       * Still reported loudly, because "a table exists and was missed" looks
+       * identical to "there is no table" and only this line tells them apart.
        */
       if (isTargets) {
         notices.push(
@@ -603,8 +573,10 @@ async function main() {
       continue;
     }
 
-    if (tableRows.length > 0 && DRY_RUN) {
-      console.log(`  ${isTargets ? "targets" : "outcomes"} source: table (${tableRows.length} rows)`);
+    if (DRY_RUN) {
+      console.log(
+        `  ${isTargets ? "targets " : "outcomes"} source: ${selection.source} (${lines.length} rows)`,
+      );
     }
 
     const allowed = isTargets ? TARGET_STATUSES : OUTCOME_STATUSES;
@@ -644,7 +616,7 @@ async function main() {
 
     if (DRY_RUN) {
       console.log(
-        `  ${isTargets ? "targets   " : "outcomes  "} ${caseFile}: ${parsed
+        `  ${isTargets ? "targets " : "outcomes"} ${caseFile}: ${parsed
           .map((p) => `[${p.status}]`)
           .join(" ")}`,
       );

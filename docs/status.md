@@ -34,6 +34,61 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — targets parse; one real mismatch left. Not synced.
+
+### The fallback guard holds — proven, not assumed
+
+Extracted the item-selection logic into a pure function and tested it directly rather than trusting the live data:
+
+| Check | Result |
+|---|---|
+| Targets page finds a table under **any** heading | ✅ `table-fallback` |
+| Outcomes do **not** use the fallback (named heading only) | ✅ `none` |
+| An expected heading beats the fallback | ✅ `table` |
+| A table beats loose prose under the same heading | ✅ `table` — the summary-sentence bug |
+| Legacy prose form still parses | ✅ `prose` |
+| No table anywhere → reportable, never silent | ✅ `none` |
+
+### What the dry run shows now
+
+```
+updated 18 · skipped 8 · notices 1 · failed 1
+```
+
+- **Neobiz targets: clean.** 5 rows — `[achieved] [achieved] [achieved] [achieved] [not-measurable]`, found via `table-fallback`.
+- **Egypt cover outcomes: clean.** 3 rows — `[achieved] [projected] [projected]`.
+- **Cervello: notice, as expected.** No targets table; limits in prose.
+- **Egypt Results Table: 1 failure**, and it is a real modelling mismatch rather than a typo.
+
+### ⚠️ `[projected]` is not a valid *target* status
+
+The two enums are deliberately different:
+
+| Table | Statuses | Question it answers |
+|---|---|---|
+| `outcomes` | `projected` · `achieved` · `not-measurable` | What came of the work? |
+| `targets` | `achieved` · `missed` · `not-measurable` | Was the declared target **closed**? |
+
+Three Egypt Results Table rows carry `[projected]` — the SLA, the 1,500+ accounts, and the ~30% recovery. A projection is not a closure, so `target_status` has no value for it. **The parser refused to coerce it**, which is the guard working: silently mapping `[projected]` → `[not-measurable]` would have invented a closure that was never declared.
+
+**Your own content already answers this.** The Neobiz table closes exactly this situation honestly:
+
+> Completion time / conversion / drop-off / adoption — **[not-measurable]** — nothing to measure before launch; the row exists to state the absence of a claim.
+
+That is a declared target, closed, with the reason stated. The Egypt rows are the same shape: targets that cannot yet be measured because there has been no commercial launch.
+
+**Recommendation:** mark the three Egypt rows `[not-measurable]` with the reason in the Source column — *"no commercial launch; nothing to measure against yet"*. That satisfies "every declared target closed" without claiming anything, and it matches the pattern you already used on Neobiz.
+
+The alternative is to move those rows out of the Results Table into the cover's Outcomes table, where `[projected]` is valid. That is also honest, but it leaves the Results Table silent about targets that were genuinely declared — and the manifesto requires every declared target to be closed.
+
+I did not choose between them. Same reasoning as before: this is a judgement about what was promised and what was delivered, and it is not mine to make.
+
+### Naming
+
+Checked: **Cervello** is spelled consistently with a C everywhere — Notion, all docs, the slug, and the seed data. Nothing to correct.
+
+---
+
 ## 2026-08-11 — the dry run's "clean" was false. Targets were never syncing.
 
 ### ⚠️ I did not run the real sync, and here is why
