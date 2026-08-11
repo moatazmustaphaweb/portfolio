@@ -13,7 +13,8 @@
 | **`settings.tagline`** | Undecided, both languages. The line under the name on the landing page — the site's one-sentence claim about itself. **Launch-gate blocker** | Moataz |
 | **`settings.og_image`** | Not designed. Controls how every shared link renders on LinkedIn and WhatsApp — the first impression for anyone the site is forwarded to. **Launch-gate blocker** | Moataz |
 | **`settings.cv_url`** | Hosting location not chosen. The CV link appears in the footer on every page. **Launch-gate blocker** | Moataz |
-| 0.4 Sync script correctness | Stale Cervello rows in Notion: route collision at `/work/cervello` + 5 orphaned chapters | Moataz |
+| `NOTION_API_KEY` | Script built and unit-tested but never run. Needed for `--dry-run` | Moataz |
+| 4 Notion data issues | Cervello route collision · 5 orphaned Cervello chapters · 4 empty mini case files · `FOUNDATION` rows flagged into MVP-1 | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
@@ -34,7 +35,7 @@
 - [x] **Step 3** — `docs/design/tokens.md` written from the Vercel-style design, implemented in `globals.css` + `tailwind.config.ts`
 - [x] **Step 4** — Layer 0 schema applied to Supabase and verified behaviourally
 
-### Next: 0.4 — Notion → Supabase sync script (`--dry-run` first)
+### Next: first `--dry-run`, then Phase 1 pages
 
 ---
 
@@ -75,9 +76,14 @@
 - [x] Native Arabic review — 9 corrections applied to the database, `0003_seed_site_chrome.sql` and `docs/ui-strings-review.md`. No collisions remain across all 52
 
 ### 0.4 Notion → Supabase sync
-- [ ] `scripts/sync-notion.ts` per `docs/sync-contract.md`
-- [ ] Dry-run mode
-- [ ] First real sync
+- [x] `lib/sync/classify.ts` — classification, route→slug, status markers, collision detection
+- [x] `scripts/test-sync-logic.ts` — 35 checks, no credentials needed (`npm run test:sync`)
+- [x] `scripts/sync-notion.ts` with `--dry-run` and `--all`
+- [x] Fails loudly on missing status markers (decision 007) and same-kind route collisions
+- [ ] 🔴 **Moataz:** `NOTION_API_KEY` in `.env.local` — the script has never run against Notion
+- [ ] 🔴 **Moataz:** resolve the 4 known data issues in Notion (see `docs/status.md`)
+- [ ] First `--dry-run`, then the first real sync
+- [ ] Verify body→field mapping against real page bodies (untested until it runs)
 
 ### 0.5 Query layer
 - [x] `lib/supabase/client.ts` + `server.ts` (+ generated `database.types.ts`)

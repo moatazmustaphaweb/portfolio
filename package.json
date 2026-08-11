@@ -9,9 +9,12 @@
     "lint": "next lint",
     "verify:content": "tsx --conditions=react-server --env-file=.env.local scripts/verify-content.ts",
     "export:ui-strings": "tsx --conditions=react-server --env-file=.env.local scripts/export-ui-strings.ts",
-    "check:seed-drift": "tsx --conditions=react-server --env-file=.env.local scripts/check-seed-drift.ts"
+    "check:seed-drift": "tsx --conditions=react-server --env-file=.env.local scripts/check-seed-drift.ts",
+    "test:sync": "tsx --conditions=react-server scripts/test-sync-logic.ts",
+    "sync:notion": "tsx --conditions=react-server --env-file=.env.local scripts/sync-notion.ts"
   },
   "dependencies": {
+    "@notionhq/client": "^5.24.0",
     "@supabase/supabase-js": "^2.112.2",
     "next": "^16.2.11",
     "next-cloudinary": "^6.18.8",

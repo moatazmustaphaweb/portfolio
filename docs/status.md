@@ -5,6 +5,41 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-11 — 0.4 Notion sync script
+
+### Built against the live database, not the contract alone
+
+I read the real Notion database before writing anything. The schema matches `docs/sync-contract.md` exactly, and **all four known issues are still present**:
+
+| Issue | Live state |
+|---|---|
+| Route collision | `Case File Cover — Cervello` (Not started) and `Case File Cover — Cervello Cloud (IoT)` (Done) both claim `/[locale]/work/cervello` |
+| Orphaned Cervello chapters | 5 — `platform`, `design-system`, `alarm`, `horizontal-apps`, `website`, all Not started. The current three (`method`, `on-premises-to-cloud`, `permission-architecture`) are Done |
+| Mini case files in MVP-1, no content | 4 — AAM Financial Advisor, EAST Rebrand, Kshemam HealthCare, PideTaxi |
+| Stale rows marked into MVP-1 | The `FOUNDATION —` build-task rows are flagged `In MVP-1`; the script skips them by title prefix per the contract |
+
+### The two failure modes you named
+
+Both are pure functions in `lib/sync/classify.ts`, covered by `npm run test:sync` — **35 checks, no credentials or network needed**, so they are proven before the sync ever touches anything.
+
+**Missing status marker aborts the entity.** `parseStatusItem` returns an Error rather than a value; there is no default path in the code to fall through to. Tested: a line reading `30% increase in conversion rate` with no marker fails, the error names decision 007, and no status is invented. Also tested: the design files' vocabulary (`[confirmed]`) is rejected, and outcome statuses are not accepted for targets or vice versa.
+
+**Two rows claiming one route abort rather than overwrite.** Detected up front, before any write, so the sync never produces a plausible-looking wrong result.
+
+### A bug the tests caught
+
+My first collision detector compared on route alone. That flagged **every cover and its own results table** as a collision — Notion annotates results tables as `/work/x (close)`, and stripping the annotation made them identical. In the live data that is Egypt, Neobiz *and* Cervello: six valid rows aborted.
+
+Entity kind is now part of the collision key. A cover and its results table write to different tables, so they cannot collide; two results tables for one case file still do. A check that fires on correct data teaches everyone to ignore it, which is worse than no check.
+
+### Not yet run
+
+`NOTION_API_KEY` is unset, so **the script has never executed against Notion**. What is verified: the classification and parsing logic (35 tests), the TypeScript typechecks, and the credential guards. What is not: the Notion API calls, the body-to-field mapping against real page bodies, and the Supabase writes.
+
+A `--dry-run` needs **only** `NOTION_API_KEY` — the Supabase import is lazy, so previewing does not require the service-role key.
+
+---
+
 ## 2026-08-11 — analytics: geography, consent-gated GA
 
 Decisions **029** (geography) and **030** (consent-gated GA) logged.
