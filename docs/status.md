@@ -36,6 +36,86 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-12 — order, Arabic titles, features, decisions parsed
+
+### ✅ Chapter order — fixed
+
+`Order` is read into `sort_order` and is the only source consulted; H1 chapter numbers and route names are ignored as you specified. Linear views now render:
+
+`01 Onboarding Journey · 02 Application Workflow · 03 Customer Portal & Notifications · 04 Fulfilment & AOF`
+
+### ✅ Arabic titles — resolving, no longer falling back
+
+All 10 chapters and 3 of 4 covers now carry Arabic titles. `/ar/work/egypt-acquisition` reads **الاستحواذ في الخدمات المصرفية للشركات — مصر**.
+
+The parser prefers an H1 in the content and falls back to the Notion page title with its scaffolding stripped (`النسخة العربية — الفصل الأول: X` → `X`).
+
+Two things to look at:
+
+- **`uae-acquisition` still has no Arabic cover title.** Its Arabic page's first heading is `الإمارات / نيوبيز موبايل — فتح حساب الشركات`, which lands on the chapter, not the cover — the cover's Arabic child has no H1 and its page title yields nothing usable.
+- **Arabic chapter titles carry their chapter-number prefix**, English ones do not: `الفصل الثاني · نظام مراجعة الطلبات (Application Workflow)` versus `Application Workflow`. Faithful to what is written, but it renders as a longer, noisier line in the Arabic linear view. Your call whether the H1s should drop the prefix.
+
+### ⚠️ Features — implemented, and it finds nothing
+
+The parser is in and behaves correctly. **No chapter has a `Features` heading**, so it produces 0 rows everywhere.
+
+I could have left it silent. Reporting it instead: the contract specifies feature strips as "scope proof, one line each", and right now that content does not exist in Notion under any heading the contract names. The nearest thing is Cervello's *"The Feature Catalogue"*, which is a section about a catalogue rather than a list of features. Either the content needs a `Features` list, or the contract should stop promising one.
+
+### ✅ Decisions — parsed. 20 across 9 chapters.
+
+| Chapter | EN | AR |
+|---|---|---|
+| egypt-acquisition/onboarding | 1 | 1 |
+| egypt-acquisition/workflow | 1 | **3** ⚠️ |
+| egypt-acquisition/portal | 3 | 3 |
+| egypt-acquisition/fulfilment | 3 | 3 |
+| neobiz-mobile/onboarding | 3 | 3 |
+| neobiz-mobile/portal | 1 | 1 |
+| uae-acquisition/onboarding | 3 | 3 |
+| cervello/on-premises-to-cloud | 2 | 2 |
+| cervello/permission-architecture | 3 | 3 |
+| cervello/method | 0 | 0 |
+
+**`egypt-acquisition/workflow` has 1 decision in English and 3 in Arabic.** The Arabic splits into ضمّ الأنظمة المنفصلة / جعل الاستثناء كيانًا له دورة حياة / إظهار مخارج القرار الخمسة, where the English combines them into *"Fold the separate systems in, and give the exception a life"*. Not a parser artefact — the two languages genuinely say different things. Pairing them by position would attach the wrong Arabic to the wrong decision.
+
+**`cervello/method` has none at all.** Its sections are "Why this chapter exists", "Four principles, written down", and so on. Under rule 3 that chapter cannot publish.
+
+### 🔴 SCHEMA PROPOSAL — needs your approval before I write decisions
+
+Decisions are **parsed but not written**. A `translations` row is unique on `(entity_type, entity_id, locale, field)`, so `field='decision'` can hold exactly one value per chapter per locale. Three decisions cannot fit.
+
+**Proposed — a `decisions` table, mirroring `features` exactly:**
+
+```sql
+alter type entity_type add value 'decision';
+
+create table decisions (
+  id          uuid primary key default gen_random_uuid(),
+  chapter_id  uuid not null references chapters(id) on delete cascade,
+  sort_order  int not null default 0
+);
+create index on decisions (chapter_id, sort_order);
+```
+
+Strings go to `translations` with `entity_type='decision'` and fields `name` and `body` — structure in typed tables, every human-readable string in `translations`, exactly the rule the architecture already follows.
+
+Why this shape:
+
+- **It is the `features` pattern.** No new concept, and `DecisionBlock` renders a list the same way `FeatureStrip` does.
+- **Ordered.** `sort_order` preserves the sequence the chapter argues in, which is the whole point of a decision block.
+- **The name is content, not a label.** It goes in `translations`, so it is translatable and can differ between languages — which the workflow chapter proves is necessary.
+- **It does not disturb the existing `decision` field.** That field stays valid for chapters with a single decision, so nothing already synced breaks.
+
+The alternative — numbered fields `decision_1`, `decision_2` — is unbounded, unordered, and cannot express a name. I would not recommend it.
+
+**Rule 3 consequence worth naming:** once decisions are stored, the publish check becomes checkable for the first time. Right now no chapter has a `decision` field, so strictly none should be published. With this table, 9 of 10 chapters have decisions and `cervello/method` is the one genuine gap.
+
+### ✅ Contradiction check — built
+
+`findStatusContradictions` compares every claim across every page on normalised text and reports any claim asserted with two different statuses. It runs on each sync and fails the run rather than writing. **It reports nothing now** — your fix cleared the last one. It exists so that failure cannot survive review again by being on a page nobody happened to be looking at.
+
+---
+
 ## 2026-08-12 — FIRST REAL SYNC. Content is in the database.
 
 Dry run came back clean — exit 0, zero failures, Cervello notice only — and the sync ran. **But it took three runs**, because the first two exposed bugs that the dry run could not see.

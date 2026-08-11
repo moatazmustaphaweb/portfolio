@@ -248,6 +248,37 @@ export function findRouteCollisions(
 }
 
 /* -------------------------------------------------------------------------
+ * Decision blocks.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * A chapter's decision heading is compound: the decision's NAME is part of it.
+ *
+ *   Decision · The language fight
+ *   القرار · معركة اللغة
+ *   القرار الأول · أربع طبقات متداخلة        (ordinal when a chapter has several)
+ *
+ * A chapter may carry several, deliberately — a chapter with three decisions
+ * has three decisions, and collapsing them into one field would flatten the
+ * most valuable content in the case study.
+ *
+ * Returns null for a heading that is not a decision.
+ */
+export function parseDecisionHeading(heading: string): { name: string } | null {
+  const text = heading.trim();
+
+  // English: "Decision · Name"
+  let m = /^Decision\s*[·:—–-]\s*(.+)$/i.exec(text);
+  if (m) return { name: m[1].trim() };
+
+  // Arabic: "القرار · Name" or "القرار الأول · Name"
+  m = /^القرار(?:\s+\S+)?\s*[·:—–-]\s*(.+)$/u.exec(text);
+  if (m) return { name: m[1].trim() };
+
+  return null;
+}
+
+/* -------------------------------------------------------------------------
  * Choosing the item lines for an outcomes or targets section.
  * ---------------------------------------------------------------------- */
 
@@ -291,6 +322,50 @@ export function selectItemLines(
   if (prose.length > 0) return { lines: prose, source: "prose" };
 
   return { lines: [], source: "none" };
+}
+
+/**
+ * Claims asserted in more than one place with DIFFERENT statuses.
+ *
+ * The failure this catches actually happened: the Egypt cover's outcomes table
+ * and its separate Results Table page carried the same claims with conflicting
+ * markers, and it survived several rounds of review because each review only
+ * ever looked at the page being edited. A marker system that can hold two
+ * answers for one claim is not an integrity system.
+ *
+ * Claims are compared on normalised text — case, punctuation and whitespace
+ * folded — because the same figure is rarely typed identically twice.
+ */
+export function findStatusContradictions(
+  claims: readonly { text: string; status: string; source: string }[],
+): { claim: string; conflicting: { status: string; source: string }[] }[] {
+  const normalise = (t: string) =>
+    t
+      .toLowerCase()
+      .replace(/\[[^\]]*\]/g, "")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+
+  const byClaim = new Map<string, { display: string; seen: Map<string, string> }>();
+
+  for (const c of claims) {
+    const key = normalise(c.text);
+    if (!key) continue;
+    const entry = byClaim.get(key) ?? { display: c.text, seen: new Map() };
+    if (!entry.seen.has(c.status)) entry.seen.set(c.status, c.source);
+    byClaim.set(key, entry);
+  }
+
+  const out: { claim: string; conflicting: { status: string; source: string }[] }[] = [];
+  for (const entry of byClaim.values()) {
+    if (entry.seen.size > 1) {
+      out.push({
+        claim: entry.display,
+        conflicting: [...entry.seen].map(([status, source]) => ({ status, source })),
+      });
+    }
+  }
+  return out;
 }
 
 /**

@@ -20,6 +20,8 @@ import {
   classifyTitle,
   findEmptyMvpRows,
   findRouteCollisions,
+  findStatusContradictions,
+  parseDecisionHeading,
   OUTCOME_STATUSES,
   parseStatusItem,
   routeToSlug,
@@ -72,6 +74,7 @@ type Row = {
   inMvp: boolean;
   buildLayer: string | null;
   bilingual: string | null;
+  order: number | null;
   kind: EntityKind;
   parent?: string;
 };
@@ -81,6 +84,8 @@ const updated: string[] = [];
 const skipped: string[] = [];
 const failed: string[] = [];
 const notices: string[] = [];
+const allClaims: { text: string; status: string; source: string }[] = [];
+const decisionReport: { chapter: string; en: number; ar: number; names: string[] }[] = [];
 
 function fail(entity: string, reason: string) {
   failed.push(`${entity}: ${reason}`);
@@ -100,6 +105,11 @@ function selectName(prop: unknown): string | null {
   if (p?.type === "select") return p.select?.name ?? null;
   if (p?.type === "status") return p.status?.name ?? null;
   return null;
+}
+
+function numberProp(prop: unknown): number | null {
+  const p = prop as { type?: string; number?: number | null };
+  return p?.type === "number" && typeof p.number === "number" ? p.number : null;
 }
 
 function checkbox(prop: unknown): boolean {
@@ -185,6 +195,7 @@ async function fetchRows(): Promise<Row[]> {
         inMvp: checkbox(props["In MVP-1"]),
         buildLayer: selectName(props["Build Layer"]),
         bilingual: selectName(props["Bilingual"]),
+        order: numberProp(props["Order"]),
         kind: classification.kind,
         parent: classification.parent,
       });
@@ -257,7 +268,14 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
       const heading =
         b.heading_1?.rich_text ?? b.heading_2?.rich_text ?? b.heading_3?.rich_text;
       if (heading) {
-        current = canonicalHeading(heading.map((t) => t.plain_text).join(""));
+        const text = heading.map((t) => t.plain_text).join("");
+        // The first H1 is the content title, not a section.
+        if (b.heading_1 && !sections.has("__h1__")) {
+          sections.set("__h1__", [text.trim()]);
+        }
+        // Decision headings keep their raw form — the name is part of the
+        // heading and lowercasing would corrupt it.
+        current = parseDecisionHeading(text) ? text.trim() : canonicalHeading(text);
         if (!sections.has(current)) sections.set(current, []);
         continue;
       }
@@ -309,15 +327,37 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
  *
  * Now matched by containment, which is robust to the trailing section name.
  */
-async function findArabicChild(pageId: string): Promise<string | null> {
+async function findArabicChild(
+  pageId: string,
+): Promise<{ id: string; title: string } | null> {
   const res = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
   for (const block of res.results) {
     const b = block as { type: string; id: string; child_page?: { title: string } };
     if (b.type !== "child_page") continue;
-    const t = (b.child_page?.title ?? "").trim().toLowerCase();
-    if (t.includes("العربية") || t.includes("arabic")) return b.id;
+    const raw = (b.child_page?.title ?? "").trim();
+    const t = raw.toLowerCase();
+    if (t.includes("العربية") || t.includes("arabic")) return { id: b.id, title: raw };
   }
   return null;
+}
+
+/**
+ * The Arabic content title.
+ *
+ * Prefer an H1 inside the content. Where there is none, fall back to the Notion
+ * page title with its scaffolding stripped — `النسخة العربية — الفصل الأول: X`
+ * carries the real title after the colon, and using it beats falling back to
+ * English (decision 013 would hide the gap as "not translated yet").
+ */
+function arabicTitleFrom(sections: ReadonlyMap<string, string[]>, pageTitle: string): string {
+  const h1 = sections.get("__h1__")?.[0];
+  if (h1) return h1;
+
+  let t = pageTitle.replace(/^[\u{1F1E6}-\u{1F1FF}\p{Emoji}\s]+/u, "").trim();
+  t = t.replace(/^النسخة العربية\s*[—–-]\s*/, "").trim();
+  const colon = t.indexOf(":");
+  if (colon !== -1) t = t.slice(colon + 1).trim();
+  return t;
 }
 
 /* -------------------------------------------------------------- field maps */
@@ -371,6 +411,26 @@ const COVER_FIELDS: Record<string, string> = {
   role: "role",
   reflection: "reflection",
 };
+
+/**
+ * Decision blocks in document order: heading name + the prose beneath it.
+ * `readBody` keys sections by canonical heading, so the raw heading is
+ * preserved under `__headings__` to reconstruct order and names.
+ */
+function decisionsFromBody(
+  sections: ReadonlyMap<string, string[]>,
+): { name: string; body: string }[] {
+  const out: { name: string; body: string }[] = [];
+  for (const [heading, lines] of sections) {
+    // "::table" keys hold a heading's table rows, not a separate section — they
+    // would otherwise be counted as a second decision with a mangled name.
+    if (heading.startsWith("__") || heading.endsWith("::table")) continue;
+    const parsed = parseDecisionHeading(heading);
+    if (!parsed) continue;
+    out.push({ name: parsed.name, body: lines.join("\n\n").trim() });
+  }
+  return out;
+}
 
 function fieldsFromBody(
   sections: Map<string, string[]>,
@@ -517,10 +577,15 @@ async function main() {
       fieldsFromBody(body, COVER_FIELDS, row.title.replace(/^.*—\s*/, "")),
     );
 
-    const arabicId = await findArabicChild(row.id);
-    if (arabicId) {
-      const arBody = await readBody(arabicId);
-      await upsertTranslations("case_file", data.id, "ar", fieldsFromBody(arBody, COVER_FIELDS, ""));
+    const arabic = await findArabicChild(row.id);
+    if (arabic) {
+      const arBody = await readBody(arabic.id);
+      await upsertTranslations(
+        "case_file",
+        data.id,
+        "ar",
+        fieldsFromBody(arBody, COVER_FIELDS, arabicTitleFrom(arBody, arabic.title)),
+      );
     }
   }
 
@@ -557,6 +622,10 @@ async function main() {
         {
           case_file_id: parentId!,
           slug,
+          // The Order property is the single source of truth for sequence.
+          // Chapter numbers inside H1 headings and any implied ordering in
+          // route names are incidental and deliberately ignored.
+          sort_order: row.order ?? 0,
           status: (row.contentReady === "Done" ? "published" : "draft") as never,
         },
         { onConflict: "case_file_id,slug" },
@@ -579,10 +648,52 @@ async function main() {
       fieldsFromBody(body, CHAPTER_FIELDS, row.title.replace(/^.*\/\s*/, "")),
     );
 
-    const arabicId = await findArabicChild(row.id);
-    if (arabicId) {
-      const arBody = await readBody(arabicId);
-      await upsertTranslations("chapter", data.id, "ar", fieldsFromBody(arBody, CHAPTER_FIELDS, ""));
+    const arabic = await findArabicChild(row.id);
+    let arDecisions: { name: string; body: string }[] = [];
+    if (arabic) {
+      const arBody = await readBody(arabic.id);
+      await upsertTranslations(
+        "chapter",
+        data.id,
+        "ar",
+        fieldsFromBody(arBody, CHAPTER_FIELDS, arabicTitleFrom(arBody, arabic.title)),
+      );
+      arDecisions = decisionsFromBody(arBody);
+    }
+
+    /*
+     * Decisions are PARSED and REPORTED but not written: holding several per
+     * chapter needs a `decisions` table, and that schema change is proposed
+     * rather than assumed. See docs/status.md.
+     */
+    const enDecisions = decisionsFromBody(body);
+    if (enDecisions.length > 0 || arDecisions.length > 0) {
+      decisionReport.push({
+        chapter: `${caseFile}/${slug}`,
+        en: enDecisions.length,
+        ar: arDecisions.length,
+        names: enDecisions.map((d) => d.name),
+      });
+    }
+
+    /*
+     * Features, per contract Step 3. Replaced wholesale, translations first —
+     * same polymorphic-orphan trap as outcomes and targets.
+     */
+    const featureLines = body.get("features") ?? body.get("features::table") ?? [];
+    const { data: oldFeatures } = await (await db())
+      .from("features").select("id").eq("chapter_id", data.id);
+    if (oldFeatures && oldFeatures.length > 0) {
+      await (await db()).from("translations").delete()
+        .eq("entity_type", "feature").in("entity_id", oldFeatures.map((f) => f.id));
+      await (await db()).from("features").delete().eq("chapter_id", data.id);
+    }
+    for (const [i, line] of featureLines.entries()) {
+      const label = line.split(CELL_SEP)[0]?.trim();
+      if (!label) continue;
+      const { data: feat } = await (await db())
+        .from("features").insert({ chapter_id: data.id, sort_order: i }).select("id").single();
+      if (feat) await upsertTranslations("feature", feat.id, "en", { label });
     }
   }
 
@@ -656,6 +767,8 @@ async function main() {
         ...item,
         note: (noteCell?.trim() || item.note) ?? null,
       });
+
+      allClaims.push({ text: item.label, status: item.status, source: row.title });
     }
     if (aborted) continue;
 
@@ -681,9 +794,9 @@ async function main() {
      * with it.
      */
     const arabicItems: { label: string; note: string | null }[] = [];
-    const arabicId = await findArabicChild(row.id);
-    if (arabicId) {
-      const arBody = await readBody(arabicId);
+    const arabic = await findArabicChild(row.id);
+    if (arabic) {
+      const arBody = await readBody(arabic.id);
       const arSelection = selectItemLines(arBody, isTargets);
       for (const arLine of arSelection.lines) {
         const [arLabelCell, arNoteCell] = arLine.split(CELL_SEP);
@@ -780,6 +893,34 @@ async function main() {
         );
       }
     }
+  }
+
+  /* ---- Decisions, features, and cross-page consistency ------------------ */
+
+  if (allClaims.length > 0) {
+    const contradictions = findStatusContradictions(allClaims);
+    if (contradictions.length > 0) {
+      console.log("\n⚠️  STATUS CONTRADICTIONS — the same claim, two answers:\n");
+      for (const c of contradictions) {
+        console.log(`  "${c.claim}"`);
+        for (const v of c.conflicting) console.log(`    [${v.status}]  ${v.source}`);
+        fail(
+          `contradiction: "${c.claim.slice(0, 60)}"`,
+          c.conflicting.map((v) => `[${v.status}] in ${v.source}`).join(" vs "),
+        );
+      }
+      console.log("");
+    }
+  }
+
+  if (decisionReport.length > 0) {
+    console.log("\nDECISIONS FOUND (parsed, NOT written — schema change pending):\n");
+    for (const d of decisionReport) {
+      const flag = d.en !== d.ar && d.ar > 0 ? `  ⚠️ EN ${d.en} / AR ${d.ar}` : "";
+      console.log(`  ${d.chapter}: ${d.en} en, ${d.ar} ar${flag}`);
+      for (const n of d.names) console.log(`      · ${n}`);
+    }
+    console.log("");
   }
 
   /* ---- Skips, and gaps -------------------------------------------------- */
