@@ -398,15 +398,59 @@ Whichever is chosen, the form needs a spam control before launch — a honeypot 
 
 ---
 
+## 045 — Arabic typefaces: LANTX for headings, Meral Sans for body
+
+*2026-08-13*
+
+**Decision:** LANTX (display, headings) and Meral Sans (text, body), self-hosted as woff2 via `next/font/local`. Latin is untouched — Geist and Geist Mono exactly as they were. **Closes open question F** and replaces the Geist interim of decision 020.
+
+`--font-arabic` became two tokens, which is the swap decision 020 kept it separate for.
+
+**Format.** The files arrived as `.otf` (LANTX) and nine `.ttf` weights (Meral) and were converted: **112 KB total as woff2, down from 282 KB**, a 59–72% reduction. Only the four Meral weights the scale can request (400/500/600/700) ship; the other five (thin, extralight, light, extrabold, black) are ~23 KB each of nothing the scale asks for.
+
+**Three things the fonts themselves forced:**
+
+1. **Geist sits behind both Arabic faces.** Not defensive — load-bearing. LANTX contains **no Latin letters**, and the Arabic copy deliberately keeps technical terms in English per the convention in `docs/ui-strings-review.md`. `Cervello Cloud — منصة IoT` is a real heading. Meral also lacks `U+2190 ←`, which appears in body copy as `Instance ← Organisation ← Team ← Project`. Both were found by testing coverage against every Arabic character in the database, not by inspection.
+2. **LANTX ships one weight, and synthetic bold is refused.** Headings are 600 sitewide; a browser asked for 600 from a 400-only family smears the outlines, which on Arabic thickens the joins between letters until they close. `font-synthesis-weight: none`, weight 400, hierarchy from size — how Arabic display faces are normally used.
+3. **Arabic needs more leading, not the same.** Meral's descender is -0.51em against Geist's -0.29em. Body 1.9, headings 1.45.
+
+**The scale is adjusted per script, in three factors** — `--type-scale-small` 1.30, `--type-scale` 1.15, `--type-scale-display` 1.00. Measured from `ه` against Geist's x-height; full reasoning in `docs/design/tokens.md`. The display factor is a fit decision rather than a legibility one, and it came from looking at the rendered results table, not from the measurement.
+
+**Consequence:** the overrides live in an **unlayered** `:root:lang(ar)` block. A layered one loses to `:root` regardless of specificity — the variable read back as `1` and the entire adjustment silently did nothing while looking correct.
+
+**Status:** ACTIVE — closes open question F, replaces decision 020's interim
+
+---
+
+## 044 — CLOSED: contact delivery is a Supabase table
+
+*2026-08-13 — amends the 2026-08-12 entry above*
+
+**Decision:** option A, implemented. `contact_messages` + `/api/contact`, writing through the service role. RLS enabled with **no policy**, matching the operational tables — nothing about a contact message is publicly readable. Retention 360 days, folded into the existing daily prune so one function answers "what does this site delete, and when".
+
+**Spam control without an IP.** The obvious control is a per-IP rate limit, and it is not available: decision 029 commits to the IP being "never read by our code and never stored", and that promise is published on `/how-this-site-works` in both languages. Reading it to protect a form would break a commitment made to every visitor. Instead:
+
+- **Honeypot** — hidden field, `aria-hidden` and `tabIndex -1` so a screen-reader user cannot fill it by accident. Filled means bot, and the response is a normal 200: telling a spammer they were rejected only tells them what to change.
+- **Timing** — a form rendered and submitted in under 3s was not typed. Upper bound 2h, after which the tab was left open and the timestamp means nothing.
+- **Global in-memory ceiling** — 20/hour per instance, held in a variable, never persisted.
+
+**Stated trade-off:** a global limit means one spammer can exhaust the window for everyone. Acceptable at this volume, and the usual next step — a CAPTCHA — is a third-party tracker and is not an option on this site.
+
+`CONTACT_DELIVERY_CONFIGURED` stays a constant rather than becoming an env var. The reasoning that kept it one while the question was open still holds: this is a decision about where personal data goes, and it should be visible in a diff.
+
+**Status:** ACTIVE — closes open question D
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |
 |---|---|---|
 | B | Mini case files — in MVP-1 or cut? | Gallery scope |
 | ~~C~~ | ~~Stale Cervello rows — route collision~~ | *Closed by decision 040 — the parked row is out of scope, not a competing claim* |
-| D | Contact form delivery — Supabase table, email service, or both? | *Costed in decision 044. Recommendation: A (Supabase table). Form ships either way; submit is replaced by the direct email until you choose* |
+| ~~D~~ | ~~Contact form delivery~~ | *Closed 2026-08-13 — option A, built with honeypot, timing check and rate limit* |
 | E | Ask layer: lead capture yes/no; answer boundaries | Layer 4 |
-| F | Permanent Arabic typeface | Replaces the interim in decision 020 |
+| ~~F~~ | ~~Permanent Arabic typeface~~ | *Closed by decision 045 — LANTX headings, Meral Sans body* |
 | G | ~~`settings` table shape~~ | *Closed by decision 026* |
 | ~~I~~ | ~~Analytics retention window~~ | *Closed by decision 031 — 180 days* |
 

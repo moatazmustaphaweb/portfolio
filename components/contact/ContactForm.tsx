@@ -1,24 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * The contact form.
  *
- * ⚠️ DELIVERY IS UNDECIDED — open question D. This component does not choose.
- * It takes `deliveryConfigured`, and when that is false it renders the fields
- * exactly as they will ship but replaces the submit button with the direct
- * email route.
+ * Posts to /api/contact, which writes to `contact_messages` (decision 044,
+ * option A). `deliveryConfigured` is kept as a prop rather than assumed: with
+ * it false the fields still render and the submit button is replaced by the
+ * direct email, which is what shipped while the question was open and is the
+ * right behaviour again if delivery is ever turned off.
  *
- * Why not just wire it to a Supabase table and be done: that stores names,
- * email addresses and message bodies, and this project's standing rule is that
- * privacy is a hard constraint rather than a default — anything collecting
- * more than the minimum gets flagged, not implemented. Creating a table of
- * personal data is exactly that kind of decision, and it is reversible only in
- * the sense that deleting rows is possible after they exist.
- *
- * A form that posts into a void is worse than no form, so until delivery is
- * decided the page still offers a way to make contact that works.
+ * Spam control lives mostly in the route. What belongs here is the honeypot
+ * field and the render timestamp — see below, and the route's header for why
+ * a per-IP rate limit is not among the controls.
  *
  * Every string arrives resolved from `ui_strings` (rule 1) — this component
  * contains no copy of its own.
@@ -51,6 +46,17 @@ export function ContactForm({
 }) {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
 
+  /*
+   * When the form became fillable. Set on mount rather than at render, because
+   * this page is statically generated — a build-time timestamp would be hours
+   * old for every visitor and the route's freshness window would reject them
+   * all. The route treats a missing value as "unknown" rather than as failure.
+   */
+  const renderedAt = useRef<number | null>(null);
+  useEffect(() => {
+    renderedAt.current = Date.now();
+  }, []);
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("sending");
@@ -60,7 +66,7 @@ export function ContactForm({
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, renderedAt: renderedAt.current }),
       });
       setState(res.ok ? "sent" : "failed");
     } catch {
@@ -84,6 +90,27 @@ export function ContactForm({
 
   return (
     <form onSubmit={onSubmit} noValidate={false} className="mt-6 flex flex-col gap-6">
+      {/*
+        Honeypot. Hidden from people — including from screen readers, via
+        aria-hidden and tabIndex -1, because a field a blind visitor fills in
+        would silently discard their message. Offered only to bots that fill
+        every input they can parse.
+
+        `position: absolute; left: -9999px` rather than `display: none`: some
+        bots skip fields that are display:none specifically because it is the
+        obvious tell.
+      */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="contact-website">Website</label>
+        <input
+          id="contact-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
+
       <div>
         <label htmlFor="contact-name" className={label}>
           {strings.name}

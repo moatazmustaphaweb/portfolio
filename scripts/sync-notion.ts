@@ -545,8 +545,10 @@ async function upsertTranslations(
  */
 async function readOrderedBlocks(
   pageId: string,
-): Promise<{ heading: string; lines: string[] }[]> {
-  const blocks: { heading: string; lines: string[] }[] = [{ heading: "", lines: [] }];
+): Promise<{ heading: string; lines: string[]; tables: string[][][] }[]> {
+  const blocks: { heading: string; lines: string[]; tables: string[][][] }[] = [
+    { heading: "", lines: [], tables: [] },
+  ];
   let cursor: string | undefined;
 
   do {
@@ -574,7 +576,19 @@ async function readOrderedBlocks(
         blocks.push({
           heading: headingText.map((t) => t.plain_text).join("").trim(),
           lines: [],
+          tables: [],
         });
+        continue;
+      }
+
+      /*
+       * Tables are captured, not skipped. On the comparison pages the table is
+       * the page — "The differences, decision by decision" is a grid, and
+       * dropping it would have synced two pages of preamble around a hole.
+       */
+      if (b.type === "table") {
+        const grid = await readTable((block as unknown as { id: string }).id);
+        if (grid.length > 0) blocks[blocks.length - 1].tables.push(grid);
         continue;
       }
 
@@ -1349,13 +1363,24 @@ async function main() {
   /* ---- Pass 5: static pages → page_sections (0021) ---------------------- */
 
   for (const row of rows) {
-    if (row.kind !== "static" || !row.route) continue;
+    const isProsePage =
+      row.kind === "static" || row.kind === "comparison" || row.kind === "accessibility";
+    if (!isProsePage || !row.route) continue;
     const pageKey = routeToPageKey(row.route);
     if (!pageKey) continue;
 
-    // Landing and the gallery draw from `settings` and `ui_strings`; they have
-    // no ordered prose and must not be given empty section rows.
-    if (!STATIC_PROSE_PAGES.has(pageKey)) continue;
+    /*
+     * Comparison and accessibility pages are ordered prose too, and reuse this
+     * path rather than getting one of their own. They already have `chapters`
+     * rows for routing and cover links; what they lacked was anywhere for
+     * their words to live. Keyed by their full route, so the chapter route can
+     * look them up by the same path it already knows.
+     *
+     * Landing and the gallery are `static` by kind but draw from `settings`
+     * and `ui_strings`; they have no ordered prose and must not be given empty
+     * section rows.
+     */
+    if (row.kind === "static" && !STATIC_PROSE_PAGES.has(pageKey)) continue;
 
     const blocks = await readOrderedBlocks(row.id);
     const { intro, sections } = parsePageSections(blocks, row.title);
@@ -1423,17 +1448,36 @@ async function main() {
      * renders as an unheaded lede; giving it a row keeps one code path for
      * page copy rather than a special field on a table that has no other.
      */
-    const toWrite: { slug: string; heading: string; body: string; order: number }[] = [];
-    if (intro) toWrite.push({ slug: "intro", heading: "", body: intro, order: -1 });
+    const toWrite: {
+      slug: string;
+      heading: string;
+      body: string;
+      order: number;
+      kind: "prose" | "table";
+    }[] = [];
+    if (intro) {
+      toWrite.push({ slug: "intro", heading: "", body: intro, order: -1, kind: "prose" });
+    }
     sections.forEach((s, i) =>
-      toWrite.push({ slug: s.slug, heading: s.heading, body: s.body, order: i }),
+      toWrite.push({
+        slug: s.slug,
+        heading: s.heading,
+        body: s.body,
+        order: i,
+        kind: s.kind,
+      }),
     );
 
     let written = 0;
     for (const item of toWrite) {
       const { data, error: dbError } = await (await db())
         .from("page_sections")
-        .insert({ page: pageKey, slug: item.slug, sort_order: item.order })
+        .insert({
+          page: pageKey,
+          slug: item.slug,
+          sort_order: item.order,
+          kind: item.kind,
+        })
         .select("id")
         .single();
 

@@ -110,6 +110,27 @@ export type Database = {
         >;
         Relationships: [];
       };
+      contact_messages: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          /** One of the form's subject keys, or null. */
+          subject: string | null;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email: string;
+          subject?: string | null;
+          message: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["contact_messages"]["Insert"]>;
+        Relationships: [];
+      };
       page_sections: {
         Row: {
           id: string;
@@ -117,12 +138,15 @@ export type Database = {
           page: string;
           slug: string;
           sort_order: number;
+          /** 'prose' | 'table' — a table stores TAB/NEWLINE cells in body. */
+          kind: string;
         };
         Insert: {
           id?: string;
           page: string;
           slug: string;
           sort_order?: number;
+          kind?: string;
         };
         Update: Partial<Database["public"]["Tables"]["page_sections"]["Insert"]>;
         Relationships: [];

@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { ProseSections } from "@/components/layout/ProseSections";
 import { getChapter, listChapterParams } from "@/lib/content/chapters";
+import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 
@@ -38,11 +40,21 @@ export default async function Chapter({
   setRequestLocale(locale);
   const l = locale as Locale;
 
-  const [detail, ui] = await Promise.all([
+  const [detail, ui, page] = await Promise.all([
     getChapter(caseFile, chapter, l),
     getUiStrings(l),
+    /*
+     * Comparison and accessibility pages keep their prose in `page_sections`,
+     * keyed by route (migration 0021). They have chapter rows for routing and
+     * for the cover's links, but their content is a document rather than the
+     * objective/context/decision/result shape a chapter has — so it is fetched
+     * here and rendered instead of those beats.
+     */
+    getPageSections(`work/${caseFile}/${chapter}`, l),
   ]);
   if (!detail) notFound();
+
+  const isDocument = detail.kind !== "chapter";
 
   const caseTitle = detail.caseFile.fields.title ?? caseFile;
   const title = detail.fields.title ?? chapter;
@@ -54,7 +66,17 @@ export default async function Chapter({
   ];
 
   return (
-    <div className="mx-auto max-w-prose px-gutter py-section-y">
+    /*
+     * A chapter is a reading column; a comparison page is a wide table. The
+     * prose inside a document page keeps its own `max-w-measure`, so widening
+     * the container costs the paragraphs nothing and stops a five-column
+     * comparison from scrolling sideways inside a 68ch box.
+     */
+    <div
+      className={`mx-auto px-gutter py-section-y ${
+        isDocument ? "max-w-container" : "max-w-prose"
+      }`}
+    >
       <Breadcrumb
         locale={l}
         label={ui.t("breadcrumb_label")}
@@ -67,6 +89,12 @@ export default async function Chapter({
       />
 
       <h1 className="max-w-measure text-title text-fg">{title}</h1>
+
+      {/* A comparison or accessibility page renders its document, not the
+          chapter beats — it has no objective/context/result to show. */}
+      {isDocument ? (
+        <ProseSections intro={page.intro} sections={page.sections} />
+      ) : null}
 
       {beats.map((beat) =>
         beat.body ? (

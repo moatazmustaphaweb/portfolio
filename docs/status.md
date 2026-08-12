@@ -14,13 +14,13 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
 | `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
 | `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, **entry handles**, OutcomeStrip with statuses, LivingMap branching on grammar (`<ol>`/`<ul>`), **sibling links**, links to comparison/accessibility pages | Cover images · Cervello's handles (blocked by the route collision) |
-| `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work | FeatureStrip · RedactedEvidence · MilestoneClose |
+| `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work. **Comparison and accessibility pages render their documents and tables** | FeatureStrip · RedactedEvidence |
 | `/[locale]/work/[caseFile]/all` | 🟢 **REAL** | Thesis, role statement, every chapter with objective/context/decisions/result inline, deep link per chapter, one `h1` | — |
 | `/[locale]/work/[caseFile]/results` | 🟢 **REAL** | Every declared target with status and evidence, as a real `<table>`. Egypt 6 rows · Neobiz 5 · Cervello and UAE 404 (no targets) | — |
 | `/[locale]/systems` | 🟢 **REAL** | Intro, 4 sections, three evidence chapters resolved through the query layer, open-source pointer with no placeholder | — |
 | `/[locale]/about` | 🟢 **REAL** | Intro + 6 sections in chronological order, the deaf-school year, links onward | — |
 | `/[locale]/about/philosophy` | 🟢 **REAL** | Docs-style: thesis, 5 numbered positions, sticky contents, an anchor per section | — |
-| `/[locale]/contact` | 🟢 **REAL** · ⚠️ form delivery undecided | Intro, contact methods, full form with labels, what-happens-next, LinkedIn. CV absent until `cv_url` | Delivery — decision 044 |
+| `/[locale]/contact` | 🟢 **REAL** | Intro, contact methods, full form **with working delivery** (honeypot · timing · rate limit), what-happens-next, LinkedIn. CV absent until `cv_url` | — |
 | `404` | 🟢 **real** | Title, body, CTA, all from `ui_strings` | Locale — see the caveat below |
 | `/robots.txt` · `/sitemap.xml` · `/llms.txt` | 🟢 **real** | Generated from the database | — |
 | `/api/events` · `/api/revalidate` | 🟢 **real** | Verified against live requests | — |
@@ -34,6 +34,79 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-13 — Arabic typefaces, contact delivery, and the last two pages
+
+**MVP-1's page set is complete.** Every route renders from the database in both locales; what remains is the launch gate.
+
+### Arabic type is settled (decision 045) — closes open question F
+
+LANTX for headings, Meral Sans for body, self-hosted as woff2 via `next/font/local`. Latin untouched.
+
+**They needed converting.** `.otf` and nine `.ttf` weights arrived; **112 KB as woff2, down from 282 KB** (59–72% smaller). Only the four Meral weights the scale can request ship — the other five are ~23 KB each of nothing anything asks for.
+
+Three things the fonts forced, all found by testing rather than inspection:
+
+1. **Geist sits behind both Arabic faces, and it is load-bearing.** Checking coverage against every Arabic character in the database showed **LANTX has no Latin letters at all** — and your Arabic keeps technical terms in English by convention, so `Cervello Cloud — منصة IoT` is a real heading. Meral is also missing `U+2190 ←`, used in `Instance ← Organisation ← Team ← Project`.
+2. **LANTX ships one weight.** Headings are 600 sitewide, and a browser faking 600 from a 400-only family smears the outlines — on Arabic that thickens the joins until letters close up. `font-synthesis-weight: none`; hierarchy from size.
+3. **Arabic needs more leading.** Meral's descender is -0.51em against Geist's -0.29em. Body 1.9, headings 1.45.
+
+### The scale needed three factors, not one
+
+Measured from `ه` — Arabic's x-height analogue — at 0.459em (Meral) and 0.448em (LANTX) against Geist's 0.537em.
+
+| | Arabic | Applies to |
+|---|---|---|
+| `--type-scale-small` | 1.30 | the 10/11px mono labels |
+| `--type-scale` | 1.15 | body, lead, statement |
+| `--type-scale-display` | 1.00 | hero, title, h2, h3 |
+
+**The small end needed more than the measurement said.** Tracked-out uppercase at 10px is a Latin device; Arabic has no capitals and carries meaning in dots that stop resolving at 11.5px. `الغاية` above a chapter section was legible only if you already knew what it said.
+
+**The display end takes none of it, and that came from looking rather than measuring.** At 1.15 the results-table heading — `الاستحواذ في الخدمات المصرفية للشركات — مصر` — ran to three lines and pushed the table below the fold. Nothing is hard to read at 60px; a title eating a third of the viewport is. At 1.00 it fits two lines and all six rows are visible.
+
+> ⚠️ **A bug that looked like nothing.** The first version put the Arabic overrides in `@layer base` with the other `:lang(ar)` rules. Unlayered declarations beat layered ones whatever the specificity, so `:root { --type-scale: 1 }` won and the variable read back as `1` — **the entire adjustment silently did nothing** while every file looked correct. Caught by reading computed styles in the browser, not from the CSS. The overrides now live unlayered beside the theme overrides.
+
+Checked at reading size on Landing, a cover, a chapter and the results table. RTL table column order is correct, the damma on `مُعتز` positions correctly, and joins are clean with no synthetic bold.
+
+### Contact delivery built — option A (decision 044 closed)
+
+`contact_messages` + `/api/contact`, service-role writes, RLS on with **no policy** like the other operational tables. Retention 360 days, folded into the existing daily prune.
+
+**Spam control without an IP.** A per-IP rate limit is the obvious control and it is not available — decision 029 commits to the IP being "never read by our code and never stored", published on `/how-this-site-works` in both languages. Breaking that to protect a form is not a trade I would make silently. Instead: a honeypot (`aria-hidden`, `tabIndex -1`, so a screen-reader user cannot trip it), a timing check (under 3s was not typed), and a global in-memory ceiling of 20/hour that is never persisted.
+
+Every branch verified against the running route:
+
+```
+honeypot filled      -> 200, nothing stored   (200 on purpose: a rejection tells a spammer what to change)
+submitted instantly  -> 200, nothing stored
+invalid email        -> 400
+valid                -> 200, one row stored
+```
+
+Only the valid submission reached the table. Probe row deleted.
+
+**Stated trade-off:** a global limit means one spammer can exhaust the window for everyone. Acceptable at this volume; a CAPTCHA is a third-party tracker and is not an option here.
+
+### The last two pages — comparison ×2 and accessibility
+
+They had chapter rows and cover links but nowhere for their words to live. They reuse `page_sections` keyed by full route rather than getting a mechanism of their own.
+
+**The tables are the content.** "The differences, decision by decision" is a five-column argument, and flattening it to paragraphs would destroy the one thing it does — let you read one decision across two platforms on a single line. `page_sections.kind` is now `prose | table`; a table stores its grid as TAB/NEWLINE in `body`, deliberately not JSON, because the Arabic version of a table is the same grid and a JSON blob inside a translation is unreadable to whoever reviews the Arabic.
+
+| Page | Prose | Table | Rows |
+|---|---|---|---|
+| `web-vs-mobile-onboarding` | 4 + intro | 1 | 12 |
+| `web-vs-mobile-portal` | 4 + intro | 1 | 4 |
+| `accessibility` | 13 + intro | 1 | 12 |
+
+Rendered as real `<table>` with `scope` attributes, and the chapter route widens to `max-w-container` for them — a five-column comparison inside a 68ch reading column would scroll sideways on every screen.
+
+### On the status file
+
+You said last session's entry was missing. It was there — `2026-08-12 — the last four pages`, below this one, covering `page_sections`, the harakat bug and all four pages. Most likely you looked before the commit landed.
 
 ---
 

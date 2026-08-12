@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
@@ -18,11 +19,9 @@ import { routing } from "@/i18n/routing";
 import "../globals.css";
 
 /*
- * Geist for everything, Geist Mono for metadata only. Self-hosted by next/font.
- *
- * Arabic currently falls back to Geist via --font-arabic, an explicit interim
- * (decision 020). That token is separate in globals.css so selecting a real
- * Arabic face later is a one-line change.
+ * LATIN — Geist for everything, Geist Mono for metadata only. Unchanged.
+ * ARABIC — LANTX for headings, Meral Sans for body (decision 045, closing
+ * open question F). Both self-hosted from app/fonts as woff2; no CDN.
  */
 const geist = Geist({
   subsets: ["latin"],
@@ -36,6 +35,45 @@ const geistMono = Geist_Mono({
   weight: ["400", "500"],
   variable: "--font-geist-mono",
   display: "swap",
+});
+
+/*
+ * LANTX — Arabic headings. One weight, by design: it is a display face, and
+ * the file ships Regular only.
+ *
+ * `adjustFontFallback: false` and the single 400 declaration matter together.
+ * Headings are `font-weight: 600` sitewide, and a browser asked for 600 from a
+ * 400-only family SYNTHESISES it by smearing the outlines. On Arabic that
+ * wrecks the joins between letters, which is where the whole letterform lives.
+ * `font-synthesis-weight: none` in globals.css refuses that, and the Arabic
+ * heading hierarchy comes from size instead — which is how Arabic display
+ * faces are normally used.
+ */
+const lantx = localFont({
+  src: [{ path: "../fonts/LANTX-Regular.woff2", weight: "400", style: "normal" }],
+  variable: "--font-lantx",
+  display: "swap",
+  adjustFontFallback: false,
+});
+
+/*
+ * Meral Sans — Arabic body. Four weights, matching the three the type scale
+ * asks for (400/500/600) plus 700 for `<strong>`.
+ *
+ * The remaining five weights in /fonts (thin, extralight, light, extrabold,
+ * black) are deliberately not shipped: nothing in the scale requests them, and
+ * each is another ~23 KB on every Arabic page.
+ */
+const meralSans = localFont({
+  src: [
+    { path: "../fonts/MeralSans-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/MeralSans-Medium.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/MeralSans-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/MeralSans-Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-meral",
+  display: "swap",
+  adjustFontFallback: false,
 });
 
 export function generateStaticParams() {
@@ -127,7 +165,7 @@ export default async function LocaleLayout({
     <html
       lang={typedLocale}
       dir={dir}
-      className={`${geist.variable} ${geistMono.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${lantx.variable} ${meralSans.variable}`}
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col">
