@@ -5,7 +5,7 @@ import { cache } from "react";
 import { supabaseServer } from "@/lib/supabase/server";
 
 import { resolveMany, withFields } from "./translate";
-import type { ChapterDetail, Locale } from "./types";
+import type { ChapterDetail, ChapterWithDecisions, Locale } from "./types";
 
 /**
  * Chapters — the chapter route, and the params for static generation.
@@ -30,6 +30,78 @@ export const listChapterParams = cache(
       caseFile: (row.case_files as unknown as { slug: string }).slug,
       chapter: row.slug,
     }));
+  },
+);
+
+/**
+ * Every chapter of one case file, with bodies and decisions — the Linear View.
+ *
+ * Deliberately NOT `getChapter` in a loop. That would issue seven separate
+ * round trips for Egypt and re-resolve the same case file each time; this
+ * takes two queries and two translation resolves regardless of length.
+ *
+ * `kind = 'chapter'` only. Comparison and accessibility pages are reachable
+ * from the cover but are not part of the sequence (amendment 033), and a
+ * "read start to finish" that silently included them would misrepresent the
+ * case file's shape.
+ *
+ * Returns null for an unknown or unpublished case file.
+ */
+export const listChapterBodies = cache(
+  async (
+    caseFileSlug: string,
+    locale: Locale,
+  ): Promise<ChapterWithDecisions[] | null> => {
+    const { data: caseFileRow, error: caseFileError } = await supabaseServer
+      .from("case_files")
+      .select("id")
+      .eq("slug", caseFileSlug)
+      .eq("status", "published")
+      .maybeSingle();
+
+    if (caseFileError) {
+      throw new Error(`Failed to load ${caseFileSlug}: ${caseFileError.message}`);
+    }
+    if (!caseFileRow) return null;
+
+    const { data: chapterRows, error: chapterError } = await supabaseServer
+      .from("chapters")
+      .select("*")
+      .eq("case_file_id", caseFileRow.id)
+      .eq("kind", "chapter")
+      .eq("status", "published")
+      .order("sort_order");
+
+    if (chapterError) {
+      throw new Error(`Failed to load chapters: ${chapterError.message}`);
+    }
+
+    const chapters = chapterRows ?? [];
+    if (chapters.length === 0) return [];
+
+    const { data: decisionRows, error: decisionError } = await supabaseServer
+      .from("decisions")
+      .select("*")
+      .in("chapter_id", chapters.map((c) => c.id))
+      .order("sort_order");
+
+    if (decisionError) {
+      throw new Error(`Failed to load decisions: ${decisionError.message}`);
+    }
+
+    const [withText, decisions] = await Promise.all([
+      withFields("chapter", chapters, locale),
+      withFields("decision", decisionRows ?? [], locale),
+    ]);
+
+    const byChapter = new Map<string, typeof decisions>();
+    for (const d of decisions) {
+      const list = byChapter.get(d.chapter_id) ?? [];
+      list.push(d);
+      byChapter.set(d.chapter_id, list);
+    }
+
+    return withText.map((c) => ({ ...c, decisions: byChapter.get(c.id) ?? [] }));
   },
 );
 

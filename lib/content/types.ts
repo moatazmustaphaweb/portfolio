@@ -79,6 +79,17 @@ export type Chapter = Tables<"chapters"> & {
   hero: Media | null;
 };
 
+/**
+ * A chapter with its decisions, for the Linear View.
+ *
+ * No `hero`: the linear read is a text read, and fetching a hero per chapter
+ * would add a query per chapter to a page whose whole point is one request.
+ */
+export type ChapterWithDecisions = Tables<"chapters"> & {
+  fields: Fields;
+  decisions: Decision[];
+};
+
 export type Feature = Tables<"features"> & {
   /** From translations: `label`, `description`. */
   fields: Fields;

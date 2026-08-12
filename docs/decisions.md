@@ -302,12 +302,64 @@ Both ends must be published for the link to appear, enforced in the RLS policy a
 
 ---
 
+## 040 — Checks report on MVP-1 only
+
+*2026-08-12*
+
+**Decision:** every check that scans the content database — route collisions, empty rows, missing tables — considers only rows flagged `In MVP-1`. A row parked for a later layer cannot report a problem, and cannot block a row that ships.
+
+**Why:** the Cervello route collision was between a finished MVP-1 cover and a Layer 3 row with no content, deliberately parked. The parked row aborted the cover **and its seven chapters**, and the report read as a genuine content fault. A check that fires on deliberately-parked content spends attention and buys nothing; worse, it trains you to skim the failure list, which is where the real failures live.
+
+**Consequence:** `findRouteCollisions` takes `inMvp` per claim and ignores parked ones. `--all` still widens what is *synced*; it no longer widens what is *reported*. Notices route through a gate keyed on row title. **Failures are not gated** — if a parked row is actually being written and the write breaks, that is still a broken write.
+
+Stated trade-off: two parked rows colliding with each other is not reported. Intended — it is a problem about content nobody is building, and it surfaces the moment either row joins MVP-1.
+
+**Status:** ACTIVE — closes open question C
+
+---
+
+## 041 — Absence is content, not a gap
+
+*2026-08-12*
+
+**Decision:** the sync does not report the absence of optional content. Entry handles, sibling links and outcome tables are editorial; a case file without them is complete.
+
+**Why:** three of these were being reported as problems and none of them was one.
+
+- **Neobiz has no results table.** Deliberate: the product is designed and internally validated but not built, so it makes design claims only, and any completion-time or conversion figure belongs to the Egypt web case file. Its cover says so.
+- **Cervello has no outcomes.** Its `Status, honestly` section states that the cloud version shipped and the numbers belong to the customers running it.
+- **A cover without entry handles or siblings** is simply a cover that does not use them.
+
+The check that survives is narrower and better: report only when there is **neither a table nor a statement about its absence** — a silence that could equally mean "the table is under a heading we don't recognise", which is the case actually worth catching. A cover that declares its position has answered the question.
+
+**Consequence:** notices dropped from 12 to 7, and every remaining one is actionable.
+
+**Status:** ACTIVE
+
+---
+
+## 042 — The Results Table lives at `/work/[caseFile]/results`, and has no red
+
+*2026-08-12*
+
+**Decision:** the route is a static `results` segment beside `[chapter]`, so no chapter slug can shadow it. The page 404s for a case file with no declared targets, and `generateStaticParams` covers only case files that have them.
+
+`missed` is **not** styled as an error. The palette has one accent and the standing rule that colour is never the sole indicator of a state, so the label carries the meaning and the styling only sets emphasis: accent for achieved, full-strength foreground for missed, dimmed for not-measurable.
+
+**Why the last part matters:** six of the eleven target rows across both case files are `not-measurable`, because a controlled release has no commercial launch to measure against. Colouring those like failures would misreport the work — in the direction of self-criticism, which is no more honest than the flattering direction and is the louder mistake on a page whose whole credibility comes from being even-handed.
+
+**Consequence:** Egypt and Neobiz have results tables, linked from their covers. Cervello and UAE 404 there and link to nothing, correctly. Rendered as a real `<table>` with `scope` attributes — this is tabular data, and a stack of divs would look identical and navigate far worse.
+
+**Status:** ACTIVE — implements decision 024
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |
 |---|---|---|
 | B | Mini case files — in MVP-1 or cut? | Gallery scope |
-| C | Stale Cervello rows — route collision + 5 orphaned chapters | Sync correctness |
+| ~~C~~ | ~~Stale Cervello rows — route collision~~ | *Closed by decision 040 — the parked row is out of scope, not a competing claim* |
 | D | Contact form delivery — Supabase table or email service? | Contact page |
 | E | Ask layer: lead capture yes/no; answer boundaries | Layer 4 |
 | F | Permanent Arabic typeface | Replaces the interim in decision 020 |

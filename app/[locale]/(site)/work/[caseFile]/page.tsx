@@ -155,10 +155,19 @@ export default async function CaseFileCover({
 
       {/*
         Comparison and accessibility pages — reachable from the cover without
-        entering the numbered sequence (amendment 033).
+        entering the numbered sequence (amendment 033) — plus the results
+        table, which is a page of this case file without being a chapter row.
       */}
-      {detail.pages.length > 0 ? (
+      {detail.pages.length > 0 || detail.targets.length > 0 ? (
         <section className="mt-10 flex flex-wrap gap-3">
+          {detail.targets.length > 0 && ui.t("results_table") ? (
+            <Link
+              href={`/${l}/work/${caseFile}/results`}
+              className="rounded-control border border-DEFAULT px-4 py-2 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
+            >
+              {ui.t("results_table")}
+            </Link>
+          ) : null}
           {detail.pages.map((page) =>
             page.fields.title ? (
               <Link
