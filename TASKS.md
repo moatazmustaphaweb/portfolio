@@ -147,7 +147,10 @@
 
 ### Content gaps — not blocking, need writing
 - [ ] **Cover images** — `media` is empty, so the NDA grayscale contrast on the gallery is invisible. Upload one cover per case file and set `case_files.cover_media_id`
-- [ ] **Outcome lines for UAE, Neobiz and Cervello** — only Egypt has an `Outcomes` table, so 3 of 4 gallery cards show a title and no impact line
+- [ ] 🔴 **UAE outcomes need 4 status markers** — the table is found and parsed; all four rows rejected for having no `[marker]`. Listed by name in the sync output
+- [ ] **Neobiz cover has no outcomes table** — only a `Results Table` page with targets. Its gallery card shows no outcome line
+- [ ] **Entry handles** — `Three ways in` exists on every cover but maps to no field; needs a field or a list parse
+- [ ] **Sibling links** — Egypt→Neobiz, UAE→both. No sibling relation exists in the schema
 - [ ] **`gallery_intro`** — the Classic Gallery intro line. Page renders without it
 - [ ] **`Features` sections** — no chapter has one; the parser finds 0. Either write them in Notion under a `Features` heading, or amend the contract to stop promising feature strips
 - [ ] **`egypt-acquisition/workflow` Arabic decisions** — 1 in EN, 3 in AR. Arabic skipped until the counts agree
@@ -160,7 +163,7 @@
 
 - [x] 1. Landing — real content, both locales, minimal footer
 - [x] 2. Classic Gallery — 4 published case files, domain filter, NDA markers, both locales
-- [ ] 3. Case File Cover (LivingMap × 3 grammars)
+- [x] 3. Case File Cover — title, thesis, role statement, OutcomeStrip, LivingMap branching on grammar
 - [ ] 4. Chapter (DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose)
 - [ ] 5. Results Table
 - [ ] 6. Linear View
