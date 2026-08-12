@@ -592,7 +592,15 @@ async function main() {
   /* ---- Pass 2: chapters ------------------------------------------------- */
 
   for (const row of rows) {
-    if (row.kind !== "chapter" || collidingTitles.has(row.title)) continue;
+    /*
+     * Comparison and Accessibility pages live under a case file and share the
+     * chapter route shape, so they are stored as chapters with a `kind`
+     * (amendment 033). They are excluded from the numbered narrative and the
+     * linear view, but everything else about them is a chapter.
+     */
+    const isChapterLike =
+      row.kind === "chapter" || row.kind === "comparison" || row.kind === "accessibility";
+    if (!isChapterLike || collidingTitles.has(row.title)) continue;
 
     const { caseFile, slug, error } = routeToSlug(row.route);
     if (error || !caseFile || !slug) {
@@ -611,7 +619,7 @@ async function main() {
     }
 
     if (DRY_RUN) {
-      console.log(`  chapter    ${caseFile}/${slug}`);
+      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}`);
       updated.push(`chapter ${caseFile}/${slug}`);
       continue;
     }
@@ -626,6 +634,7 @@ async function main() {
           // Chapter numbers inside H1 headings and any implied ordering in
           // route names are incidental and deliberately ignored.
           sort_order: row.order ?? 0,
+          kind: (row.kind === "chapter" ? "chapter" : row.kind) as never,
           status: (row.contentReady === "Done" ? "published" : "draft") as never,
         },
         { onConflict: "case_file_id,slug" },
@@ -662,9 +671,16 @@ async function main() {
     }
 
     /*
-     * Decisions are PARSED and REPORTED but not written: holding several per
-     * chapter needs a `decisions` table, and that schema change is proposed
-     * rather than assumed. See docs/status.md.
+     * Decisions — an ORDERED LIST per chapter (amendment 032).
+     *
+     * Replaced wholesale, translations first: same polymorphic-orphan trap as
+     * outcomes and targets.
+     *
+     * Arabic is paired BY POSITION, and only when the counts match. Where they
+     * differ the Arabic is skipped and reported — egypt-acquisition/workflow
+     * has one decision in English and three in Arabic because the Arabic
+     * genuinely splits what the English combines, and pairing those by index
+     * would attach the wrong Arabic to the wrong decision.
      */
     const enDecisions = decisionsFromBody(body);
     if (enDecisions.length > 0 || arDecisions.length > 0) {
@@ -674,6 +690,44 @@ async function main() {
         ar: arDecisions.length,
         names: enDecisions.map((d) => d.name),
       });
+    }
+
+    const { data: oldDecisions } = await (await db())
+      .from("decisions").select("id").eq("chapter_id", data.id);
+    if (oldDecisions && oldDecisions.length > 0) {
+      await (await db()).from("translations").delete()
+        .eq("entity_type", "decision").in("entity_id", oldDecisions.map((d) => d.id));
+      await (await db()).from("decisions").delete().eq("chapter_id", data.id);
+    }
+
+    const pairArabic =
+      arDecisions.length > 0 && arDecisions.length === enDecisions.length;
+    if (arDecisions.length > 0 && !pairArabic) {
+      notices.push(
+        `${row.title}: ${enDecisions.length} decision(s) in English but ` +
+          `${arDecisions.length} in Arabic. Arabic skipped — pairing by position ` +
+          "across different counts would attach the wrong Arabic to the wrong decision.",
+      );
+    }
+
+    for (const [i, d] of enDecisions.entries()) {
+      const { data: dec } = await (await db())
+        .from("decisions").insert({ chapter_id: data.id, sort_order: i })
+        .select("id").single();
+      if (!dec) continue;
+
+      await upsertTranslations("decision", dec.id, "en", {
+        name: d.name,
+        ...(d.body ? { body: d.body } : {}),
+      });
+
+      if (pairArabic) {
+        const ar = arDecisions[i];
+        await upsertTranslations("decision", dec.id, "ar", {
+          name: ar.name,
+          ...(ar.body ? { body: ar.body } : {}),
+        });
+      }
     }
 
     /*

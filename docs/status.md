@@ -14,8 +14,8 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]` | 🟡 stub | Shell, nav, JSON-LD, analytics | Everything. The Landing page is Phase 1 #1 |
 | `/[locale]/work` | 🟡 stub | Title, breadcrumb | ProjectGrid, ProjectCard, FilterBar |
 | `/[locale]/work/[caseFile]` | 🟡 stub · **🟢 CONTENT LIVE** | 4 published case files render, both locales. Unknown/draft 404s | LivingMap, OutcomeStrip, EntryHandles — data is there, components are not |
-| `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 10 chapters render, both locales, with objective/context/result in the database | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
-| `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Renders the real chapter list | ⚠️ Order is wrong — see below. Chapter bodies inline |
+| `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 13 pages — 10 chapters + 2 comparisons + 1 accessibility. **20 decisions** in the database, ordered, both locales | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
+| `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Real chapters in correct order; comparisons and accessibility correctly excluded | Chapter bodies inline |
 | `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
 | `/[locale]/about` | 🟡 stub | Title, breadcrumb | Timeline component, copy |
 | `/[locale]/about/philosophy` | 🟡 stub | Title, breadcrumb (3 levels) | Docs-style prose template |
@@ -33,6 +33,56 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — four amendments applied, all synced
+
+Logged as decisions **032–035**. `docs/architecture.md` and `docs/schema.md` amended so the docs match the code.
+
+### 1 ✅ Decisions — 20 written, ordered, both locales
+
+`decisions` table built as proposed, mirroring `features`. Names and bodies in `translations` under `entity_type='decision'`.
+
+| Chapter | Decisions |
+|---|---|
+| egypt-acquisition/onboarding · workflow · portal · fulfilment | 1 · 1 · 3 · 3 |
+| neobiz-mobile/onboarding · portal | 3 · 1 |
+| uae-acquisition/onboarding | 3 |
+| cervello/on-premises-to-cloud · permission-architecture · method | 2 · 3 · **0** |
+
+Arabic paired on all but one. **`egypt-acquisition/workflow` skipped its Arabic and reported it** — 1 decision in English, 3 in Arabic, and pairing by position across different counts would attach the wrong Arabic to the wrong decision. Whenever you want that resolved, either the English splits into three or the Arabic merges into one; the sync will pick it up.
+
+### 2 ✅ Three pages that were invisible — now live
+
+Stored as chapters with a `kind` (amendment 033) rather than forced into the sequence or given a parallel table. Everything about them *is* a chapter — same parent, slug uniqueness, route shape, status, translations — and exactly one thing differs: they are not part of the narrative.
+
+Live now, both locales:
+`/work/egypt-acquisition/web-vs-mobile-onboarding` · `/web-vs-mobile-portal` · `/accessibility`
+
+Verified excluded from the linear view, which still reads `01 Onboarding · 02 Workflow · 03 Portal · 04 Fulfilment`. The query layer returns them as a separate `pages` array so a cover can link them without them entering the sequence.
+
+### 3 ✅ `cervello/method` publishes with zero decisions
+
+Rule 3 amended (decision 034): the check now tests for a **decided** decision set, not a non-empty one. Your reasoning is recorded verbatim in `decisions.md` and in both docs — a decision resolves a specific problem, a principle is a standing rule governing many, and relabelling one as the other to satisfy a parser would corrupt content to fit a tool.
+
+Logged as an amendment to a non-negotiable so it reads as a considered exception rather than the rule quietly weakening.
+
+### 4 ✅ Retention — 360 days
+
+`prune_analytics()` updated, cron active at 03:15 UTC daily, aggregate-then-prune order preserved. Aggregates still carry no session id and no city.
+
+### Applying the standing rule
+
+Two things I decided rather than asking:
+
+- **The `chapters.kind` shape** for the standalone pages. A parallel table would have duplicated the whole structure to express one difference and forced every query to be written twice.
+- **Left `chapter.decision` in place, unused.** Dropping it would break nothing today but would silently discard any content still written against that field.
+
+### Still short
+
+- **`features` = 0.** The parser works; no chapter has a `Features` heading. Needs the content written or the contract changed — flagged in `TASKS.md`, not blocking.
+- **`uae-acquisition` has no Arabic cover title.** Its Arabic child page has no H1 and its page title yields nothing usable. Falls back to English, which is decision 013 working.
 
 ---
 

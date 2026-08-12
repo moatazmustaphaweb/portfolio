@@ -209,6 +209,30 @@
 **Verified:** a 200-day-old session with events was deleted from raw while its month survived in `analytics_monthly`; a 10-day-old session was untouched; events cascaded with their session; `analytics_monthly` has no `city` column; the cron job is scheduled.
 **Status:** ACTIVE
 
+### 2026-08-12 — 032 — A chapter has as many decisions as it has
+**Decision:** Chapters carry an **ordered list** of decisions, not one. New `decisions` table (`id`, `chapter_id`, `sort_order`); the decision's name and body live in `translations` under `entity_type='decision'`, fields `name` and `body`. Mirrors `features` exactly.
+**Why:** Modelling one decision per chapter was wrong. Nine of ten chapters carry between one and three, and collapsing them would flatten the most valuable content in the case study — a decision block is where the trade-off is stated and defended. The name is *content*, not a label: it belongs in `translations` and may legitimately differ between languages. `egypt-acquisition/workflow` proves the point — one decision in English, three in Arabic, because the Arabic splits what the English combines.
+**Consequence:** `docs/architecture.md` Part 3.1 and `docs/schema.md` amended. The existing `chapter.decision` translation field is left in place and unused rather than dropped — removing it would break nothing today but would silently discard any content still written against it. Arabic is paired **by position and only when the counts match**; a mismatch skips the Arabic and reports it, because pairing across different counts attaches the wrong Arabic to the wrong decision.
+**Status:** ACTIVE — amends the chapter model in Architecture v2.0
+
+### 2026-08-12 — 033 — Comparison and Accessibility are chapters with a `kind`
+**Decision:** Standalone case-file pages — the two Comparisons and the Accessibility page — are stored in `chapters` with `kind` in (`chapter`, `comparison`, `accessibility`). They are excluded from the numbered narrative and from the linear view, and the query layer returns them as a separate `pages` array.
+**Why:** Everything about them *is* a chapter — same parent, same slug uniqueness, same route shape, same status, same hero media, same translations. Exactly one thing differs: they are not part of the sequence. A parallel table would duplicate the whole structure to express that one difference, and would need every query written twice.
+**Consequence:** `sort_order` is meaningless for them and stays 0. Three pages that were previously synced as nothing are now reachable at `/work/egypt-acquisition/{web-vs-mobile-onboarding, web-vs-mobile-portal, accessibility}`.
+**Status:** ACTIVE
+
+### 2026-08-12 — 034 — Rule 3 allows an explicitly EMPTY decision set
+**Decision:** Rule 3 ("`role` and `decision` required before a chapter publishes") is amended: a chapter may publish with **zero** decisions, but the absence must be explicit — the chapter genuinely has none — rather than a field nobody filled in.
+**Why:** `cervello/method` is complete and good, and it argues in **principles** rather than decisions. Those are different things: a decision resolves a specific problem or feature; a principle is a standing rule that governs many decisions. Relabelling one as the other to satisfy a parser would corrupt the content to fit the tool, which is backwards. The rule exists to prevent a case file publishing without the "I" — and a chapter that states four principles in the first person is not missing the "I".
+**Consequence:** The publish check tests for a *decided* decision set, not a non-empty one. `cervello/method` publishes with zero and gains a Decision section later without a migration. This is a considered exception, logged so it is not mistaken for the rule quietly weakening.
+**Status:** ACTIVE — amends non-negotiable 3
+
+### 2026-08-12 — 035 — Analytics retention: 360 days
+**Decision:** Raw `sessions` and `events` are kept **360 days**, then deleted. Monthly aggregates by country, referrer type and device are kept indefinitely. `pg_cron` runs daily at 03:15 UTC: aggregate, then prune.
+**Why:** Supersedes the 180-day window in decision 031. A full year of raw data covers year-over-year comparison at the raw level and gives Layer 2's archetype validation the widest sample it can get while still expiring. The bound still matters — `city` + timestamp is the most identifying combination held, and time-bounding it is what keeps "approximate location" honest.
+**Consequence:** `prune_analytics()` updated. Aggregates carry no session id and no city, so nothing re-identifiable outlives the window.
+**Status:** ACTIVE — supersedes the window in 031
+
 ---
 
 ## OPEN — NOT YET DECIDED

@@ -133,6 +133,7 @@ export const getCaseFile = cache(
         .select("*")
         .eq("case_file_id", row.id)
         .eq("status", "published")
+        .order("kind")
         .order("sort_order"),
       supabaseServer
         .from("outcomes")
@@ -174,10 +175,20 @@ export const getCaseFile = cache(
       ...row,
       fields: caseFields.get(row.id) ?? {},
       cover,
-      chapters: chapters.map((c) => ({
-        ...c,
-        hero: c.hero_media_id ? (media.get(c.hero_media_id) ?? null) : null,
-      })),
+      // Split by kind: the numbered narrative, and the standalone pages that
+      // sit under this case file without being part of its sequence.
+      chapters: chapters
+        .filter((c) => c.kind === "chapter")
+        .map((c) => ({
+          ...c,
+          hero: c.hero_media_id ? (media.get(c.hero_media_id) ?? null) : null,
+        })),
+      pages: chapters
+        .filter((c) => c.kind !== "chapter")
+        .map((c) => ({
+          ...c,
+          hero: c.hero_media_id ? (media.get(c.hero_media_id) ?? null) : null,
+        })),
       outcomes,
       targets,
     };
