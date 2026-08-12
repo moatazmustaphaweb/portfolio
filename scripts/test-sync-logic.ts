@@ -203,6 +203,19 @@ eq(
   { lines: ["Real outcome [achieved]"], source: "table" },
 );
 
+// A cover written with "## Results" rather than "## Outcomes".
+eq(
+  "outcomes accept a Results heading",
+  selectItemLines(new Map([["results::table", ["Live 18 months [achieved]"]]]), false),
+  { lines: ["Live 18 months [achieved]"], source: "table" },
+);
+// Arabic covers use النتائج, which readBody folds to `outcomes` before this runs.
+eq(
+  "outcomes accept the folded Arabic heading",
+  selectItemLines(new Map([["outcomes::table", ["حي منذ ١٨ شهرًا [achieved]"]]]), false),
+  { lines: ["حي منذ ١٨ شهرًا [achieved]"], source: "table" },
+);
+
 // Legacy prose form still parses when there is no table at all.
 eq(
   "prose form still works",

@@ -409,7 +409,20 @@ const CHAPTER_FIELDS: Record<string, string> = {
 const COVER_FIELDS: Record<string, string> = {
   thesis: "thesis",
   role: "role",
+  // Covers are written with "My role", not "Role". The heading flexes.
+  "my role": "role",
   reflection: "reflection",
+  /*
+   * "Status, honestly" is where a cover states plainly what it can and cannot
+   * claim — Cervello's says it has no numbers. Mapped to `reflection` because
+   * that is the cover's reflective field and it renders in the right place.
+   *
+   * Without this the section is simply absent, and a cover that has chosen to
+   * state an honest absence instead shows nothing at all — which reads as an
+   * oversight rather than the deliberate position it is.
+   */
+  "status, honestly": "reflection",
+  "الحالة، بصراحة": "reflection",
 };
 
 /**
@@ -808,12 +821,15 @@ async function main() {
        * Still reported loudly, because "a table exists and was missed" looks
        * identical to "there is no table" and only this line tells them apart.
        */
-      if (isTargets) {
-        notices.push(
-          `${row.title}: no targets table found. Legitimate if this case file ` +
-            "declares its limits in prose; a problem if a table exists and was missed.",
-        );
-      }
+      notices.push(
+        isTargets
+          ? `${row.title}: no targets table found. Legitimate if this case file ` +
+            "declares its limits in prose; a problem if a table exists and was missed."
+          : `${row.title}: no outcomes table found under Outcomes/Results/النتائج. ` +
+            "Legitimate if this case file states plainly that it has no numbers; " +
+            "a problem if a table exists under a heading not in that list. " +
+            "Its gallery card will show a title and no outcome line.",
+      );
       continue;
     }
 
@@ -825,6 +841,7 @@ async function main() {
 
     const allowed = isTargets ? TARGET_STATUSES : OUTCOME_STATUSES;
     const parsed: { label: string; status: string; note: string | null }[] = [];
+    const badRows: string[] = [];
     let aborted = false;
 
     for (const line of lines) {
@@ -840,10 +857,15 @@ async function main() {
 
       const item = parseStatusItem(labelCell, allowed);
       if (item instanceof Error) {
-        // Abort THIS entity, report it, keep going with the rest of the sync.
-        fail(`${row.title} → ${isTargets ? "targets" : "outcomes"}`, item.message);
+        /*
+         * Collect EVERY bad row before aborting the entity, rather than
+         * stopping at the first. Reporting one row at a time turns fixing a
+         * table into a fix-resync-fix loop; one pass should say everything
+         * that needs a marker.
+         */
+        badRows.push(item.message);
         aborted = true;
-        break;
+        continue;
       }
 
       /*
@@ -858,7 +880,14 @@ async function main() {
 
       allClaims.push({ text: item.label, status: item.status, source: row.title });
     }
-    if (aborted) continue;
+    if (aborted) {
+      fail(
+        `${row.title} → ${isTargets ? "targets" : "outcomes"}`,
+        `${badRows.length} row(s) need a status marker:\n` +
+          badRows.map((b) => `      - ${b}`).join("\n"),
+      );
+      continue;
+    }
 
     if (DRY_RUN) {
       console.log(

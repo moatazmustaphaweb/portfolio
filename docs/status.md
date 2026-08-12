@@ -13,7 +13,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 |---|---|---|---|
 | `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
 | `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
-| `/[locale]/work/[caseFile]` | 🟡 stub · **🟢 CONTENT LIVE** | 4 published case files render, both locales. Unknown/draft 404s | LivingMap, OutcomeStrip, EntryHandles — data is there, components are not |
+| `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, OutcomeStrip with statuses, LivingMap branching on grammar, links to comparison/accessibility pages | Entry handles · sibling links |
 | `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 13 pages — 10 chapters + 2 comparisons + 1 accessibility. **20 decisions** in the database, ordered, both locales | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
 | `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Real chapters in correct order; comparisons and accessibility correctly excluded | Chapter bodies inline |
 | `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
@@ -33,6 +33,76 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — Case File Cover shipped; outcomes parser widened
+
+### The parser was the gap — you were right
+
+`Results` / `النتائج` now parse as `Outcomes` on a cover. The Arabic already worked (`النتائج` was folded to `outcomes` by the heading synonyms); it was only English `## Results` that missed.
+
+**But two of the three covers you named have no results table at all.** Correcting that plainly:
+
+| Cover | What is actually there |
+|---|---|
+| **UAE** | A `Results` table, 4 rows — found, and **all four rejected for missing markers** |
+| **Neobiz** | No results table. Headings are `Thesis` · `What it is` · `Status, honestly` · `Why it matters anyway` · `Three ways in` |
+| **Cervello** | No results table — correct and deliberate, this is the "no numbers" cover |
+
+The Neobiz *Results Table page* has 5 targets and synced long ago; I think that is what you were remembering.
+
+The `Claim / Basis` shape parses fine — column names are never read, only position.
+
+### The four UAE rows, all at once
+
+I changed the failure behaviour first. It aborted on the *first* bad row, which would have made this a fix-resync-fix loop. It now collects every bad row and reports them together:
+
+```
+✗ Case File Cover — UAE Acquisition → outcomes: 4 row(s) need a status marker:
+    - Live in production for over a year and a half
+    - ~10 minutes to complete an application
+    - Under one business day to open the account, sometimes same day
+    - Thousands of new business accounts via the digital journey
+```
+
+No status inferred. Add the markers and the four outcomes appear on the cover and the first one on the gallery card.
+
+### A silence closed
+
+A cover with no outcomes previously passed without a word — the same silent-gap pattern as before. It now emits a notice saying the card will show no outcome line, and whether that is legitimate.
+
+### Two headings mapped
+
+- `My role` → `role`. Covers are written that way, not as `Role`, so **no cover had a role statement at all** until now.
+- `Status, honestly` → `reflection`. This is where Cervello states plainly that it has no numbers. Unmapped, it simply vanished — a cover that has chosen an honest absence showed nothing, which reads as an oversight rather than the deliberate position it is.
+
+Cervello's cover now reads: *"And I have no numbers for it… I'd rather name the limit than manufacture a result."*
+
+### The cover
+
+Order is deliberate: title → thesis → **role statement** → outcomes → reflection → map.
+
+The role statement sits at `text-statement` size in its own block with a rule down its side, not in a caption. UAE's reads *"Sole designer on the mobile product, end to end."* — the single most load-bearing sentence on the page, typeset accordingly.
+
+**LivingMap branches on grammar**, plain list in all three cases per decision 023, but the shape is already right:
+
+| Grammar | Rendering | Why |
+|---|---|---|
+| `country-culture` | Numbered `Chapter 01…04` | A journey through a market — sequence carries meaning |
+| `ecosystem` | Unnumbered | A platform and what orbits it — numbering would assert an order the work does not have |
+| `design-system` | Ordered, unnumbered | A documentation tree has hierarchy, not a path |
+
+Verified: Egypt renders numbered, Cervello unnumbered. Phase 2 replaces the presentation, not the model.
+
+The outcome strip shows every figure with its status **and its note** — how it is known is what makes the marker defensible.
+
+### Not built — no data for them
+
+- **Entry handles.** The `Three ways in` heading exists on every cover but maps to no field. It is three named links into specific chapters, which needs either a new field or a parse of the list.
+- **Sibling links.** Egypt→Neobiz, UAE→both. There is no sibling relation in the schema; it would need a self-referencing table or a translation field.
+
+Both are listed in `TASKS.md`. Neither blocks the page.
 
 ---
 

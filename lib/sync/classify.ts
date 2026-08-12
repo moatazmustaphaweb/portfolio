@@ -305,7 +305,17 @@ export function selectItemLines(
   body: ReadonlyMap<string, string[]>,
   isTargets: boolean,
 ): ItemSelection {
-  const headings = isTargets ? ["targets", "results"] : ["outcomes"];
+  /*
+   * `Results` is a synonym for `Outcomes` on a cover. The covers are written
+   * with `## Results` / `## النتائج` and only Egypt used `## Outcomes`, so the
+   * parser found three of four covers empty and reported missing content that
+   * was in fact written. The heading flexes; the writing does not.
+   *
+   * `results` appearing in both lists is not a conflict: a cover and a
+   * "Results Table —" page are distinguished by entity kind, never by heading.
+   * (The Arabic `النتائج` is already folded to `outcomes` by HEADING_SYNONYMS.)
+   */
+  const headings = isTargets ? ["targets", "results"] : ["outcomes", "results"];
 
   const expected = headings.flatMap((h) => body.get(`${h}::table`) ?? []);
   if (expected.length > 0) return { lines: expected, source: "table" };
