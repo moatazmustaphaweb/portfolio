@@ -36,9 +36,11 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
-## 2026-08-12 — navigability, footer, and the staleness
+## 2026-08-12 — navigability, footer, the staleness, and `npm run fresh`
 
-Three fixes before any new pages, since you can't judge what you can't see.
+Three fixes before any new pages, since you can't judge what you can't see — plus the `fresh` script.
+
+> **To review content: `npm run fresh`.** One command, browser opens itself. If a dev server is already running it will tell you the pid rather than break it.
 
 ### 1 ✅ Footer — it was rendering *inside* `<main>`
 
@@ -81,9 +83,42 @@ Fixed properly: **every content route now exports `revalidate = 300`** (decision
 
 > One wrinkle worth knowing: `revalidate` must be a **literal**. My first attempt imported a shared constant and the build failed with *"Invalid segment configuration export"*. `lib/content/revalidate.ts` documents the value; each route states it inline.
 
-### A verification habit I had wrong
+### 4 ✅ `npm run fresh`
+
+```
+npm run fresh
+```
+
+Clears `.next`, starts the dev server, waits until it is genuinely ready, then opens `http://localhost:3000/en` in your browser. `PORT=3200 npm run fresh` to use another port. `Ctrl-C` stops it.
+
+It is `scripts/dev-fresh.mjs` rather than a one-line npm command because three things need to happen in the right order, and each of them bit during this session:
+
+- **`.next` must be cleared before the server starts, never during.** See below.
+- **Next allows one dev server per *directory*, not per port.** A second one is refused with a message that scrolls past easily, so the script checks first and says so plainly.
+- **The browser should open when the server is ready**, not after a guessed delay.
+
+### ⚠️ I was a cause of issue 3, and I reproduced it while fixing it
+
+My verification runs used `rm -rf .next && npm run build` in this same directory **while your dev server was running**. Deleting `.next` under a live dev server produces exactly the symptoms you reported: stale or broken pages that survive a refresh and a private window. Some of what you were seeing was me.
+
+Then the first version of the `fresh` script made the same mistake in a more durable form. Its guard checked whether the *port* was in use; I ran it on port 3200 expecting a clean start, and it deleted `.next` out from under your server on :3000 before Next refused to start. The port was the wrong question.
+
+Fixed: the script reads Next's own `.next/dev/lock` — `{"pid":…,"port":…}` — and tests that the pid is alive with signal 0 before touching anything. A stale lock from a crashed server is ignored rather than becoming a permanent block. Verified: the guard fires, names the pid, and leaves `.next` intact.
+
+### Re-verified: `revalidate = 300` does not reintroduce the staleness
+
+Worth stating because the order of work made the earlier test invalid. I confirmed dev freshness *before* adding `revalidate = 300` to every route, so that result no longer covered the shipped code — an ISR window could in principle have caused the very thing it was meant to fix.
+
+Re-tested against live code: changed the `tagline` translation directly in Supabase, refreshed immediately and again two seconds later — both showed the new value; restored the original by row id and confirmed the Arabic was untouched. **Dev mode ignores the ISR window.** The window applies to production builds only, which is where the staleness came from.
+
+### A verification habit I had wrong — twice
 
 I had been checking builds with `grep -c error` on the output. The failure above says *"Invalid segment configuration export detected"* — no word "error" — so my check reported a clean build for one that had exited 1. Now checking exit codes.
+
+Two more of the same shape this session, both caught before they misled anything:
+
+- `grep -c 'href="/en/work/…"'` counts *lines*, and the HTML is one line — so four links reported as "1". Count matches (`grep -o | sort -u`), not lines.
+- `${PIPESTATUS[0]}` is a bash-ism and this shell is **zsh** (`$pipestatus`, 1-indexed). It expanded to empty, so `tsc exit:` printed a blank that reads as success. Re-run without the pipe: exit 0, genuinely clean.
 
 ---
 
