@@ -45,8 +45,16 @@ export function LivingMap({
 
   const shape = GRAMMAR_SHAPE[grammar] ?? GRAMMAR_SHAPE.ecosystem;
 
+  /*
+   * `<ol>` vs `<ul>` is the grammar's first real consequence, and it is not
+   * decoration: a screen reader announces an ordered list as a sequence. For
+   * an ecosystem — a platform and the things orbiting it — that would assert a
+   * first and a last where the work has neither.
+   */
+  const List = shape.ordered ? "ol" : "ul";
+
   return (
-    <ol className="flex flex-col gap-px overflow-hidden rounded-panel border border-DEFAULT bg-border">
+    <List className="flex flex-col gap-px overflow-hidden rounded-panel border border-DEFAULT bg-border">
       {chapters.map((chapter, i) => {
         const title = chapter.fields.title;
         if (!title) return null;
@@ -79,6 +87,6 @@ export function LivingMap({
           </li>
         );
       })}
-    </ol>
+    </List>
   );
 }

@@ -12,6 +12,7 @@ import type {
   Media,
   MediaRow,
   OutcomeStatus,
+  SiblingLink,
 } from "./types";
 
 /**
@@ -162,7 +163,7 @@ export const getCaseFile = cache(
     if (error) throw new Error(`Failed to load case file ${slug}: ${error.message}`);
     if (!row) return null;
 
-    const [chapterRes, outcomeRes, targetRes] = await Promise.all([
+    const [chapterRes, outcomeRes, targetRes, handleRes, siblingRes] = await Promise.all([
       supabaseServer
         .from("chapters")
         .select("*")
@@ -180,9 +181,19 @@ export const getCaseFile = cache(
         .select("*")
         .eq("case_file_id", row.id)
         .order("sort_order"),
+      supabaseServer
+        .from("entry_handles")
+        .select("*")
+        .eq("case_file_id", row.id)
+        .order("sort_order"),
+      supabaseServer
+        .from("case_file_siblings")
+        .select("*")
+        .eq("case_file_id", row.id)
+        .order("sort_order"),
     ]);
 
-    for (const res of [chapterRes, outcomeRes, targetRes]) {
+    for (const res of [chapterRes, outcomeRes, targetRes, handleRes, siblingRes]) {
       if (res.error) {
         throw new Error(`Failed to load case file ${slug}: ${res.error.message}`);
       }
@@ -207,6 +218,66 @@ export const getCaseFile = cache(
       : null;
     assertNotRedacted(cover, row.slug);
 
+    /*
+     * Entry handles. The target chapter is resolved HERE rather than in the
+     * page, against the chapters already fetched above — a handle pointing at
+     * an unpublished chapter must render as text, not as a link to a 404, and
+     * a page cannot be trusted to remember that.
+     */
+    const handleRows = handleRes.data ?? [];
+    const handleFields = await resolveMany(
+      "entry_handle",
+      handleRows.map((h) => h.id),
+      locale,
+    );
+    const chapterBySlugId = new Map(chapters.map((c) => [c.id, c]));
+
+    const handles = handleRows.map((h) => {
+      const target = h.target_chapter_id
+        ? (chapterBySlugId.get(h.target_chapter_id) ?? null)
+        : null;
+      const fields = handleFields.get(h.id) ?? {};
+      return {
+        id: h.id,
+        invitation: fields.invitation,
+        payoff: fields.payoff,
+        target: target ? { slug: target.slug, title: target.fields.title } : null,
+      };
+    });
+
+    /*
+     * Siblings. Published only — the service role bypasses RLS, so the policy
+     * on `case_file_siblings` does not protect this query. A link from a live
+     * cover to a draft case file would be a dead end.
+     */
+    const siblingRows = siblingRes.data ?? [];
+    let siblings: SiblingLink[] = [];
+    if (siblingRows.length > 0) {
+      const { data: siblingCaseFiles } = await supabaseServer
+        .from("case_files")
+        .select("id, slug")
+        .in("id", siblingRows.map((s) => s.sibling_id))
+        .eq("status", "published");
+
+      const [siblingTitles, siblingNotes] = await Promise.all([
+        resolveMany("case_file", (siblingCaseFiles ?? []).map((c) => c.id), locale),
+        resolveMany("case_file_sibling", siblingRows.map((s) => s.id), locale),
+      ]);
+
+      siblings = siblingRows.flatMap((s) => {
+        const target = (siblingCaseFiles ?? []).find((c) => c.id === s.sibling_id);
+        if (!target) return [];
+        return [
+          {
+            id: s.id,
+            slug: target.slug,
+            title: siblingTitles.get(target.id)?.title,
+            note: siblingNotes.get(s.id)?.note,
+          },
+        ];
+      });
+    }
+
     return {
       ...row,
       fields: caseFields.get(row.id) ?? {},
@@ -228,6 +299,8 @@ export const getCaseFile = cache(
         })),
       outcomes,
       targets,
+      handles,
+      siblings,
     };
   },
 );

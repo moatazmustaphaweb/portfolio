@@ -75,6 +75,41 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["case_files"]["Insert"]>;
         Relationships: [];
       };
+      entry_handles: {
+        Row: {
+          id: string;
+          case_file_id: string;
+          /** Null unless the handle names a chapter unambiguously (0017). */
+          target_chapter_id: string | null;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          case_file_id: string;
+          target_chapter_id?: string | null;
+          sort_order?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["entry_handles"]["Insert"]>;
+        Relationships: [];
+      };
+      case_file_siblings: {
+        Row: {
+          id: string;
+          case_file_id: string;
+          sibling_id: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          case_file_id: string;
+          sibling_id: string;
+          sort_order?: number;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["case_file_siblings"]["Insert"]
+        >;
+        Relationships: [];
+      };
       chapters: {
         Row: {
           id: string;
@@ -370,6 +405,8 @@ export type Database = {
         | "media"
         | "nav_item"
         | "setting"
+        | "entry_handle"
+        | "case_file_sibling"
         | "ui_string"
         | "decision";
       grammar_type: "country-culture" | "ecosystem" | "design-system";

@@ -121,6 +121,32 @@ create table targets (
   sort_order    int not null default 0
 );
 
+-- "Three ways in" (migration 0017). Structure only — `invitation` and `payoff`
+-- live in `translations`, deliberately: outcomes keeps copy in `value` AND
+-- accepts a `label` translation, and Egypt's outcome rendered twice as a
+-- result. One home for the text, one chance to be wrong.
+create table entry_handles (
+  id                 uuid primary key default gen_random_uuid(),
+  case_file_id       uuid not null references case_files(id) on delete cascade,
+  -- NULLABLE, and null is a normal answer. Filled only when the handle's
+  -- pointer names a chapter unambiguously — by title or by "Chapter N".
+  -- An unresolved handle renders as text (decision 038).
+  target_chapter_id  uuid references chapters(id) on delete set null,
+  sort_order         int not null default 0
+);
+
+-- Cross-links between case files covering the same requirement in different
+-- markets (decision 004). DIRECTED — each cover states its own, in its own
+-- words, and the note belongs to the pointing cover (decision 039).
+create table case_file_siblings (
+  id            uuid primary key default gen_random_uuid(),
+  case_file_id  uuid not null references case_files(id) on delete cascade,
+  sibling_id    uuid not null references case_files(id) on delete cascade,
+  sort_order    int not null default 0,
+  constraint case_file_siblings_not_self check (case_file_id <> sibling_id),
+  constraint case_file_siblings_unique unique (case_file_id, sibling_id)
+);
+
 create table series (
   id          uuid primary key default gen_random_uuid(),
   slug        text not null unique,
