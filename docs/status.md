@@ -21,7 +21,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]/about` | 🟢 **REAL** | Intro + 6 sections in chronological order, the deaf-school year, links onward | — |
 | `/[locale]/about/philosophy` | 🟢 **REAL** | Docs-style: thesis, 5 numbered positions, sticky contents, an anchor per section | — |
 | `/[locale]/contact` | 🟢 **REAL** | Intro, contact methods, full form **with working delivery** (honeypot · timing · rate limit), what-happens-next, LinkedIn. CV absent until `cv_url` | — |
-| `404` | 🟢 **real** | Title, body, CTA, all from `ui_strings` | Locale — see the caveat below |
+| `404` | 🔴 **BROKEN** | Nothing. `app/[locale]/not-found.tsx` is dead code — no root `app/layout.tsx`, so `notFound()` falls to Next's stock page with no `lang`, no chrome, no copy | The whole page, both locales |
 | `/robots.txt` · `/sitemap.xml` · `/llms.txt` | 🟢 **real** | Generated from the database | — |
 | `/api/events` · `/api/revalidate` | 🟢 **real** | Verified against live requests | — |
 | `/[locale]/work/[caseFile]/cut/[cut]` | ⚪ not built | — | Layer 3 |
@@ -34,6 +34,97 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-13 — LAUNCH GATE AUDIT. Nothing fixed; this is the honest list.
+
+Run against a **real production build** (`next build` + `next start`), not dev. 36/36 route-locale combinations return 200 and the intended 404s 404 correctly.
+
+> ⚠️ **A false alarm I nearly reported as fact.** My first production run showed *every route except the landing page* 404ing. It was measuring a **stale server left on port 3100 from an earlier session** — my own `next start` had failed with `EADDRINUSE` and I read the old server's output as my build's. Same class of mistake as the `.next` deletion earlier in this project. Fixed by confirming the bind before testing anything: the log now has to say `Ready` on the port I asked for.
+
+### 🔴 MINE — genuinely broken
+
+**1. The 404 page does not work. At all.**
+`docs/status.md` has been claiming "404 🟢 real — title, body, CTA, all from `ui_strings`". That is wrong and I wrote it. In both dev and production:
+
+```
+/en/nonsense        → Next's stock error page. No header, no footer, no site chrome.
+/en/work/east       → <html id="__next_error__">. No lang, no dir, no <main>, no <h1>.
+                      not_found_title / not_found_body / not_found_cta: 0 occurrences.
+```
+
+`app/[locale]/not-found.tsx` exists and is **dead code**. There is no root `app/layout.tsx` — `<html>` is rendered by `app/[locale]/layout.tsx` — so `notFound()` has no boundary that renders a document and falls to Next's built-in. The "Arabic 404 falls back to English" caveat I logged was too generous: there is no 404 page in either language.
+
+**2. `NEXT_PUBLIC_SITE_URL` is empty**, so every absolute URL the site emits points at `http://localhost:3000` — sitemap, `llms.txt`, canonicals, OG. The read test below caught this independently: *"every URL in the site's own llms.txt points to `http://localhost:3000/…`… every link in it is dead to the outside world."*
+
+**3. The sitemap is missing three route families.** 22 URLs for ~36 real routes. Absent: `/about/philosophy`, both `…/results` tables, all four `…/all` linear views.
+
+**4. Per-page metadata is generic.** Every page emits `og:title = "Moataz Mustapha"` and the same description. A case file shared to LinkedIn shows the site name, not the case study. For a portfolio whose distribution model is a pasted link, that is a launch blocker, not a polish item.
+
+### 🟡 MINE — half-done, and I am not rounding it up
+
+**5. The `Achieved` label is doing work it cannot carry.** The read test found the one place the metric discipline leaks — worth quoting in full because it is the most useful sentence anyone has said about this site:
+
+> *"'~15 minutes to complete an application / **Achieved**' appears on the work index page and the case header… Only the small print says 'Measured across ten prototype-testing sessions'. If I'd skimmed, I'd have told you a bank cut business account opening to 15 minutes. It didn't; ten people in a usability lab did it in 15 minutes."*
+
+The label is accurate and the evidence line is right there. But `achieved` currently means both "live in production for 18 months" and "ten people in a lab", and the gallery card shows the label without the evidence. This is a shared content/design problem, not purely either.
+
+**6. The privacy claims are seeded and rendered nowhere.** `privacy_no_ip` ("I never store IP addresses"), `privacy_no_tracking`, `privacy_location`, `privacy_title` — all four exist in `ui_strings` in both languages and are resolved by **no component**. Only `consent_message` renders. `/how-this-site-works` is Layer 2 and returns 404.
+
+I had written in decision 044 that the no-IP commitment "is published on /how-this-site-works in both languages" and used that to justify declining a per-IP rate limit. **The engineering choice was right; my stated reason was false.** Decision 044 is corrected.
+
+**7. ESLint is still not installed.** No config, no dependency, `npm run lint` would fail. It has been an open item since 0.1.
+
+**8. Arabic falls back to English on the newest content** — 46 `page_sections` and 12 `entry_handles` have no Arabic. Working as designed (decision 013), but About, Philosophy, Systems, Contact, both comparisons and the accessibility page are **English-only for an Arabic visitor**, which is a large share of the site's prose.
+
+### ⚪ MINE — never tested, in either environment
+
+Listing these because "not tested" and "working" have been conflated on this project before.
+
+- **No accessibility audit.** No axe run, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully (`scope`, one `h1`, `<table>` for tabular data) and *verified structurally* — never actually exercised.
+- **The contact form has never been submitted through a browser.** The route's four branches were tested with `curl`. The rendered form, its validation, the honeypot in a real DOM, and the success state have not been clicked once.
+- **ISR has never been observed working in production.** `revalidate = 300` is set on every content route; no one has changed content and watched a production page pick it up. `/api/revalidate` has never been called against a production build.
+- **No real device, no throttled network, no Lighthouse score.** Responsive behaviour was checked by reading CSS, not by resizing.
+- **No deploy.** No Vercel project, no git remote, 35 local commits. Nothing has ever run on Vercel's runtime.
+
+### 🔵 YOURS — you are blocking these
+
+| | Item | Why it blocks |
+|---|---|---|
+| 🔴 | **Cover images** — `media` has **0 rows**, 0 of 4 case files have a cover | The read test's second-biggest finding: *"The crawlable site contains not one described screen, flow diagram, or artefact — only prose about them… For a product designer, I cannot tell you whether he can actually make a good interface."* The NDA grayscale treatment is also still invisible |
+| 🔴 | `settings.og_image` | Every shared link renders without an image |
+| 🔴 | `settings.cv_url` | The read test asked for "no CV, no work history" first |
+| 🔴 | **Dates, employers, titles** | *"There is no CV, no work history, no 'Senior Product Designer at X, 2019–present.' 'IoTBlue' appears once, buried on the Systems page."* Nothing on the site says where he worked or when |
+| 🟡 | Arabic for the static pages and entry handles | See item 8 |
+| 🟡 | Arabic review of the 11 strings I wrote | Rendered from English, not authored |
+| 🟡 | Mini case files — in or cut (question B) | Four empty drafts sit in MVP-1 |
+| 🟡 | Domain + Vercel account | Nothing can deploy without it |
+
+---
+
+## 2026-08-13 — the LLM read test, run for the first time with real content
+
+**What I could and could not do, precisely.** I cannot query ChatGPT — I have no access to it. And nothing is deployed, so **neither ChatGPT nor Claude can crawl this site today**; the read test is impossible in its literal form until there is a public URL.
+
+What I did instead is the closest faithful version: took the exact bytes a crawler receives from the **production** build — `/llms.txt` plus the rendered text of Landing, Work, all four covers, About, Philosophy, Systems and the Egypt results table, 32 KB — and put them in front of a fresh model instance with **no other context**, asked "should I interview this person?", and required it to report what it could and could not state.
+
+### The verdict
+
+> *"Yes — interview him, but go in with a specific agenda… the role attribution and evidence labelling are more honest than 95% of portfolios I read… The catch is that all that honesty adds up to a thin evidence base — of four case files, exactly one is live with real users, one was never built, one is in controlled release with no commercial launch, and one is five years old with zero metrics."*
+
+### What worked, and it is the thing the site was built for
+
+- **Role clarity passed outright.** *"He barely uses 'we' at all… 'Sole designer. I designed all six systems from scratch.' He even pre-empts the obvious challenge on Cervello: 'A second designer joined later and worked on UI. None of his work is shown here.'"* The problem this portfolio exists to solve is solved.
+- **The metric labels made him more credible, not less.** *"It made him substantially more credible, and it's the single best thing about the site… It reads as someone who has been on the receiving end of a fabricated metric and refuses to add to the pile."* It also **preserved the labels when quoting**, which is exactly what the `llms.txt` note asks for.
+- **Domain literacy read as real.** *"Emirates ID NFC, UAE Pass, liveness, Emirates Face Recognition… vs. Egypt's absence of a national-ID verification API… This is not generic fintech vocabulary."*
+- Cervello's honest absence read as intended rather than as a hole.
+
+### The weakest point, in its words
+
+> *"Ten years of experience and one shipped product with verifiable outcomes… The honesty that makes each individual caveat admirable is, read across all four cases at once, an accumulating admission that the work mostly hasn't been measured."*
+
+That is a **content** finding, not a build one, and it is the most important output of this test. Two of the four gaps it names are already on your list (cover images, CV/dates). The third — that Egypt Web, Neobiz Mobile and UAE Acquisition are *"all the same account-opening programme at the same bank"*, so the portfolio is narrower than four cards imply — is a question about MVP-1's shape that no amount of building will answer.
 
 ---
 

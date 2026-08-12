@@ -180,7 +180,7 @@
 - [x] 10. About — intro + 6 sections in chronological order
 - [x] 11. Philosophy — docs-style, 5 numbered positions, anchor per section
 - [x] 12. Contact — ✅ form **and delivery**: Supabase table, honeypot, timing check, rate limit (decision 044 closed)
-- [x] 13. 404 — real, except the locale caveat below
+- [ ] 🔴 13. 404 — **BROKEN, not 'real'.** `app/[locale]/not-found.tsx` never renders: no root `app/layout.tsx`, so `notFound()` falls to Next's stock page. No lang, no dir, no chrome, no copy, either locale. Audited 2026-08-13
 
 ---
 
