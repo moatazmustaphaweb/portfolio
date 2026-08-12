@@ -354,13 +354,57 @@ The check that survives is narrower and better: report only when there is **neit
 
 ---
 
+## 043 — Static page prose lives in `page_sections`, not `ui_strings`
+
+*2026-08-12*
+
+**Decision:** About, Philosophy, Systems and Contact store their copy in a `page_sections` table — a row per section carrying `page`, `slug` and `sort_order`, with `heading` and `body` in `translations`.
+
+**This amends the sync contract, Step 1**, which routed static page content to `translations` with `entity_type = 'ui_string'` scoped by route. `docs/sync-contract.md` has been corrected in the same session.
+
+**Why the contract's mapping could not work:** these are not a handful of labels. They are five to seven ordered sections each, every one a heading plus several paragraphs, and **the order is load-bearing** — About runs Now → Before → The Artist's Book → What that year actually taught me, which is a chronology and an argument. `ui_strings` has no `sort_order`, so order would have had to be encoded into key names (`page.about.03-the-artists-book`), putting sequencing inside a string and making an insertion a rename of every key after it.
+
+Heading and body are separate fields because **the heading is content**. "What that year actually taught me" is written, not a label, and it needs Arabic like everything else.
+
+**Consequence:** the sync's static-page branch is implemented rather than reported as missing. 22 sections across the four pages. Landing and the Classic Gallery stay on `settings`/`ui_strings` — they have no ordered prose, and writing empty section rows for them would put a headingless, bodyless section on two finished pages.
+
+**Status:** ACTIVE — amends sync-contract Step 1
+
+---
+
+## 044 — Contact form delivery: three options, none chosen
+
+*2026-08-12*
+
+**Decision:** the form is built and rendered; **delivery is not implemented**, and `ContactForm` takes `deliveryConfigured` rather than assuming one. While it is false, the submit button is replaced by the direct email link.
+
+**Why not just pick one:** every option stores or forwards a name, an email address and a message body. The standing rule on this project is that privacy is a hard constraint rather than a default — anything collecting more than the minimum gets flagged, not implemented — and creating a store of personal data is reversible only in the sense that rows can be deleted after they exist. This is a decision, so it is presented as one.
+
+`CONTACT_DELIVERY_CONFIGURED` is a constant in the page rather than an env var, deliberately: the missing piece is a decision, and an env var would let it be switched on without one being made.
+
+**The options, with what each actually costs:**
+
+| | Where it goes | Cost | Privacy | Effort |
+|---|---|---|---|---|
+| **A — Supabase table** *(recommended)* | `contact_messages` in the existing database | £0 | Data stays in infrastructure already held and already governed by the retention policy. No third party. Needs a retention window — 360 days matches decision 035 | ~1 hour: table, RLS, `/api/contact`, rate limit |
+| **B — Email service** (Resend / Postmark) | Straight to the inbox | Free tier covers this volume | A third party processes every message. One more API key | ~1 hour |
+| **C — Both** | Table + notification | As B | As B | ~1.5 hours |
+
+**A is the recommendation:** the notification in B is the only thing A lacks, and a portfolio contact form that is checked daily does not need one. A also keeps every message inside the same privacy posture already documented on `/how-this-site-works`, rather than adding a processor that page would then have to disclose.
+
+Whichever is chosen, the form needs a spam control before launch — a honeypot field and a rate limit are enough at this volume; a CAPTCHA is a third-party tracker and is not.
+
+**Status:** OPEN — replaces open question D with three costed options
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |
 |---|---|---|
 | B | Mini case files — in MVP-1 or cut? | Gallery scope |
 | ~~C~~ | ~~Stale Cervello rows — route collision~~ | *Closed by decision 040 — the parked row is out of scope, not a competing claim* |
-| D | Contact form delivery — Supabase table or email service? | Contact page |
+| D | Contact form delivery — Supabase table, email service, or both? | *Costed in decision 044. Recommendation: A (Supabase table). Form ships either way; submit is replaced by the direct email until you choose* |
 | E | Ask layer: lead capture yes/no; answer boundaries | Layer 4 |
 | F | Permanent Arabic typeface | Replaces the interim in decision 020 |
 | G | ~~`settings` table shape~~ | *Closed by decision 026* |

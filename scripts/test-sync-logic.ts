@@ -25,6 +25,11 @@ import {
   parseSiblingLine,
   resolveHandleTarget,
 } from "@/lib/sync/handles";
+import {
+  headingToSlug,
+  parsePageSections,
+  routeToPageKey,
+} from "@/lib/sync/static-pages";
 
 let failures = 0;
 
@@ -455,6 +460,78 @@ eq(
   parseSiblingLine("Sibling case file: coming soon"),
   null,
 );
+
+/* -------------------------------------------------------------------------
+ * Static pages. Real headings from the live Notion pages, 2026-08-12.
+ * ---------------------------------------------------------------------- */
+
+console.log("\nStatic pages");
+
+eq("route → page key", routeToPageKey("/[locale]/about"), "about");
+eq("nested route keeps its path", routeToPageKey("/[locale]/about/philosophy"), "about/philosophy");
+eq("route annotation stripped", routeToPageKey("/[locale]/contact (close)"), "contact");
+eq("a non-locale route is not a page", routeToPageKey("/api/health"), null);
+
+eq("heading → slug", headingToSlug("What that year actually taught me"), "what-that-year-actually-taught-me");
+eq("apostrophes dropped, not hyphenated", headingToSlug("The Artist's Book"), "the-artists-book");
+eq("arabic headings survive slugging", headingToSlug("عن مُعتز"), "عن-مُعتز");
+
+const about = parsePageSections(
+  [
+    { heading: "About", lines: ["I'm here to make things easier for people.", "If you have a good idea, I'd like to help."] },
+    { heading: "Now", lines: ["I'm a product designer in Dubai."] },
+    { heading: "Before", lines: ["I studied at the Faculty of Art Education in Cairo."] },
+    { heading: "The Artist's Book", lines: ["These were children who couldn't hear."] },
+  ],
+  "About",
+);
+eq("title-echo heading becomes the lede, not a section", about.sections.length, 3);
+check(
+  "...and its paragraphs are kept",
+  about.intro.startsWith("I'm here to make things easier"),
+  about.intro.slice(0, 30),
+);
+eq("paragraphs joined with a blank line", about.intro.includes("\n\n"), true);
+eq("section order preserved", about.sections.map((s) => s.slug), [
+  "now",
+  "before",
+  "the-artists-book",
+]);
+eq("heading text kept verbatim for rendering", about.sections[2].heading, "The Artist's Book");
+
+// Notion titles this page "Philosophy (Foundations)" and opens with an H2
+// "Philosophy" — an equality test would miss the echo and print a section
+// heading identical to the page title.
+const phil = parsePageSections(
+  [
+    { heading: "Philosophy", lines: [] },
+    { heading: "To design is to build, not to draw", lines: ["I have had the same conversation for ten years."] },
+  ],
+  "Philosophy (Foundations)",
+);
+eq("parenthetical in the page name still counts as an echo", phil.sections.length, 1);
+eq("...and an empty echo yields no intro", phil.intro, "");
+
+// (page, slug) is unique — a repeated heading must not collide or vanish.
+const dupes = parsePageSections(
+  [
+    { heading: "Coming", lines: ["One."] },
+    { heading: "Coming", lines: ["Two."] },
+  ],
+  "Systems",
+);
+eq("duplicate headings are suffixed, not dropped", dupes.sections.map((s) => s.slug), [
+  "coming",
+  "coming-2",
+]);
+
+// Prose before any heading is lede material, not a headless section.
+const leadIn = parsePageSections(
+  [{ heading: "", lines: ["An opening line."] }, { heading: "Now", lines: ["Body."] }],
+  "About",
+);
+eq("prose before any heading becomes the intro", leadIn.intro, "An opening line.");
+eq("...and does not become a section", leadIn.sections.length, 1);
 
 console.log(
   failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,

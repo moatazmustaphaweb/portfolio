@@ -95,6 +95,7 @@ locale you are in.
 | `domain_banking` | Banking | الخدمات المصرفية |  |
 | `domain_branding` | Branding | الهوية |  |
 | `domain_smart_things` | Smart Things | الأنظمة الذكية |  |
+| `download_cv` | Download CV | تحميل السيرة الذاتية |  |
 | `entry_handles_heading` | Three ways in | ثلاث طرق للدخول |  |
 | `error_cta` | Try again | حاول مرة أخرى |  |
 | `error_title` | Something went wrong | حدث خطأ ما |  |
@@ -104,9 +105,15 @@ locale you are in.
 | `form_email` | Email | البريد الإلكتروني | Kept — correct Arabic; length is a layout problem, handled in CSS |
 | `form_error` | That didn’t send. Try again, or email me directly. | لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة. |  |
 | `form_message` | Message | الرسالة |  |
+| `form_message_placeholder` | The more context you give, the more useful my first reply will be. | كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة. |  |
 | `form_name` | Name | الاسم |  |
 | `form_required` | This field is required. | هذا الحقل مطلوب. |  |
 | `form_sending` | Sending… | جارٍ الإرسال… | ⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction |
+| `form_subject` | What's this about? | عن ماذا تودّ الحديث؟ |  |
+| `form_subject_hiring` | Hiring | توظيف |  |
+| `form_subject_other` | Something else | شيء آخر |  |
+| `form_subject_project` | A project | مشروع |  |
+| `form_subject_speaking` | Speaking or writing | مشاركة أو كتابة |  |
 | `form_submit` | Send | إرسال | ⚠️ Layout — see `form_sending` |
 | `form_success` | Thanks — I’ll reply soon. | شكراً — سأردّ قريباً. |  |
 | `home` | Home | الرئيسية |  |
@@ -157,7 +164,7 @@ locale you are in.
 | `view_all` | View all | عرض الكل |  |
 ---
 
-**76 strings.** Every one present in both locales.
+**83 strings.** Every one present in both locales.
 
 To apply corrections: update the database, then re-run
 `npm run export:ui-strings` so this document stays true. The seed migration

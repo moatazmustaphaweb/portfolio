@@ -33,7 +33,8 @@ The `Page` property encodes the entity type in its prefix. Parse it:
 | `Comparison — {…}` | `chapters` | flagged as a comparison page |
 | `Mini Case File — {name}` | `case_files` | single-chapter case file |
 | `Accessibility — {…}` | `chapters` | cross-cutting page attached to its case file |
-| Anything else (`About`, `Contact`, `Landing`, `Systems`, `Philosophy`, `404`, `Classic Gallery`) | static page content → `translations` with `entity_type='ui_string'` scoped by route | |
+| `About`, `Contact`, `Systems`, `Philosophy` | ordered prose → `page_sections` (+ `translations` with `entity_type='page_section'`, fields `heading` and `body`) | **Amended by decision 043.** Was `ui_strings` scoped by route; `ui_strings` has no `sort_order` and these pages are ordered multi-section prose whose sequence is the argument |
+| `Landing`, `Classic Gallery`, `404` | chrome → `settings` and `ui_strings` | No ordered prose. These pages are complete |
 
 **Rows to skip entirely:** any page whose `Page` begins with `FOUNDATION —`, `The Door —`, `Result Screen —`, `Read —`, `Studio —`, `Experiments —`, `Admin —`, `Ask —`, `Cuts`, `This Website`, `Open-Source`, `How This Site Works`. These are build tasks or future-layer pages, not content.
 
