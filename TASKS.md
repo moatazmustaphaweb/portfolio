@@ -146,6 +146,9 @@
 ---
 
 ### Content gaps — not blocking, need writing
+- [ ] **Cover images** — `media` is empty, so the NDA grayscale contrast on the gallery is invisible. Upload one cover per case file and set `case_files.cover_media_id`
+- [ ] **Outcome lines for UAE, Neobiz and Cervello** — only Egypt has an `Outcomes` table, so 3 of 4 gallery cards show a title and no impact line
+- [ ] **`gallery_intro`** — the Classic Gallery intro line. Page renders without it
 - [ ] **`Features` sections** — no chapter has one; the parser finds 0. Either write them in Notion under a `Features` heading, or amend the contract to stop promising feature strips
 - [ ] **`egypt-acquisition/workflow` Arabic decisions** — 1 in EN, 3 in AR. Arabic skipped until the counts agree
 - [ ] **`uae-acquisition` Arabic cover title** — no H1 in the Arabic child page; falls back to English
@@ -156,7 +159,7 @@
 *Every route below is now scaffolded and navigable — see the route map in `docs/status.md`. Phase 1 is filling them, not creating them.*
 
 - [x] 1. Landing — real content, both locales, minimal footer
-- [ ] 2. Classic Gallery
+- [x] 2. Classic Gallery — 4 published case files, domain filter, NDA markers, both locales
 - [ ] 3. Case File Cover (LivingMap × 3 grammars)
 - [ ] 4. Chapter (DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose)
 - [ ] 5. Results Table

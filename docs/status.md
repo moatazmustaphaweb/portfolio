@@ -12,7 +12,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | Route | State | What is real | What is missing |
 |---|---|---|---|
 | `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
-| `/[locale]/work` | 🟡 stub | Title, breadcrumb | ProjectGrid, ProjectCard, FilterBar |
+| `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
 | `/[locale]/work/[caseFile]` | 🟡 stub · **🟢 CONTENT LIVE** | 4 published case files render, both locales. Unknown/draft 404s | LivingMap, OutcomeStrip, EntryHandles — data is there, components are not |
 | `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 13 pages — 10 chapters + 2 comparisons + 1 accessibility. **20 decisions** in the database, ordered, both locales | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
 | `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Real chapters in correct order; comparisons and accessibility correctly excluded | Chapter bodies inline |
@@ -33,6 +33,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — Classic Gallery shipped
+
+Four published case files, domain filter, both locales. Drafts verified absent.
+
+### Two data problems fixed first — the page would have been useless otherwise
+
+**`domain` was `"work"` for every case file.** The sync was writing Notion's `Section` into it, so the domain filter had exactly one option. Set to the real domains from `docs/brief.md` — banking for Egypt/Neobiz/UAE, smart-things for Cervello — and **the sync no longer touches `domain`, `grammar` or `nda` at all**. Those three are structural and editorial, they are not in Notion, and an upsert including them reset all three on every run. Existing rows now have only `status` updated; a genuinely new case file gets placeholders *and a notice*, because a placeholder nobody is told about is a placeholder that ships.
+
+**`grammar` was hardcoded `ecosystem` for all four.** Set properly — Egypt's own Notion note says *"country-culture (journey through a market)"*, Neobiz and UAE are the same journey in other forms, Cervello is a platform. This matters for the LivingMap in Phase 1 #3, not for the gallery, but it was wrong and the fix belonged with the same change.
+
+### ⚠️ The NDA contrast cannot be seen yet — there are no images
+
+Your point 1 is the feature of this page, and it is **not visible**, because `media` has **zero rows**. No cover has been uploaded, so there is nothing to desaturate.
+
+The machinery is right and verified — `media.nda` travels from the case file, `CloudinaryImage` applies `e_grayscale`, the grid deliberately applies no shared filter or hover-saturate that would flatten it. The moment covers exist, three cards go grey against Cervello's colour.
+
+Until then the contrast survives **in text**: every NDA card carries an `Under NDA` marker. That was always required rather than optional — a desaturated thumbnail signals by colour alone, which the accessibility baseline forbids and which disappears on a greyscale display. The badge is the half that always works.
+
+**To make it visible:** upload one cover per case file to Cloudinary and set `case_files.cover_media_id`. Nothing else is needed.
+
+### ⚠️ Three of four cards have no outcome line
+
+Your point 2 — evaluators scan for impact first — and only **Egypt** currently satisfies it:
+
+| Card | Outcome line |
+|---|---|
+| Egypt Acquisition | *~15 minutes to complete an application* · **Achieved** |
+| UAE Acquisition | — |
+| Neobiz Mobile | — |
+| Cervello Cloud | — |
+
+`outcomes` has three rows and all three belong to Egypt. Neobiz has five *targets* but no outcomes; UAE and Cervello have neither.
+
+I did not substitute the thesis. It is a paragraph, it would not read as an outcome, and quietly promoting prose into an impact slot is the kind of thing the metric rules exist to stop.
+
+**What needs writing:** an `Outcomes` table on the UAE, Neobiz and Cervello covers in Notion, same shape as Egypt's — claim with a `[marker]` in column 1, source in column 2. The sync already reads it and the card already renders it.
+
+The status marker is rendered beside the figure and is not optional. A card is the most-screenshotted surface on the site, and a number without its `Projected` / `Achieved` label is exactly the misrepresentation decision 007 exists to prevent.
+
+### One bug caught in review
+
+Egypt's outcome rendered **twice**, separated by an em dash. The sync writes the same string into `outcomes.value` and into the `label` translation, and the card was printing both. Now it prints the translated label, falling back to the raw value.
+
+### Not seeded, on purpose
+
+`gallery_intro` is copy. The page renders correctly without it and gains it the moment a translation row exists — no code change needed.
 
 ---
 

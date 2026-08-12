@@ -119,6 +119,8 @@ export const getChapter = cache(
         ...caseFileRow,
         fields: caseFileFields.get(caseFileRow.id) ?? {},
         cover: null,
+        // The chapter route shows a breadcrumb, not a card.
+        headline: null,
       },
     };
   },

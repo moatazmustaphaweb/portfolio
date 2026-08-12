@@ -24,6 +24,8 @@ const SEED_FILES = [
   "supabase/migrations/0005_seed_footer_link_labels.sql",
   "supabase/migrations/0009_seed_consent_and_privacy_copy.sql",
   "supabase/migrations/0012_seed_stub_and_page_strings.sql",
+  "supabase/migrations/0015_seed_tagline_intro_description.sql",
+  "supabase/migrations/0016_domains_grammars_and_gallery_strings.sql",
 ];
 const CORRECTIONS = [
   "supabase/migrations/0006_arabic_review_corrections.sql",
