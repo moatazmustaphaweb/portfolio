@@ -24,7 +24,10 @@ export async function PersonJsonLd({ locale }: { locale: Locale }) {
   // Person node would be worse than emitting nothing.
   if (!name) return null;
 
-  const tagline = settings.get("tagline");
+  // `description` is the domain line — the most useful single sentence for a
+  // model summarising this site. Falls back to the tagline, which states a
+  // position rather than a scope.
+  const description = settings.get("description") ?? settings.get("tagline");
   const email = settings.get("email");
   const linkedin = settings.get("linkedin_url");
 
@@ -35,7 +38,7 @@ export async function PersonJsonLd({ locale }: { locale: Locale }) {
     "@type": "Person",
     name,
     url: `${siteUrl()}/${locale}`,
-    ...(tagline ? { description: tagline } : {}),
+    ...(description ? { description } : {}),
     ...(email ? { email } : {}),
     ...(sameAs.length > 0 ? { sameAs } : {}),
   };

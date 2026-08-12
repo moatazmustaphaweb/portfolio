@@ -11,7 +11,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 | Route | State | What is real | What is missing |
 |---|---|---|---|
-| `/[locale]` | 🟡 stub | Shell, nav, JSON-LD, analytics | Everything. The Landing page is Phase 1 #1 |
+| `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
 | `/[locale]/work` | 🟡 stub | Title, breadcrumb | ProjectGrid, ProjectCard, FilterBar |
 | `/[locale]/work/[caseFile]` | 🟡 stub · **🟢 CONTENT LIVE** | 4 published case files render, both locales. Unknown/draft 404s | LivingMap, OutcomeStrip, EntryHandles — data is there, components are not |
 | `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 13 pages — 10 chapters + 2 comparisons + 1 accessibility. **20 decisions** in the database, ordered, both locales | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
@@ -33,6 +33,39 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — Landing page shipped. First real page.
+
+### The three strings are seeded and live
+
+`tagline`, `intro`, `description` — position, intent, domain — in both locales. Three of the launch-gate blockers close; `cv_url` and `og_image` remain yours.
+
+The migration carries a warning in its header that **the Arabic is written, not translated**, and that a future pass aligning it to the English would destroy both sides. That note belongs in the file someone will actually open when they "tidy up the translations".
+
+### Landing
+
+Renders name → tagline → intro → description → one call to action. Nothing else. Verified in both locales, `dir="rtl"` on Arabic, all three Arabic strings rendering as written.
+
+**The minimal footer is structural, not a flag.** Landing sits in a `(landing)` route group; every other page sits in `(site)`, whose layout supplies the full footer. Which group a page is in decides its footer — there is no `variant` prop for a future page to forget to pass, which is the same reasoning as stamping `nda` onto media in the content layer rather than passing it around.
+
+| Page | Footer |
+|---|---|
+| `/en` | email · LinkedIn · language switch |
+| `/en/work` | nav · email · LinkedIn · wordmark |
+
+The CV link is absent from both because `cv_url` is NULL — the fallback working, not a gap in the page.
+
+### JSON-LD and metadata — wired, and changed
+
+`description` now populates the Person JSON-LD in both locales, which was omitted entirely while `tagline` was NULL.
+
+I also switched the `<meta name="description">` and OG description from `tagline` to `description`, which was not asked for. Reasoning: that string is the search-result snippet and the link-preview subtitle. *"Ten years designing regulated banking, IoT platforms, and the systems in between"* tells a recruiter what this is; *"Simple, where it's hard."* states a position that only means something once you already know who wrote it. The tagline still leads the page itself, where it has the name above it for context. Say the word if you'd rather the tagline led everywhere.
+
+### Arabic wrapping
+
+The Arabic `description` is 60 characters to the English 81, but renders wider per character. It is capped at `--measure-lead` (42ch) with `text-wrap: pretty`, and carries no fixed width, so at 320px it wraps to three or four lines inside the gutter rather than overflowing. No horizontal scroll.
 
 ---
 

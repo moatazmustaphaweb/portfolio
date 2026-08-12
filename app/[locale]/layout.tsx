@@ -8,7 +8,6 @@ import { setRequestLocale } from "next-intl/server";
 import { Analytics } from "@/components/analytics/Analytics";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
-import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
 import { getSettings } from "@/lib/content/settings";
@@ -59,15 +58,23 @@ export async function generateMetadata({
 
   const settings = await getSettings(locale as Locale);
   const name = settings.get("name");
-  const tagline = settings.get("tagline");
   const ogImage = settings.get("og_image");
+
+  /*
+   * The domain line, not the tagline. This is the search-result snippet and
+   * the link-preview subtitle: "Ten years designing regulated banking…" tells
+   * a recruiter what this is, where "Simple, where it's hard." states a
+   * position that only means something once you already know who wrote it.
+   * Falls back to the tagline, and omits rather than inventing if both are unset.
+   */
+  const description = settings.get("description") ?? settings.get("tagline");
 
   return {
     title: name,
-    description: tagline,
+    description,
     openGraph: {
       title: name,
-      description: tagline,
+      description,
       locale,
       type: "website",
       images: ogImage ? [ogImage] : undefined,
@@ -154,8 +161,6 @@ export default async function LocaleLayout({
           <main id="main" className="flex-1">
             {children}
           </main>
-
-          <SiteFooter locale={typedLocale} />
 
           <ConsentBanner
             enabled={Boolean(gaId)}
