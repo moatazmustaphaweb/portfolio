@@ -80,6 +80,20 @@ export const getChapter = cache(
       throw new Error(`Failed to load features: ${featureError.message}`);
     }
 
+    /*
+     * Siblings for prev/next. Only `kind = 'chapter'` participates: a
+     * comparison or accessibility page is reachable from the cover but is not
+     * part of the sequence (amendment 033), so it must not appear as
+     * "next chapter".
+     */
+    const { data: siblingRows } = await supabaseServer
+      .from("chapters")
+      .select("id, slug, sort_order")
+      .eq("case_file_id", caseFileRow.id)
+      .eq("kind", "chapter")
+      .eq("status", "published")
+      .order("sort_order");
+
     const { data: decisionRows, error: decisionError } = await supabaseServer
       .from("decisions")
       .select("*")
@@ -109,9 +123,27 @@ export const getChapter = cache(
       })(),
     ]);
 
+    const siblings = siblingRows ?? [];
+    const index = siblings.findIndex((c) => c.id === chapterRow.id);
+    const prevRow = index > 0 ? siblings[index - 1] : null;
+    const nextRow =
+      index !== -1 && index < siblings.length - 1 ? siblings[index + 1] : null;
+
+    const neighbourTitles = await resolveMany(
+      "chapter",
+      [prevRow?.id, nextRow?.id].filter((v): v is string => Boolean(v)),
+      locale,
+    );
+
     return {
       ...chapterRow,
       fields: chapterFields.get(chapterRow.id) ?? {},
+      prev: prevRow
+        ? { slug: prevRow.slug, title: neighbourTitles.get(prevRow.id)?.title }
+        : null,
+      next: nextRow
+        ? { slug: nextRow.slug, title: neighbourTitles.get(nextRow.id)?.title }
+        : null,
       hero: media,
       features,
       decisions,

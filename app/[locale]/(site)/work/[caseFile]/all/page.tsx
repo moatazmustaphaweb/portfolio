@@ -15,6 +15,13 @@ import type { Locale } from "@/lib/content/types";
  *
  * The chapter list is already real, so this is navigable now.
  */
+/**
+ * ISR window (decision 009). Next requires this to be a literal — an imported
+ * constant fails the build with "Invalid segment configuration export".
+ * See lib/content/revalidate.ts for why 300.
+ */
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   return (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
 }

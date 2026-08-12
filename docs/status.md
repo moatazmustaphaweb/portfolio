@@ -14,7 +14,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
 | `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
 | `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, OutcomeStrip with statuses, LivingMap branching on grammar, links to comparison/accessibility pages | Entry handles · sibling links |
-| `/[locale]/work/[caseFile]/[chapter]` | 🟡 stub · **🟢 CONTENT LIVE** | 13 pages — 10 chapters + 2 comparisons + 1 accessibility. **20 decisions** in the database, ordered, both locales | ObjectiveHeader, DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose |
+| `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work | FeatureStrip · RedactedEvidence · MilestoneClose |
 | `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Real chapters in correct order; comparisons and accessibility correctly excluded | Chapter bodies inline |
 | `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
 | `/[locale]/about` | 🟡 stub | Title, breadcrumb | Timeline component, copy |
@@ -33,6 +33,57 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — navigability, footer, and the staleness
+
+Three fixes before any new pages, since you can't judge what you can't see.
+
+### 1 ✅ Footer — it was rendering *inside* `<main>`
+
+Root cause, not a styling tweak. The root locale layout wrapped `{children}` in `<main>`, and the `(site)` layout's footer was one of those children — so the footer sat inside `<main>`, which is both wrong semantically and why it landed directly after the content.
+
+`<main>` now lives in the route-group layouts, making the footer its sibling. `<body>` is a `min-h-screen` flex column and `<main>` is `flex-1`, so the footer pins to the bottom of the viewport on short pages and sits after the content on long ones. Verified on Landing, `/work`, and a cover.
+
+### 2 ✅ The site is navigable end to end
+
+**The gallery cards were rendering and linking correctly all along** — I checked the HTML and found four correct anchors. What you were looking at was a stale production build serving the *old stub* version of `/work`, which genuinely had no cards. Issues 2 and 3 were one problem.
+
+What was genuinely missing was onward navigation from chapters, so I built the Chapter page rather than leaving it a stub. Crawled it as a visitor, following only links:
+
+```
+Landing → /en/work ✓
+/en/work → 4 clickable cards ✓
+4 covers + 17 onward pages, every one with a way back
+```
+
+| Cover | Onward | Back to /work |
+|---|---|---|
+| cervello | 4 | ✓ |
+| egypt-acquisition | 8 | ✓ |
+| neobiz-mobile | 3 | ✓ |
+| uae-acquisition | 2 | ✓ |
+
+Every chapter links to its cover, to `/work`, and to its neighbours. Prev/next are resolved in the query layer, not the page, so a chapter cannot render without them — "no dead ends" is a non-negotiable and shouldn't depend on a page remembering.
+
+Prev/next skip comparison and accessibility pages: they are reachable from the cover but are not part of the sequence (amendment 033), so they must never appear as "next chapter".
+
+### 3 ✅ Staleness — the cause was the production build, not a cache bug
+
+`next dev` was never the problem. Tested against the running dev server: changed the tagline directly in Supabase and **the change appeared in under one second**, then restored cleanly.
+
+The staleness comes from `npm start`. Routes built with `generateStaticParams` and no `revalidate` are baked at build time and never regenerate — which is exactly "even a private window serves the old page".
+
+Fixed properly: **every content route now exports `revalidate = 300`** (decision 009, and the outstanding 0.5 item). A change appears within five minutes on its own, or instantly via `/api/revalidate` on publish.
+
+**For content review, use `npm run dev`.** Changes show on refresh with no window at all.
+
+> One wrinkle worth knowing: `revalidate` must be a **literal**. My first attempt imported a shared constant and the build failed with *"Invalid segment configuration export"*. `lib/content/revalidate.ts` documents the value; each route states it inline.
+
+### A verification habit I had wrong
+
+I had been checking builds with `grep -c error` on the output. The failure above says *"Invalid segment configuration export detected"* — no word "error" — so my check reported a clean build for one that had exited 1. Now checking exit codes.
 
 ---
 
@@ -960,6 +1011,6 @@ npm run export:ui-strings   # regenerate docs/ui-strings-review.md
 npm run build               # production build
 ```
 
-**Note on local dev:** an incremental Turbopack build serves a stale prerender after the database changes — a corrected string will not appear until `rm -rf .next`. Content changes do not invalidate the build cache, which is what `/api/revalidate` exists for in production.
+**Note on local dev:** use `npm run dev` for content review — changes appear on refresh in under a second. `npm start` serves a production build where routes are prerendered; they now carry `revalidate = 300`, so a change appears within five minutes or instantly via `/api/revalidate`. Only a code change requires a rebuild.
 
 **Note on ports:** something outside these sessions serves an older build on **port 3000**. Verification runs use **3100** to avoid touching it.

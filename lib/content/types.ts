@@ -120,4 +120,13 @@ export type ChapterDetail = Chapter & {
   features: Feature[];
   /** Ordered. A chapter has as many decisions as it has (amendment 032). */
   decisions: Decision[];
+  /**
+   * The neighbouring chapters in `sort_order`, for onward navigation.
+   *
+   * "No dead ends" is a non-negotiable: every chapter has to offer a next step
+   * and a way back. Resolved here rather than in the page so a chapter can
+   * never render without them.
+   */
+  prev: { slug: string; title?: string } | null;
+  next: { slug: string; title?: string } | null;
 };
