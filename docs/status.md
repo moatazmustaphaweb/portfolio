@@ -36,6 +36,49 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-12 — NDA treatment: grayscale. Premise corrected.
+
+The Mashreq screens are **design files with dummy data**, not production screenshots. Decision 027 was protecting a secret that does not exist.
+
+### What changed
+
+**Amendment 036 supersedes 027.** NDA work renders **full grayscale** via a live Cloudinary transform. Non-NDA renders in colour. Legibility is untouched — this is a precautionary signal, not concealment.
+
+I marked 027 and 028 with a warning at the top rather than rewriting them, so a reader hits the correction first but can still see the superseded reasoning and why it no longer holds. A constraint deleted without its history gets reinstated by the next person who rediscovers the original argument.
+
+**Driven by `case_files.nda` — your instinct was right.** The NDA belongs to the client relationship, not to individual files. One flag per case file (Egypt, Neobiz, UAE true; Cervello false) rather than a flag on every image someone must remember to set.
+
+I went one step further than the question asked: **the flag is stamped onto each `Media` object by the content layer**, so it is not a component prop at all. A treatment that depends on a call site passing a flag correctly is a treatment that will eventually be missed on one page. Now the only way to render an NDA image without the treatment is to bypass `CloudinaryImage`, which rule 3 already forbids.
+
+### ⚠️ One thing I could not build as described
+
+**"Grayscale with the accent blue preserved" inside the image is not possible.** Cloudinary has no selective-hue effect — nothing desaturates every colour except one. I verified the alternatives against your account:
+
+| Transform | What it actually does |
+|---|---|
+| `e_grayscale` | Full grayscale. **Chosen.** |
+| `e_saturation:-70` | Mutes *every* colour uniformly — does not keep blue, just makes everything faint |
+| `e_grayscale/e_colorize:40,co_rgb:0070f3` | Duotone: tints the **whole** image blue, costing legibility on a UI screenshot |
+
+So: full grayscale on the image, and the accent preserved in the **frame** — badge and border — which is where a signal belongs and where it survives a greyscale display. Duotone is a one-line change in `lib/media/presets.ts` if you want blue in the pixels.
+
+An unexpected benefit: the grayscale variants are **less than half the byte size** (47KB vs 101KB on the test asset).
+
+### Guards kept — amendment 037, on new grounds
+
+Never cropped, never a cover, never the OG image. Their original justification is gone with the premise, so I wrote down new ones rather than leaving them as cargo cult:
+
+- **Never cropped** — a design screen cropped off-centre loses the composition, which is the subject of the case study.
+- **Never a cover or OG** — those travel into link previews outside our control, where the badge is stripped and the context is gone.
+
+`media.redacted` and `case_files.nda` now do genuinely different jobs: `nda` drives the treatment for a whole case file, `redacted` marks an individual asset as never-cropped/cover/OG. That split matters — it means **an NDA case file can still have a cover**, rendered grayscale, which is exactly the gallery contrast the treatment exists for. Tying the cover ban to `nda` would have left Egypt, Neobiz and UAE unable to have covers at all.
+
+### Verified
+
+`e_grayscale/c_limit,w_1200/…` and `e_grayscale/c_fill,w_640,h_400,g_auto/…` both return 200 from your account; non-NDA media renders with no transform. Open question H is closed.
+
+---
+
 ## 2026-08-12 — four amendments applied, all synced
 
 Logged as decisions **032–035**. `docs/architecture.md` and `docs/schema.md` amended so the docs match the code.

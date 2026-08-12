@@ -44,18 +44,25 @@ Two complete palettes. Dark is the default; an explicit choice overrides the OS 
 4. **No shadows.** Depth is a 1px border plus a surface step. There is no elevation scale.
 5. **Contrast.** All four ramp steps meet WCAG AA on `--color-bg` and on `--color-surface` in both themes. `fg-dim` is the floor — do not go quieter.
 
-### Redaction — ⚠️ STRUCTURE ONLY, TREATMENT UNDECIDED
+### NDA treatment — decided (amendment 036)
 
-Decision 002 calls redaction "a deliberate, crafted treatment… a signature". **The design files contain no redaction treatment**, so there is nothing to extract, and inventing one would be a styling decision made on your behalf.
+Work under NDA renders **full grayscale**. Everything else renders in full colour. The screen stays completely legible: this is a precautionary signal, not concealment — the Mashreq screens are design files containing dummy data, so there is nothing to hide.
 
-Defined now so `media.redacted` has something to bind to, composed entirely from existing tokens:
-
-```css
---color-redacted-fill:   var(--color-surface-raised);
---color-redacted-stroke: var(--color-border-strong);
+```
+Cloudinary:  e_grayscale        applied ahead of the sizing preset
+Driven by:   case_files.nda     one flag per client relationship
 ```
 
-> 🔴 **Open — question H.** The crafted redaction language (mask geometry, grain, whether redacted regions carry the accent, how the "Required Fields" art practice echoes into it) is a design decision for Moataz. Until it is made, `RedactedEvidence` renders a plain bordered surface with its caption. Do not elaborate it speculatively.
+**The contrast is the explanation.** Grey work is under NDA; colour work is not. The gallery makes that legible at a glance and no caption has to say it.
+
+The accent blue is preserved in the **frame** — the `redacted_notice` badge and the border — not inside the image. Cloudinary has no selective-hue effect, so "grayscale except blue" is not achievable; the alternatives are a duotone that tints the whole screen and costs legibility, or uniform partial desaturation that mutes every colour rather than keeping one.
+
+```css
+--color-nda-stroke: var(--color-border-strong);   /* frame around NDA media */
+--color-nda-badge:  var(--color-accent);          /* the signal, in the frame */
+```
+
+The badge is not optional. A silently desaturated image reads as a broken or badly-exported asset; the badge is what makes it read as deliberate.
 
 ---
 
@@ -218,4 +225,3 @@ Theme selection resolves in this order — OS preference, then an explicit `data
 | # | Question | Blocks |
 |---|---|---|
 | F | Permanent Arabic typeface — replaces the Geist interim | Arabic type scale, line-height tuning |
-| H | Redaction treatment — the crafted NDA visual language | `RedactedEvidence`, the `redacted` Cloudinary preset |

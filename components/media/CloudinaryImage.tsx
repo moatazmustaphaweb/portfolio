@@ -1,6 +1,6 @@
 import { getCldImageUrl } from "next-cloudinary";
 
-import { PRESETS, type PresetName } from "@/lib/media/presets";
+import { NDA_TRANSFORM, PRESETS, type PresetName } from "@/lib/media/presets";
 import type { Media } from "@/lib/content/types";
 
 /**
@@ -65,8 +65,16 @@ export function CloudinaryImage({
       ? Math.round((config.width * media.height) / media.width)
       : undefined);
 
+  /*
+   * The NDA treatment rides on the media row, not on a prop, so no call site
+   * can forget it (amendment 036). Applied as a raw transformation so it
+   * composes with whatever the preset does.
+   */
+  const ndaTreatment = media.nda ? { rawTransformations: [NDA_TRANSFORM] } : {};
+
   const urlFor = (width: number) =>
     getCldImageUrl({
+      ...ndaTreatment,
       src: media.cloudinary_public_id,
       width,
       height: config.height

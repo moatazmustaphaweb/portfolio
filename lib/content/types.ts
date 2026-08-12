@@ -36,6 +36,16 @@ export type MediaRow = Tables<"media">;
 export type Media = MediaRow & {
   /** From translations: `alt`, `caption`. */
   fields: Fields;
+  /**
+   * Whether this image belongs to a case file under NDA — stamped by the
+   * content layer from `case_files.nda`, never by the caller.
+   *
+   * Deliberately not a component prop: a treatment that depends on someone
+   * remembering to pass a flag is a treatment that will eventually be missed
+   * on one page. The NDA belongs to the client relationship, so it travels
+   * with the data (amendment 036).
+   */
+  nda: boolean;
 };
 
 export type CaseFile = Tables<"case_files"> & {

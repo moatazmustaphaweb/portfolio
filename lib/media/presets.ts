@@ -1,4 +1,30 @@
 /**
+ * The NDA visual treatment: full grayscale.
+ *
+ * A precautionary signal, NOT concealment. Amendment 036 corrected the
+ * premise — the Mashreq screens are design files containing dummy data the
+ * designer wrote himself, so there is nothing to conceal and never was. The
+ * screen stays completely legible; the desaturation says "this work sits under
+ * an NDA" without a caption having to.
+ *
+ * The contrast IS the explanation: NDA work renders grey, everything else
+ * renders in colour, and the gallery makes that legible at a glance.
+ *
+ * ⚠️ Why not "grayscale with the accent blue preserved *inside* the image":
+ * Cloudinary has no selective-hue effect. There is no transform that
+ * desaturates every hue except one. The options actually available are full
+ * grayscale (`e_grayscale`), uniform partial desaturation (`e_saturation:-70`,
+ * which mutes every colour rather than keeping one), or a duotone
+ * (`e_grayscale/e_colorize:N,co_rgb:0070f3`, which tints the WHOLE image blue
+ * and costs legibility on a UI screenshot).
+ *
+ * Full grayscale is used, and the accent blue is preserved where a signal
+ * belongs — in the frame around the image: the badge and the border. Switching
+ * to duotone is a one-line change here if that is preferred.
+ */
+export const NDA_TRANSFORM = "e_grayscale";
+
+/**
  * Cloudinary transform presets.
  *
  * Rule 3: image URLs are NEVER stored. Only `media.cloudinary_public_id` lives
@@ -72,22 +98,15 @@ export const PRESETS: Record<PresetName, Preset> = {
   },
 
   /**
-   * Redacted evidence. SIZING ONLY — this preset never conceals anything.
+   * NDA evidence. SIZING ONLY — the treatment is a colour transform applied
+   * on top, not a crop.
    *
-   * Decision 027: the redaction is baked into the pixels before upload and the
-   * unredacted original never reaches Cloudinary. A live transform would not
-   * have protected anything — stripping the transform segment from the URL
-   * returns the untouched original — so concealment cannot live here.
-   *
-   * `c_fit` is load-bearing, not a style choice (decision 028). A redacted
-   * image must NEVER be cropped: an off-centre crop can clip a mask and expose
-   * the data beneath it, and the failure is silent — it just looks like a
-   * normal image. `CloudinaryImage` forces this preset whenever
-   * `media.redacted` is true, so the redacted path is structurally incapable
-   * of cropping rather than merely configured not to.
-   *
-   * The visual treatment itself is open question H. `RedactedEvidence` renders
-   * a plain bordered surface with the shared badge and caption until it lands.
+   * `c_fit` is retained (amendment 037). The original reason — an off-centre
+   * crop clipping a mask and exposing data — no longer applies, because there
+   * are no masks and no data. It is kept for a different and still-valid
+   * reason: a design screen cropped off-centre loses the composition that is
+   * the actual subject of the case study. `CloudinaryImage` forces this preset
+   * whenever `media.redacted` is true.
    */
   redacted: {
     width: 1000,

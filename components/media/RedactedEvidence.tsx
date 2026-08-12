@@ -3,21 +3,18 @@ import type { Media } from "@/lib/content/types";
 import { CloudinaryImage } from "./CloudinaryImage";
 
 /**
- * An evidence image, redacted or not.
+ * An evidence image, under NDA or not.
  *
- * ⚠️ The redaction TREATMENT is undecided (open question H). This renders a
- * plain bordered surface with the shared badge and caption — deliberately
- * unstyled beyond the existing tokens, so nothing speculative gets baked in
- * ahead of the design. See docs/redaction-brief.md.
+ * The desaturation itself happens in `CloudinaryImage`, driven by
+ * `media.nda` (amendment 036). This component supplies the FRAME: the border
+ * and the badge that make a grey image read as a deliberate treatment rather
+ * than a broken export.
  *
- * Decision 002 requires the treatment to read as intentional rather than as a
- * broken or censored asset. The badge is what carries that meaning right now,
- * which is why it is not optional: an image that is visibly obscured with no
- * explanation is exactly the failure mode 002 warns about.
- *
- * The badge also satisfies the accessibility constraint that redaction must not
- * be signalled by colour alone — it is a text label, so it survives greyscale
- * and screen readers.
+ * The badge is not optional, for two reasons. Decision 002 requires the
+ * treatment to read as intentional. And the accessibility baseline forbids
+ * signalling anything by colour alone — a desaturated image is *only* a colour
+ * difference, so without a text label the signal does not exist for a
+ * greyscale display or a screen reader.
  */
 export function RedactedEvidence({
   media,
@@ -32,27 +29,29 @@ export function RedactedEvidence({
   if (!media) return null;
 
   const caption = media.fields.caption;
-  const isRedacted = media.redacted;
+  // The badge follows the case file's NDA status, not the per-image flag:
+  // every image in an NDA case file is desaturated, so every one needs saying.
+  const isNda = media.nda;
 
   return (
     <figure className="flex flex-col gap-3">
       <div
         className={[
           "overflow-hidden rounded-panel border",
-          isRedacted ? "border-strong bg-redacted" : "border-DEFAULT bg-surface",
+          isNda ? "border-nda bg-nda" : "border-DEFAULT bg-surface",
         ].join(" ")}
       >
         <CloudinaryImage
           media={media}
-          preset={isRedacted ? "redacted" : "gallery"}
+          preset={media.redacted ? "redacted" : "gallery"}
           priority={priority}
           className="h-auto w-full"
         />
       </div>
 
-      {(isRedacted && badge) || caption ? (
+      {(isNda && badge) || caption ? (
         <figcaption className="flex flex-wrap items-center gap-3">
-          {isRedacted && badge ? (
+          {isNda && badge ? (
             <span className="rounded-pill border border-strong px-3 py-1 font-mono text-micro uppercase text-fg-dim">
               {badge}
             </span>
