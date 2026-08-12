@@ -45,15 +45,17 @@ function assertNotRedacted(cover: Media | null, slug: string): void {
 async function resolveMedia(
   rows: readonly MediaRow[],
   locale: Locale,
+  nda: boolean,
 ): Promise<Map<string, Media>> {
   const withText = await withFields("media", rows, locale);
-  return new Map(withText.map((m) => [m.id, m]));
+  return new Map(withText.map((m) => [m.id, { ...m, nda }]));
 }
 
 /** Fetch the media referenced by a set of ids, resolved for the locale. */
 async function fetchMedia(
   ids: readonly (string | null)[],
   locale: Locale,
+  nda: boolean,
 ): Promise<Map<string, Media>> {
   const present = [...new Set(ids.filter((id): id is string => id !== null))];
   if (present.length === 0) return new Map();
@@ -65,7 +67,7 @@ async function fetchMedia(
 
   if (error) throw new Error(`Failed to load media: ${error.message}`);
 
-  return resolveMedia(data ?? [], locale);
+  return resolveMedia(data ?? [], locale, nda);
 }
 
 /** The Classic Gallery: every published case file, with cover and copy. */
@@ -79,21 +81,22 @@ export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> =
   if (error) throw new Error(`Failed to load case files: ${error.message}`);
 
   const rows = data ?? [];
-  const [withText, media] = await Promise.all([
-    withFields("case_file", rows, locale),
-    fetchMedia(
-      rows.map((r) => r.cover_media_id),
-      locale,
-    ),
-  ]);
+  const withText = await withFields("case_file", rows, locale);
 
-  return withText.map((row) => {
-    const cover = row.cover_media_id
-      ? (media.get(row.cover_media_id) ?? null)
-      : null;
-    assertNotRedacted(cover, row.slug);
-    return { ...row, cover };
-  });
+  /*
+   * Covers are fetched per case file rather than in one batch, because each
+   * one carries its owner's `nda` flag. One extra query per card is worth it
+   * to make the treatment impossible to forget.
+   */
+  return Promise.all(
+    withText.map(async (row) => {
+      if (!row.cover_media_id) return { ...row, cover: null };
+      const media = await fetchMedia([row.cover_media_id], locale, row.nda);
+      const cover = media.get(row.cover_media_id) ?? null;
+      assertNotRedacted(cover, row.slug);
+      return { ...row, cover };
+    }),
+  );
 });
 
 /** Slugs for `generateStaticParams`. */
@@ -163,6 +166,7 @@ export const getCaseFile = cache(
       fetchMedia(
         [row.cover_media_id, ...chapterRows.map((c) => c.hero_media_id)],
         locale,
+        row.nda,
       ),
     ]);
 

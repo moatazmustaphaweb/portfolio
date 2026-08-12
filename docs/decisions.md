@@ -167,6 +167,7 @@
 **Status:** ACTIVE — supersedes the `settings` definition and the RLS section in `docs/schema.md`
 
 ### 2026-08-11 — 027 — Redaction is baked into the asset before upload
+> ⚠️ **SUPERSEDED 2026-08-12 by amendment 036. The premise was wrong.** Read that first — the reasoning below is sound but it protects data that does not exist.
 **Decision:** NDA redaction is baked into the pixels **before** the asset is uploaded. The unredacted original **never reaches Cloudinary at all.** Cloudinary transforms handle only sizing, cropping, format and quality — never concealment. This is a security posture, not a styling preference.
 **Why:** A live Cloudinary transform does not remove anything. `…/t_redacted/abc123` is a *derived* asset; the base URL `…/abc123` still returns the untouched original. Anyone who sees a redacted image URL can delete the transform segment and fetch the unredacted screen. `docs/brief.md` calls published NDA material "a hard failure regardless of any other outcome" — a guessable URL away from an unredacted Mashreq screen is not an acceptable posture. Cloudinary's strict transformations and authenticated delivery do restrict base-asset access, but they add signing to every image request and make a single misconfiguration the difference between compliant and not. Baking has no failure mode.
 **Consequence:**
@@ -178,6 +179,7 @@
 **Status:** ACTIVE — reinforces 002 and 010
 
 ### 2026-08-11 — 028 — Redacted images: never cropped, never a cover or OG image
+> ⚠️ **AMENDED 2026-08-12 by amendment 037.** The guards survive; their justification changed.
 **Decision:** Three constraints on redacted media, enforced structurally rather than by convention:
 1. **Never cropped.** The redacted path uses a non-cropping fit and cannot be configured otherwise — `CloudinaryImage` overrides the requested preset when `media.redacted` is true.
 2. **Never a case-file cover.** A redacted `cover_media_id` is rejected by a database trigger and throws in the query layer.
@@ -232,6 +234,30 @@
 **Why:** Supersedes the 180-day window in decision 031. A full year of raw data covers year-over-year comparison at the raw level and gives Layer 2's archetype validation the widest sample it can get while still expiring. The bound still matters — `city` + timestamp is the most identifying combination held, and time-bounding it is what keeps "approximate location" honest.
 **Consequence:** `prune_analytics()` updated. Aggregates carry no session id and no city, so nothing re-identifiable outlives the window.
 **Status:** ACTIVE — supersedes the window in 031
+
+### 2026-08-12 — 036 — The NDA treatment is a signal, not concealment. Supersedes 027.
+**The premise 027 was built on was wrong.** The Mashreq screens are **design files containing dummy data the designer wrote himself while designing**. They are not production screenshots and contain no customer information. There is nothing to conceal and there never was.
+
+**Decision:** NDA work renders **full grayscale** via a live Cloudinary transform (`e_grayscale`). Non-NDA work renders in full colour. The screen stays completely legible — the desaturation is a precautionary signal that the work sits under an NDA, not an attempt to hide anything.
+
+**Why the original reasoning no longer applies — read this before reinstating anything.** 027 required baking the treatment into the pixels before upload, because a live transform leaves the original fetchable at its base URL. That was correct *given a secret to protect*. With dummy data there is no secret: the "unprotected original" is a design file with invented values, and stripping the transform reveals a fully legible screen the designer is happy to show. The constraint solved a problem that does not exist, and it cost real things — no live transform, no global restyle, a re-export and re-upload for every change.
+
+**Driven by `case_files.nda`, not `media.redacted`.** The NDA belongs to the **client relationship**, not to individual files. One flag per case file — Egypt, Neobiz and UAE true; Cervello and everything else false — rather than a flag on every image that someone has to remember to set. The flag is stamped onto each `Media` object by the content layer, so no component prop carries it and no call site can omit it. A treatment that depends on being passed correctly is a treatment that will eventually be missed on one page.
+
+**Consequence:** The contrast is the explanation — grey work is under NDA, colour work is not, and the gallery makes that legible without a caption. The `redacted_notice` badge stays, because it is what makes the treatment read as deliberate rather than as a washed-out image. `docs/redaction-brief.md` open question H is closed.
+
+**One thing that could not be built as described:** "grayscale with the accent blue preserved" *inside* the image is not achievable — Cloudinary has no selective-hue effect, and nothing desaturates every colour except one. What exists is full grayscale, uniform partial desaturation (which mutes every colour rather than keeping one), or a duotone that tints the whole image blue and costs legibility on a UI screenshot. Full grayscale is used and the accent is preserved in the **frame** — the badge and border — where a signal belongs. Duotone is a one-line change in `lib/media/presets.ts` if preferred.
+**Status:** ACTIVE — supersedes 027
+
+### 2026-08-12 — 037 — The structural guards survive, on new grounds
+**Decision:** NDA images are still never cropped, never a case-file cover, never the OG image. The database triggers and the preset override stay exactly as built.
+**Why the justification had to change:** each guard was originally protecting against exposure — a crop clipping a mask, an NDA screen reaching a LinkedIn preview. With no data to expose, that reasoning is gone. They are kept because each still prevents a real and different problem:
+- **Never cropped** — a design screen cropped off-centre loses the composition, which is the actual subject of a design case study.
+- **Never a cover or OG image** — these travel outside the site, into link previews that cannot be recalled. A precautionary NDA signal is worth keeping intact precisely where the context is stripped away and nobody can see the badge.
+
+**A guard kept for a reason nobody wrote down is a guard that gets deleted by the next person who reads it as cargo cult.** Hence this entry.
+**Consequence:** `media.redacted` and `case_files.nda` now do different jobs, and both are needed: `nda` drives the **visual treatment** for every image in a case file; `redacted` marks an **individual asset** as never-cropped, never-cover, never-OG. An NDA case file can therefore still have a cover — it renders grayscale like everything else in it, which is exactly the gallery contrast the treatment is for.
+**Status:** ACTIVE — amends 028
 
 ---
 

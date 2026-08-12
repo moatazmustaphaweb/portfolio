@@ -104,7 +104,8 @@ export const getChapter = cache(
           .maybeSingle();
         if (!data) return null;
         const [resolved] = await withFields("media", [data], locale);
-        return resolved;
+        // NDA travels from the owning case file, not the image.
+        return { ...resolved, nda: caseFileRow.nda };
       })(),
     ]);
 

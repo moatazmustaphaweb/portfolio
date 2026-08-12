@@ -29,11 +29,14 @@
   --color-accent: #0070f3;
   --color-accent-fg: #ffffff;
 
-  /* Redaction: structure only — the crafted treatment is undecided
-   * (tokens.md open question H). Composed from existing tokens so nothing
-   * is invented; RedactedEvidence renders a plain bordered surface for now. */
-  --color-redacted-fill: var(--color-surface-raised);
-  --color-redacted-stroke: var(--color-border-strong);
+  /* NDA treatment (amendment 036). The desaturation itself is a Cloudinary
+   * transform driven by case_files.nda; these are the FRAME around it, which
+   * is where the accent lives — Cloudinary cannot preserve one hue inside an
+   * image, and a bare desaturated screen reads as a broken export rather than
+   * a deliberate signal. */
+  --color-nda-fill: var(--color-surface-raised);
+  --color-nda-stroke: var(--color-border-strong);
+  --color-nda-badge: var(--color-accent);
 
   color-scheme: dark;
 

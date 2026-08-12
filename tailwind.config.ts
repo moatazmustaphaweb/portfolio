@@ -47,9 +47,10 @@ const config: Config = {
         fg: "var(--color-accent-fg)",
       },
 
-      redacted: {
-        DEFAULT: "var(--color-redacted-fill)",
-        stroke: "var(--color-redacted-stroke)",
+      nda: {
+        DEFAULT: "var(--color-nda-fill)",
+        stroke: "var(--color-nda-stroke)",
+        badge: "var(--color-nda-badge)",
       },
     },
 
@@ -154,6 +155,7 @@ const config: Config = {
       strong: "var(--color-border-strong)",
       subtle: "var(--color-border-subtle)",
       accent: "var(--color-accent)",
+      nda: "var(--color-nda-stroke)",
       fg: "var(--color-fg)",
       transparent: "transparent",
       current: "currentColor",
