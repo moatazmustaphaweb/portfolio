@@ -23,6 +23,13 @@ const DOMAIN_LABEL_KEYS: Record<string, string> = {
   branding: "domain_branding",
 };
 
+/**
+ * ISR window (decision 009). Next requires this to be a literal — an imported
+ * constant fails the build with "Invalid segment configuration export".
+ * See lib/content/revalidate.ts for why 300.
+ */
+export const revalidate = 300;
+
 export default async function Gallery({
   params,
 }: {

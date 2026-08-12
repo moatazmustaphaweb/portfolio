@@ -158,9 +158,13 @@ export default async function LocaleLayout({
 
           <SiteHeader locale={typedLocale} />
 
-          <main id="main" className="flex-1">
-            {children}
-          </main>
+          {/*
+            <main> lives in the route-group layouts, not here. It used to wrap
+            {children}, which put the (site) layout's footer INSIDE <main> —
+            wrong semantically, and the reason the footer sat directly after the
+            content instead of at the bottom of the viewport.
+          */}
+          {children}
 
           <ConsentBanner
             enabled={Boolean(gaId)}

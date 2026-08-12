@@ -8,6 +8,13 @@ import type { Locale } from "@/lib/content/types";
  * SCAFFOLD. Structure only — content arrives from Supabase in Phase 1.
  * The title is a ui_string lookup, never a literal (rule 1).
  */
+/**
+ * ISR window (decision 009). Next requires this to be a literal — an imported
+ * constant fails the build with "Invalid segment configuration export".
+ * See lib/content/revalidate.ts for why 300.
+ */
+export const revalidate = 300;
+
 export default async function Page({
   params,
 }: {

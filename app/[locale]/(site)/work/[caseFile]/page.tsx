@@ -22,6 +22,13 @@ import type { Locale } from "@/lib/content/types";
  * the mobile product, end to end" is the single most load-bearing sentence on
  * the page and is typeset accordingly.
  */
+/**
+ * ISR window (decision 009). Next requires this to be a literal — an imported
+ * constant fails the build with "Invalid segment configuration export".
+ * See lib/content/revalidate.ts for why 300.
+ */
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   return (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
 }

@@ -96,7 +96,7 @@
 - [x] `/api/revalidate` — secret-guarded, invalidates both locales per path
 - [x] `scripts/verify-content.ts` smoke test + `npm run verify:content`
 - [ ] 🔴 Blocked on `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` — cannot run the smoke test until then
-- [ ] ISR `revalidate` values on content routes (set when the routes exist, 0.7/Phase 1)
+- [x] ISR `revalidate = 300` on all 9 content routes
 
 ### 0.6 Design tokens
 - [x] Extract token values from the Vercel-style `*.dc.html` designs
@@ -164,7 +164,7 @@
 - [x] 1. Landing — real content, both locales, minimal footer
 - [x] 2. Classic Gallery — 4 published case files, domain filter, NDA markers, both locales
 - [x] 3. Case File Cover — title, thesis, role statement, OutcomeStrip, LivingMap branching on grammar
-- [ ] 4. Chapter (DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose)
+- [x] 4. Chapter — objective, context, decision blocks, result, prev/next navigation
 - [ ] 5. Results Table
 - [ ] 6. Linear View
 - [ ] 7. Comparison pages

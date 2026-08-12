@@ -18,9 +18,17 @@ export default async function SiteLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  /*
+   * `flex-1` on <main> is what pins the footer: <body> is a
+   * `min-h-screen` flex column, so main absorbs the free space and the footer
+   * lands at the bottom of the viewport on short pages and after the content
+   * on long ones.
+   */
   return (
     <>
-      {children}
+      <main id="main" className="flex-1">
+        {children}
+      </main>
       <SiteFooter locale={locale as Locale} />
     </>
   );

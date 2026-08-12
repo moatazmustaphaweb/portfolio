@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
 
-import { SiteFooter } from "@/components/layout/SiteFooter";
 import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
@@ -17,9 +16,16 @@ import type { Locale } from "@/lib/content/types";
  * added would have to earn its place against the eight seconds, and none does.
  *
  * One call to action, and a minimal footer, so nothing competes with it. The
- * footer variant is structural — this page sits outside the `(site)` route
- * group, so it renders its own rather than opting out of a shared one.
+ * footer is supplied by the `(landing)` layout — this page sits outside the
+ * `(site)` group, so which footer it gets is structural rather than a prop.
  */
+/**
+ * ISR window (decision 009). Next requires this to be a literal — an imported
+ * constant fails the build with "Invalid segment configuration export".
+ * See lib/content/revalidate.ts for why 300.
+ */
+export const revalidate = 300;
+
 export default async function Landing({
   params,
 }: {
@@ -38,8 +44,7 @@ export default async function Landing({
   const workLabel = ui.t("page_work");
 
   return (
-    <>
-      <div className="mx-auto flex w-full max-w-container flex-1 flex-col justify-center px-gutter py-section-y-hero">
+    <div className="mx-auto flex w-full max-w-container flex-1 flex-col justify-center px-gutter py-section-y-hero">
         <div className="max-w-measure">
           {/*
             Every line is omitted rather than rendered empty if its setting is
@@ -87,10 +92,7 @@ export default async function Landing({
               {workLabel}
             </Link>
           ) : null}
-        </div>
       </div>
-
-      <SiteFooter locale={l} variant="minimal" />
-    </>
+    </div>
   );
 }
