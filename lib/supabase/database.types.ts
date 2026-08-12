@@ -110,6 +110,23 @@ export type Database = {
         >;
         Relationships: [];
       };
+      page_sections: {
+        Row: {
+          id: string;
+          /** Route-derived: 'about' · 'about/philosophy' · 'systems' · 'contact'. */
+          page: string;
+          slug: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          page: string;
+          slug: string;
+          sort_order?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["page_sections"]["Insert"]>;
+        Relationships: [];
+      };
       chapters: {
         Row: {
           id: string;
@@ -407,6 +424,7 @@ export type Database = {
         | "setting"
         | "entry_handle"
         | "case_file_sibling"
+        | "page_section"
         | "ui_string"
         | "decision";
       grammar_type: "country-culture" | "ecosystem" | "design-system";

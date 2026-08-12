@@ -90,6 +90,11 @@ export type ChapterWithDecisions = Tables<"chapters"> & {
   decisions: Decision[];
 };
 
+/** One section of static page prose. From translations: `heading`, `body`. */
+export type PageSection = Tables<"page_sections"> & {
+  fields: Fields;
+};
+
 export type Feature = Tables<"features"> & {
   /** From translations: `label`, `description`. */
   fields: Fields;

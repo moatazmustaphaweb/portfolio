@@ -154,7 +154,9 @@
 - [x] ~~Egypt declares no sibling~~ — **my bug, fixed.** Siblings were scanned only under the `Three ways in` heading; Egypt and Neobiz declare theirs elsewhere on the cover. Now scanned across the whole body
 - [x] ~~Cervello route collision~~ — **the check's fault, fixed.** One claimant is a parked Layer 3 row; checks are MVP-1-scoped now (decision 040). Cervello syncs 3 handles, all linked
 - [ ] **Egypt handle pointer `Results table → What broke.`** — the Results Table page now exists, but handles resolve to **chapters** only and a results table is not a chapter row. Still renders as text. Would need a nullable target route on `entry_handles` — not worth it for one handle unless more appear
-- [ ] **Arabic for four new UI strings** — `entry_handles_heading` (`ثلاث طرق للدخول`), `sibling_case_files` (`ملفات شقيقة`), `results_table` (`جدول النتائج`) and `status_label` (`الحالة`) were written by me from the English, not authored in Arabic. Needs your review
+- [ ] 🔴 **Contact form delivery** — three costed options in decision 044; recommendation is A (Supabase table). The form ships either way; until you pick, the submit button is the direct email link. Needs a honeypot + rate limit before launch
+- [ ] **Arabic for the static pages** — About, Philosophy, Systems and Contact have no Arabic child pages in Notion, so all four fall back to English (decision 013). Sections pair by position and are skipped outright if the counts disagree
+- [ ] **Arabic for eleven new UI strings** — written by me from the English, not authored in Arabic. Needs your review. `entry_handles_heading` · `sibling_case_files` · `results_table` · `status_label` · `form_subject` · `form_subject_hiring` · `form_subject_project` · `form_subject_speaking` · `form_subject_other` · `form_message_placeholder` · `download_cv`. (The older `form_name`/`form_email`/`form_message`/`form_submit` set is yours and was reviewed on 2026-08-11 — untouched.)
 - [ ] **Arabic entry-handle content** — no Arabic cover carries a `ثلاث طرق للدخول` block yet; handles pair by position and are skipped when counts disagree
 - [ ] **`gallery_intro`** — the Classic Gallery intro line. Page renders without it
 - [ ] **`Features` sections** — no chapter has one; the parser finds 0. Either write them in Notion under a `Features` heading, or amend the contract to stop promising feature strips
@@ -170,15 +172,15 @@
 - [x] 2. Classic Gallery — 4 published case files, domain filter, NDA markers, both locales
 - [x] 3. Case File Cover — title, thesis, role statement, OutcomeStrip, LivingMap branching on grammar
 - [x] 4. Chapter — objective, context, decision blocks, result, prev/next navigation
-- [ ] 5. Results Table
-- [ ] 6. Linear View
-- [ ] 7. Comparison pages
-- [ ] 8. Accessibility page
-- [ ] 9. Systems
-- [ ] 10. About
-- [ ] 11. Philosophy
-- [ ] 12. Contact
-- [ ] 13. 404
+- [x] 5. Results Table — every declared target with status and evidence; no red (decision 042)
+- [x] 6. Linear View — whole case file inline, one `h1`, deep link per chapter
+- [ ] 7. Comparison pages — **the last unbuilt MVP-1 pages.** Data exists (`kind = 'comparison'`, 2 rows on Egypt); needs a sync write path
+- [ ] 8. Accessibility page — as above (`kind = 'accessibility'`, 1 row on Egypt)
+- [x] 9. Systems — intro + 4 sections, 3 evidence chapters resolved through the query layer
+- [x] 10. About — intro + 6 sections in chronological order
+- [x] 11. Philosophy — docs-style, 5 numbered positions, anchor per section
+- [x] 12. Contact — form built; ⚠️ **delivery is decision 044, awaiting your pick**
+- [x] 13. 404 — real, except the locale caveat below
 
 ---
 

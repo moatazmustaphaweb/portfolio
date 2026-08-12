@@ -42,6 +42,25 @@ import {
   type HandleWrite,
   type SiblingWrite,
 } from "@/lib/sync/write-handles";
+import {
+  parsePageSections,
+  routeToPageKey,
+  type ParsedSection,
+} from "@/lib/sync/static-pages";
+
+/**
+ * Static pages whose content is ordered prose in Notion.
+ *
+ * Landing and the Classic Gallery are also `static` by kind, but their copy is
+ * `settings` and `ui_strings` — they have no sections, and writing empty rows
+ * for them would put a heading-less, body-less section on two finished pages.
+ */
+const STATIC_PROSE_PAGES = new Set([
+  "about",
+  "about/philosophy",
+  "systems",
+  "contact",
+]);
 /*
  * Imported lazily inside the write paths. A --dry-run writes nothing, so it
  * must not require the service-role key just to preview — and the top-level
@@ -515,6 +534,66 @@ async function upsertTranslations(
 }
 
 /* -------------------------------------------------------------------- main */
+
+/**
+ * A page's blocks in document order, with heading text intact.
+ *
+ * `readBody` canonicalises headings to field names and returns a Map — correct
+ * for a cover, where "My role" IS a field, and wrong for a static page, where
+ * "What that year actually taught me" is a sentence to render. This keeps the
+ * words and the order.
+ */
+async function readOrderedBlocks(
+  pageId: string,
+): Promise<{ heading: string; lines: string[] }[]> {
+  const blocks: { heading: string; lines: string[] }[] = [{ heading: "", lines: [] }];
+  let cursor: string | undefined;
+
+  do {
+    const res = await notion.blocks.children.list({
+      block_id: pageId,
+      start_cursor: cursor,
+      page_size: 100,
+    });
+
+    for (const block of res.results) {
+      const b = block as {
+        type: string;
+        heading_1?: { rich_text: { plain_text: string }[] };
+        heading_2?: { rich_text: { plain_text: string }[] };
+        heading_3?: { rich_text: { plain_text: string }[] };
+        paragraph?: { rich_text: { plain_text: string }[] };
+        bulleted_list_item?: { rich_text: { plain_text: string }[] };
+        numbered_list_item?: { rich_text: { plain_text: string }[] };
+        quote?: { rich_text: { plain_text: string }[] };
+      };
+
+      const headingText =
+        b.heading_1?.rich_text ?? b.heading_2?.rich_text ?? b.heading_3?.rich_text;
+      if (headingText) {
+        blocks.push({
+          heading: headingText.map((t) => t.plain_text).join("").trim(),
+          lines: [],
+        });
+        continue;
+      }
+
+      const prose =
+        b.paragraph?.rich_text ??
+        b.bulleted_list_item?.rich_text ??
+        b.numbered_list_item?.rich_text ??
+        b.quote?.rich_text;
+      if (!prose) continue;
+
+      const text = prose.map((t) => t.plain_text).join("").trim();
+      if (text) blocks[blocks.length - 1].lines.push(text);
+    }
+
+    cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
+  } while (cursor);
+
+  return blocks.filter((b) => b.heading || b.lines.length > 0);
+}
 
 /**
  * Is this row part of MVP-1?
@@ -1267,6 +1346,127 @@ async function main() {
     if (sRes.error) fail(`${row.title} → siblings`, sRes.error);
   }
 
+  /* ---- Pass 5: static pages → page_sections (0021) ---------------------- */
+
+  for (const row of rows) {
+    if (row.kind !== "static" || !row.route) continue;
+    const pageKey = routeToPageKey(row.route);
+    if (!pageKey) continue;
+
+    // Landing and the gallery draw from `settings` and `ui_strings`; they have
+    // no ordered prose and must not be given empty section rows.
+    if (!STATIC_PROSE_PAGES.has(pageKey)) continue;
+
+    const blocks = await readOrderedBlocks(row.id);
+    const { intro, sections } = parsePageSections(blocks, row.title);
+
+    if (sections.length === 0 && !intro) {
+      notice(row.title, `${row.title}: no prose found on the page. Nothing written.`);
+      continue;
+    }
+
+    /* Arabic, paired by POSITION — the same rule outcomes and handles use. */
+    const arabic: { intro: string; sections: ParsedSection[] } = {
+      intro: "",
+      sections: [],
+    };
+    const arabicChild = await findArabicChild(row.id);
+    if (arabicChild) {
+      const arBlocks = await readOrderedBlocks(arabicChild.id);
+      const parsedAr = parsePageSections(arBlocks, arabicChild.title);
+      if (
+        parsedAr.sections.length > 0 &&
+        parsedAr.sections.length !== sections.length
+      ) {
+        notice(
+          row.title,
+          `${row.title}: Arabic has ${parsedAr.sections.length} section(s) to ` +
+            `English's ${sections.length}. Arabic skipped — pairing by position ` +
+            "across different counts would attach the wrong text to the wrong section.",
+        );
+      } else {
+        arabic.intro = parsedAr.intro;
+        arabic.sections = parsedAr.sections;
+      }
+    }
+
+    if (DRY_RUN) {
+      console.log(
+        `  page ${pageKey}: ${sections.length} section(s)` +
+          `${intro ? " + intro" : ""}` +
+          `${arabic.sections.length > 0 ? `, ar ${arabic.sections.length}` : ""}`,
+      );
+      continue;
+    }
+
+    /*
+     * Replace wholesale, translations first. `translations` is polymorphic
+     * with nothing to cascade, so deleting rows alone orphans their text and
+     * every re-sync accumulates another dead set.
+     */
+    const { data: doomed } = await (await db())
+      .from("page_sections")
+      .select("id")
+      .eq("page", pageKey);
+
+    if (doomed && doomed.length > 0) {
+      await (await db())
+        .from("translations")
+        .delete()
+        .eq("entity_type", "page_section")
+        .in("entity_id", doomed.map((d) => d.id));
+    }
+    await (await db()).from("page_sections").delete().eq("page", pageKey);
+
+    /*
+     * The intro is a section too, with an empty heading and sort_order -1. It
+     * renders as an unheaded lede; giving it a row keeps one code path for
+     * page copy rather than a special field on a table that has no other.
+     */
+    const toWrite: { slug: string; heading: string; body: string; order: number }[] = [];
+    if (intro) toWrite.push({ slug: "intro", heading: "", body: intro, order: -1 });
+    sections.forEach((s, i) =>
+      toWrite.push({ slug: s.slug, heading: s.heading, body: s.body, order: i }),
+    );
+
+    let written = 0;
+    for (const item of toWrite) {
+      const { data, error: dbError } = await (await db())
+        .from("page_sections")
+        .insert({ page: pageKey, slug: item.slug, sort_order: item.order })
+        .select("id")
+        .single();
+
+      if (dbError || !data) {
+        fail(row.title, dbError?.message ?? "insert returned no row");
+        continue;
+      }
+
+      await upsertTranslations("page_section", data.id, "en", {
+        ...(item.heading ? { heading: item.heading } : {}),
+        body: item.body,
+      });
+
+      const ar =
+        item.slug === "intro"
+          ? arabic.intro
+            ? { heading: "", body: arabic.intro }
+            : null
+          : arabic.sections[item.order] ?? null;
+
+      if (ar?.body) {
+        await upsertTranslations("page_section", data.id, "ar", {
+          ...(ar.heading ? { heading: ar.heading } : {}),
+          body: ar.body,
+        });
+      }
+
+      written++;
+    }
+
+    updated.push(`${row.title} → ${written} section(s)`);
+  }
+
   /* ---- Decisions, features, and cross-page consistency ------------------ */
 
   if (allClaims.length > 0) {
@@ -1304,26 +1504,31 @@ async function main() {
   }
 
   /*
-   * Static pages (Landing, About, Contact, 404, …) map to ui_strings scoped by
-   * route per contract Step 1. NOT IMPLEMENTED yet — reported rather than
-   * silently dropped, because a row that appears in neither the synced list nor
+   * Pages still without a write path. The four prose pages are handled in
+   * Pass 5; what remains is comparison and accessibility pages, plus static
+   * rows whose copy lives in `settings`/`ui_strings` rather than sections.
+   *
+   * Listed rather than dropped: a row appearing in neither the synced list nor
    * the skipped list looks like it worked.
    */
-  const staticRows = rows.filter(
-    (r) => r.kind === "static" || r.kind === "comparison" || r.kind === "accessibility",
-  );
+  const unhandledRows = rows.filter((r) => {
+    if (r.kind === "comparison" || r.kind === "accessibility") return true;
+    if (r.kind !== "static") return false;
+    const key = r.route ? routeToPageKey(r.route) : null;
+    return !key || !STATIC_PROSE_PAGES.has(key);
+  });
 
   console.log("\nSKIPPED — build tasks and derived pages:\n");
   for (const s of skipped) console.log(`  - ${s}`);
 
-  if (staticRows.length > 0) {
-    console.log("\nNOT YET IMPLEMENTED — static, comparison and accessibility pages:\n");
-    for (const r of staticRows) {
+  if (unhandledRows.length > 0) {
+    console.log("\nNOT YET IMPLEMENTED — comparison, accessibility and chrome pages:\n");
+    for (const r of unhandledRows) {
       console.log(`  - ${r.title}  (${r.kind}, route ${r.route ?? "none"})`);
     }
     console.log(
-      "\n  These map to ui_strings scoped by route (contract Step 1). Listed here\n" +
-        "  so they are visibly absent rather than quietly missing.\n",
+      "\n  Landing and the gallery draw from settings/ui_strings and are complete.\n" +
+        "  Comparison and accessibility pages still need a write path.\n",
     );
   }
 

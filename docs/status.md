@@ -17,10 +17,10 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work | FeatureStrip · RedactedEvidence · MilestoneClose |
 | `/[locale]/work/[caseFile]/all` | 🟢 **REAL** | Thesis, role statement, every chapter with objective/context/decisions/result inline, deep link per chapter, one `h1` | — |
 | `/[locale]/work/[caseFile]/results` | 🟢 **REAL** | Every declared target with status and evidence, as a real `<table>`. Egypt 6 rows · Neobiz 5 · Cervello and UAE 404 (no targets) | — |
-| `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
-| `/[locale]/about` | 🟡 stub | Title, breadcrumb | Timeline component, copy |
-| `/[locale]/about/philosophy` | 🟡 stub | Title, breadcrumb (3 levels) | Docs-style prose template |
-| `/[locale]/contact` | 🟡 stub | Title, breadcrumb | Form, delivery (open question D) |
+| `/[locale]/systems` | 🟢 **REAL** | Intro, 4 sections, three evidence chapters resolved through the query layer, open-source pointer with no placeholder | — |
+| `/[locale]/about` | 🟢 **REAL** | Intro + 6 sections in chronological order, the deaf-school year, links onward | — |
+| `/[locale]/about/philosophy` | 🟢 **REAL** | Docs-style: thesis, 5 numbered positions, sticky contents, an anchor per section | — |
+| `/[locale]/contact` | 🟢 **REAL** · ⚠️ form delivery undecided | Intro, contact methods, full form with labels, what-happens-next, LinkedIn. CV absent until `cv_url` | Delivery — decision 044 |
 | `404` | 🟢 **real** | Title, body, CTA, all from `ui_strings` | Locale — see the caveat below |
 | `/robots.txt` · `/sitemap.xml` · `/llms.txt` | 🟢 **real** | Generated from the database | — |
 | `/api/events` · `/api/revalidate` | 🟢 **real** | Verified against live requests | — |
@@ -34,6 +34,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — the last four pages. MVP-1's page set is complete.
+
+About, Philosophy, Systems and Contact are real. **Every MVP-1 route now renders from the database**; what remains is the launch gate.
+
+### The blocker was upstream, not in the pages
+
+The four stubs were not waiting on layout — their content had never been synced. The sync classified them as `static` and printed them under **"NOT YET IMPLEMENTED"**, which is why they looked ready and were not.
+
+### `page_sections`, amending the contract (decision 043)
+
+The contract routed static page content to `ui_strings` scoped by route. That mapping cannot carry these pages: they are five to seven ordered sections each, heading plus paragraphs, and **the order is the argument** — About runs Now → Before → The Artist's Book → What that year actually taught me, which is a chronology. `ui_strings` has no `sort_order`, so order would have had to live inside key names (`page.about.03-…`), making an insertion a rename of everything after it.
+
+`page_sections` carries `page`, `slug`, `sort_order`; `heading` and `body` go to `translations`. The heading **is** content — "What that year actually taught me" is written, not a label. `docs/sync-contract.md` corrected in the same session.
+
+22 sections synced. Re-ran the sync twice: **41 translations, zero orphans** — the polymorphic-orphan trap that bit targets is not repeated here.
+
+| Page | Sections | Notes |
+|---|---|---|
+| `/about` | intro + 6 | Now · Before · The Artist's Book · What that year actually taught me · Alongside the work · Elsewhere |
+| `/about/philosophy` | 5 | Docs-style, numbered, every section anchored |
+| `/systems` | intro + 4 | Three evidence chapters resolved through the query layer |
+| `/contact` | intro + 4 | Form mounted inside "Or write here" |
+
+### A bug my own test caught
+
+`headingToSlug` used `[^\p{L}\p{N}]` and Arabic harakat are combining **marks**, not letters — so `عن مُعتز` slugged to `عن-م-عتز`, a different word with a stray separator through it. Latin headings were unaffected, which is exactly why it would have survived to the first Arabic page. Fixed to `[^\p{L}\p{N}\p{M}]`.
+
+### Philosophy is built to be cited
+
+The thesis — *to design is to build, not to draw* — with five numbered positions, a sticky contents list, and a stable `id` on every section (`#positions-i-hold`, `#on-being-wrong`). A position you cannot link to is one nobody can quote back at you, so every section has a URL and every heading links to itself.
+
+### Systems points at evidence rather than repeating its claim
+
+Its own second line concedes the claim is easy to say and hard to prove, so the page links three chapters — **resolved through `getChapter`, not hardcoded hrefs**. An unpublished or renamed chapter drops out instead of 404ing:
+
+```
+/en/work/cervello/method
+/en/work/cervello/permission-architecture
+/en/work/egypt-acquisition/accessibility
+```
+
+The "Coming" section promises the open-source system will be linked "when it exists — not before", and gets no placeholder, for exactly that reason.
+
+### ⚠️ Contact form: built, delivery is yours (decision 044)
+
+The form renders in full — name, email, subject select, message with its placeholder, all labels from `ui_strings`, all Arabic already reviewed. **Delivery is not implemented and I did not pick one.** Every option stores or forwards a name, an email and a message body, and the standing rule here is that privacy is a hard constraint rather than a default. While `deliveryConfigured` is false the submit button is replaced by the direct email link, so the page still works.
+
+| | Where it goes | Privacy cost | Effort |
+|---|---|---|---|
+| **A — Supabase table** *(recommended)* | `contact_messages`, existing database | None new; covered by the existing retention policy | ~1h |
+| **B — Email service** | Straight to your inbox | A third party processes every message, and `/how-this-site-works` would have to disclose it | ~1h |
+| **C — Both** | Table + notification | As B | ~1.5h |
+
+**A**, because the only thing it lacks is B's notification, and a contact form checked daily doesn't need one. Either way it needs a honeypot and a rate limit before launch — a CAPTCHA is a third-party tracker and is not an option here.
+
+`CONTACT_DELIVERY_CONFIGURED` is a constant in the page, not an env var: the missing piece is a decision, and an env var would let it be switched on without one being made.
+
+### The CV link is absent, and that is the fallback working
+
+`settings.cv_url` is null, so no CV link renders. Verified precisely: `Download CV` appears on the page **only inside Notion's own prose** in "Also here", never inside an `<a>`. No placeholder, no disabled button, no "coming soon".
 
 ---
 
