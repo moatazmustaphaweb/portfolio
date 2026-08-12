@@ -145,6 +145,30 @@ export const listCaseFileSlugs = cache(async (): Promise<string[]> => {
 });
 
 /**
+ * Slugs of published case files that have declared targets.
+ *
+ * The Results Table route exists only for these. Prerendering it for every
+ * case file would statically generate pages whose own guard 404s them —
+ * Cervello and UAE declare no targets — which is wasted build output that
+ * reads, in the build log, exactly like a page that is broken.
+ */
+export const listCaseFileSlugsWithTargets = cache(async (): Promise<string[]> => {
+  const { data, error } = await supabaseServer
+    .from("targets")
+    .select("case_files!inner(slug, status, sort_order)")
+    .eq("case_files.status", "published");
+
+  if (error) throw new Error(`Failed to load target slugs: ${error.message}`);
+
+  const rows = (data ?? []).map(
+    (r) => r.case_files as unknown as { slug: string; sort_order: number },
+  );
+  return [...new Map(rows.map((c) => [c.slug, c])).values()]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((c) => c.slug);
+});
+
+/**
  * One case file with its chapters, outcomes and targets — everything the
  * cover route needs, in four queries rather than one per child row.
  *

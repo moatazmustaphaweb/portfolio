@@ -237,12 +237,30 @@ eq(
 );
 
 console.log("\nRoute collisions — the real Cervello case");
-const collisions = findRouteCollisions([
-  { title: "Case File Cover — Cervello", route: "/[locale]/work/cervello", kind: "case_file" },
-  { title: "Case File Cover — Cervello Cloud (IoT)", route: "/[locale]/work/cervello", kind: "case_file" },
-  { title: "Case File Cover — UAE Acquisition", route: "/[locale]/work/uae-acquisition", kind: "case_file" },
+
+/*
+ * The live pair, with its real flags: a finished MVP-1 cover and a Layer 3 row
+ * parked with no content. NOT a collision. A row deliberately excluded from
+ * this release cannot block one that ships in it — it was blocking Cervello's
+ * cover and all seven chapters underneath it.
+ */
+const parkedPair = findRouteCollisions([
+  { title: "Case File Cover — Cervello", route: "/[locale]/work/cervello", kind: "case_file", inMvp: false },
+  { title: "Case File Cover — Cervello Cloud (IoT)", route: "/[locale]/work/cervello", kind: "case_file", inMvp: true },
 ]);
-check("collision detected", collisions.size === 1, `${collisions.size} found`);
+check(
+  "MVP-1 row + parked row is NOT a collision",
+  parkedPair.size === 0,
+  `${parkedPair.size} found`,
+);
+
+// Two rows that both ship still collide — the check that earns its keep.
+const collisions = findRouteCollisions([
+  { title: "Case File Cover — Cervello", route: "/[locale]/work/cervello", kind: "case_file", inMvp: true },
+  { title: "Case File Cover — Cervello Cloud (IoT)", route: "/[locale]/work/cervello", kind: "case_file", inMvp: true },
+  { title: "Case File Cover — UAE Acquisition", route: "/[locale]/work/uae-acquisition", kind: "case_file", inMvp: true },
+]);
+check("two MVP-1 rows DO collide", collisions.size === 1, `${collisions.size} found`);
 eq(
   "both claimants named",
   collisions.get("/[locale]/work/cervello"),
@@ -253,6 +271,13 @@ check(
   !collisions.has("/[locale]/work/uae-acquisition"),
 );
 
+// Two parked rows are nobody's problem yet.
+const bothParked = findRouteCollisions([
+  { title: "Layer 3 — Door A", route: "/[locale]/door", kind: "case_file", inMvp: false },
+  { title: "Layer 3 — Door B", route: "/[locale]/door", kind: "case_file", inMvp: false },
+]);
+check("two parked rows are not reported", bothParked.size === 0);
+
 /*
  * A results table legitimately shares its parent's route with a "(close)"
  * annotation. True of Egypt, Neobiz AND Cervello in the live database, so an
@@ -260,8 +285,8 @@ check(
  * key precisely to prevent that.
  */
 const annotated = findRouteCollisions([
-  { title: "Case File Cover — Neobiz Mobile", route: "/[locale]/work/neobiz-mobile", kind: "case_file" },
-  { title: "Results Table — Neobiz Mobile", route: "/[locale]/work/neobiz-mobile (close)", kind: "targets" },
+  { title: "Case File Cover — Neobiz Mobile", route: "/[locale]/work/neobiz-mobile", kind: "case_file", inMvp: true },
+  { title: "Results Table — Neobiz Mobile", route: "/[locale]/work/neobiz-mobile (close)", kind: "targets", inMvp: true },
 ]);
 check(
   "cover + its results table is NOT a collision",
@@ -271,15 +296,15 @@ check(
 
 // But two results tables for the same case file genuinely ARE a collision.
 const twoTables = findRouteCollisions([
-  { title: "Results Table — Cervello", route: "/[locale]/work/cervello (close)", kind: "targets" },
-  { title: "Results Table — Cervello Cloud", route: "/[locale]/work/cervello (close)", kind: "targets" },
+  { title: "Results Table — Cervello", route: "/[locale]/work/cervello (close)", kind: "targets", inMvp: true },
+  { title: "Results Table — Cervello Cloud", route: "/[locale]/work/cervello (close)", kind: "targets", inMvp: true },
 ]);
 check("two results tables for one case file IS a collision", twoTables.size === 1);
 
 // Skipped rows never participate.
 const withSkips = findRouteCollisions([
-  { title: "Linear View — Cervello", route: "/[locale]/work/cervello/all", kind: "skip" },
-  { title: "Linear View — Egypt", route: "/[locale]/work/cervello/all", kind: "skip" },
+  { title: "Linear View — Cervello", route: "/[locale]/work/cervello/all", kind: "skip", inMvp: true },
+  { title: "Linear View — Egypt", route: "/[locale]/work/cervello/all", kind: "skip", inMvp: true },
 ]);
 check("skipped rows cannot collide", withSkips.size === 0);
 

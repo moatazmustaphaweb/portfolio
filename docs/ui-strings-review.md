@@ -140,10 +140,12 @@ locale you are in.
 | `reflection` | Reflection | خلاصة | ✅ Corrected — `خلاصة` |
 | `result` | Result | النتيجة |  |
 | `results` | Results | النتائج |  |
+| `results_table` | Results table | جدول النتائج |  |
 | `role_label` | Role | الدور |  |
 | `sibling_case_files` | Sibling case files | ملفات شقيقة |  |
 | `skip_to_content` | Skip to content | انتقل إلى المحتوى | ✅ Corrected — no diacritic |
 | `status_achieved` | Achieved | محقَّق | ✅ Corrected — adjective form |
+| `status_label` | Status | الحالة |  |
 | `status_missed` | Missed | غير محقَّق | ✅ Corrected — adjective form |
 | `status_not_measurable` | Not measurable | غير قابل للقياس | ⚠️ Layout — status pills need a shared min-width |
 | `status_projected` | Projected | تقديري | ✅ Corrected — `تقديري`; `متوقّع` over-claimed against decision 007 |
@@ -155,7 +157,7 @@ locale you are in.
 | `view_all` | View all | عرض الكل |  |
 ---
 
-**74 strings.** Every one present in both locales.
+**76 strings.** Every one present in both locales.
 
 To apply corrections: update the database, then re-run
 `npm run export:ui-strings` so this document stays true. The seed migration

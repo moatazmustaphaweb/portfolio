@@ -15,7 +15,8 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
 | `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, **entry handles**, OutcomeStrip with statuses, LivingMap branching on grammar (`<ol>`/`<ul>`), **sibling links**, links to comparison/accessibility pages | Cover images · Cervello's handles (blocked by the route collision) |
 | `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work | FeatureStrip · RedactedEvidence · MilestoneClose |
-| `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Real chapters in correct order; comparisons and accessibility correctly excluded | Chapter bodies inline |
+| `/[locale]/work/[caseFile]/all` | 🟢 **REAL** | Thesis, role statement, every chapter with objective/context/decisions/result inline, deep link per chapter, one `h1` | — |
+| `/[locale]/work/[caseFile]/results` | 🟢 **REAL** | Every declared target with status and evidence, as a real `<table>`. Egypt 6 rows · Neobiz 5 · Cervello and UAE 404 (no targets) | — |
 | `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
 | `/[locale]/about` | 🟡 stub | Title, breadcrumb | Timeline component, copy |
 | `/[locale]/about/philosophy` | 🟡 stub | Title, breadcrumb (3 levels) | Docs-style prose template |
@@ -36,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-12 — MVP-1 scoping, two bugs of mine, Linear View and Results Table
+
+### Scope: checks now report on MVP-1 only (decision 040)
+
+The Cervello "route collision" was **not a content problem**. One claimant is an MVP-1 cover with content Done; the other is a Layer 3 row parked with nothing in it. A row deliberately excluded from this release was aborting a row that ships in it, plus its seven chapters, and the report read as a real fault.
+
+`findRouteCollisions` now takes `inMvp` per claim and ignores parked rows; notices route through a gate keyed on row title. `--all` still widens what is **synced** — it no longer widens what is **reported**. Failures are deliberately not gated: a parked row that is actually being written and breaks is still a broken write.
+
+Trade-off, stated rather than buried: two parked rows colliding with each other go unreported. Intended — it becomes visible the moment either joins MVP-1.
+
+### Absence is content, not a gap (decision 041)
+
+Dropped the notices for missing entry handles, missing siblings, and — where the cover states its position — missing outcome tables. **Neobiz's absent results table is deliberate**: designed and internally validated, not built, so it makes design claims only and any completion-time or conversion figure belongs to the Egypt web case file. Cervello's `Status, honestly` does the same job.
+
+The surviving check is narrower and better: report only where there is **neither a table nor a statement about its absence** — a silence that could equally mean the table sits under an unrecognised heading. Notices went 12 → 7, and every remaining one is actionable.
+
+### ⚠️ Two bugs of mine, both found by your corrections
+
+**1. Siblings — I scanned one heading, not the cover.** I reported that Notion doesn't declare an Egypt→Neobiz sibling. It does. My Pass 4 only read lines under the `Three ways in` heading, which is where UAE happens to put its declaration; Egypt and Neobiz put theirs elsewhere on the page. A parser looking in one place and staying silent about the places it didn't look — the exact failure shape this project keeps catching, and I shipped it. Siblings are now scanned across the whole cover body, deduped by target.
+
+All four links are live and match what you described:
+
+| Cover | Siblings |
+|---|---|
+| `uae-acquisition` | `egypt-acquisition`, `neobiz-mobile` |
+| `egypt-acquisition` | `neobiz-mobile` |
+| `neobiz-mobile` | `egypt-acquisition` |
+
+**2. The Cervello collision was the check's fault, not Notion's.** Covered above. With it fixed, Cervello syncs: **3 entry handles, all 3 linked** (`Chapter 1/2/3` resolve positionally), plus its 3 chapters.
+
+### UAE's outcomes landed
+
+Your `[achieved]` markers synced. UAE now has **4 outcomes**, so its gallery card carries an outcome line and its cover shows the strip. Sync is **exit 0, zero failures.**
+
+| Cover | Handles | Linked | Siblings | Outcomes | Targets |
+|---|---|---|---|---|---|
+| `cervello` | 3 | 3 | 0 | 0 | 0 |
+| `uae-acquisition` | 3 | 0 | 2 | **4** | 0 |
+| `egypt-acquisition` | 3 | 2 | 1 | 3 | 6 |
+| `neobiz-mobile` | 3 | 3 | 1 | 0 | 5 |
+
+### Linear View — `/[locale]/work/[caseFile]/all` 🟢 REAL
+
+The whole case file on one page: thesis, role statement, then every chapter with objective, context, decision blocks and result inline, each keeping a deep link to its own page.
+
+`listChapterBodies` fetches all of it in two queries plus two translation resolves, rather than calling `getChapter` in a loop — that would have been seven round trips for Egypt, re-resolving the same case file each time. `kind = 'chapter'` only, enforced in the query so the next surface inherits it: comparisons and the accessibility page are reachable from the cover but are not the sequence.
+
+One `h1` per page, chapters as `h2`. A linear view with eight `h1`s reads as eight documents to a screen reader. Verified: Egypt renders 1 `h1`, 4 chapters, 8 decision blocks.
+
+### Results Table — `/[locale]/work/[caseFile]/results` 🟢 REAL
+
+The manifesto's fourth commitment, on a page: every declared target closed, with its evidence. A real `<table>` with `scope` attributes — this is tabular data, and a stack of divs would look identical and navigate far worse.
+
+**No red** (decision 042). Six of the eleven target rows are `not-measurable` because a controlled release has no commercial launch to measure against; styling those like failures would misreport the work in the direction of self-criticism, which is no more honest than the flattering direction. The label carries the state; styling only sets emphasis.
+
+Egypt 200 (6 rows) · Neobiz 200 (5 rows) · Cervello 404 · UAE 404 — the last two declare no targets, and `generateStaticParams` covers only case files that have them, so the build doesn't prerender pages its own guard 404s.
+
+Arabic verified: `dir="rtl"`, `جدول النتائج`, `الحالة`, `محقَّق`.
+
+> ⚠️ Three Arabic UI strings are mine, rendered from English rather than authored: `results_table`, `status_label`, plus the two from the previous entry. In `TASKS.md`.
+
+---
+
 ## 2026-08-12 — the Case File Cover, finished
 
 The covers were **not stubs** — title, thesis, role statement, living map and outcome strip have been rendering since the cover shipped. What was genuinely missing was the two blocks that had nowhere in the schema to land: entry handles and sibling links. Both exist now, end to end.
@@ -53,11 +117,13 @@ The covers were **not stubs** — title, thesis, role statement, living map and 
 | `neobiz-mobile` | 3 | 3 | 0 | `<ol>` — ordered |
 | `cervello` | **0** | — | 0 | `<ul>` — unordered |
 
-### The two zeroes are correct, and the third is yours
+### The two zeroes are correct
 
-- **UAE, 0 linked.** Its three handles name no chapter — they name a decision, a misreading, and a set of lost arguments. Decision 038: a pointer that names no chapter renders as text rather than being guessed at a destination. Egypt's `Results table → What broke.` is the same case; it names a results table, which is not a chapter and has no page yet.
-- **Egypt, 0 siblings.** ⚠️ **You said Egypt carries a sibling link to Neobiz. Notion does not say so.** UAE's cover has a `Sibling case file: […] and […]` line; Egypt's equivalent trailing line is `Cross-cutting: Accessibility — …`, which points at a chapter, not a case file — the parser is explicitly tested to *not* treat it as a sibling. Nothing was invented. Add a `Sibling case file: [Neobiz Mobile (Egypt)] — <why>` line to Egypt's cover and it appears on the next sync.
-- **Cervello, 0 handles.** Its `Three ways in` block is written and correct — the sync cannot reach it. **Two Notion pages claim `/work/cervello`**: `Case File Cover — Cervello Cloud (IoT)` and `Case File Cover — Cervello`. The collision detector excludes both, which also blocks its 7 chapters. This is open question C. Delete or re-route the empty duplicate and Cervello's handles land with no code change.
+> ⚠️ **Superseded in part by the entry below.** Egypt's and Cervello's zeroes were both my bugs and are fixed; the table above is the state at the time of that session. Corrected figures are in the next entry.
+
+- **UAE, 0 linked.** Its three handles name no chapter — they name a decision, a misreading, and a set of lost arguments. Decision 038: a pointer that names no chapter renders as text rather than being guessed at a destination. Egypt's `Results table → What broke.` is the same case; it names a results table, which is not a chapter.
+- **Egypt, 0 siblings.** ~~Notion does not declare one.~~ **Wrong — my parser only looked under one heading.** See the next entry.
+- **Cervello, 0 handles.** ~~Blocked by a route collision needing a Notion fix.~~ **The collision itself was the bug** — one of the two claimants is a parked Layer 3 row. See decision 040.
 
 ### The living map now branches where it counts
 

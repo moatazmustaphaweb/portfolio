@@ -147,14 +147,14 @@
 
 ### Content gaps — not blocking, need writing
 - [ ] **Cover images** — `media` is empty, so the NDA grayscale contrast on the gallery is invisible. Upload one cover per case file and set `case_files.cover_media_id`
-- [ ] 🔴 **UAE outcomes need 4 status markers** — the table is found and parsed; all four rows rejected for having no `[marker]`. Listed by name in the sync output
-- [ ] **Neobiz cover has no outcomes table** — only a `Results Table` page with targets. Its gallery card shows no outcome line
+- [x] **UAE outcomes** — ✅ your `[achieved]` markers synced. 4 outcomes; gallery card and cover strip both carry them
+- [x] ~~Neobiz cover has no outcomes table~~ — **not a gap.** Designed and internally validated, not built; it makes design claims only, and completion-time or conversion figures belong to the Egypt web case file. Its cover says so. No notice, no flag (decision 041)
 - [x] **Entry handles** — ✅ `entry_handles` (migration 0017), parsed, synced, rendering. UAE 3 · Egypt 3 · Neobiz 3
-- [x] **Sibling links** — ✅ `case_file_siblings` (migration 0017), directed. **UAE has 2; Egypt has 0** — see below
-- [ ] 🔴 **Egypt declares no sibling in Notion** — decision 004 says Egypt↔Neobiz are siblings, but Egypt's cover has no `Sibling case file:` line (its trailing line is `Cross-cutting: Accessibility`, which points at a chapter). Add `Sibling case file: [Neobiz Mobile (Egypt)] — <why>` and it appears on the next sync. Nothing was invented
-- [ ] 🔴 **Cervello route collision blocks its entry handles** — two Notion pages claim `/work/cervello` (`… — Cervello Cloud (IoT)` and `… — Cervello`). Its `Three ways in` block is written and correct but unreachable, along with 7 chapters. Open question C
-- [ ] **Egypt handle pointer `Results table → What broke.`** — names a results table, which is not a chapter, so the handle renders as text (decision 038). Resolves itself when the Results Table page exists
-- [ ] **Arabic for two new UI strings** — `entry_handles_heading` (`ثلاث طرق للدخول`) and `sibling_case_files` (`ملفات شقيقة`) were written by me from the English, not authored in Arabic. Needs your review
+- [x] **Sibling links** — ✅ `case_file_siblings` (migration 0017), directed. All four live: UAE→Egypt+Neobiz, Egypt→Neobiz, Neobiz→Egypt
+- [x] ~~Egypt declares no sibling~~ — **my bug, fixed.** Siblings were scanned only under the `Three ways in` heading; Egypt and Neobiz declare theirs elsewhere on the cover. Now scanned across the whole body
+- [x] ~~Cervello route collision~~ — **the check's fault, fixed.** One claimant is a parked Layer 3 row; checks are MVP-1-scoped now (decision 040). Cervello syncs 3 handles, all linked
+- [ ] **Egypt handle pointer `Results table → What broke.`** — the Results Table page now exists, but handles resolve to **chapters** only and a results table is not a chapter row. Still renders as text. Would need a nullable target route on `entry_handles` — not worth it for one handle unless more appear
+- [ ] **Arabic for four new UI strings** — `entry_handles_heading` (`ثلاث طرق للدخول`), `sibling_case_files` (`ملفات شقيقة`), `results_table` (`جدول النتائج`) and `status_label` (`الحالة`) were written by me from the English, not authored in Arabic. Needs your review
 - [ ] **Arabic entry-handle content** — no Arabic cover carries a `ثلاث طرق للدخول` block yet; handles pair by position and are skipped when counts disagree
 - [ ] **`gallery_intro`** — the Classic Gallery intro line. Page renders without it
 - [ ] **`Features` sections** — no chapter has one; the parser finds 0. Either write them in Notion under a `Features` heading, or amend the contract to stop promising feature strips

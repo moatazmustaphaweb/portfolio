@@ -206,10 +206,16 @@ export function parseStatusItem(
  * Route collisions.
  * ---------------------------------------------------------------------- */
 
-export type RouteClaim = { title: string; route: string; kind: EntityKind };
+export type RouteClaim = {
+  title: string;
+  route: string;
+  kind: EntityKind;
+  /** Whether the row is flagged In MVP-1. Parked rows cannot collide. */
+  inMvp: boolean;
+};
 
 /**
- * Find routes claimed by more than one row of the SAME kind.
+ * Find routes claimed by more than one row of the SAME kind, within MVP-1.
  *
  * The contract calls this out by name: two rows claim
  * `/[locale]/work/cervello`, and an upsert keyed on slug would silently
@@ -223,6 +229,16 @@ export type RouteClaim = { title: string; route: string; kind: EntityKind };
  * Comparing on route alone flagged all three as collisions and would have
  * aborted six valid rows. A check that fires on correct data teaches everyone
  * to ignore it, which costs more than having no check at all.
+ *
+ * Rows OUTSIDE MVP-1 are ignored entirely, for the same reason. The live
+ * Cervello collision was between a finished MVP-1 cover and a Layer 3 row
+ * parked with no content — a row deliberately excluded from this release was
+ * blocking one that ships in it, along with seven chapters underneath it. A
+ * parked row is not a competing claim; it is a note to self about later.
+ *
+ * The trade-off, stated: two parked rows colliding with each other is not
+ * reported. That is intended — it is a problem about content nobody is
+ * building yet, and it becomes visible the moment either row joins MVP-1.
  */
 export function findRouteCollisions(
   claims: readonly RouteClaim[],
@@ -231,6 +247,7 @@ export function findRouteCollisions(
 
   for (const claim of claims) {
     if (claim.kind === "skip") continue;
+    if (!claim.inMvp) continue;
     const cleaned = claim.route.replace(/\s*\([^)]*\)\s*$/, "").trim();
     if (!cleaned.startsWith("/")) continue;
 

@@ -104,6 +104,22 @@ function fail(entity: string, reason: string) {
   failed.push(`${entity}: ${reason}`);
 }
 
+/**
+ * Titles of rows outside MVP-1. Populated once scope is known.
+ *
+ * Reporting is gated on this rather than each call site remembering: a notice
+ * about content deliberately parked for a later layer costs attention and buys
+ * nothing, and `--all` puts those rows in front of every check. Failures are
+ * NOT gated — if a parked row is genuinely being written and the write breaks,
+ * that is still a broken write.
+ */
+const parkedTitles = new Set<string>();
+
+function notice(rowTitle: string, message: string) {
+  if (parkedTitles.has(rowTitle)) return;
+  notices.push(message);
+}
+
 /* ------------------------------------------------------------ notion reads */
 
 function plainText(prop: unknown): string | null {
@@ -500,24 +516,46 @@ async function upsertTranslations(
 
 /* -------------------------------------------------------------------- main */
 
+/**
+ * Is this row part of MVP-1?
+ *
+ * The single definition of "in scope", used both to choose what to sync and —
+ * more importantly — to decide what may be REPORTED. Two Notion fields carry
+ * it, and either counts: the explicit `In MVP-1` checkbox, and a build layer
+ * of `Layer 1 — MVP-1` for rows where the checkbox was never ticked.
+ */
+function isMvp(row: { buildLayer?: string | null; inMvp: boolean }): boolean {
+  return row.buildLayer === "Layer 1 — MVP-1" || row.inMvp;
+}
+
 async function main() {
   console.log(
     `\nNotion → Supabase sync${DRY_RUN ? "  [DRY RUN — nothing will be written]" : ""}\n`,
   );
 
   const all = await fetchRows();
-  const rows = ALL_LAYERS
-    ? all
-    : all.filter((r) => r.buildLayer === "Layer 1 — MVP-1" || r.inMvp);
+  const rows = ALL_LAYERS ? all : all.filter(isMvp);
+  for (const r of all) if (!isMvp(r)) parkedTitles.add(r.title);
 
   console.log(`Read ${all.length} rows, ${rows.length} in scope.\n`);
 
   /* ---- Pre-flight: refuse to write into known-bad data ------------------ */
 
+  /*
+   * Checks run over MVP-1 only, whatever `--all` widened the SYNC to. A row
+   * parked outside this release must not be able to report a problem against
+   * a row that ships in it — that is attention spent on content nobody is
+   * building.
+   */
   const collisions = findRouteCollisions(
     rows
       .filter((r) => r.route)
-      .map((r) => ({ title: r.title, route: r.route!, kind: r.kind })),
+      .map((r) => ({
+        title: r.title,
+        route: r.route!,
+        kind: r.kind,
+        inMvp: isMvp(r),
+      })),
   );
 
   const collidingTitles = new Set<string>();
@@ -613,7 +651,7 @@ async function main() {
       data = res.data;
       dbError = res.error;
       if (res.data) {
-        notices.push(
+        notice(row.title,
           `${row.title}: new case file "${caseFile}" created with placeholder ` +
             "grammar=ecosystem and domain=unsorted. Both need setting — grammar " +
             "picks the LivingMap layout, domain drives the gallery filter.",
@@ -763,7 +801,7 @@ async function main() {
     const pairArabic =
       arDecisions.length > 0 && arDecisions.length === enDecisions.length;
     if (arDecisions.length > 0 && !pairArabic) {
-      notices.push(
+      notice(row.title,
         `${row.title}: ${enDecisions.length} decision(s) in English but ` +
           `${arDecisions.length} in Arabic. Arabic skipped — pairing by position ` +
           "across different counts would attach the wrong Arabic to the wrong decision.",
@@ -827,22 +865,38 @@ async function main() {
 
     if (selection.source === "none") {
       /*
-       * A results page with no table at all is legitimate: a case file may
-       * declare no targets and state its limits in prose, and "every declared
-       * target closed" is satisfied vacuously when none were declared.
+       * No table is often the correct, deliberate answer, and saying so is a
+       * senior move rather than an omission.
        *
-       * Still reported loudly, because "a table exists and was missed" looks
-       * identical to "there is no table" and only this line tells them apart.
+       *   Cervello  — "Status, honestly": the cloud version shipped, but the
+       *               numbers belong to the customers who run it.
+       *   Neobiz    — designed and internally validated, not built. It makes
+       *               design claims only; any completion-time or conversion
+       *               figure belongs to the Egypt web case file.
+       *
+       * Both state that on the cover, and a cover that declares its position
+       * has answered the question. The notice fires only where there is
+       * NEITHER a table NOR a statement — a silence that could equally mean
+       * "a table exists under a heading we do not know", which is the case
+       * worth catching. A check that fires on correct data gets ignored.
        */
-      notices.push(
-        isTargets
-          ? `${row.title}: no targets table found. Legitimate if this case file ` +
-            "declares its limits in prose; a problem if a table exists and was missed."
-          : `${row.title}: no outcomes table found under Outcomes/Results/النتائج. ` +
-            "Legitimate if this case file states plainly that it has no numbers; " +
-            "a problem if a table exists under a heading not in that list. " +
-            "Its gallery card will show a title and no outcome line.",
+      const declaresPosition = Boolean(
+        body.get("reflection")?.length ||
+          body.get("status, honestly")?.length ||
+          body.get("why it matters anyway")?.length,
       );
+
+      if (!declaresPosition) {
+        notice(row.title,
+          isTargets
+            ? `${row.title}: no targets table and no statement about their absence. ` +
+              "Either declare the limits in prose or add the table."
+            : `${row.title}: no outcomes table under Outcomes/Results/النتائج, and ` +
+              "no statement about the absence. Either state plainly that this case " +
+              "file has no numbers, or check the table is under a known heading. " +
+              "Its gallery card will show a title and no outcome line.",
+        );
+      }
       continue;
     }
 
@@ -935,7 +989,7 @@ async function main() {
         if (label) arabicItems.push({ label, note: arNoteCell?.trim() || null });
       }
       if (arabicItems.length > 0 && arabicItems.length !== parsed.length) {
-        notices.push(
+        notice(row.title,
           `${row.title}: Arabic ${isTargets ? "targets" : "outcomes"} table has ` +
             `${arabicItems.length} rows but English has ${parsed.length}. Arabic skipped ` +
             "for the mismatched rows — pairing by position across different lengths " +
@@ -1063,14 +1117,14 @@ async function main() {
     if (!parent) continue;
 
     const body = await readBody(row.id);
+    /*
+     * No "Three ways in" block is not a gap and is not reported. Entry handles
+     * are editorial: a cover without them is complete, and the living map
+     * below lists every chapter regardless. Absence gets rendered, not flagged
+     * — the same rule siblings follow.
+     */
     const lines = body.get("three ways in") ?? body.get("ثلاث طرق للدخول") ?? [];
-    if (lines.length === 0) {
-      notices.push(
-        `${row.title}: no "Three ways in" block found. The cover renders without ` +
-          "entry handles; the living map below still lists every chapter.",
-      );
-      continue;
-    }
+    if (lines.length === 0) continue;
 
     /* Chapters, for resolving each handle's pointer. */
     const { data: chapterRows } = await (await db())
@@ -1100,14 +1154,25 @@ async function main() {
     const handles: HandleWrite[] = [];
     const unresolved: string[] = [];
     const siblings: SiblingWrite[] = [];
+    const seenSiblings = new Set<string>();
 
-    for (const line of lines) {
-      const sib = parseSiblingLine(line);
-      if (sib) {
+    /*
+     * Siblings are searched across the WHOLE cover, not just under the handles
+     * heading. UAE happens to put its declaration there; Egypt and Neobiz put
+     * theirs elsewhere on the page, and scanning one section found UAE's and
+     * silently missed both of the others — a parser looking in one place and
+     * reporting nothing about the places it did not look.
+     */
+    for (const section of body.values()) {
+      for (const line of section) {
+        const sib = parseSiblingLine(line);
+        if (!sib) continue;
+
         for (const title of sib.titles) {
           const slug = caseFileTitles.get(normalizeTitle(title));
           if (!slug) {
-            notices.push(
+            notice(
+              row.title,
               `${row.title}: sibling "${title}" matches no case file. Not written — ` +
                 "a link to nothing is a dead end.",
             );
@@ -1118,10 +1183,18 @@ async function main() {
             .select("id")
             .eq("slug", slug)
             .maybeSingle();
-          if (sibRow) siblings.push({ siblingId: sibRow.id, note: sib.note });
+          // The pair is unique in the schema; a title repeated across two
+          // declarations is one link, not a constraint violation.
+          if (sibRow && !seenSiblings.has(sibRow.id)) {
+            seenSiblings.add(sibRow.id);
+            siblings.push({ siblingId: sibRow.id, note: sib.note });
+          }
         }
-        continue;
       }
+    }
+
+    for (const line of lines) {
+      if (parseSiblingLine(line)) continue; // handled above
 
       const parsedHandle = parseEntryHandle(line);
       if (!parsedHandle) continue;
@@ -1151,7 +1224,7 @@ async function main() {
         if (h) arabicHandles.push({ invitation: h.invitation, payoff: h.payoff });
       }
       if (arabicHandles.length > 0 && arabicHandles.length !== handles.length) {
-        notices.push(
+        notice(row.title,
           `${row.title}: Arabic has ${arabicHandles.length} entry handle(s) to ` +
             `English's ${handles.length}. Arabic skipped — pairing by position ` +
             "would attach the wrong text to the wrong handle.",
@@ -1161,7 +1234,7 @@ async function main() {
     }
 
     if (unresolved.length > 0) {
-      notices.push(
+      notice(row.title,
         `${row.title}: ${unresolved.length} entry handle pointer(s) name no ` +
           `chapter and render as text — ${unresolved.join(" · ")}`,
       );
