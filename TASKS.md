@@ -10,7 +10,6 @@
 | Task | Blocked by | Owner |
 |---|---|---|
 | 0.5 query-layer verification | `SUPABASE_SERVICE_ROLE_KEY` missing from `.env.local`. Supabase dashboard → Project Settings → API keys → `service_role`. Then `npm run verify:content` | Moataz |
-| **`settings.tagline`** | Undecided, both languages. The line under the name on the landing page — the site's one-sentence claim about itself. **Launch-gate blocker** | Moataz |
 | **`settings.og_image`** | Not designed. Controls how every shared link renders on LinkedIn and WhatsApp — the first impression for anyone the site is forwarded to. **Launch-gate blocker** | Moataz |
 | **`settings.cv_url`** | Hosting location not chosen. The CV link appears in the footer on every page. **Launch-gate blocker** | Moataz |
 | **Egypt outcomes — 4 markers needed** | The outcomes are a 4-row TABLE, not one line. Each needs its own marker: a prototype-measured timing, an agreed SLA, a historical baseline, and a stated projection. Add a Status column or append markers to each label cell | Moataz |
@@ -72,7 +71,8 @@
 - [x] `settings.name` — en `Moataz Mustapha` / ar `مُعتز مصطفى`
 - [x] `settings.email` — `moataz.mustapha@outlook.com`
 - [x] `settings.linkedin_url`
-- [ ] 🔴 `settings.tagline` · `og_image` · `cv_url` — deliberately NULL, **launch-gate blockers** (see BLOCKED)
+- [x] `settings.tagline` · `intro` · `description` — seeded, both locales, live on Landing
+- [ ] 🔴 `settings.og_image` · `cv_url` — still NULL, **launch-gate blockers** (see BLOCKED)
 - [x] Native Arabic review — 9 corrections applied to the database, `0003_seed_site_chrome.sql` and `docs/ui-strings-review.md`. No collisions remain across all 52
 
 ### 0.4 Notion → Supabase sync
@@ -155,7 +155,7 @@
 ## ⬜ QUEUE — PHASE 1: MVP-1 PAGES
 *Every route below is now scaffolded and navigable — see the route map in `docs/status.md`. Phase 1 is filling them, not creating them.*
 
-- [ ] 1. Landing
+- [x] 1. Landing — real content, both locales, minimal footer
 - [ ] 2. Classic Gallery
 - [ ] 3. Case File Cover (LivingMap × 3 grammars)
 - [ ] 4. Chapter (DecisionBlock, FeatureStrip, RedactedEvidence, MilestoneClose)
@@ -173,7 +173,6 @@
 
 ## ⬜ QUEUE — PHASE 2: LAUNCH GATE
 - [ ] **404 renders in the visitor's locale.** A `not-found` boundary receives no route params, so an Arabic visitor hitting a bad link currently gets an English page. Small, but it undermines a bilingual claim — and the positioning is doing Arabic properly, not approximately. **Launch-gate item, not a nice-to-have**
-- [ ] **`settings.tagline` written and seeded (en + ar)** — must not launch with the landing page's one-line claim absent
 - [ ] **`settings.og_image` designed, uploaded to Cloudinary, seeded** — every shared link renders without it otherwise
 - [ ] **`settings.cv_url` hosted and seeded** — footer CV link is dead until then
 - [x] Arabic UI strings corrected — verified drift-free by `npm run check:seed-drift`
