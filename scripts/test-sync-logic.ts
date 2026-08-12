@@ -19,6 +19,12 @@ import {
   routeToSlug,
   TARGET_STATUSES,
 } from "@/lib/sync/classify";
+import {
+  normalizeTitle,
+  parseEntryHandle,
+  parseSiblingLine,
+  resolveHandleTarget,
+} from "@/lib/sync/handles";
 
 let failures = 0;
 
@@ -287,6 +293,143 @@ const empty = findEmptyMvpRows([
 check("two empty rows reported", empty.length === 2, empty.join("; "));
 check("complete row not reported", !empty.some((e) => e.includes("UAE")));
 check("non-MVP row not reported", !empty.some((e) => e.includes("Layer 3")));
+
+/* -------------------------------------------------------------------------
+ * Entry handles and siblings.
+ *
+ * Every string below is copied verbatim from the live Notion covers on
+ * 2026-08-12. The point is to prove the parser against what is actually
+ * written, including the two forms that do NOT resolve — those are the cases
+ * where a looser parser would invent a destination.
+ * ---------------------------------------------------------------------- */
+
+console.log("\nEntry handles");
+
+const cervelloHandle = parseEntryHandle(
+  "If you want the hardest architectural problem → a single-customer installation became a multi-tenant platform, and every assumption about ownership, visibility and billing had to be rebuilt. Chapter 1.",
+);
+eq(
+  "invitation split on the arrow",
+  cervelloHandle?.invitation,
+  "If you want the hardest architectural problem",
+);
+eq("positional pointer found", cervelloHandle?.pointer, "Chapter 1.");
+
+const egyptHandle = parseEntryHandle(
+  '"Show me the hardest decision." → The language fight. I proposed Arabic-first and lost. I proposed switching language anywhere in the journey and lost again. Then I found the one place where neither objection held, and won that. Onboarding journey → Decision.',
+);
+eq("quotes stripped", egyptHandle?.invitation, "Show me the hardest decision.");
+check(
+  "payoff kept whole, arrows and all",
+  egyptHandle?.payoff.startsWith("The language fight.") === true,
+  egyptHandle?.payoff.slice(0, 30),
+);
+eq(
+  "pointer is the LAST sentence, not the first arrow",
+  egyptHandle?.pointer,
+  "Onboarding journey → Decision.",
+);
+
+const uaeHandle = parseEntryHandle(
+  "If you want the decision I'm proudest of → remote verification. Every Key Individual must verify and sign, but only one person applies. I proposed pushing verification to the person instead of pushing a person to them — which removed the Relationship Manager from the journey entirely.",
+);
+check("handle with no destination parses", uaeHandle !== null);
+eq("...and reports no pointer", uaeHandle?.pointer, null);
+
+eq("a paragraph with no arrow is not a handle", parseEntryHandle("Just a sentence."), null);
+
+console.log("\nResolving pointers to chapters");
+
+const egyptChapters = [
+  { slug: "onboarding", title: "Onboarding Journey", sortOrder: 1, isChapter: true },
+  { slug: "workflow", title: "Application Workflow", sortOrder: 2, isChapter: true },
+  { slug: "portal", title: "Customer Portal & Notifications", sortOrder: 3, isChapter: true },
+  { slug: "fulfilment", title: "Fulfilment & AOF", sortOrder: 4, isChapter: true },
+  { slug: "accessibility", title: "Accessibility — Bilingual, RTL & Regulatory Comprehension", sortOrder: 0, isChapter: false },
+];
+
+eq(
+  "title match ignores case",
+  resolveHandleTarget("Onboarding journey → Decision.", egyptChapters),
+  "onboarding",
+);
+eq(
+  "matches on the segment before the arrow",
+  resolveHandleTarget("Application workflow → Craft.", egyptChapters),
+  "workflow",
+);
+eq(
+  "a results table is NOT guessed at a chapter",
+  resolveHandleTarget("Results table → What broke.", egyptChapters),
+  null,
+);
+eq("no pointer resolves to nothing", resolveHandleTarget(null, egyptChapters), null);
+
+const cervelloChapters = [
+  { slug: "on-premises-to-cloud", title: "On-Premises to Cloud", sortOrder: 1, isChapter: true },
+  { slug: "permission-architecture", title: "Permission Architecture", sortOrder: 2, isChapter: true },
+  { slug: "method", title: "Method & Design System", sortOrder: 3, isChapter: true },
+];
+eq(
+  "positional pointer resolves by sort_order",
+  resolveHandleTarget("Chapter 2.", cervelloChapters),
+  "permission-architecture",
+);
+eq(
+  "out-of-range chapter number resolves to nothing",
+  resolveHandleTarget("Chapter 9.", cervelloChapters),
+  null,
+);
+
+// A substring match would let this claim UAE's "Mobile Onboarding Journey".
+eq(
+  "no substring matching across differing titles",
+  resolveHandleTarget("Onboarding → Decision.", [
+    { slug: "onboarding", title: "Mobile Onboarding Journey", sortOrder: 1, isChapter: true },
+  ]),
+  null,
+);
+
+console.log("\nSibling case files");
+
+const uaeSiblings = parseSiblingLine(
+  "Sibling case file: [Egypt Acquisition (Web)] and [Neobiz Mobile — Egypt] — the same requirement, in a market without the infrastructure.",
+);
+eq("both siblings found", uaeSiblings?.titles, [
+  "Egypt Acquisition (Web)",
+  "Neobiz Mobile — Egypt",
+]);
+eq(
+  "note taken from after the last bracket",
+  uaeSiblings?.note,
+  "the same requirement, in a market without the infrastructure.",
+);
+
+// The real reason normalizeTitle exists: the cover and the case file disagree
+// on punctuation, and an exact match would drop this link in silence.
+eq(
+  "em-dash title matches parenthesised title",
+  normalizeTitle("Neobiz Mobile — Egypt"),
+  normalizeTitle("Neobiz Mobile (Egypt)"),
+);
+check(
+  "different case files still do not collide",
+  normalizeTitle("Egypt Acquisition (Web)") !== normalizeTitle("Neobiz Mobile (Egypt)"),
+);
+
+// Egypt's trailing line points at a CHAPTER. It must not become a sibling.
+eq(
+  "cross-cutting line is not a sibling declaration",
+  parseSiblingLine(
+    "Cross-cutting: Accessibility — Bilingual, RTL & Regulatory Comprehension — the informed-consent argument that decided the language architecture, and the RTL contribution to the bank's shared design system.",
+  ),
+  null,
+);
+eq(
+  "a sibling prefix with no bracketed title is not a declaration",
+  parseSiblingLine("Sibling case file: coming soon"),
+  null,
+);
 
 console.log(
   failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,

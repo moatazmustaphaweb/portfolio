@@ -29,6 +29,19 @@ import {
   TARGET_STATUSES,
   type EntityKind,
 } from "@/lib/sync/classify";
+import {
+  normalizeTitle,
+  parseEntryHandle,
+  parseSiblingLine,
+  resolveHandleTarget,
+  type ChapterRef,
+} from "@/lib/sync/handles";
+import {
+  replaceEntryHandles,
+  replaceSiblings,
+  type HandleWrite,
+  type SiblingWrite,
+} from "@/lib/sync/write-handles";
 /*
  * Imported lazily inside the write paths. A --dry-run writes nothing, so it
  * must not require the service-role key just to preview — and the top-level
@@ -1010,6 +1023,175 @@ async function main() {
         );
       }
     }
+  }
+
+  /* ---- Pass 4: entry handles and siblings (0017) ------------------------ */
+
+  /*
+   * Re-reads each cover's body rather than reusing Pass 3's copy. Pass 3 bails
+   * out early for a cover with no outcomes table — which is Neobiz and
+   * Cervello — and folding this in there would have silently skipped their
+   * handles for a reason that has nothing to do with handles.
+   */
+  const caseFileTitles = new Map<string, string>();
+  {
+    const { data: titleRows } = await (await db())
+      .from("translations")
+      .select("entity_id, value")
+      .eq("entity_type", "case_file")
+      .eq("locale", "en")
+      .eq("field", "title");
+    const { data: cfRows } = await (await db()).from("case_files").select("id, slug");
+    for (const t of titleRows ?? []) {
+      const slug = (cfRows ?? []).find((c) => c.id === t.entity_id)?.slug;
+      if (slug) caseFileTitles.set(normalizeTitle(t.value), slug);
+    }
+  }
+
+  for (const row of rows) {
+    if (collidingTitles.has(row.title)) continue;
+    if (row.kind !== "case_file") continue;
+
+    const { caseFile } = routeToSlug(row.route);
+    if (!caseFile) continue;
+
+    const { data: parent } = await (await db())
+      .from("case_files")
+      .select("id")
+      .eq("slug", caseFile)
+      .maybeSingle();
+    if (!parent) continue;
+
+    const body = await readBody(row.id);
+    const lines = body.get("three ways in") ?? body.get("ثلاث طرق للدخول") ?? [];
+    if (lines.length === 0) {
+      notices.push(
+        `${row.title}: no "Three ways in" block found. The cover renders without ` +
+          "entry handles; the living map below still lists every chapter.",
+      );
+      continue;
+    }
+
+    /* Chapters, for resolving each handle's pointer. */
+    const { data: chapterRows } = await (await db())
+      .from("chapters")
+      .select("id, slug, sort_order, kind")
+      .eq("case_file_id", parent.id);
+
+    const chapterRefs: (ChapterRef & { id: string })[] = [];
+    for (const ch of chapterRows ?? []) {
+      const { data: t } = await (await db())
+        .from("translations")
+        .select("value")
+        .eq("entity_type", "chapter")
+        .eq("entity_id", ch.id)
+        .eq("locale", "en")
+        .eq("field", "title")
+        .maybeSingle();
+      chapterRefs.push({
+        id: ch.id,
+        slug: ch.slug,
+        title: t?.value ?? "",
+        sortOrder: ch.sort_order,
+        isChapter: ch.kind === "chapter",
+      });
+    }
+
+    const handles: HandleWrite[] = [];
+    const unresolved: string[] = [];
+    const siblings: SiblingWrite[] = [];
+
+    for (const line of lines) {
+      const sib = parseSiblingLine(line);
+      if (sib) {
+        for (const title of sib.titles) {
+          const slug = caseFileTitles.get(normalizeTitle(title));
+          if (!slug) {
+            notices.push(
+              `${row.title}: sibling "${title}" matches no case file. Not written — ` +
+                "a link to nothing is a dead end.",
+            );
+            continue;
+          }
+          const { data: sibRow } = await (await db())
+            .from("case_files")
+            .select("id")
+            .eq("slug", slug)
+            .maybeSingle();
+          if (sibRow) siblings.push({ siblingId: sibRow.id, note: sib.note });
+        }
+        continue;
+      }
+
+      const parsedHandle = parseEntryHandle(line);
+      if (!parsedHandle) continue;
+
+      const targetSlug = resolveHandleTarget(parsedHandle.pointer, chapterRefs);
+      const target = chapterRefs.find((c) => c.slug === targetSlug);
+      if (parsedHandle.pointer && !target) {
+        unresolved.push(parsedHandle.pointer);
+      }
+
+      handles.push({
+        invitation: parsedHandle.invitation,
+        payoff: parsedHandle.payoff,
+        targetChapterId: target?.id ?? null,
+      });
+    }
+
+    /* Arabic, paired by position — same rule as outcomes. */
+    const arabicHandles: { invitation: string; payoff: string }[] = [];
+    const arabicChild = await findArabicChild(row.id);
+    if (arabicChild) {
+      const arBody = await readBody(arabicChild.id);
+      const arLines =
+        arBody.get("ثلاث طرق للدخول") ?? arBody.get("three ways in") ?? [];
+      for (const line of arLines) {
+        const h = parseEntryHandle(line);
+        if (h) arabicHandles.push({ invitation: h.invitation, payoff: h.payoff });
+      }
+      if (arabicHandles.length > 0 && arabicHandles.length !== handles.length) {
+        notices.push(
+          `${row.title}: Arabic has ${arabicHandles.length} entry handle(s) to ` +
+            `English's ${handles.length}. Arabic skipped — pairing by position ` +
+            "would attach the wrong text to the wrong handle.",
+        );
+        arabicHandles.length = 0;
+      }
+    }
+
+    if (unresolved.length > 0) {
+      notices.push(
+        `${row.title}: ${unresolved.length} entry handle pointer(s) name no ` +
+          `chapter and render as text — ${unresolved.join(" · ")}`,
+      );
+    }
+
+    if (DRY_RUN) {
+      console.log(
+        `  entry handles ${caseFile}: ${handles.length} (${
+          handles.filter((h) => h.targetChapterId).length
+        } linked), siblings: ${siblings.length}`,
+      );
+      continue;
+    }
+
+    const hRes = await replaceEntryHandles(
+      (await db()) as never,
+      upsertTranslations,
+      parent.id,
+      handles,
+      arabicHandles,
+    );
+    if (hRes.error) fail(`${row.title} → entry handles`, hRes.error);
+
+    const sRes = await replaceSiblings(
+      (await db()) as never,
+      upsertTranslations,
+      parent.id,
+      siblings,
+    );
+    if (sRes.error) fail(`${row.title} → siblings`, sRes.error);
   }
 
   /* ---- Decisions, features, and cross-page consistency ------------------ */

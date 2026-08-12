@@ -13,7 +13,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 |---|---|---|---|
 | `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
 | `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
-| `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, OutcomeStrip with statuses, LivingMap branching on grammar, links to comparison/accessibility pages | Entry handles · sibling links |
+| `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, **entry handles**, OutcomeStrip with statuses, LivingMap branching on grammar (`<ol>`/`<ul>`), **sibling links**, links to comparison/accessibility pages | Cover images · Cervello's handles (blocked by the route collision) |
 | `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work | FeatureStrip · RedactedEvidence · MilestoneClose |
 | `/[locale]/work/[caseFile]/all` | 🟡 stub · **🟢 CONTENT LIVE** | Real chapters in correct order; comparisons and accessibility correctly excluded | Chapter bodies inline |
 | `/[locale]/systems` | 🟡 stub | Title, breadcrumb | Prose, link into the Cervello DS chapter |
@@ -33,6 +33,57 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-12 — the Case File Cover, finished
+
+The covers were **not stubs** — title, thesis, role statement, living map and outcome strip have been rendering since the cover shipped. What was genuinely missing was the two blocks that had nowhere in the schema to land: entry handles and sibling links. Both exist now, end to end.
+
+### Migrations 0017–0019
+
+`entry_handles` and `case_file_siblings`, plus two `entity_type` values and two UI strings. Handle text lives in `translations` (`invitation`, `payoff`) and **not** in the row — `outcomes` keeps copy in `outcomes.value` *and* accepts a `label` translation, the two drifted into holding the same string, and Egypt's outcome rendered twice on the cover. A table whose text has one home cannot develop that fault.
+
+### What each cover now carries
+
+| Cover | Handles | Linked | Siblings | Living map |
+|---|---|---|---|---|
+| `uae-acquisition` | 3 | **0** | 2 | `<ol>` — ordered |
+| `egypt-acquisition` | 3 | 2 | **0** | `<ol>` — ordered |
+| `neobiz-mobile` | 3 | 3 | 0 | `<ol>` — ordered |
+| `cervello` | **0** | — | 0 | `<ul>` — unordered |
+
+### The two zeroes are correct, and the third is yours
+
+- **UAE, 0 linked.** Its three handles name no chapter — they name a decision, a misreading, and a set of lost arguments. Decision 038: a pointer that names no chapter renders as text rather than being guessed at a destination. Egypt's `Results table → What broke.` is the same case; it names a results table, which is not a chapter and has no page yet.
+- **Egypt, 0 siblings.** ⚠️ **You said Egypt carries a sibling link to Neobiz. Notion does not say so.** UAE's cover has a `Sibling case file: […] and […]` line; Egypt's equivalent trailing line is `Cross-cutting: Accessibility — …`, which points at a chapter, not a case file — the parser is explicitly tested to *not* treat it as a sibling. Nothing was invented. Add a `Sibling case file: [Neobiz Mobile (Egypt)] — <why>` line to Egypt's cover and it appears on the next sync.
+- **Cervello, 0 handles.** Its `Three ways in` block is written and correct — the sync cannot reach it. **Two Notion pages claim `/work/cervello`**: `Case File Cover — Cervello Cloud (IoT)` and `Case File Cover — Cervello`. The collision detector excludes both, which also blocks its 7 chapters. This is open question C. Delete or re-route the empty duplicate and Cervello's handles land with no code change.
+
+### The living map now branches where it counts
+
+It always read `grammar`; it now also chooses its element from it. `country-culture` renders `<ol>`, `ecosystem` renders `<ul>` — a screen reader announces an ordered list as a sequence, and for a platform with things orbiting it that would assert a first and a last the work does not have. Numbering was already grammar-aware. Presentation stays plain per decision 023; the data shape is right for Phase 2.
+
+### Cervello's cover still says plainly that it has no numbers
+
+Unchanged and verified: no outcome strip, `Status, honestly` rendering as the reflection. The cover states the absence in its own words.
+
+### ⚠️ Arabic I wrote, needing review
+
+`entry_handles_heading` → `ثلاث طرق للدخول` and `sibling_case_files` → `ملفات شقيقة`. Both are **rendered from the English**, which is the thing the review file exists to catch. Logged in `docs/ui-strings-review.md`. The Arabic handle *content* is paired by position and skipped outright when the counts disagree.
+
+### Confirming the outcomes question: it landed, and it changed nothing yet
+
+The widened parser works — it finds UAE's table under the `Results` heading. **UAE still has no outcome line**, for a different reason: all four rows are rejected for missing a status marker, exactly as decision 007 requires.
+
+```
+✗ Case File Cover — UAE Acquisition → outcomes: 4 row(s) need a status marker
+    - "Live in production for over a year and a half"
+    - "~10 minutes to complete an application"
+    - "Under one business day to open the account, sometimes same day"
+    - "Thousands of new business accounts via the digital journey"
+```
+
+Neobiz has no results table at all; Cervello correctly has none. So of the three you asked about, one is blocked on four markers, one on a missing table, and one is right as it stands.
 
 ---
 

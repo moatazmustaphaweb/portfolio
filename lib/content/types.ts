@@ -112,6 +112,42 @@ export type CaseFileDetail = CaseFile & {
   pages: Chapter[];
   outcomes: Outcome[];
   targets: Target[];
+  /**
+   * "Three ways in" — the three offers at the top of a cover, each proposing a
+   * different reason to read the same case file (migration 0017).
+   */
+  handles: EntryHandle[];
+  /**
+   * Other case files covering the same requirement in a different market
+   * (decision 004). Directed: each cover states its own, in its own words.
+   */
+  siblings: SiblingLink[];
+};
+
+export type EntryHandle = {
+  id: string;
+  /** The offer. `translations.invitation`. */
+  invitation?: string;
+  /** What is behind it. `translations.payoff`. */
+  payoff?: string;
+  /**
+   * The chapter this handle opens, when it names one unambiguously.
+   *
+   * Null is a normal, expected answer, not a missing value: UAE's three
+   * handles name no chapter at all, and Egypt's "Results table → What broke"
+   * names a page that is not a chapter. A handle without a target renders as
+   * text — the living map immediately below lists every chapter, so the reader
+   * still has somewhere to go.
+   */
+  target: { slug: string; title?: string } | null;
+};
+
+export type SiblingLink = {
+  id: string;
+  slug: string;
+  title?: string;
+  /** Why they are siblings, as written on the pointing cover. */
+  note?: string;
 };
 
 /** A chapter in the context of its parent, for the chapter route. */

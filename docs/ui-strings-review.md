@@ -91,6 +91,11 @@ locale you are in.
 | `context` | Context | السياق |  |
 | `cv` | CV | السيرة الذاتية |  |
 | `decision` | Decision | القرار |  |
+| `domain_ai` | AI | الذكاء الاصطناعي |  |
+| `domain_banking` | Banking | الخدمات المصرفية |  |
+| `domain_branding` | Branding | الهوية |  |
+| `domain_smart_things` | Smart Things | الأنظمة الذكية |  |
+| `entry_handles_heading` | Three ways in | ثلاث طرق للدخول |  |
 | `error_cta` | Try again | حاول مرة أخرى |  |
 | `error_title` | Something went wrong | حدث خطأ ما |  |
 | `evidence` | Evidence | الدليل |  |
@@ -110,6 +115,7 @@ locale you are in.
 | `language` | Language | اللغة |  |
 | `linear_view` | Read start to finish | اقرأ من البداية إلى النهاية |  |
 | `linkedin` | LinkedIn | LinkedIn | Brand name — stays Latin in Arabic |
+| `nda_label` | Under NDA | تحت اتفاقية سرية |  |
 | `next_chapter` | Next chapter | الفصل التالي |  |
 | `no_results` | Nothing matches that filter yet. | لا يوجد ما يطابق هذه التصفية بعد. |  |
 | `not_found_body` | The link may be out of date. The work is all still here. | قد يكون الرابط قديماً. جميع الأعمال ما زالت هنا. |  |
@@ -135,6 +141,7 @@ locale you are in.
 | `result` | Result | النتيجة |  |
 | `results` | Results | النتائج |  |
 | `role_label` | Role | الدور |  |
+| `sibling_case_files` | Sibling case files | ملفات شقيقة |  |
 | `skip_to_content` | Skip to content | انتقل إلى المحتوى | ✅ Corrected — no diacritic |
 | `status_achieved` | Achieved | محقَّق | ✅ Corrected — adjective form |
 | `status_missed` | Missed | غير محقَّق | ✅ Corrected — adjective form |
@@ -148,7 +155,7 @@ locale you are in.
 | `view_all` | View all | عرض الكل |  |
 ---
 
-**67 strings.** Every one present in both locales.
+**74 strings.** Every one present in both locales.
 
 To apply corrections: update the database, then re-run
 `npm run export:ui-strings` so this document stays true. The seed migration

@@ -261,6 +261,47 @@
 
 ---
 
+## 038 — An entry handle that names no chapter renders as text
+
+*2026-08-12*
+
+**Decision:** `entry_handles.target_chapter_id` is nullable, and the sync fills it **only** when a handle's pointer names a chapter unambiguously — either by exact title (`Application workflow → Craft`) or by position (`Chapter 2`). Everything else stays null and the handle renders as plain text.
+
+**Why:** the three handles are written as prose, and their pointers are not a uniform field. Three genuinely different cases appear in the source today:
+
+| Case | Example | Resolves? |
+|---|---|---|
+| Names a chapter by title | `Onboarding journey → Decision.` | ✅ |
+| Names a chapter by position | `Chapter 2.` | ✅ |
+| Names something that is not a chapter | `Results table → What broke.` | ❌ |
+| Names nothing at all | all three UAE handles | ❌ |
+
+Guessing the third case is the failure this project keeps guarding against, in a new costume: the nearest chapter is not the chapter the sentence points at, and a link built from a guess sends a reader somewhere the author never sent them. **A wrong link is worse than no link** — no link is visibly incomplete, whereas a wrong one is invisibly false.
+
+The obvious objection is rule "no dead ends". It does not apply: the living map sits directly beneath the handles and lists every chapter, so a reader who wants the destination has it one element away.
+
+**Consequence:** UAE shows three handles and zero links; Egypt shows three and two links; Neobiz shows three and three. The dry run reports every unresolved pointer by name, so the gap is visible and fixable in Notion rather than silent.
+
+**Status:** ACTIVE
+
+---
+
+## 039 — Sibling links are directed, and declared on the cover that points
+
+*2026-08-12*
+
+**Decision:** `case_file_siblings` is a directed edge, not a symmetric pair. A cover declares its own siblings with a `Sibling case file: [Title] and [Title] — note` line, and the note belongs to the pointing cover.
+
+**Why:** the relationship is not reciprocal in meaning even when it is in fact. UAE points at both Egypt files to say "the same requirement, in a market without the infrastructure" — an argument that reads in one direction. Egypt pointing back would be a different sentence, and might be one worth not making.
+
+**Consequence:** UAE has two siblings. **Egypt currently has none** — decision 004 describes Egypt and Neobiz as siblings, but no `Sibling case file:` line exists on Egypt's cover in Notion, so nothing was written. Content gap, not a code gap; flagged in `docs/status.md` rather than invented here.
+
+Both ends must be published for the link to appear, enforced in the RLS policy and again in the query layer, because the service role bypasses RLS.
+
+**Status:** ACTIVE — implements the cross-links promised in decision 004
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

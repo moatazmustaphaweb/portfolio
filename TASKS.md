@@ -149,8 +149,13 @@
 - [ ] **Cover images** — `media` is empty, so the NDA grayscale contrast on the gallery is invisible. Upload one cover per case file and set `case_files.cover_media_id`
 - [ ] 🔴 **UAE outcomes need 4 status markers** — the table is found and parsed; all four rows rejected for having no `[marker]`. Listed by name in the sync output
 - [ ] **Neobiz cover has no outcomes table** — only a `Results Table` page with targets. Its gallery card shows no outcome line
-- [ ] **Entry handles** — `Three ways in` exists on every cover but maps to no field; needs a field or a list parse
-- [ ] **Sibling links** — Egypt→Neobiz, UAE→both. No sibling relation exists in the schema
+- [x] **Entry handles** — ✅ `entry_handles` (migration 0017), parsed, synced, rendering. UAE 3 · Egypt 3 · Neobiz 3
+- [x] **Sibling links** — ✅ `case_file_siblings` (migration 0017), directed. **UAE has 2; Egypt has 0** — see below
+- [ ] 🔴 **Egypt declares no sibling in Notion** — decision 004 says Egypt↔Neobiz are siblings, but Egypt's cover has no `Sibling case file:` line (its trailing line is `Cross-cutting: Accessibility`, which points at a chapter). Add `Sibling case file: [Neobiz Mobile (Egypt)] — <why>` and it appears on the next sync. Nothing was invented
+- [ ] 🔴 **Cervello route collision blocks its entry handles** — two Notion pages claim `/work/cervello` (`… — Cervello Cloud (IoT)` and `… — Cervello`). Its `Three ways in` block is written and correct but unreachable, along with 7 chapters. Open question C
+- [ ] **Egypt handle pointer `Results table → What broke.`** — names a results table, which is not a chapter, so the handle renders as text (decision 038). Resolves itself when the Results Table page exists
+- [ ] **Arabic for two new UI strings** — `entry_handles_heading` (`ثلاث طرق للدخول`) and `sibling_case_files` (`ملفات شقيقة`) were written by me from the English, not authored in Arabic. Needs your review
+- [ ] **Arabic entry-handle content** — no Arabic cover carries a `ثلاث طرق للدخول` block yet; handles pair by position and are skipped when counts disagree
 - [ ] **`gallery_intro`** — the Classic Gallery intro line. Page renders without it
 - [ ] **`Features` sections** — no chapter has one; the parser finds 0. Either write them in Notion under a `Features` heading, or amend the contract to stop promising feature strips
 - [ ] **`egypt-acquisition/workflow` Arabic decisions** — 1 in EN, 3 in AR. Arabic skipped until the counts agree

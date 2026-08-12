@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
+import { EntryHandles } from "@/components/case-file/EntryHandles";
 import { LivingMap } from "@/components/case-file/LivingMap";
 import { OutcomeStrip } from "@/components/case-file/OutcomeStrip";
+import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
@@ -110,6 +112,17 @@ export default async function CaseFileCover({
         </section>
       ) : null}
 
+      {/*
+        Three ways in, above the map. The map answers "what is in here"; the
+        handles answer "which of it is for me", and that question comes first.
+      */}
+      <EntryHandles
+        handles={detail.handles}
+        caseFileSlug={caseFile}
+        locale={l}
+        heading={ui.t("entry_handles_heading")}
+      />
+
       {detail.fields.reflection ? (
         <section className="mt-14 max-w-measure">
           {ui.t("reflection") ? (
@@ -159,6 +172,12 @@ export default async function CaseFileCover({
           )}
         </section>
       ) : null}
+
+      <SiblingLinks
+        siblings={detail.siblings}
+        locale={l}
+        heading={ui.t("sibling_case_files")}
+      />
     </div>
   );
 }
