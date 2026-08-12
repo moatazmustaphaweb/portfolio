@@ -72,16 +72,33 @@ The badge is not optional. A silently desaturated image reads as a broken or bad
 
 | Token | Value | Use |
 |---|---|---|
-| `--font-sans` | Geist | Everything by default |
-| `--font-mono` | Geist Mono | Metadata only — kickers, labels, role lines, legends, column headers |
-| `--font-arabic` | Geist | **Interim** — decision 020 |
+| `--font-sans` | Geist | Latin, everything by default |
+| `--font-mono` | Geist Mono | Latin metadata only — kickers, labels, role lines, legends, column headers |
+| `--font-arabic-heading` | LANTX → Geist | Arabic `h1`–`h4` |
+| `--font-arabic-body` | Meral Sans → Geist | Arabic everything else |
 
-Both self-hosted through `next/font/google` (no external stylesheet, no layout shift). Sans weights 400/500/600/700; mono 400/500.
+Latin self-hosted through `next/font/google`; Arabic through `next/font/local` from `app/fonts` as woff2. No external stylesheet, no CDN, no layout shift. Sans 400/500/600/700; mono 400/500; Meral 400/500/600/700; **LANTX 400 only**.
 
-**Arabic:** Geist is an explicit interim choice pending a proper face (open question F). Two rules hold now so the swap is one line later:
+**Arabic** is settled — decision 045 closes open question F and replaces the Geist interim.
 
-- `--font-arabic` is a **separate token** from `--font-sans`, even though both currently resolve to Geist.
-- **Arabic never uses `--font-mono`.** The mono metadata style falls back to `--font-arabic` at the same size and letter-spacing `normal`. The design files achieve this with `letter-spacing: normal !important` — decision 020 rejects that hack; we scope it properly with `:lang(ar)`.
+- **Geist sits behind both Arabic faces, and it is load-bearing.** The Arabic copy deliberately keeps technical and brand terms in English (`Governance`, `OTP`, `RTL`, `LinkedIn`). LANTX ships **no Latin letters at all**, so a heading like `Cervello Cloud — منصة IoT` needs somewhere for the Latin to land. Meral also lacks `U+2190 ←`, which appears in body copy as `Instance ← Organisation ← Team ← Project`.
+- **LANTX is one weight.** Headings are `font-weight: 600` sitewide, and a browser asked for 600 from a 400-only family fakes it by smearing the outlines — which on Arabic thickens the joins until letters close up. `:lang(ar) h1–h4` sets `font-weight: 400` and `font-synthesis-weight: none`; hierarchy comes from size.
+- **Arabic never uses `--font-mono`.** The mono metadata style falls back to `--font-arabic-body` at letter-spacing `normal`. The design files achieve this with `letter-spacing: normal !important` — decision 020 rejects that hack; we scope it with `:lang(ar)`.
+- **Line height is looser.** Meral's descender is -0.51em against Geist's -0.29em, so Arabic body runs `1.9` and Arabic headings `1.45`. Without it, descenders meet the next line — which in Arabic reads as a broken word, since so much of the script hangs below the baseline.
+
+### The Arabic scale — three factors
+
+Measured, not guessed: `ه` — the closed, baseline-sitting letter that is Arabic's x-height analogue — occupies **0.459em** in Meral and **0.448em** in LANTX, against Geist's **0.537em** x-height.
+
+| Variable | Arabic | Applies to | Why |
+|---|---|---|---|
+| `--type-scale-small` | **1.30** | `label` 11px, `micro` 10px | More than the measurement suggests. Tracked-out uppercase at 10px is a *Latin* device — Latin capitals stay legible as simple closed shapes. Arabic has no capitals and carries meaning in dots and joins; at 11.5px the dots stop resolving. 13px is where they come back |
+| `--type-scale` | **1.15** | body, body-sm, ui, meta, lead, statement | The measured `ه` ratio |
+| `--type-scale-display` | **1.00** | hero, title, h2, h3, metric | A *fit* decision, not legibility. Nothing is hard to read at 60px; a title filling a third of the viewport is. Arabic runs longer than English for the same meaning, and 15% on top pushed the results-table heading to three lines and the table below the fold |
+
+Latin leaves all three at 1. Every size token is `calc(<size> * var(--type-scale…))`, so the adjustment is three numbers in one place rather than a duplicated scale.
+
+> ⚠️ The overrides live in an **unlayered** `:root:lang(ar)` block beside the theme overrides — *not* in `@layer base` with the other `:lang(ar)` rules. Unlayered declarations beat layered ones whatever the specificity, so a layered override loses to `:root` and the variable silently reads back as `1`. That happened, and nothing looked broken: the adjustment simply never applied.
 
 ### Scale
 
@@ -107,7 +124,7 @@ Display sizes are fluid and negatively tracked; body sizes are fixed and loose. 
 
 **Balance:** `text-wrap: balance` on headings and leads; `text-wrap: pretty` on body copy. Both used throughout the design.
 
-**Arabic caveat:** the scale is verified for Latin only. Arabic at these sizes runs optically smaller and needs looser line height — expect a `:lang(ar)` line-height adjustment when the permanent face is chosen. Do not fix that against the interim.
+**Arabic:** ✅ resolved. The scale above is the Latin one; Arabic multiplies it by the three factors documented under *The Arabic scale* and runs looser line height. Verified at reading size on Landing, a cover, a chapter and the results table (decision 045).
 
 ---
 
@@ -224,4 +241,4 @@ Theme selection resolves in this order — OS preference, then an explicit `data
 
 | # | Question | Blocks |
 |---|---|---|
-| F | Permanent Arabic typeface — replaces the Geist interim | Arabic type scale, line-height tuning |
+| ~~F~~ | ~~Permanent Arabic typeface~~ | *Closed by decision 045 — LANTX headings, Meral Sans body* |

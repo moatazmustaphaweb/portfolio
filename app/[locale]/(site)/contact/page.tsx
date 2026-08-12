@@ -30,13 +30,14 @@ import type { Locale } from "@/lib/content/types";
 export const revalidate = 300;
 
 /**
- * Delivery is undecided (question D), so this is false.
+ * Delivery is decided and built: a Supabase table (decision 044, option A).
  *
- * A constant rather than an env var on purpose: the missing piece is a
- * DECISION, not configuration, and an env var would let it be switched on
- * without one being made.
+ * Still a constant rather than an env var. The reasoning that kept it one
+ * while the question was open holds now that it is closed — this is a
+ * decision about where personal data goes, and it should be visible in a diff
+ * and reviewable, not flippable per environment.
  */
-const CONTACT_DELIVERY_CONFIGURED = false;
+const CONTACT_DELIVERY_CONFIGURED = true;
 
 export default async function Contact({
   params,

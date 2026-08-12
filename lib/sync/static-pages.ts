@@ -43,8 +43,12 @@ export function headingToSlug(heading: string): string {
 export type ParsedSection = {
   slug: string;
   heading: string;
-  /** Paragraphs joined with a blank line; rendered with `whitespace-pre-line`. */
+  /**
+   * Prose: paragraphs joined with a blank line.
+   * Table: cells separated by TAB, rows by NEWLINE, first row the header.
+   */
   body: string;
+  kind: "prose" | "table";
 };
 
 /**
@@ -62,41 +66,76 @@ export type ParsedSection = {
  * "About" reads as a mistake.
  */
 export function parsePageSections(
-  blocks: readonly { heading: string; lines: readonly string[] }[],
+  blocks: readonly {
+    heading: string;
+    lines: readonly string[];
+    /** Table grids found under this heading, in order. */
+    tables?: readonly (readonly string[])[][];
+  }[],
   pageName: string,
 ): { intro: string; sections: ParsedSection[] } {
   let intro = "";
   const sections: ParsedSection[] = [];
   const seen = new Set<string>();
 
-  for (const [i, block] of blocks.entries()) {
-    const heading = block.heading.trim();
-    const body = block.lines.map((l) => l.trim()).filter(Boolean).join("\n\n");
-
-    // The title-echo opener becomes the lede rather than a section.
-    if (i === 0 && echoesPageName(heading, pageName)) {
-      intro = body;
-      continue;
-    }
-
-    if (!heading && !body) continue;
-    if (!heading) {
-      // Prose before any heading is also lede material.
-      intro = intro ? `${intro}\n\n${body}` : body;
-      continue;
-    }
-
-    let slug = headingToSlug(heading);
-    // Two headings with the same words would violate (page, slug). Suffix
-    // rather than drop — losing a section silently is the worse failure.
+  /** Reserve a slug, suffixing rather than colliding on (page, slug). */
+  function claim(base: string): string {
+    let slug = base;
     if (seen.has(slug)) {
       let n = 2;
       while (seen.has(`${slug}-${n}`)) n++;
       slug = `${slug}-${n}`;
     }
     seen.add(slug);
+    return slug;
+  }
 
-    sections.push({ slug, heading, body });
+  for (const [i, block] of blocks.entries()) {
+    const heading = block.heading.trim();
+    const body = block.lines.map((l) => l.trim()).filter(Boolean).join("\n\n");
+    const tables = block.tables ?? [];
+
+    // The title-echo opener becomes the lede rather than a section.
+    if (i === 0 && echoesPageName(heading, pageName) && tables.length === 0) {
+      intro = body;
+      continue;
+    }
+
+    if (!heading && !body && tables.length === 0) continue;
+    if (!heading && tables.length === 0) {
+      // Prose before any heading is also lede material.
+      intro = intro ? `${intro}\n\n${body}` : body;
+      continue;
+    }
+
+    if (heading || body) {
+      sections.push({
+        slug: claim(headingToSlug(heading || "section")),
+        heading,
+        body,
+        kind: "prose",
+      });
+    }
+
+    /*
+     * Tables become their own sections, keeping the position they had on the
+     * page. A table is not an attachment to the paragraph above it — on the
+     * comparison pages it IS the argument, and it needs its own row so it can
+     * be rendered as a grid rather than as text.
+     */
+    for (const grid of tables) {
+      const rows = grid
+        .map((row) => row.map((cell) => cell.replace(/[\t\n]+/g, " ").trim()).join("\t"))
+        .filter((row) => row.replace(/\t/g, "").trim());
+      if (rows.length === 0) continue;
+
+      sections.push({
+        slug: claim(`${headingToSlug(heading || "section")}-table`),
+        heading: "",
+        body: rows.join("\n"),
+        kind: "table",
+      });
+    }
   }
 
   return { intro, sections };

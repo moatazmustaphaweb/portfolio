@@ -85,19 +85,28 @@ const config: Config = {
         "var(--text-metric)",
         { lineHeight: "1", fontWeight: "600", letterSpacing: "-0.03em" },
       ],
-      body: ["16px", { lineHeight: "1.7", fontWeight: "400" }],
-      "body-sm": ["15px", { lineHeight: "1.6", fontWeight: "400" }],
-      ui: ["14px", { lineHeight: "1.4", fontWeight: "500" }],
-      meta: ["13px", { lineHeight: "1.5", fontWeight: "400" }],
+      /*
+       * The fixed sizes are tokens now, not literals. They were the only part
+       * of the scale a stylesheet could not reach, and the Arabic faces need
+       * the whole scale adjusted, not just the fluid display end (decision 045).
+       */
+      body: ["var(--text-body)", { lineHeight: "1.7", fontWeight: "400" }],
+      "body-sm": ["var(--text-body-sm)", { lineHeight: "1.6", fontWeight: "400" }],
+      ui: ["var(--text-ui)", { lineHeight: "1.4", fontWeight: "500" }],
+      meta: ["var(--text-meta)", { lineHeight: "1.5", fontWeight: "400" }],
       // Mono metadata. Pair with font-mono + uppercase.
-      label: ["11px", { lineHeight: "1.4", fontWeight: "500", letterSpacing: "0.12em" }],
-      micro: ["10px", { lineHeight: "1.4", fontWeight: "500", letterSpacing: "0.1em" }],
+      label: ["var(--text-label)", { lineHeight: "1.4", fontWeight: "500", letterSpacing: "0.12em" }],
+      micro: ["var(--text-micro)", { lineHeight: "1.4", fontWeight: "500", letterSpacing: "0.1em" }],
     },
 
     fontFamily: {
       sans: ["var(--font-sans)"],
       mono: ["var(--font-mono)"],
-      arabic: ["var(--font-arabic)"],
+      // Arabic is applied by :lang(ar) in globals.css, not by utility class —
+      // the script decides the face, not the author of each component. These
+      // exist for the rare deliberate override.
+      "arabic-heading": ["var(--font-arabic-heading)"],
+      "arabic-body": ["var(--font-arabic-body)"],
     },
 
     fontWeight: {

@@ -41,21 +41,61 @@
   color-scheme: dark;
 
   /* --- Type families ---
-   * --font-arabic is deliberately a separate token from --font-sans even
-   * though both resolve to Geist today: the interim (decision 020) is then a
-   * one-line swap. next/font injects the variables (see app/layout.tsx). */
+   * Latin: Geist, Geist Mono for metadata. Unchanged.
+   *
+   * Arabic: LANTX for headings, Meral Sans for body (decision 045). The single
+   * --font-arabic token became two, which is exactly the swap it was kept
+   * separate for (decision 020).
+   *
+   * Geist sits BEHIND both Arabic faces, and that is load-bearing rather than
+   * defensive. The Arabic copy deliberately keeps technical and brand terms in
+   * English — Governance, Compliance, OTP, OCR, RTL, NDA, LinkedIn — per the
+   * convention in docs/ui-strings-review.md. LANTX ships no Latin letters at
+   * all, so a heading like "Cervello Cloud — منصة IoT" needs somewhere for the
+   * Latin to land, and the right somewhere is the site's own Latin face.
+   * Meral covers Latin but Geist is preferred for it, so embedded English
+   * looks identical on both sides of the site.
+   *
+   * Meral is also missing U+2190 (←), which appears in Arabic body copy as
+   * "Instance ← Organisation ← Team ← Project". Geist supplies it. */
   --font-sans: var(--font-geist), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
-  --font-arabic: var(--font-geist), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-arabic-heading: var(--font-lantx), var(--font-geist), "Helvetica Neue", Arial, sans-serif;
+  --font-arabic-body: var(--font-meral), var(--font-geist), "Helvetica Neue", Arial, sans-serif;
 
-  /* --- Type scale — fluid display, fixed body. Tracking tightens with size. --- */
-  --text-hero: clamp(44px, 7.5vw, 80px);
-  --text-title: clamp(38px, 6vw, 60px);
-  --text-h2: clamp(28px, 4.4vw, 44px);
-  --text-h3: clamp(22px, 3vw, 28px);
-  --text-lead: clamp(20px, 3vw, 28px);
-  --text-statement: clamp(20px, 2.6vw, 26px);
-  --text-metric: clamp(28px, 4vw, 38px);
+  /* --- Type scale — fluid display, fixed body. Tracking tightens with size.
+   *
+   * Every size is multiplied by --type-scale, which is 1 for Latin and 1.15
+   * for Arabic (decision 045). One number, because the adjustment is a
+   * property of the SCRIPT, not of each size: applying it per token invites
+   * the two scales to drift apart.
+   *
+   * Measured, not guessed. ه — the closed, baseline-sitting letter that is
+   * Arabic's x-height analogue — occupies 0.459em in Meral Sans and 0.448em
+   * in LANTX, against Geist's 0.537em x-height. Both Arabic faces therefore
+   * render ~15% optically smaller at the same point size. */
+  --type-scale: 1;
+
+  /* Display sizes take --type-scale-display, falling back to --type-scale. */
+  --text-hero: calc(clamp(44px, 7.5vw, 80px) * var(--type-scale-display, var(--type-scale)));
+  --text-title: calc(clamp(38px, 6vw, 60px) * var(--type-scale-display, var(--type-scale)));
+  --text-h2: calc(clamp(28px, 4.4vw, 44px) * var(--type-scale-display, var(--type-scale)));
+  --text-h3: calc(clamp(22px, 3vw, 28px) * var(--type-scale-display, var(--type-scale)));
+  --text-metric: calc(clamp(28px, 4vw, 38px) * var(--type-scale-display, var(--type-scale)));
+
+  /* Lead and statement are reading sizes despite being large — they take the
+   * body factor. */
+  --text-lead: calc(clamp(20px, 3vw, 28px) * var(--type-scale));
+  --text-statement: calc(clamp(20px, 2.6vw, 26px) * var(--type-scale));
+
+  --text-body: calc(16px * var(--type-scale));
+  --text-body-sm: calc(15px * var(--type-scale));
+  --text-ui: calc(14px * var(--type-scale));
+  --text-meta: calc(13px * var(--type-scale));
+  /* The mono label sizes take --type-scale-small, which falls back to
+   * --type-scale where it is not set (i.e. everywhere except Arabic). */
+  --text-label: calc(11px * var(--type-scale-small, var(--type-scale)));
+  --text-micro: calc(10px * var(--type-scale-small, var(--type-scale)));
 
   --measure-prose: 68ch;
   --measure-lead: 42ch;
@@ -154,6 +194,45 @@
 }
 
 /*
+ * The Arabic type scale (decision 045).
+ *
+ * UNLAYERED, and deliberately here beside the theme overrides rather than in
+ * @layer base with the other :lang(ar) rules. Unlayered declarations beat
+ * layered ones whatever their specificity, so `--type-scale: 1` on :root above
+ * silently won over a `:lang(ar)` override inside the layer — the variable read
+ * back as 1 and every Arabic size stayed at its Latin value. Nothing looked
+ * broken; the adjustment simply never happened.
+ *
+ * THREE factors, because one does not hold across the scale. Optical size
+ * compensation is a legibility correction, and legibility stops being the
+ * binding constraint as the type gets bigger:
+ *
+ *  --type-scale-small    1.30 — the 10/11px mono labels
+ *  --type-scale          1.15 — body, lead, statement; the measured ه ratio
+ *  --type-scale-display  1.00 — hero, title, h2, h3, metric
+ *
+ * SMALL needs more than the measurement suggests. Those sizes are a Latin
+ * device: tracked-out uppercase at 10px works because Latin capitals are
+ * simple closed shapes at any size. Arabic has no capitals, carries its
+ * meaning in dots and fine joins, and at 11.5px the dots stop resolving —
+ * "الغاية" above a chapter section was legible only if you already knew what
+ * it said. 13px is where they come back.
+ *
+ * DISPLAY takes none of it, and that is a fit decision rather than a
+ * legibility one. Nothing is hard to read at 60px. What IS hard is a title
+ * that fills a third of the viewport: Arabic runs longer than English for the
+ * same meaning — "الاستحواذ في الخدمات المصرفية للشركات — مصر" against "Egypt
+ * Acquisition (Web)" — so a 15% bump on top of that inherent length pushed
+ * the results-table heading onto three lines and left the table below the
+ * fold. The heading is not more legible for it, only louder.
+ */
+:root:lang(ar) {
+  --type-scale: 1.15;
+  --type-scale-small: 1.3;
+  --type-scale-display: 1;
+}
+
+/*
  * Reduced motion, as a token override rather than a per-component media
  * query — nothing downstream needs to know about it.
  */
@@ -185,12 +264,40 @@
    * it also flattens Latin text embedded inside an Arabic page.
    */
   :lang(ar) {
-    font-family: var(--font-arabic);
+    /* Body face by default; headings opt into the display face below.
+     * The scale factors are set unlayered above — see the note there. */
+    font-family: var(--font-arabic-body);
+
+    /*
+     * Meral runs a deeper descender than Geist (-0.51em vs -0.29em) and a
+     * taller default line box, so Arabic needs MORE leading than Latin, not
+     * the same. Without this, the descenders of one line meet the letters of
+     * the next — which in Arabic reads as a broken word, since so much of the
+     * script hangs below the baseline.
+     */
+    line-height: 1.9;
+  }
+
+  :lang(ar) h1,
+  :lang(ar) h2,
+  :lang(ar) h3,
+  :lang(ar) h4 {
+    font-family: var(--font-arabic-heading);
+    /*
+     * LANTX ships ONE weight. Headings are 600 sitewide, and a browser asked
+     * for 600 from a 400-only family fakes it by smearing the outlines — which
+     * on Arabic thickens the joins between letters until they close up. The
+     * hierarchy comes from size instead, which is how Arabic display faces are
+     * normally used.
+     */
+    font-weight: 400;
+    font-synthesis-weight: none;
+    line-height: 1.45;
   }
 
   :lang(ar) .font-mono,
   :lang(ar) [class*="tracking-"] {
-    font-family: var(--font-arabic);
+    font-family: var(--font-arabic-body);
     letter-spacing: normal;
   }
 

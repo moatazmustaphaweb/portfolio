@@ -9,15 +9,15 @@
 
 | Task | Blocked by | Owner |
 |---|---|---|
-| 0.5 query-layer verification | `SUPABASE_SERVICE_ROLE_KEY` missing from `.env.local`. Supabase dashboard → Project Settings → API keys → `service_role`. Then `npm run verify:content` | Moataz |
+| ~~0.5 query-layer verification~~ | **Resolved** — key in place, `npm run verify:content` passes | — |
 | **`settings.og_image`** | Not designed. Controls how every shared link renders on LinkedIn and WhatsApp — the first impression for anyone the site is forwarded to. **Launch-gate blocker** | Moataz |
 | **`settings.cv_url`** | Hosting location not chosen. The CV link appears in the footer on every page. **Launch-gate blocker** | Moataz |
-| **Egypt outcomes — 4 markers needed** | The outcomes are a 4-row TABLE, not one line. Each needs its own marker: a prototype-measured timing, an agreed SLA, a historical baseline, and a stated projection. Add a Status column or append markers to each label cell | Moataz |
+| ~~Egypt/UAE outcome markers~~ | **Resolved** — markers added in Notion; UAE has 4 outcomes, Egypt 3 | — |
 | Notion data issues | ~~Cervello collision~~ ✅ · ~~5 orphaned chapters~~ ✅ · 4 empty mini case files still flagged into MVP-1 (sync as draft, harmless) | Moataz |
 | Gallery scope | Mini case files — in MVP-1 or cut? | Moataz |
 | Evidence blocks | NDA asset audit + redaction rules | Moataz |
 | Neobiz Mobile chapters | Mobile feature lists not provided | Moataz |
-| Permanent Arabic typeface | Geist is an explicit interim choice (decision 020). Replace when a proper Arabic face is selected | Moataz |
+| ~~Permanent Arabic typeface~~ | **Resolved** — LANTX (headings) + Meral Sans (body), decision 045 | — |
 | ~~Analytics retention~~ | **Resolved** — 180 days + indefinite monthly aggregates, `pg_cron` enabled (decision 031) | — |
 | Arabic review — 8 new strings | Consent banner + the four privacy claims. `npm run export:ui-strings` regenerates the review doc | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
@@ -83,9 +83,9 @@
 - [x] `NOTION_API_KEY` set; first `--dry-run` run successfully
 - [x] Distinct errors for bad key / database-not-shared / no read capability / rate limit
 - [x] Dry-run fidelity fixed — simulates parent resolution, excludes skipped rows from the not-ready list, reports unimplemented page types
-- [ ] 🔴 **Moataz:** resolve the 4 known data issues in Notion (see `docs/status.md`)
-- [ ] 🔴 First **real** sync — blocked on the 4 Notion data issues
-- [ ] Static / comparison / accessibility pages → `ui_strings` scoped by route (contract Step 1) — not yet implemented
+- [x] **Notion data issues** — resolved; the Cervello collision turned out to be a scoping bug in the check, not a content fault (decision 040)
+- [x] First **real** sync — runs clean: exit 0, zero failures
+- [x] Static / comparison / accessibility pages → **`page_sections`**, not `ui_strings` (decision 043 amends contract Step 1). Prose and tables both carried
 - [ ] Verify body→field mapping against real page bodies (untested until it runs)
 
 ### 0.5 Query layer
@@ -95,7 +95,7 @@
 - [x] `lib/content/{case-files,chapters,settings,navigation,ui}.ts`
 - [x] `/api/revalidate` — secret-guarded, invalidates both locales per path
 - [x] `scripts/verify-content.ts` smoke test + `npm run verify:content`
-- [ ] 🔴 Blocked on `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` — cannot run the smoke test until then
+- [x] `SUPABASE_SERVICE_ROLE_KEY` in place; `npm run verify:content` passes
 - [x] ISR `revalidate = 300` on all 9 content routes
 
 ### 0.6 Design tokens
@@ -105,7 +105,7 @@
 - [x] Swap Space Grotesk → Geist + Geist Mono in `app/layout.tsx`
 - [ ] 🔴 Redaction treatment — structure only for now, crafted language undecided (open question H)
 - [ ] Measure `--control-min-w` against the rendered **Contact form submit button** (Phase 1 #12) and `--pill-min-w` against the rendered **Results Table status pills** (Phase 1 #5), in **both** locales, and adjust. Current values are eyeballed from the longest Arabic string, not measured
-- [ ] Re-verify the type scale once a permanent Arabic face is chosen (open question F)
+- [x] Type scale re-verified against the permanent Arabic faces — three factors, measured (decision 045)
 
 ### 0.7 i18n + RTL shell
 - [x] `next-intl` + `[locale]` routing (`localePrefix: always`) + middleware
@@ -154,7 +154,7 @@
 - [x] ~~Egypt declares no sibling~~ — **my bug, fixed.** Siblings were scanned only under the `Three ways in` heading; Egypt and Neobiz declare theirs elsewhere on the cover. Now scanned across the whole body
 - [x] ~~Cervello route collision~~ — **the check's fault, fixed.** One claimant is a parked Layer 3 row; checks are MVP-1-scoped now (decision 040). Cervello syncs 3 handles, all linked
 - [ ] **Egypt handle pointer `Results table → What broke.`** — the Results Table page now exists, but handles resolve to **chapters** only and a results table is not a chapter row. Still renders as text. Would need a nullable target route on `entry_handles` — not worth it for one handle unless more appear
-- [ ] 🔴 **Contact form delivery** — three costed options in decision 044; recommendation is A (Supabase table). The form ships either way; until you pick, the submit button is the direct email link. Needs a honeypot + rate limit before launch
+- [x] **Contact form delivery** — ✅ option A built with honeypot, timing check and a global rate limit. No IP is read or stored (decision 029 holds)
 - [ ] **Arabic for the static pages** — About, Philosophy, Systems and Contact have no Arabic child pages in Notion, so all four fall back to English (decision 013). Sections pair by position and are skipped outright if the counts disagree
 - [ ] **Arabic for eleven new UI strings** — written by me from the English, not authored in Arabic. Needs your review. `entry_handles_heading` · `sibling_case_files` · `results_table` · `status_label` · `form_subject` · `form_subject_hiring` · `form_subject_project` · `form_subject_speaking` · `form_subject_other` · `form_message_placeholder` · `download_cv`. (The older `form_name`/`form_email`/`form_message`/`form_submit` set is yours and was reviewed on 2026-08-11 — untouched.)
 - [ ] **Arabic entry-handle content** — no Arabic cover carries a `ثلاث طرق للدخول` block yet; handles pair by position and are skipped when counts disagree
@@ -174,12 +174,12 @@
 - [x] 4. Chapter — objective, context, decision blocks, result, prev/next navigation
 - [x] 5. Results Table — every declared target with status and evidence; no red (decision 042)
 - [x] 6. Linear View — whole case file inline, one `h1`, deep link per chapter
-- [ ] 7. Comparison pages — **the last unbuilt MVP-1 pages.** Data exists (`kind = 'comparison'`, 2 rows on Egypt); needs a sync write path
-- [ ] 8. Accessibility page — as above (`kind = 'accessibility'`, 1 row on Egypt)
+- [x] 7. Comparison pages — ✅ prose + 5-column tables via `page_sections` (kind `table`, migration 0025)
+- [x] 8. Accessibility page — ✅ 13 sections + the conformance table
 - [x] 9. Systems — intro + 4 sections, 3 evidence chapters resolved through the query layer
 - [x] 10. About — intro + 6 sections in chronological order
 - [x] 11. Philosophy — docs-style, 5 numbered positions, anchor per section
-- [x] 12. Contact — form built; ⚠️ **delivery is decision 044, awaiting your pick**
+- [x] 12. Contact — ✅ form **and delivery**: Supabase table, honeypot, timing check, rate limit (decision 044 closed)
 - [x] 13. 404 — real, except the locale caveat below
 
 ---
