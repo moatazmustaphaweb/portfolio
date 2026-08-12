@@ -428,7 +428,11 @@ Whichever is chosen, the form needs a spam control before launch — a honeypot 
 
 **Decision:** option A, implemented. `contact_messages` + `/api/contact`, writing through the service role. RLS enabled with **no policy**, matching the operational tables — nothing about a contact message is publicly readable. Retention 360 days, folded into the existing daily prune so one function answers "what does this site delete, and when".
 
-**Spam control without an IP.** The obvious control is a per-IP rate limit, and it is not available: decision 029 commits to the IP being "never read by our code and never stored", and that promise is published on `/how-this-site-works` in both languages. Reading it to protect a form would break a commitment made to every visitor. Instead:
+**Spam control without an IP.** The obvious control is a per-IP rate limit, and it is not available: decision 029 commits to the IP being "never read by our code and never stored". Reading it to protect a form would break that commitment.
+
+> ⚠️ **Correction, 2026-08-13.** The original wording of this entry said the promise "is published on `/how-this-site-works` in both languages". **It is not published anywhere today.** `/how-this-site-works` is a Layer 2 page and does not exist, and the four `privacy_*` strings seeded by migration 0009 (`privacy_no_ip` = "I never store IP addresses") are resolved by no component — only `consent_message` renders. The engineering decision stands unchanged and is if anything more clearly right: the commitment is one this project made to itself, and keeping it when nobody is checking is the whole point. But the justification as written overstated the current state, and this file is the tie-breaker, so it is corrected rather than left to be discovered.
+
+Instead of an IP limit:
 
 - **Honeypot** — hidden field, `aria-hidden` and `tabIndex -1` so a screen-reader user cannot fill it by accident. Filled means bot, and the response is a normal 200: telling a spammer they were rejected only tells them what to change.
 - **Timing** — a form rendered and submitted in under 3s was not typed. Upper bound 2h, after which the tab was left open and the timestamp means nothing.
