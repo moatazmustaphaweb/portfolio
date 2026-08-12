@@ -11,6 +11,7 @@ import type {
   Locale,
   Media,
   MediaRow,
+  OutcomeStatus,
 } from "./types";
 
 /**
@@ -84,17 +85,48 @@ export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> =
   const withText = await withFields("case_file", rows, locale);
 
   /*
+   * The headline outcome per case file — the lowest `sort_order` one. Fetched
+   * for all of them in one query rather than per card.
+   */
+  const { data: outcomeRows } = await supabaseServer
+    .from("outcomes")
+    .select("id, case_file_id, value, status, sort_order")
+    .in("case_file_id", rows.map((r) => r.id))
+    .order("sort_order");
+
+  type OutcomeRow = NonNullable<typeof outcomeRows>[number];
+  const firstOutcome = new Map<string, OutcomeRow>();
+  for (const o of outcomeRows ?? []) {
+    if (!firstOutcome.has(o.case_file_id)) firstOutcome.set(o.case_file_id, o);
+  }
+
+  const outcomeLabels = await resolveMany(
+    "outcome",
+    [...firstOutcome.values()].map((o) => o.id),
+    locale,
+  );
+
+  /*
    * Covers are fetched per case file rather than in one batch, because each
    * one carries its owner's `nda` flag. One extra query per card is worth it
    * to make the treatment impossible to forget.
    */
   return Promise.all(
     withText.map(async (row) => {
-      if (!row.cover_media_id) return { ...row, cover: null };
+      const o = firstOutcome.get(row.id);
+      const headline = o
+        ? {
+            value: o.value,
+            status: o.status as OutcomeStatus,
+            label: outcomeLabels.get(o.id)?.label,
+          }
+        : null;
+
+      if (!row.cover_media_id) return { ...row, cover: null, headline };
       const media = await fetchMedia([row.cover_media_id], locale, row.nda);
       const cover = media.get(row.cover_media_id) ?? null;
       assertNotRedacted(cover, row.slug);
-      return { ...row, cover };
+      return { ...row, cover, headline };
     }),
   );
 });
@@ -179,6 +211,7 @@ export const getCaseFile = cache(
       ...row,
       fields: caseFields.get(row.id) ?? {},
       cover,
+      headline: null,
       // Split by kind: the numbered narrative, and the standalone pages that
       // sit under this case file without being part of its sequence.
       chapters: chapters

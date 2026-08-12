@@ -544,22 +544,56 @@ async function main() {
       continue;
     }
 
-    const { data, error: dbError } = await (await db())
-      .from("case_files")
-      .upsert(
-        {
+    /*
+     * `grammar`, `domain` and `nda` are NOT in Notion and are NOT managed by
+     * this sync. They are structural and editorial: grammar picks the
+     * LivingMap layout, domain drives the gallery filter, nda drives the
+     * visual treatment.
+     *
+     * An upsert including them would reset every one on each run — which is
+     * exactly what happened before: `domain` was being written as the Notion
+     * Section ("work") for every case file, making the gallery filter useless.
+     *
+     * So: existing rows have only `status` updated. New rows get placeholders
+     * and are reported, because a placeholder nobody is told about is a
+     * placeholder that ships.
+     */
+    const { data: existing } = await (await db())
+      .from("case_files").select("id").eq("slug", caseFile).maybeSingle();
+
+    let data: { id: string } | null = existing ?? null;
+    let dbError: { message: string } | null = null;
+
+    if (existing) {
+      const res = await (await db())
+        .from("case_files")
+        .update({ status: status as never })
+        .eq("id", existing.id)
+        .select("id")
+        .single();
+      data = res.data;
+      dbError = res.error;
+    } else {
+      const res = await (await db())
+        .from("case_files")
+        .insert({
           slug: caseFile,
-          // Grammar and domain are structural and not encoded in Notion.
-          // Existing rows keep their values; new rows need a human decision,
-          // so they land as drafts with a placeholder that is visible.
           grammar: "ecosystem",
-          domain: row.section?.toLowerCase() ?? "unsorted",
+          domain: "unsorted",
           status: status as never,
-        },
-        { onConflict: "slug" },
-      )
-      .select("id")
-      .single();
+        })
+        .select("id")
+        .single();
+      data = res.data;
+      dbError = res.error;
+      if (res.data) {
+        notices.push(
+          `${row.title}: new case file "${caseFile}" created with placeholder ` +
+            "grammar=ecosystem and domain=unsorted. Both need setting — grammar " +
+            "picks the LivingMap layout, domain drives the gallery filter.",
+        );
+      }
+    }
 
     if (dbError || !data) {
       fail(row.title, dbError?.message ?? "upsert returned no row");

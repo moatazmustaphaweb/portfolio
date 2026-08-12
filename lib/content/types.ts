@@ -52,6 +52,15 @@ export type CaseFile = Tables<"case_files"> & {
   /** From translations: `title`, `thesis`, `role`, `reflection`. */
   fields: Fields;
   cover: Media | null;
+  /**
+   * The first outcome, for the gallery card.
+   *
+   * Evaluators scan for impact before anything else, so a card showing only a
+   * title wastes the few seconds it gets. Null when the case file has no
+   * outcomes yet — the card then omits the line rather than substituting the
+   * thesis, which is a paragraph and would not read as an outcome.
+   */
+  headline: { value: string; status: OutcomeStatus; label?: string } | null;
 };
 
 export type ChapterKind = Enums<"chapter_kind">;
