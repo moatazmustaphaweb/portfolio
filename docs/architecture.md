@@ -34,8 +34,9 @@ app/
       page.tsx                     ← Classic Gallery (filterable)
       [caseFile]/
         page.tsx                   ← Case File Cover (living map)
-        [chapter]/page.tsx         ← Chapter
-        all/page.tsx               ← Linear view
+        [chapter]/page.tsx         ← Chapter, Comparison, or Accessibility
+                                   ←   (chapters.kind — amendment 033)
+        all/page.tsx               ← Linear view (kind='chapter' only)
         cut/[cut]/page.tsx         ← Cut (v-next)
     systems/
       page.tsx
@@ -86,11 +87,20 @@ case_files       (id, slug, grammar, domain, sort_order, status,
   -- grammar: 'country-culture' | 'ecosystem' | 'design-system'
   -- status:  'draft' | 'published' | 'archived'
 
-chapters         (id, case_file_id, slug, sort_order, status,
+chapters         (id, case_file_id, slug, kind, sort_order, status,
                   hero_media_id, created_at, updated_at)
+  -- kind: 'chapter' | 'comparison' | 'accessibility'   ← amendment 033
+  --   chapter        numbered narrative, appears in the linear view
+  --   comparison /   standalone case-file pages: same route shape, same
+  --   accessibility  parent, but NOT part of the sequence
 
 features         (id, chapter_id, sort_order)
   -- the feature strips: scope proof, one line each
+
+decisions        (id, chapter_id, sort_order)            ← amendment 032
+  -- A chapter has as many decisions as it has, ORDERED.
+  -- name + body live in translations. The name is content, not a label:
+  -- it is translatable and may legitimately differ between languages.
 
 outcomes         (id, case_file_id, value, status, sort_order)
   -- status: 'projected' | 'achieved' | 'not-measurable'  ← NOT NULL, no default
@@ -116,18 +126,23 @@ experiments      (id, slug, domain, state, sort_order, status, url)
 ```sql
 translations     (id, entity_type, entity_id, locale, field, value,
                   updated_at)
-  -- entity_type: 'case_file' | 'chapter' | 'feature' | 'outcome' | 'target'
-  --              | 'article' | 'series' | 'studio_work' | 'experiment'
-  --              | 'media' | 'nav_item' | 'setting' | 'ui_string'
+  -- entity_type: 'case_file' | 'chapter' | 'feature' | 'decision' | 'outcome'
+  --              | 'target' | 'article' | 'series' | 'studio_work'
+  --              | 'experiment' | 'media' | 'nav_item' | 'setting'
+  --              | 'ui_string'
   -- locale: 'en' | 'ar'
   -- field:  'title' | 'thesis' | 'role' | 'objective' | 'context'
-  --         | 'decision' | 'result' | 'body' | 'caption' | 'alt'
+  --         | 'name' | 'result' | 'body' | 'caption' | 'alt'
   --         | 'label' | 'note' | 'reflection' …
+  --   ('decision' as a chapter field is superseded by the decisions
+  --    table — amendment 032. Left unused rather than dropped.)
   -- value:  text (Markdown for long-form fields)
   -- UNIQUE (entity_type, entity_id, locale, field)
 ```
 
-**Mandatory-field enforcement:** a chapter cannot publish without `role` and `decision` translations in at least one locale. Enforced by a publish-time check, not by nullable columns — the schema itself prevents the "we" problem.
+**Mandatory-field enforcement:** a chapter cannot publish without `role` and a **decided** decision set in at least one locale. Enforced by a publish-time check, not by nullable columns — the schema itself prevents the "we" problem.
+
+> **Amended 2026-08-12 (decision 034).** The decision set may be explicitly **empty**. A chapter that argues in *principles* rather than decisions — `cervello/method` — is not missing the "I"; a decision resolves a specific problem, a principle is a standing rule governing many. What the rule forbids is an *unfilled* field, not a considered zero.
 
 ### 3.3 Site-wide dynamism (nothing hardcoded)
 

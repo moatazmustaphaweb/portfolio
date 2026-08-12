@@ -31,8 +31,9 @@ create type locale_code     as enum ('en', 'ar');
 create type article_stream  as enum ('build-log', 'field-notes', 'positions');
 create type nav_location    as enum ('header', 'footer');
 create type comment_status  as enum ('pending', 'approved', 'spam');   -- Layer 3
+create type chapter_kind    as enum ('chapter', 'comparison', 'accessibility');
 create type entity_type     as enum (
-  'case_file','chapter','feature','outcome','target',
+  'case_file','chapter','feature','decision','outcome','target',
   'article','series','studio_work','experiment',
   'media','nav_item','setting','ui_string'
 );
@@ -75,10 +76,14 @@ create table case_files (
   updated_at      timestamptz not null default now()
 );
 
+-- `kind` added 2026-08-12 (amendment 033): comparison and accessibility pages
+-- live under a case file and share the chapter route shape, but are NOT part
+-- of the numbered narrative and never appear in the linear view.
 create table chapters (
   id              uuid primary key default gen_random_uuid(),
   case_file_id    uuid not null references case_files(id) on delete cascade,
   slug            text not null,
+  kind            chapter_kind not null default 'chapter',
   sort_order      int not null default 0,
   status          content_status not null default 'draft',
   hero_media_id   uuid references media(id) on delete set null,
@@ -88,6 +93,14 @@ create table chapters (
 );
 
 create table features (
+  id          uuid primary key default gen_random_uuid(),
+  chapter_id  uuid not null references chapters(id) on delete cascade,
+  sort_order  int not null default 0
+);
+
+-- Amendment 032: a chapter has as many decisions as it has, ordered.
+-- `name` and `body` live in translations under entity_type='decision'.
+create table decisions (
   id          uuid primary key default gen_random_uuid(),
   chapter_id  uuid not null references chapters(id) on delete cascade,
   sort_order  int not null default 0
@@ -148,7 +161,9 @@ create table experiments (
 );
 ```
 
-**Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role` and `decision` translations present in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
+**Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role`, and without a **decided** decision set, in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
+
+> **Amended 2026-08-12 (decision 034).** An explicitly **empty** decision set is allowed. `cervello/method` argues in principles rather than decisions, and those are different things — a decision resolves a specific problem, a principle is a standing rule governing many. The rule forbids an unfilled field, not a considered zero.
 
 ---
 
@@ -171,6 +186,7 @@ create table translations (
 | Entity | Fields |
 |---|---|
 | case_file | title · thesis · role · reflection |
+| decision | name · body |
 | chapter | title · objective · context · decision · evidence_note · result · milestone |
 | feature | label · description |
 | outcome | label · note |

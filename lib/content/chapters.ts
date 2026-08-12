@@ -80,10 +80,21 @@ export const getChapter = cache(
       throw new Error(`Failed to load features: ${featureError.message}`);
     }
 
-    const [chapterFields, caseFileFields, features, media] = await Promise.all([
+    const { data: decisionRows, error: decisionError } = await supabaseServer
+      .from("decisions")
+      .select("*")
+      .eq("chapter_id", chapterRow.id)
+      .order("sort_order");
+
+    if (decisionError) {
+      throw new Error(`Failed to load decisions: ${decisionError.message}`);
+    }
+
+    const [chapterFields, caseFileFields, features, decisions, media] = await Promise.all([
       resolveMany("chapter", [chapterRow.id], locale),
       resolveMany("case_file", [caseFileRow.id], locale),
       withFields("feature", featureRows ?? [], locale),
+      withFields("decision", decisionRows ?? [], locale),
       (async () => {
         if (!chapterRow.hero_media_id) return null;
         const { data } = await supabaseServer
@@ -102,6 +113,7 @@ export const getChapter = cache(
       fields: chapterFields.get(chapterRow.id) ?? {},
       hero: media,
       features,
+      decisions,
       caseFile: {
         ...caseFileRow,
         fields: caseFileFields.get(caseFileRow.id) ?? {},

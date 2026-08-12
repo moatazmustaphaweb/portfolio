@@ -83,6 +83,7 @@ export type Database = {
           sort_order: number;
           status: Database["public"]["Enums"]["content_status"];
           hero_media_id: string | null;
+          kind: Database["public"]["Enums"]["chapter_kind"];
           created_at: string;
           updated_at: string;
         };
@@ -90,6 +91,7 @@ export type Database = {
           id?: string;
           case_file_id: string;
           slug: string;
+          kind?: Database["public"]["Enums"]["chapter_kind"];
           sort_order?: number;
           status?: Database["public"]["Enums"]["content_status"];
           hero_media_id?: string | null;
@@ -103,6 +105,12 @@ export type Database = {
         Row: { id: string; chapter_id: string; sort_order: number };
         Insert: { id?: string; chapter_id: string; sort_order?: number };
         Update: Partial<Database["public"]["Tables"]["features"]["Insert"]>;
+        Relationships: [];
+      };
+      decisions: {
+        Row: { id: string; chapter_id: string; sort_order: number };
+        Insert: { id?: string; chapter_id: string; sort_order?: number };
+        Update: Partial<Database["public"]["Tables"]["decisions"]["Insert"]>;
         Relationships: [];
       };
       outcomes: {
@@ -346,6 +354,7 @@ export type Database = {
     Functions: Record<never, never>;
     Enums: {
       article_stream: "build-log" | "field-notes" | "positions";
+      chapter_kind: "chapter" | "comparison" | "accessibility";
       comment_status: "pending" | "approved" | "spam";
       content_status: "draft" | "published" | "archived";
       entity_type:
@@ -361,7 +370,8 @@ export type Database = {
         | "media"
         | "nav_item"
         | "setting"
-        | "ui_string";
+        | "ui_string"
+        | "decision";
       grammar_type: "country-culture" | "ecosystem" | "design-system";
       locale_code: "en" | "ar";
       nav_location: "header" | "footer";

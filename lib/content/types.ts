@@ -44,6 +44,13 @@ export type CaseFile = Tables<"case_files"> & {
   cover: Media | null;
 };
 
+export type ChapterKind = Enums<"chapter_kind">;
+
+export type Decision = Tables<"decisions"> & {
+  /** From translations: `name`, `body`. */
+  fields: Fields;
+};
+
 export type Chapter = Tables<"chapters"> & {
   /**
    * From translations: `title`, `objective`, `context`, `decision`,
@@ -76,7 +83,14 @@ export type NavItem = Tables<"navigation"> & {
 
 /** A full case file with everything needed to render its cover. */
 export type CaseFileDetail = CaseFile & {
+  /** Numbered narrative only — `kind = 'chapter'`, in `sort_order`. */
   chapters: Chapter[];
+  /**
+   * Standalone case-file pages — comparisons and the accessibility page.
+   * Deliberately separate: they are reachable and linkable, but they are not
+   * part of the sequence and must not appear in the linear view (amendment 033).
+   */
+  pages: Chapter[];
   outcomes: Outcome[];
   targets: Target[];
 };
@@ -85,4 +99,6 @@ export type CaseFileDetail = CaseFile & {
 export type ChapterDetail = Chapter & {
   caseFile: CaseFile;
   features: Feature[];
+  /** Ordered. A chapter has as many decisions as it has (amendment 032). */
+  decisions: Decision[];
 };

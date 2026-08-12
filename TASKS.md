@@ -145,6 +145,13 @@
 
 ---
 
+### Content gaps — not blocking, need writing
+- [ ] **`Features` sections** — no chapter has one; the parser finds 0. Either write them in Notion under a `Features` heading, or amend the contract to stop promising feature strips
+- [ ] **`egypt-acquisition/workflow` Arabic decisions** — 1 in EN, 3 in AR. Arabic skipped until the counts agree
+- [ ] **`uae-acquisition` Arabic cover title** — no H1 in the Arabic child page; falls back to English
+
+---
+
 ## ⬜ QUEUE — PHASE 1: MVP-1 PAGES
 *Every route below is now scaffolded and navigable — see the route map in `docs/status.md`. Phase 1 is filling them, not creating them.*
 
