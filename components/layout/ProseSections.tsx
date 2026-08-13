@@ -1,42 +1,84 @@
 import type { PageSection } from "@/lib/content/types";
 
 /**
- * Ordered prose sections for a static page.
+ * Ordered prose sections for a static or document page.
  *
- * All four static pages are the same shape — a lede, then headed sections —
- * so they share this rather than each re-deciding what a section looks like.
- * The pages differ in what they add AROUND it (links into case files, a form,
- * contact methods), which is where their differences actually are.
+ * `variant` selects the composition:
  *
- * `whitespace-pre-line` renders the paragraph breaks the sync stored as blank
- * lines. A section is one string with `\n\n` between paragraphs, so the shape
- * of the writing survives the round trip without needing a rich-text model.
+ *  - `plain` — every section at equal weight. About, Systems, Contact.
+ *  - `comparison` — from `Comparison.dc.html`: the first headed section
+ *    becomes an accent-bordered **governing rule** card, and the last becomes
+ *    a closing statement. Both comparison pages open by stating the rule that
+ *    makes the table legible ("Regulation is identical on both platforms…",
+ *    "The portal's architecture was settled on the web…"), and the design is
+ *    right that it should not look like another paragraph.
+ *
+ * The rule is positional, not keyed to any heading text, so it survives a
+ * rewrite in Notion.
  */
 export function ProseSections({
   intro,
   sections,
+  variant = "plain",
 }: {
   intro?: string;
   sections: PageSection[];
+  variant?: "plain" | "comparison";
 }) {
+  const usable = sections.filter((s) => s.fields.body);
+  const prose = usable.filter((s) => s.kind !== "table");
+
+  const ruleId = variant === "comparison" ? prose[0]?.id : undefined;
+  const closeId =
+    variant === "comparison" && prose.length > 1
+      ? prose[prose.length - 1]?.id
+      : undefined;
+
   return (
     <>
-      {/*
-        The lede is typeset larger and carries no heading — it is the opening
-        of the page, not its first topic.
-      */}
       {intro ? (
         <p className="mt-6 max-w-measure whitespace-pre-line text-lead text-fg-body">
           {intro}
         </p>
       ) : null}
 
-      {sections.map((section) => {
-        if (!section.fields.body) return null;
-
+      {usable.map((section) => {
         if (section.kind === "table") {
+          return <SectionTable key={section.id} body={section.fields.body!} />;
+        }
+
+        /* The governing rule — the loudest thing on a comparison page. */
+        if (section.id === ruleId) {
           return (
-            <SectionTable key={section.id} body={section.fields.body} />
+            <section
+              key={section.id}
+              className="mt-14 rounded-panel border border-accent bg-surface p-card-p"
+            >
+              {section.fields.heading ? (
+                <h2 className="font-mono text-label uppercase text-fg-dim">
+                  {section.fields.heading}
+                </h2>
+              ) : null}
+              <p className="mt-5 max-w-measure whitespace-pre-line text-h3 text-fg">
+                {section.fields.body}
+              </p>
+            </section>
+          );
+        }
+
+        /* The closing line — a statement, not another paragraph. */
+        if (section.id === closeId) {
+          return (
+            <section key={section.id} className="mt-14 border-t border-DEFAULT pt-10">
+              {section.fields.heading ? (
+                <h2 className="mb-4 font-mono text-label uppercase text-fg-dim">
+                  {section.fields.heading}
+                </h2>
+              ) : null}
+              <p className="max-w-measure whitespace-pre-line text-statement text-fg">
+                {section.fields.body}
+              </p>
+            </section>
           );
         }
 
@@ -61,15 +103,15 @@ export function ProseSections({
  * A table section: TAB-separated cells, NEWLINE-separated rows, first row the
  * header (migration 0025).
  *
- * A real `<table>` with `scope` attributes, for the same reason the Results
- * Table is one — the comparison pages exist to be read across a row, and a
- * screen reader should be able to say "Capture, web: single upload, mobile:
- * sequential scan". A grid of divs looks identical and navigates far worse.
+ * A real `<table>` with `scope`, styled as the design's bordered card. The
+ * comparison pages exist to be read across a row — a screen reader should be
+ * able to say "Capture, web: single upload, mobile: sequential scan" — and a
+ * grid of divs looks identical while navigating far worse.
  *
- * It scrolls inside its own container. These tables are five columns wide and
- * must not make the whole page scroll sideways on a phone.
+ * Scrolls inside its own container so a five-column table never makes the
+ * page scroll sideways.
  */
-function SectionTable({ body }: { body: string }) {
+export function SectionTable({ body }: { body: string }) {
   const rows = body
     .split("\n")
     .map((row) => row.split("\t"))
@@ -80,15 +122,17 @@ function SectionTable({ body }: { body: string }) {
   const [header, ...rest] = rows;
 
   return (
-    <div className="mt-10 overflow-x-auto">
+    <div className="mt-10 overflow-x-auto rounded-panel border border-DEFAULT bg-surface">
       <table className="w-full border-collapse text-start">
         <thead>
-          <tr className="border-b border-strong">
+          <tr className="bg-surface-raised">
             {header.map((cell, i) => (
               <th
                 key={i}
                 scope="col"
-                className="py-3 pe-6 text-start font-mono text-micro uppercase text-fg-dim"
+                className={`px-5 py-3 text-start font-mono text-micro uppercase text-fg-muted ${
+                  i > 0 ? "border-s border-DEFAULT" : ""
+                }`}
               >
                 {cell}
               </th>
@@ -97,19 +141,21 @@ function SectionTable({ body }: { body: string }) {
         </thead>
         <tbody>
           {rest.map((cells, r) => (
-            <tr key={r} className="border-b border-DEFAULT align-top">
+            <tr key={r} className="border-t border-DEFAULT align-top">
               {cells.map((cell, c) =>
-                /* First cell of each row labels it — a row header, not data. */
                 c === 0 ? (
                   <th
                     key={c}
                     scope="row"
-                    className="py-5 pe-6 text-start text-body-sm font-normal text-fg"
+                    className="px-5 py-5 text-start text-body-sm font-normal text-fg"
                   >
                     {cell}
                   </th>
                 ) : (
-                  <td key={c} className="py-5 pe-6 text-body-sm text-fg-muted">
+                  <td
+                    key={c}
+                    className="border-s border-DEFAULT px-5 py-5 text-body-sm text-fg-muted"
+                  >
                     {cell}
                   </td>
                 ),

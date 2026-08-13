@@ -169,6 +169,18 @@ export type SiblingLink = {
 /** A chapter in the context of its parent, for the chapter route. */
 export type ChapterDetail = Chapter & {
   caseFile: CaseFile;
+  /**
+   * Where this chapter sits in the sequence, 1-based, for the design's
+   * "Chapter 1 of 4" progress indicator.
+   *
+   * `getChapter` already computed this to find prev/next and threw it away.
+   * Exposing it adds no query and no content — it is the one piece of derived
+   * state the composition needs and could not reconstruct.
+   *
+   * `total` counts `kind = 'chapter'` only, so a comparison page does not
+   * inflate the denominator of a sequence it is not part of.
+   */
+  position: { current: number; total: number };
   features: Feature[];
   /** Ordered. A chapter has as many decisions as it has (amendment 032). */
   decisions: Decision[];
