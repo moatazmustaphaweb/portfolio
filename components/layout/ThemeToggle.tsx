@@ -1,16 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-type Theme = "light" | "dark";
+import {
+  getThemeServerSnapshot,
+  getThemeSnapshot,
+  setTheme,
+  subscribeTheme,
+} from "@/lib/theme/store";
 
 /**
  * Theme toggle. Labels come in as props from `ui_strings` — no copy here.
  *
- * The pre-paint script in the layout has already resolved and applied the
- * theme; this only handles user-initiated changes. It reads the resolved state
- * on mount rather than assuming a default, so the label matches what is
- * actually on screen even when the OS preference decided it.
+ * The pre-paint script in the root layout has already resolved and applied the
+ * theme before this component exists; this only handles user-initiated
+ * changes and reflects the current state in its label.
+ *
+ * The resolved theme is read from `lib/theme/store` rather than copied into
+ * state on mount. It is a property of the document, not of this component —
+ * and reading it that way also means the label now updates when the OS
+ * appearance changes while the page is open, which it previously did not.
  */
 export function ThemeToggle({
   labels,
@@ -19,48 +28,30 @@ export function ThemeToggle({
   labels: { light?: string; dark?: string };
   ariaLabel?: string;
 }) {
-  const [theme, setTheme] = useState<Theme | null>(null);
+  const theme = useSyncExternalStore(
+    subscribeTheme,
+    getThemeSnapshot,
+    getThemeServerSnapshot,
+  );
 
-  useEffect(() => {
-    const explicit = document.documentElement.getAttribute("data-theme");
-    if (explicit === "light" || explicit === "dark") {
-      setTheme(explicit);
-      return;
-    }
-    setTheme(
-      window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark",
-    );
-  }, []);
-
-  function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
-    try {
-      localStorage.setItem("theme", next);
-    } catch {
-      // Private browsing can reject writes. The theme still applies for this
-      // page view; only persistence is lost.
-    }
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", next === "light" ? "#ffffff" : "#000000");
-  }
-
-  // The button offers the theme you'd switch TO.
+  // The button offers the theme you would switch TO.
   const label = theme === "dark" ? labels.light : labels.dark;
 
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       aria-label={ariaLabel}
       className="flex h-control-h-sm items-center rounded-control border border-DEFAULT px-3 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
     >
       {/*
-        Rendered empty until mount so the server and client agree on markup;
-        the label depends on the resolved theme, which only the browser knows.
+        Empty until the browser answers. The server cannot know the theme, so
+        `getThemeServerSnapshot` returns null and both the SSR and hydration
+        passes render nothing here — then the real label arrives on the next
+        render. No `suppressHydrationWarning`: there is no longer a mismatch to
+        suppress, because the two passes genuinely agree.
       */}
-      <span suppressHydrationWarning>{theme === null ? "" : label}</span>
+      <span>{theme === null ? "" : label}</span>
     </button>
   );
 }
