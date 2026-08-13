@@ -33,7 +33,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
       <div className="mx-auto flex min-h-header-h max-w-container flex-wrap items-center gap-6 px-gutter py-2">
         {/* Omitted rather than rendered blank if the setting is missing. */}
         {name ? (
-          <Link href={`/${locale}`} className="text-ui font-semibold text-fg">
+          <Link href={`/${locale}`} className="tap-target-44 text-meta font-semibold text-fg sm:text-ui">
             {name}
           </Link>
         ) : null}
@@ -42,7 +42,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
           items={items}
           locale={locale}
           className="flex flex-wrap items-center gap-5"
-          linkClassName="text-ui text-fg-muted transition-colors hover:text-fg"
+          linkClassName="tap-target-44 text-meta text-fg-muted transition-colors hover:text-fg sm:text-ui"
         />
 
         {/* margin-inline-start:auto — mirrors correctly in RTL. */}

@@ -37,6 +37,99 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — The eleven reviewed, the eleventh named, and the header still wraps
+
+### The eleventh string was `form_message_placeholder`
+
+Every enumeration of the eleven — yours, mine, and the one in this file — was written as **`form_subject*` plus five named keys**. That covers ten. `form_message_placeholder` begins `form_` but not `form_subject`, so the glob stepped over it and it was counted as reviewed without ever being read.
+
+| | |
+|---|---|
+| **EN** | The more context you give, the more useful my first reply will be. |
+| **AR** | كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة. |
+
+**Its flag stays red.** It is the one string in the set that has not been seen, and clearing it would repeat the exact mistake that produced this whole thread.
+
+### Two corrections, one deliberate keep
+
+| Key | Was | Now |
+|---|---|---|
+| `sibling_case_files` | ملفات شقيقة | **ملفات مرتبطة** — شقيقة is a literal *sibling* and reads biological |
+| `form_subject_speaking` | مشاركة أو كتابة | **ندوة أو مقال** — مشاركة reads *participation*; someone wanting to invite him to a panel would not recognise the option |
+
+**`status_label` — الحالة, kept.** The reason is recorded in the migration, in `export-ui-strings.ts` and in the review doc so it is not re-raised: the flagged collision with the `status_*` values does not exist, because those are adjectives (محقَّق / غير محقَّق / غير قابل للقياس) and this is a column heading. The only real collision was `case_file`, resolved when it became ملف المشروع. الحالة is standard for Status in Gulf product interfaces, which is the register target this document sets.
+
+> ⚠️ **Found while verifying the keep: `status_label` is resolved by no component.** It is seeded in both locales, now in the migration, and rendered nowhere — `grep` across `app/`, `components/` and `lib/` returns nothing. The results table renders الهدف / الحصيلة / الدليل and has no Status column at all, so the collision question was moot in a way nobody had noticed. The keep still stands on its own merits. This is the same class as the four `privacy_*` strings from the launch-gate audit: seeded, correct, and wired to nothing.
+
+Database and `0003_seed_site_chrome.sql` changed together. **`check:seed-drift`: 84 parsed from migrations, 84 in the database, no drift.**
+
+### The review header that caused this
+
+The doc said *"Reviewed and corrected 2026-08-11"* over a table that had grown from 52 rows to 84. Eleven strings written on 2026-08-12 read as reviewed because the header never moved. It now names **both dates and both counts**, and carries a second-pass section explaining why there was a second pass — the header is the mechanism that failed, so it is the thing that had to change.
+
+### 🔴 The header still wraps at 320. Numbers, then stopping.
+
+Applied **`--text-meta` (13px) below the `sm` breakpoint**, reverting to `--text-ui` at ≥640. Brand, nav links and locale switch; the theme control is already icons.
+
+**English**, bar-width simulation, small type applied throughout:
+
+| width | before (`text-ui`) | after (`text-meta`) |
+|---|---|---|
+| **320** | 183px · 3 rows | **137px · 3 rows** |
+| 360 | 137px · 3 rows | 137px · 3 rows |
+| 390 | 137px · 3 rows | 137px · 3 rows |
+| 480 | 94px · 2 rows | 94px · 2 rows |
+| 640 | 94px · 2 rows | 94px · 2 rows |
+
+**Arabic**, same method:
+
+| width | 320 | 360 | 390 | 480 | 640 |
+|---|---|---|---|---|---|
+| height | 189px | 143px | 96px | 96px | 96px |
+| rows | 3 (controls on 2 lines → 4 visual) | 3 | 2 | 2 | 2 |
+
+**320px improves by 46px (−25%) and stays three rows.** Stopping here as instructed — no scroll behaviour, no nav item dropped, no locale switch moved.
+
+**Why type size cannot close it.** At 320 the content box is 272px. After the reduction: brand 112 + gap 24 + nav 225 = **361px** for a 272px row. The nav alone is 225px, 83% of the width. I measured the two smaller steps as well, so the ceiling is known rather than assumed:
+
+| step | 320 | 360 | 390 |
+|---|---|---|---|
+| `--text-meta` 13px *(shipped)* | 137 · 3 | 137 · 3 | 137 · 3 |
+| `--text-label` 11px | 131 · 3 | 131 · 3 | 91 · 2 |
+| `--text-micro` 10px | 128 · 3 | **89 · 2** | **89 · 2** |
+
+**None reaches one row at 320.** `--text-micro` is the only step that buys anything real — two rows at 360 and 390, which is where most phones actually sit (360 Android, 390 iPhone). It costs a 10px Latin nav, and it repurposes a token the system reserves for tracked uppercase mono metadata. I shipped `meta` as the legible choice; **micro is available and is your call**, and the numbers above are the whole basis for it.
+
+### Arabic legibility — verified by looking
+
+Arabic nav renders at **14.95px** (13px × `--type-scale` 1.15), well clear of the 11.5px floor where dots stop resolving. Looked at on a real 318px viewport in `/ar`: dots resolve, the header mirrors, nothing overflows horizontally.
+
+### Touch targets held while type shrank
+
+`.tap-target-44` was rewritten **height-agnostic** — it centres a 44px band on the element whatever its own height, rather than assuming 32px. The old fixed `inset-block: -6px` would have produced 44px on the theme control and 34px on a nav link, which is precisely the bug the utility exists to prevent. Still no `transform`.
+
+All nine header controls verified by reading the pseudo-element's computed box:
+
+```
+nav links     visual 22px  → target 44px
+locale switch visual 32px  → target 44px
+theme control visual 32px  → target 44px
+```
+
+The locale switch also lost its `overflow-hidden` for the same reason the theme control did — it clips hit-testing, not only paint.
+
+### One instrument error worth recording
+
+`getComputedStyle(navLink).color` reported `rgb(161,161,161)` — the dark-theme value — while in light theme, and kept reporting it 1200ms after the switch, even though the element's own `--color-fg-muted` resolved to `#666` and the built CSS is `color:var(--color-fg-muted)`. It looked like a contrast bug on every nav link in light mode.
+
+**A screenshot settled it: the paint is correct.** White ground, legible mid-grey nav. The computed-style read is stale in the extension's evaluation context. Recorded because it is the inverse of the bidi bug two sessions ago — there the markup looked fine and the render was broken; here the instrument looked broken and the render was fine. Neither is trustworthy alone.
+
+### Verified
+
+Build, typecheck and ESLint exit 0. Twelve routes in a production build — ten 200s, two intended 404s. Both corrected strings render in `/ar`, the old شقيقة returns zero matches, and all three theme states were exercised.
+
+---
+
 ## 2026-08-13 — Icons, seed drift closed, and a measurement that says no
 
 Four tasks. Three landed; the second produced a number that does not support its own premise, so it stopped where it was told to.

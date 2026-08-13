@@ -37,7 +37,7 @@ export function LocaleSwitch({
     <div
       aria-label={ariaLabel}
       role="group"
-      className="flex overflow-hidden rounded-control border border-DEFAULT"
+      className="flex rounded-control border border-DEFAULT"
     >
       {LOCALES.map((code) => {
         const label = labels[code];
@@ -51,7 +51,8 @@ export function LocaleSwitch({
             hrefLang={code}
             aria-current={isActive ? "true" : undefined}
             className={[
-              "flex h-control-h-sm items-center px-3 text-ui transition-colors",
+              "tap-target-44 flex h-control-h-sm items-center px-3 text-meta transition-colors sm:text-ui",
+              "first:rounded-s-control last:rounded-e-control",
               isActive
                 ? "bg-surface-raised text-fg"
                 : "text-fg-dim hover:text-fg",
