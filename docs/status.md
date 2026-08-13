@@ -37,6 +37,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-14 — UAE cover v2: the holographic profile replaces the viewfinder
+
+The frontal capture-viewfinder portrait from earlier today is superseded by Moataz's second brief: a left-facing profile built from dots, a low-poly mesh and network nodes, one glowing eye as the focal point, a PCB circuit network dissolving out of the back of the head, four floating padlocks, and a particle field. Canvas 900×1200, transparent ground. Same pattern cost: the component file replaced, the registry entry updated, nothing else touched.
+
+### The brief's palette did not enter the repo — stated up front, then built
+
+The brief named `#68D5FF / #4DA7FF / #A86DFF / #FFFFFF` — three new hues against a one-accent system, and hardcoded colour is what decision 049 exists to prevent: token binding is what makes a component cover follow the theme at all, and cyan-on-white dies in light mode outright. The treatment is the established one — the same the Egypt cover's four signal hues received: the **style** (depth, glow, one luminous focal point) recreated in the four-step ramp, `--color-accent` used on **one element — the eye**, which the brief itself names as the focal point. **Zero hex literals**, verified in the served SVG.
+
+The brief's `radialGradient` is honoured where it asked for it: one gradient, on the eye's halo, with **token stops fading to transparent** — glow as opacity, not filter. Everywhere else "glow" is a wide faint dot under a small bright one, the ramp doing what it does everywhere on this site.
+
+### Numbers
+
+| | |
+|---|---|
+| Points | **1,465** — face surface, dense profile edge, ~100 mesh nodes, particles |
+| Elements | **36** — 18 paths, 5 circles (eye), the rest groups/defs |
+| Payload | **31KB** of SVG |
+| Determinism | Seeded PRNG; two fetches **byte-identical by md5** (checked in one process this time — yesterday's "DIFFER" was Python's salted `hash()`, not the artwork) |
+
+"Thousands of tiny dots" and "lightweight enough for a hero" pull in opposite directions — every dot is ~15 bytes twice, HTML plus flight. 1,465 is where the surface reads without the payload bloating; the exact count is exported from the module.
+
+### Composition notes
+
+- **The mesh is a nearest-neighbour graph** over ~100 nodes (outline-sampled + interior lattice), not a Delaunay triangulation — reads as the low-poly mesh at a fraction of the effort, with the density the brief demanded kept "readable" by capping reach and degree.
+- **Circuit traces** are generated: right-angled runs from the back of the head, corner nodes, open-circle terminals, five branches, opacity bucketed by terminal x so the network **fades as it travels** — the dissolve is data-driven, not a mask.
+- **Direction:** a profile facing its own network is a picture, not a reading order — same footing as the Egypt matrix. The artwork holds one fixed composition in both locales. Verified in `/ar`: page mirrors, artwork intact.
+- No text in the artwork at all this time, so the whole bidi apparatus is unnecessary — nothing to isolate.
+
+### Verified by looking
+
+| surface | result |
+|---|---|
+| Cover, dark | The profile reads instantly — forehead, brow, nose, lips, chin, jaw. Eye glows accent-blue at the socket; circuits fade rightward |
+| Cover, light | Inverts to a dark stipple engraving; the blue eye stays focal |
+| Gallery card ~295px | **The strongest small render of the three covers** — the head is unmistakable at a glance |
+| `/ar` | Mirrors the page, artwork fixed, nothing mangled |
+
+All routes 200 in production; build, typecheck, ESLint exit 0; accent on one element; both covers coexist on the gallery in both locales.
+
+### Carried flags
+
+- The **900×1200 portrait canvas** makes the cover-page render ~1.3× the viewport height at desktop widths — the artwork is a full scroll on its own. That is the brief's canvas, followed; resizing is a viewBox decision away if it reads too tall in situ.
+- `cover_component = 'uae-acquisition'` still lives in **no migration** (flagged yesterday, unchanged).
+
+---
+
 ## 2026-08-14 — UAE cover: a face in 401 points, six paths
 
 Second component cover, first built from a **written brief rather than a `.dc.html`** — the spec was the design. A biometric identity portrait: a frontal head as a point cloud, capture brackets, faint construction lines, one EFR tag. The pattern held at its promised cost: one file in `designs/`, one registry entry, one `update`. No migration, per the brief.
