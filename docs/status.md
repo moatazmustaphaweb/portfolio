@@ -37,6 +37,65 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — DESIGN REBUILD, groups 6–7. Two of the three tasks landed.
+
+**36/36 route-locale combinations 200 in production.** Typecheck, sync tests and content verification all exit 0.
+
+### Systems — I had to pick a direction, and it isn't a preference
+
+There are now **two** Systems designs: `Systems.dc.html` (documentation — token table, component `stable/beta/review` pills, versioned changelog) and the new `SystemsEssay.dc.html`, labelled **"Direction B"** and carrying a banner offering the other.
+
+**Built Direction B, because it is the one the content supports.** The Notion page is an essay that argues and points at evidence. There is no token table, no component inventory and no changelog anywhere in the database — Direction A would be a designed shell around nothing. If you want A, it needs content first, and that is a bigger ask than the other four content gaps combined.
+
+Each argument section pairs with an evidence card resolved through `getChapter`, so a link appears only when a published chapter is behind it. Three resolve today.
+
+### Accessibility — built, and it settles the sidebar question
+
+Numbered sections with the body indented under the heading, plus the sticky **contents rail** — which confirms the audit's finding: the rail belongs on Accessibility and Systems, not on Philosophy, where I had invented one. Thirteen sections is past the point where scrolling is navigation.
+
+Rail on wide screens, a wrapping row on narrow. Verified in both locales: TOC present, sections numbered, conformance table intact.
+
+### Consent banner — already close, three corrections
+
+The component already matched the spec's hard rules: identical buttons, no dismiss control, nothing loads before an explicit accept, decline first in the tab order. Changed: stacked layout on narrow screens with the buttons staying side by side rather than compressing to absorb the longer Arabic string; message raised from 13px to 15px per the spec.
+
+> ⚠️ **A conflict between two of your own design files.** The spec sets these buttons at **44px**. `--control-h` is **40px** — so every control on the site is 4px under, while `Accessibility.dc.html` states "Minimum 44px targets" as a rule. I raised the consent buttons only, because that is the one place the spec says it outright. **The token is your call**, and changing it moves every button on the site.
+
+### The 404 — partly fixed, and I was wrong about the fix
+
+You cleared the routing change, so I made it and tested it properly on a confirmed-bound port. **`dynamicParams = false` did not fix it.** Status is a correct 404, but the shell is unchanged.
+
+What did change: with the segment-level `not-found.tsx` removed, the root 404's **copy now renders** for in-route `notFound()`. What did not: the document wrapper is still Next's `__next_error__` shell, so `<html>` carries no `lang` and no `dir`.
+
+| | Unmatched URL | `notFound()` inside a route |
+|---|---|---|
+| Correct copy and chrome | ✅ | ✅ |
+| `<html lang>` / `<html dir>` | ✅ | ❌ Next's shell |
+
+**Mitigated where it actually matters:** `app/not-found.tsx` now sets `lang` and `dir` on its own wrapper, so the Arabic 404 mirrors and a screen reader switches voice in both cases. The `<html>` attribute itself is Next behaviour I could not reach by composition — and I am not going to keep guessing at it.
+
+`dynamicParams = false` is left in place on all four dynamic routes: it makes a draft slug a clean route-level 404 rather than a rendered segment that throws, which is the more honest shape regardless.
+
+### ⚠️ THE VISUAL PASS DID NOT HAPPEN. AGAIN.
+
+I connected a browser this time — and it **cannot reach the server**. Tried `localhost:3600`, `127.0.0.1:3600` and the LAN IP `192.168.32.195:3600`; every one returns a Chrome error page while `curl` gets 200 from all three. That Chrome instance is isolated from this machine's network.
+
+I stopped after three attempts rather than keep retrying.
+
+**So everything in this rebuild is still verified by DOM inspection only** — which is exactly the gap that let the 404 be reported as working for weeks, and it is now the longest-standing untested claim in the project. What needs eyes, in both locales:
+
+- **Home** — the radial glow at real width; it is the one ambient effect in the system
+- **Case File Cover** — the role card's 4px spine, and whether the outcome grid reads at `text-statement`
+- **Chapter** — the objective as h1 at title size, with a long Arabic objective
+- **Linear** — the progress hairline and the floating pill, which is `fixed` and mirrors
+- **Results** — whether filled / dashed / thin reads as three distinct states at a glance
+- **Accessibility** — the TOC rail beside 13 numbered sections
+- **Consent banner** — stacked at narrow width with the long Arabic string
+
+Fastest path: `npm run fresh`, then look.
+
+---
+
 ## 2026-08-13 — DESIGN REBUILD, groups 1–5 of 7
 
 Compositions rebuilt from the `.dc.html` files, design as source of truth for layout. Build exit 0, typecheck exit 0, **26/26 route-locale combinations 200 in a production build.**

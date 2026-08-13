@@ -37,6 +37,18 @@ import type { Locale } from "@/lib/content/types";
  */
 export const revalidate = 300;
 
+/*
+ * Unknown params 404 through the not-found boundary instead of rendering the
+ * segment and calling notFound() inside it.
+ *
+ * That distinction is the whole bug: a runtime notFound() from within a
+ * rendered dynamic segment resolved to Next's built-in error shell — no lang,
+ * no dir, no chrome — while an unmatched ROUTE resolves to app/not-found.tsx.
+ * Every published slug is in generateStaticParams already, so nothing
+ * reachable is lost; a draft slug like /work/east becomes a proper 404.
+ */
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   return listChapterParams();
 }
@@ -94,17 +106,68 @@ export default async function Chapter({
       />
 
       {isDocument ? (
-        <>
-          {ui.t("case_file") ? (
-            <p className="font-mono text-label uppercase text-fg-dim">{caseTitle}</p>
+        <div
+          className={
+            detail.kind === "accessibility"
+              ? "gap-14 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]"
+              : undefined
+          }
+        >
+          {/*
+            The contents rail. Accessibility runs to thirteen numbered
+            sections; the design gives it a sticky rail on wide screens that
+            becomes a wrapping row on narrow ones. Comparison pages have four
+            sections and get none.
+          */}
+          {detail.kind === "accessibility" && page.sections.length > 3 ? (
+            <nav
+              aria-labelledby="contents-heading"
+              className="mb-10 lg:sticky lg:top-18 lg:mb-0 lg:self-start lg:border-e lg:border-DEFAULT lg:pe-6"
+            >
+              <h2
+                id="contents-heading"
+                className="font-mono text-micro uppercase text-fg-dim"
+              >
+                {title}
+              </h2>
+              <ol className="mt-4 flex flex-wrap gap-x-4 gap-y-1 lg:flex-col lg:gap-0">
+                {page.sections
+                  .filter((s) => s.kind !== "table" && s.fields.heading)
+                  .map((s, i) => (
+                    <li key={s.id}>
+                      <a
+                        href={`#${s.slug}`}
+                        className="flex gap-3 rounded-control py-2 text-body-sm text-fg-muted transition-colors hover:text-fg lg:px-3"
+                      >
+                        <span className="font-mono text-micro text-fg-dim">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="min-w-0">{s.fields.heading}</span>
+                      </a>
+                    </li>
+                  ))}
+              </ol>
+            </nav>
           ) : null}
-          <h1 className="mt-4 max-w-measure text-title text-fg">{title}</h1>
-          <ProseSections
-            intro={page.intro}
-            sections={page.sections}
-            variant={detail.kind === "comparison" ? "comparison" : "plain"}
-          />
-        </>
+
+          <div className="min-w-0">
+            {ui.t("case_file") ? (
+              <p className="font-mono text-label uppercase text-fg-dim">{caseTitle}</p>
+            ) : null}
+            <h1 className="mt-4 max-w-measure text-title text-fg">{title}</h1>
+            <ProseSections
+              intro={page.intro}
+              sections={page.sections}
+              variant={
+                detail.kind === "comparison"
+                  ? "comparison"
+                  : detail.kind === "accessibility"
+                    ? "accessibility"
+                    : "plain"
+              }
+            />
+          </div>
+        </div>
       ) : (
         <>
           {/*

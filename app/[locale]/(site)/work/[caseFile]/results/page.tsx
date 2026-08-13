@@ -34,6 +34,18 @@ import type { Locale, TargetStatus } from "@/lib/content/types";
  */
 export const revalidate = 300;
 
+/*
+ * Unknown params 404 through the not-found boundary instead of rendering the
+ * segment and calling notFound() inside it.
+ *
+ * That distinction is the whole bug: a runtime notFound() from within a
+ * rendered dynamic segment resolved to Next's built-in error shell — no lang,
+ * no dir, no chrome — while an unmatched ROUTE resolves to app/not-found.tsx.
+ * Every published slug is in generateStaticParams already, so nothing
+ * reachable is lost; a draft slug like /work/east becomes a proper 404.
+ */
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   return (await listCaseFileSlugsWithTargets()).map((caseFile) => ({ caseFile }));
 }

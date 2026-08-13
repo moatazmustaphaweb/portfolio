@@ -86,25 +86,37 @@ export function ConsentBanner({
       aria-label={message}
       className="fixed inset-x-0 bottom-0 z-50 border-t border-DEFAULT bg-surface"
     >
-      <div className="mx-auto flex max-w-container flex-wrap items-center gap-4 px-gutter py-4">
-        <p className="min-w-measure-lead flex-1 text-meta text-fg-body">{message}</p>
+      {/*
+        Row on desktop, stacked on narrow — the two layouts `ConsentBanner.dc.html`
+        specs out. The buttons stay side by side when stacked and keep their
+        size rather than shrinking, because the Arabic message wraps to three
+        lines and the actions must not compress to absorb it.
+      */}
+      <div className="mx-auto flex max-w-container flex-col gap-4 px-gutter py-5 sm:flex-row sm:items-center">
+        <p className="flex-1 text-body-sm text-fg-body">{message}</p>
 
         {/*
           Equal weight, deliberately. Decline comes first in the DOM so it is
           also first in the tab order — the cheaper action to reach by keyboard.
+
+          `min-h-[44px]` rather than `h-control-h`: the spec calls for 44px, and
+          `--control-h` is 40px. See docs/status.md — the design's own
+          accessibility page mandates a 44px minimum target, so the token and
+          the rule disagree sitewide. Fixed here because this is the one place
+          the spec states it outright; the token is Moataz's call.
         */}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={() => answer("denied")}
-            className="h-control-h min-w-control rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg"
+            className="min-h-[44px] flex-1 min-w-control rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg sm:flex-initial"
           >
             {decline}
           </button>
           <button
             type="button"
             onClick={() => answer("granted")}
-            className="h-control-h min-w-control rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg"
+            className="min-h-[44px] flex-1 min-w-control rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg sm:flex-initial"
           >
             {accept}
           </button>
