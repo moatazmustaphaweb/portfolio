@@ -2,7 +2,8 @@
 
 > **Generated** by `npm run export:ui-strings` from the live database.
 > Do not hand-edit: apply corrections to the database, then regenerate.
-> Reviewed and corrected 2026-08-11. Verified drift-free by `npm run check:seed-drift`.
+> Reviewed 2026-08-11 (52 strings) and 2026-08-13 (the 11 added since).
+> Verified drift-free by `npm run check:seed-drift`.
 
 Every interface word on the site. No component may contain a user-facing
 literal — these are the strings they resolve instead (rule 1).
@@ -35,6 +36,37 @@ and the NDA convention breach were the real bugs.
 
 Verified after applying: **no Arabic value serves more than one key, and no
 English value serves more than one key**, across all 52.
+
+### Second pass — 2026-08-13, the eleven added after the first
+
+**Why there was a second pass.** The first pass covered the 52 strings that
+existed on 2026-08-11. Eleven more were written straight to the database on
+2026-08-12 — after the review, and into no migration file. This document
+carried on saying "Reviewed and corrected 2026-08-11" over a table that had
+grown to 84 rows, so the eleven read as reviewed when nothing had looked at
+them. That header is why they slipped, and it is why it now names both dates
+and both counts.
+
+| Key | Was | Now | Why |
+|---|---|---|---|
+| `sibling_case_files` | ملفات شقيقة | **ملفات مرتبطة** | شقيقة is a literal *sibling* and reads biological; مرتبطة states the actual relationship |
+| `form_subject_speaking` | مشاركة أو كتابة | **ندوة أو مقال** | The English means being invited to speak or to write. مشاركة reads *participation*, so someone wanting to invite him to a panel would not recognise the option |
+
+**`status_label` — الحالة, examined and KEPT.** The flagged risk was a
+collision with the `status_*` values in the column beneath it. There is none:
+those are محقَّق / غير محقَّق / غير قابل للقياس, all adjectives, while الحالة is a
+column heading. The only collision that ever existed was with `case_file`, and
+it was resolved when that became ملف المشروع. الحالة is the standard term for
+Status in Gulf product interfaces, which is the register target above.
+**Settled — not to be re-raised.**
+
+The remaining eight are approved as written.
+
+> 🔴 **One of the eleven is still unreviewed: `form_message_placeholder`.**
+> It is the string every enumeration missed. Each list was written as
+> `form_subject*` plus five named keys — which covers ten. This one begins
+> `form_` but not `form_subject`, so the glob stepped over it and it was
+> counted as reviewed without being read. Its flag stays until it is.
 
 ### Kept as-is
 
@@ -95,8 +127,8 @@ locale you are in.
 | `domain_banking` | Banking | الخدمات المصرفية |  |
 | `domain_branding` | Branding | الهوية |  |
 | `domain_smart_things` | Smart Things | الأنظمة الذكية |  |
-| `download_cv` | Download CV | تحميل السيرة الذاتية | 🔴 Not reviewed — also the longest control label; see `--control-min-w` |
-| `entry_handles_heading` | Three ways in | ثلاث طرق للدخول | 🔴 Not reviewed — added after the 2026-08-11 pass |
+| `download_cv` | Download CV | تحميل السيرة الذاتية |  |
+| `entry_handles_heading` | Three ways in | ثلاث طرق للدخول |  |
 | `error_cta` | Try again | حاول مرة أخرى |  |
 | `error_title` | Something went wrong | حدث خطأ ما |  |
 | `evidence` | Evidence | الدليل |  |
@@ -105,15 +137,15 @@ locale you are in.
 | `form_email` | Email | البريد الإلكتروني | Kept — correct Arabic; length is a layout problem, handled in CSS |
 | `form_error` | That didn’t send. Try again, or email me directly. | لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة. |  |
 | `form_message` | Message | الرسالة |  |
-| `form_message_placeholder` | The more context you give, the more useful my first reply will be. | كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة. | 🔴 Not reviewed — longest unreviewed string, and it sets the tone of the contact form |
+| `form_message_placeholder` | The more context you give, the more useful my first reply will be. | كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة. | 🔴 Not reviewed — the eleventh string, and the one every enumeration missed. Longest of the set, and it sets the tone of the contact form |
 | `form_name` | Name | الاسم |  |
 | `form_required` | This field is required. | هذا الحقل مطلوب. |  |
 | `form_sending` | Sending… | جارٍ الإرسال… | ⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction |
-| `form_subject` | What's this about? | عن ماذا تودّ الحديث؟ | 🔴 Not reviewed — added after the 2026-08-11 pass |
-| `form_subject_hiring` | Hiring | توظيف | 🔴 Not reviewed — added after the 2026-08-11 pass |
-| `form_subject_other` | Something else | شيء آخر | 🔴 Not reviewed — added after the 2026-08-11 pass |
-| `form_subject_project` | A project | مشروع | 🔴 Not reviewed — added after the 2026-08-11 pass |
-| `form_subject_speaking` | Speaking or writing | مشاركة أو كتابة | 🔴 Not reviewed — `مشاركة` can read as *participation* rather than *speaking*; check against the intent |
+| `form_subject` | What's this about? | عن ماذا تودّ الحديث؟ |  |
+| `form_subject_hiring` | Hiring | توظيف |  |
+| `form_subject_other` | Something else | شيء آخر |  |
+| `form_subject_project` | A project | مشروع |  |
+| `form_subject_speaking` | Speaking or writing | ندوة أو مقال | Reviewed 2026-08-13 — was `مشاركة أو كتابة`, which reads *participation*. `ندوة أو مقال` names the two real occasions: a panel, or a piece |
 | `form_submit` | Send | إرسال | ⚠️ Layout — see `form_sending` |
 | `form_success` | Thanks — I’ll reply soon. | شكراً — سأردّ قريباً. |  |
 | `home` | Home | الرئيسية |  |
@@ -147,12 +179,12 @@ locale you are in.
 | `reflection` | Reflection | خلاصة | ✅ Corrected — `خلاصة` |
 | `result` | Result | النتيجة |  |
 | `results` | Results | النتائج |  |
-| `results_table` | Results table | جدول النتائج | 🔴 Not reviewed — added after the 2026-08-11 pass |
+| `results_table` | Results table | جدول النتائج |  |
 | `role_label` | Role | الدور |  |
-| `sibling_case_files` | Sibling case files | ملفات شقيقة | 🔴 Not reviewed — `ملفات شقيقة` is a literal rendering of *sibling*; check it does not read biological |
+| `sibling_case_files` | Sibling case files | ملفات مرتبطة | Reviewed 2026-08-13 — was `ملفات شقيقة`, a literal *sibling* that reads biological. `ملفات مرتبطة` states the relationship |
 | `skip_to_content` | Skip to content | انتقل إلى المحتوى | ✅ Corrected — no diacritic |
 | `status_achieved` | Achieved | محقَّق | ✅ Corrected — adjective form |
-| `status_label` | Status | الحالة | 🔴 Not reviewed — `الحالة` is a table column header, so it must not collide with `status_*` values |
+| `status_label` | Status | الحالة | Reviewed 2026-08-13 — `الحالة` KEPT. No collision with the `status_*` values below it: those are adjectives (محقَّق / غير محقَّق / غير قابل للقياس), this is a column heading. The only real collision was `case_file`, resolved when it became ملف المشروع. Standard for Status in Gulf product interfaces. Settled |
 | `status_missed` | Missed | غير محقَّق | ✅ Corrected — adjective form |
 | `status_not_measurable` | Not measurable | غير قابل للقياس | ⚠️ Layout — status pills need a shared min-width |
 | `status_projected` | Projected | تقديري | ✅ Corrected — `تقديري`; `متوقّع` over-claimed against decision 007 |

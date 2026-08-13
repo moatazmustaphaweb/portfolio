@@ -149,13 +149,27 @@ with strings(key, context, en, ar) as (values
   ('form_subject',     'Contact form — the "What''s this about?" select label', 'What''s this about?', 'عن ماذا تودّ الحديث؟'),
   ('form_subject_hiring',   'Contact form — subject option',  'Hiring',                 'توظيف'),
   ('form_subject_project',  'Contact form — subject option',  'A project',              'مشروع'),
-  ('form_subject_speaking', 'Contact form — subject option',  'Speaking or writing',    'مشاركة أو كتابة'),
+  -- ندوة أو مقال, not مشاركة أو كتابة (reviewed 2026-08-13). The English means
+  -- being invited to speak at an event or to write a piece; مشاركة reads as
+  -- "participation", so a visitor wanting to invite him to a panel would not
+  -- recognise the option. This names the two real occasions.
+  ('form_subject_speaking', 'Contact form — subject option',  'Speaking or writing',    'ندوة أو مقال'),
   ('form_subject_other',    'Contact form — subject option',  'Something else',         'شيء آخر'),
   ('form_message_placeholder', 'Contact form — placeholder in the message field', 'The more context you give, the more useful my first reply will be.', 'كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة.'),
   ('download_cv',      'Contact page — CV download link; hidden until settings.cv_url exists', 'Download CV', 'تحميل السيرة الذاتية'),
   ('entry_handles_heading', 'Cover — heading above the three entry handles', 'Three ways in', 'ثلاث طرق للدخول'),
-  ('sibling_case_files', 'Cover — heading above links to sibling case files', 'Sibling case files', 'ملفات شقيقة'),
+  -- ملفات مرتبطة, not ملفات شقيقة (reviewed 2026-08-13). شقيقة is a literal
+  -- rendering of "sibling" and reads biological; مرتبطة states the actual
+  -- relationship between the case files.
+  ('sibling_case_files', 'Cover — heading above links to sibling case files', 'Sibling case files', 'ملفات مرتبطة'),
   ('results_table',    'Results Table page — title and the link to it from the cover', 'Results table', 'جدول النتائج'),
+  -- الحالة KEPT (reviewed 2026-08-13). The flagged collision risk with the
+  -- status_* values in the column beneath does not exist: those are محقَّق /
+  -- غير محقَّق / غير قابل للقياس, all adjectives, while الحالة is a column
+  -- heading. The only real collision was with case_file, resolved when it
+  -- became ملف المشروع. الحالة is also the standard term for Status in Gulf
+  -- product interfaces, which is the register target in ui-strings-review.md.
+  -- Settled — do not re-raise.
   ('status_label',     'Results Table — the Status column header', 'Status',            'الحالة'),
 
   -- Language and theme

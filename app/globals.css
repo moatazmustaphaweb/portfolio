@@ -382,11 +382,23 @@
     position: relative;
   }
 
+  /*
+   * Height-agnostic: centres a 44px band on the element whatever its own
+   * height, rather than assuming 32px. That matters now the header type
+   * shrinks at small viewports — a fixed negative inset would have produced a
+   * 44px target on the theme control and a smaller one on a nav link, which is
+   * the bug this utility exists to prevent.
+   *
+   * `inset-block-start: 50%` + a negative `margin-block-start` of half the
+   * height centres it without `transform`, which decision 048 scopes to the
+   * Motion Layer.
+   */
   .tap-target-44::after {
     content: "";
     position: absolute;
-    /* (44 - 32) / 2 — grows the target to 44px vertically. */
-    inset-block: -6px;
     inset-inline: 0;
+    inset-block-start: 50%;
+    block-size: 44px;
+    margin-block-start: -22px;
   }
 }
