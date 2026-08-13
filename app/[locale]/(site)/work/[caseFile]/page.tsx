@@ -12,17 +12,16 @@ import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 
 /**
- * Case File Cover.
+ * Case File Cover — composed from the CORRECTED `CaseFile.dc.html`.
  *
- * The order is deliberate: title, thesis, THEN the role statement, then the
- * outcomes, then the map.
+ * The role statement now has the treatment the design gives it: a card with a
+ * 4px accent spine on the leading edge, a mono label, and the statement at
+ * 20–28px weight 500. It is the loudest element between the thesis and the
+ * map, which is right — "Sole designer on the mobile product, end to end" is
+ * the single most load-bearing sentence on this site.
  *
- * The role statement sits at full body size directly under the thesis, not in
- * a caption or a metadata line. It is the fix for the problem this portfolio
- * exists to solve — case studies that read "we" throughout and leave the
- * evaluator unable to tell what this person actually did. "Sole designer on
- * the mobile product, end to end" is the single most load-bearing sentence on
- * the page and is typeset accordingly.
+ * The living map stays a plain structural list (decision 023). The design's
+ * SVG node diagram is Phase 2.
  */
 /**
  * ISR window (decision 009). Next requires this to be a literal — an imported
@@ -34,6 +33,14 @@ export const revalidate = 300;
 export async function generateStaticParams() {
   return (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
 }
+
+/** Maps a `case_files.domain` value to its `ui_strings` key. */
+const DOMAIN_LABEL_KEYS: Record<string, string> = {
+  banking: "domain_banking",
+  "smart-things": "domain_smart_things",
+  ai: "domain_ai",
+  branding: "domain_branding",
+};
 
 export default async function CaseFileCover({
   params,
@@ -48,6 +55,9 @@ export default async function CaseFileCover({
   if (!detail) notFound();
 
   const title = detail.fields.title ?? caseFile;
+  const domainLabel = ui.t(DOMAIN_LABEL_KEYS[detail.domain] ?? "");
+  const kicker = [ui.t("case_file"), domainLabel].filter(Boolean).join(" · ");
+  const firstChapter = detail.chapters[0];
 
   return (
     <div className="mx-auto max-w-container px-gutter py-section-y">
@@ -61,41 +71,46 @@ export default async function CaseFileCover({
         ]}
       />
 
-      <header className="max-w-measure">
-        {ui.t("case_file") ? (
-          <p className="font-mono text-label uppercase text-fg-dim">
-            {ui.t("case_file")}
-          </p>
-        ) : null}
+      {/* The kicker is a bordered pill on the surface, not a bare label. */}
+      {kicker ? (
+        <p className="inline-flex rounded-pill border border-DEFAULT bg-surface px-3 py-1 font-mono text-label uppercase text-fg-muted">
+          {kicker}
+        </p>
+      ) : null}
 
-        <h1 className="mt-4 text-title text-fg">{title}</h1>
+      <h1 className="mt-5 max-w-measure text-title text-fg">{title}</h1>
 
-        {detail.fields.thesis ? (
-          <p className="mt-6 text-lead text-fg-body">{detail.fields.thesis}</p>
-        ) : null}
-      </header>
-
-      {/*
-        The role statement. Body size, own block, labelled — not a caption.
-        A reader who takes only one sentence from this page should take this one.
-      */}
-      {detail.fields.role ? (
-        <section className="mt-10 max-w-measure border-s border-strong ps-6">
-          {ui.t("role_label") ? (
-            <h2 className="font-mono text-micro uppercase text-fg-dim">
-              {ui.t("role_label")}
-            </h2>
-          ) : null}
-          <p className="mt-3 text-statement text-fg">{detail.fields.role}</p>
-        </section>
+      {detail.fields.thesis ? (
+        <p className="mt-6 max-w-measure text-lead text-fg-body">
+          {detail.fields.thesis}
+        </p>
       ) : null}
 
       {/*
-        Outcomes, where they exist. Where they do not, this renders nothing —
-        and the reflection below carries the honest account instead. A cover
-        that states plainly it has no numbers is doing the right thing; the
-        page must never paper over that with a manufactured strip.
+        The role card. The accent spine is `w-1` (4px) — a graphic element,
+        not a border, so it is exempt from the one-stroke-weight rule the way
+        the design treats it.
+
+        The design also carries a mono meta line here — "Product Design &
+        Strategy · Mashreq Bank · 2023–2024". No such field exists; see
+        docs/status.md, where this is the same missing content as the About
+        timeline.
       */}
+      {detail.fields.role ? (
+        <section className="mt-10 flex max-w-measure-lead items-stretch overflow-hidden rounded-panel border border-strong bg-surface">
+          <div aria-hidden="true" className="w-1 shrink-0 bg-accent" />
+          <div className="flex flex-col gap-3 p-card-p">
+            {ui.t("role_label") ? (
+              <span className="font-mono text-label uppercase text-fg-dim">
+                {ui.t("role_label")}
+              </span>
+            ) : null}
+            <p className="text-h3 text-fg">{detail.fields.role}</p>
+          </div>
+        </section>
+      ) : null}
+
+      {/* The metric grid. Empty for a case file that claims no numbers. */}
       {detail.outcomes.length > 0 ? (
         <section className="mt-14">
           {ui.t("results") ? (
@@ -109,13 +124,20 @@ export default async function CaseFileCover({
               "not-measurable": ui.t("status_not_measurable"),
             }}
           />
+          {detail.targets.length > 0 && ui.t("results_table") ? (
+            <Link
+              href={`/${l}/work/${caseFile}/results`}
+              className="mt-5 inline-flex items-center gap-2 text-ui text-fg-muted transition-colors hover:text-fg"
+            >
+              {ui.t("results_table")}
+              <span aria-hidden="true" className="rtl:rotate-180">
+                →
+              </span>
+            </Link>
+          ) : null}
         </section>
       ) : null}
 
-      {/*
-        Three ways in, above the map. The map answers "what is in here"; the
-        handles answer "which of it is for me", and that question comes first.
-      */}
       <EntryHandles
         handles={detail.handles}
         caseFileSlug={caseFile}
@@ -123,12 +145,17 @@ export default async function CaseFileCover({
         heading={ui.t("entry_handles_heading")}
       />
 
+      {/* The design puts the reflection in a bordered card. */}
       {detail.fields.reflection ? (
-        <section className="mt-14 max-w-measure">
+        <section className="mt-14 max-w-measure-lead rounded-panel border border-DEFAULT bg-surface p-card-p">
           {ui.t("reflection") ? (
-            <h2 className="mb-4 text-h3 text-fg">{ui.t("reflection")}</h2>
+            <h2 className="font-mono text-label uppercase text-fg-dim">
+              {ui.t("reflection")}
+            </h2>
           ) : null}
-          <p className="text-body text-fg-body">{detail.fields.reflection}</p>
+          <p className="mt-4 whitespace-pre-line text-body text-fg-body">
+            {detail.fields.reflection}
+          </p>
         </section>
       ) : null}
 
@@ -142,32 +169,36 @@ export default async function CaseFileCover({
             chapterLabel={ui.t("chapter")}
           />
 
-          {ui.t("read_linear") ? (
-            <Link
-              href={`/${l}/work/${caseFile}/all`}
-              className="mt-6 inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
-            >
-              {ui.t("read_linear")}
-            </Link>
-          ) : null}
+          {/*
+            The design's dual CTA: enter the sequence, or read it straight
+            through. Primary is the first chapter — "take the journey".
+          */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            {firstChapter ? (
+              <Link
+                href={`/${l}/work/${caseFile}/${firstChapter.slug}`}
+                className="inline-flex h-control-h items-center gap-2 rounded-control border border-fg bg-fg px-5 text-ui text-bg transition-opacity hover:opacity-85"
+              >
+                {firstChapter.fields.title ?? ui.t("chapter")}
+                <span aria-hidden="true" className="rtl:rotate-180">
+                  →
+                </span>
+              </Link>
+            ) : null}
+            {ui.t("read_linear") ? (
+              <Link
+                href={`/${l}/work/${caseFile}/all`}
+                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+              >
+                {ui.t("read_linear")}
+              </Link>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
-      {/*
-        Comparison and accessibility pages — reachable from the cover without
-        entering the numbered sequence (amendment 033) — plus the results
-        table, which is a page of this case file without being a chapter row.
-      */}
-      {detail.pages.length > 0 || detail.targets.length > 0 ? (
+      {detail.pages.length > 0 ? (
         <section className="mt-10 flex flex-wrap gap-3">
-          {detail.targets.length > 0 && ui.t("results_table") ? (
-            <Link
-              href={`/${l}/work/${caseFile}/results`}
-              className="rounded-control border border-DEFAULT px-4 py-2 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
-            >
-              {ui.t("results_table")}
-            </Link>
-          ) : null}
           {detail.pages.map((page) =>
             page.fields.title ? (
               <Link

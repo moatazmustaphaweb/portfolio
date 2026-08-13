@@ -27,7 +27,16 @@ export function OutcomeStrip({
     <ul className="grid gap-px overflow-hidden rounded-panel border border-DEFAULT bg-border sm:grid-cols-2 lg:grid-cols-3">
       {usable.map((outcome) => (
         <li key={outcome.id} className="flex flex-col gap-2 bg-surface p-card-p">
-          <span className="text-metric text-fg">
+          {/*
+            `text-statement`, not `text-metric`. The design draws this grid for
+            short values — "30%", "10k+", "14 → 6" — and sets them at 28–38px.
+            The real outcomes are sentences: "Live in production for over a
+            year and a half". At metric size those wrap to four lines each and
+            the grid stops being scannable, which is the only thing a metric
+            grid is for. The container is the design's; the type is sized for
+            the content that actually goes in it.
+          */}
+          <span className="text-statement text-fg">
             {outcome.fields.label ?? outcome.value}
           </span>
 

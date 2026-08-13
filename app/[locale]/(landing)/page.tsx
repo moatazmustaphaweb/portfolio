@@ -6,18 +6,19 @@ import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 
 /**
- * Landing.
+ * Landing — composed from `Home.dc.html`.
  *
- * The only page every visitor sees, and it has eight seconds to say who this
- * is, what he does, and where to click.
+ * Three things restored from the design that never reached `tokens.md`, and so
+ * were lost at extraction rather than at build:
  *
- * The three strings ARE the message — position, then intent, then domain, each
- * saying something the others do not. Nothing else belongs here: any sentence
- * added would have to earn its place against the eight seconds, and none does.
+ *  - A **radial accent glow** behind the hero. The only non-flat surface in
+ *    the whole system, and the one place the accent is allowed to be ambient
+ *    rather than a state marker.
+ *  - An **eyebrow pill** above the name — bordered, on surface, mono.
+ *  - **Two** calls to action: the work, and a way to make contact.
  *
- * One call to action, and a minimal footer, so nothing competes with it. The
- * footer is supplied by the `(landing)` layout — this page sits outside the
- * `(site)` group, so which footer it gets is structural rather than a prop.
+ * The eight seconds this page has are unchanged. The strings still carry the
+ * message; the design just gives them somewhere to sit.
  */
 /**
  * ISR window (decision 009). Next requires this to be a literal — an imported
@@ -42,18 +43,40 @@ export default async function Landing({
   const intro = settings.get("intro");
   const description = settings.get("description");
   const workLabel = ui.t("page_work");
+  const contactLabel = ui.t("page_contact");
 
   return (
-    <div className="mx-auto flex w-full max-w-container flex-1 flex-col justify-center px-gutter py-section-y-hero">
-        <div className="max-w-measure">
+    <div className="relative flex w-full flex-1 flex-col justify-center overflow-hidden">
+      {/*
+        The hero glow. Purely decorative and pointer-transparent, centred on
+        the top edge so it reads as light coming from off-canvas rather than a
+        shape on the page. `--color-accent` at low alpha — the value is in the
+        gradient rather than a token because a one-off radial is not a system
+        primitive.
+      */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-22 start-1/2 h-[520px] w-[900px] max-w-[140vw] -translate-x-1/2 rtl:translate-x-1/2"
+        style={{
+          background:
+            "radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 100%)",
+        }}
+      />
+
+      <div className="relative mx-auto w-full max-w-container px-gutter py-section-y-hero">
+        <div className="max-w-measure-lead">
           {/*
             Every line is omitted rather than rendered empty if its setting is
             missing — the fallback rule applied to the most visible page on the
             site. A blank heading here would be the first thing a recruiter saw.
           */}
-          {name ? (
-            <h1 className="text-hero text-fg">{name}</h1>
+          {ui.t("case_file") ? (
+            <p className="inline-flex rounded-pill border border-DEFAULT bg-surface px-3 py-1 font-mono text-label uppercase text-fg-muted">
+              {ui.t("page_work")}
+            </p>
           ) : null}
+
+          {name ? <h1 className="mt-6 text-hero text-fg">{name}</h1> : null}
 
           {/*
             The tagline states a position. It is the largest line after the
@@ -67,31 +90,39 @@ export default async function Landing({
             <p className="mt-6 text-lead text-fg-body">{tagline}</p>
           ) : null}
 
-          {/* Intent. */}
           {intro ? (
             <p className="mt-5 max-w-measure-lead text-body text-fg-body">{intro}</p>
           ) : null}
 
-          {/*
-            Domain. The Arabic runs longer than the English here and is
-            expected to wrap to two lines on a narrow screen; `text-wrap: pretty`
-            and the measure cap keep that from becoming a ragged block.
-          */}
           {description ? (
             <p className="mt-3 max-w-measure-lead text-body text-fg-muted">
               {description}
             </p>
           ) : null}
 
-          {/* The single way in. */}
-          {workLabel ? (
-            <Link
-              href={`/${l}/work`}
-              className="mt-10 inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
-            >
-              {workLabel}
-            </Link>
-          ) : null}
+          <div className="mt-10 flex flex-wrap gap-3">
+            {workLabel ? (
+              <Link
+                href={`/${l}/work`}
+                className="inline-flex h-control-h items-center gap-2 rounded-control border border-fg bg-fg px-5 text-ui text-bg transition-opacity hover:opacity-85"
+              >
+                {workLabel}
+                <span aria-hidden="true" className="rtl:rotate-180">
+                  →
+                </span>
+              </Link>
+            ) : null}
+
+            {contactLabel ? (
+              <Link
+                href={`/${l}/contact`}
+                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+              >
+                {contactLabel}
+              </Link>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

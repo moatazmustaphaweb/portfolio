@@ -1,7 +1,4 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import localFont from "next/font/local";
-import Script from "next/script";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
@@ -15,66 +12,6 @@ import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
-
-import "../globals.css";
-
-/*
- * LATIN — Geist for everything, Geist Mono for metadata only. Unchanged.
- * ARABIC — LANTX for headings, Meral Sans for body (decision 045, closing
- * open question F). Both self-hosted from app/fonts as woff2; no CDN.
- */
-const geist = Geist({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-geist",
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-geist-mono",
-  display: "swap",
-});
-
-/*
- * LANTX — Arabic headings. One weight, by design: it is a display face, and
- * the file ships Regular only.
- *
- * `adjustFontFallback: false` and the single 400 declaration matter together.
- * Headings are `font-weight: 600` sitewide, and a browser asked for 600 from a
- * 400-only family SYNTHESISES it by smearing the outlines. On Arabic that
- * wrecks the joins between letters, which is where the whole letterform lives.
- * `font-synthesis-weight: none` in globals.css refuses that, and the Arabic
- * heading hierarchy comes from size instead — which is how Arabic display
- * faces are normally used.
- */
-const lantx = localFont({
-  src: [{ path: "../fonts/LANTX-Regular.woff2", weight: "400", style: "normal" }],
-  variable: "--font-lantx",
-  display: "swap",
-  adjustFontFallback: false,
-});
-
-/*
- * Meral Sans — Arabic body. Four weights, matching the three the type scale
- * asks for (400/500/600) plus 700 for `<strong>`.
- *
- * The remaining five weights in /fonts (thin, extralight, light, extrabold,
- * black) are deliberately not shipped: nothing in the scale requests them, and
- * each is another ~23 KB on every Arabic page.
- */
-const meralSans = localFont({
-  src: [
-    { path: "../fonts/MeralSans-Regular.woff2", weight: "400", style: "normal" },
-    { path: "../fonts/MeralSans-Medium.woff2", weight: "500", style: "normal" },
-    { path: "../fonts/MeralSans-SemiBold.woff2", weight: "600", style: "normal" },
-    { path: "../fonts/MeralSans-Bold.woff2", weight: "700", style: "normal" },
-  ],
-  variable: "--font-meral",
-  display: "swap",
-  adjustFontFallback: false,
-});
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -120,12 +57,6 @@ export async function generateMetadata({
   };
 }
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  colorScheme: "dark light",
-};
-
 /*
  * Runs before first paint. Applies data-theme only for an explicit stored
  * choice, so the CSS media query keeps handling the OS default, and creates the
@@ -150,29 +81,17 @@ export default async function LocaleLayout({
   const typedLocale = locale as Locale;
   const ui = await getUiStrings(typedLocale);
 
-  /*
-   * dir is set once, here, from the locale segment. No component reads or sets
-   * direction — everything below uses logical properties, so the whole tree
-   * mirrors from this single attribute.
-   */
-  const dir = typedLocale === "ar" ? "rtl" : "ltr";
-
   // Read on the server so the value is inlined; the banner is suppressed
   // entirely when GA is not configured.
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
+  /*
+   * <html> and <body> live in app/layout.tsx now. They had to move: without a
+   * root layout, notFound() had no boundary that rendered a document and fell
+   * through to Next's built-in error shell. See that file.
+   */
   return (
-    <html
-      lang={typedLocale}
-      dir={dir}
-      className={`${geist.variable} ${geistMono.variable} ${lantx.variable} ${meralSans.variable}`}
-      suppressHydrationWarning
-    >
-      <body className="flex min-h-screen flex-col">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {THEME_INIT}
-        </Script>
-
+    <>
         <PersonJsonLd locale={typedLocale} />
 
         {/*
@@ -211,7 +130,6 @@ export default async function LocaleLayout({
             decline={ui.t("consent_decline")}
           />
         </NextIntlClientProvider>
-      </body>
-    </html>
+    </>
   );
 }
