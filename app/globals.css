@@ -139,14 +139,18 @@
   --control-h: 44px;
 
   /*
-   * ⚠️ 32px, and therefore still under the 44px rule. Used by ThemeToggle,
-   * LocaleSwitch and the gallery filter chips — all interactive.
+   * 32px, and DELIBERATELY not raised. Decided 2026-08-13.
    *
-   * Not simply raised to 44px: that would erase the distinction between the
-   * two control sizes and inflate the header. The correct fix keeps the
-   * visual height and extends the HIT AREA to 44px with a transparent
-   * pseudo-element (WCAG 2.5.8 permits this). Left as a flagged decision
-   * rather than a unilateral restyle of the site chrome — see docs/status.md.
+   * Used by ThemeToggle, LocaleSwitch, the gallery filter chips and tags. The
+   * size distinction between a primary action and a chrome control is
+   * intentional: raising these to 44px would flatten that hierarchy and grow
+   * the header, which is the opposite of what a quiet, dense interface wants.
+   *
+   * No transparent hit-area extension either — it was considered and
+   * rejected. These are secondary controls with a keyboard route and, in the
+   * case of the locale switch, a duplicate in the footer.
+   *
+   * The 44px rule applies to `--control-h`, which every primary action uses.
    */
   --control-h-sm: 32px;
 
