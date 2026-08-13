@@ -145,6 +145,13 @@
 
 ---
 
+
+### Design rebuild — outstanding
+- [ ] 🔴 **Visual pass, both locales** — never done. The connected Chrome cannot reach the local server (localhost, 127.0.0.1 and the LAN IP all fail while curl gets 200). Everything is DOM-verified only. `npm run fresh`, then look
+- [ ] 🔴 **`--control-h` is 40px; the design mandates 44px** — `Accessibility.dc.html` states "Minimum 44px targets" and `ConsentBanner.dc.html` specs 44px buttons. Only the consent buttons were raised. Changing the token moves every control on the site — Moataz's call
+- [ ] **Systems direction** — Direction B (essay) is built because the content supports it. Direction A (documentation) needs a token table, component inventory and changelog that do not exist as content
+- [ ] **404 `<html lang>`/`dir` for in-route notFound()** — copy and chrome are correct; the wrapper is Next's error shell. `dynamicParams = false` did not fix it. Mitigated by setting lang/dir on the page's own wrapper
+
 ### Content gaps — not blocking, need writing
 - [ ] **Cover images** — `media` is empty, so the NDA grayscale contrast on the gallery is invisible. Upload one cover per case file and set `case_files.cover_media_id`
 - [x] **UAE outcomes** — ✅ your `[achieved]` markers synced. 4 outcomes; gallery card and cover strip both carry them

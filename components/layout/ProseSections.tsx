@@ -23,7 +23,7 @@ export function ProseSections({
 }: {
   intro?: string;
   sections: PageSection[];
-  variant?: "plain" | "comparison";
+  variant?: "plain" | "comparison" | "accessibility";
 }) {
   const usable = sections.filter((s) => s.fields.body);
   const prose = usable.filter((s) => s.kind !== "table");
@@ -45,6 +45,37 @@ export function ProseSections({
       {usable.map((section) => {
         if (section.kind === "table") {
           return <SectionTable key={section.id} body={section.fields.body!} />;
+        }
+
+        /*
+         * Accessibility: numbered sections, the number in its own column and
+         * the body indented to align under the heading. Thirteen sections is
+         * too many to navigate by scrolling, which is why this page — unlike
+         * Philosophy — gets a contents rail beside it.
+         */
+        if (variant === "accessibility") {
+          const n = prose.indexOf(section) + 1;
+          return (
+            <section
+              key={section.id}
+              id={section.slug}
+              className="scroll-mt-18 border-t border-DEFAULT py-10"
+            >
+              <div className="flex items-baseline gap-4">
+                <span className="min-w-6 font-mono text-micro text-fg-dim">
+                  {String(n).padStart(2, "0")}
+                </span>
+                {section.fields.heading ? (
+                  <h2 className="max-w-measure text-h3 text-fg">
+                    {section.fields.heading}
+                  </h2>
+                ) : null}
+              </div>
+              <p className="mt-4 max-w-measure whitespace-pre-line text-body text-fg-body sm:ps-10">
+                {section.fields.body}
+              </p>
+            </section>
+          );
         }
 
         /* The governing rule — the loudest thing on a comparison page. */

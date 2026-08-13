@@ -28,9 +28,21 @@ export default async function NotFound() {
   ]);
 
   const name = settings.get("name");
+  const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <>
+    /*
+     * `lang` and `dir` are set HERE, on the page's own wrapper, not left to
+     * <html>. For an unmatched URL the root layout supplies them correctly —
+     * but when notFound() is thrown from inside a route, Next renders this
+     * content in its own error shell, and that shell carries neither
+     * attribute. Setting them on the wrapper means the Arabic 404 still
+     * mirrors and a screen reader still switches voice in both cases.
+     *
+     * See docs/status.md: the shell itself is Next behaviour I could not
+     * change by composition, and dynamicParams = false did not fix it.
+     */
+    <div lang={locale} dir={dir} className="flex flex-1 flex-col">
       {/*
         A reduced header. The full SiteHeader lives in the locale layout, which
         is not above this boundary — and the design draws a simplified,
@@ -104,6 +116,6 @@ export default async function NotFound() {
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }
