@@ -10,7 +10,7 @@
 
 ## THE LANGUAGE IN ONE PARAGRAPH
 
-Quiet, dense, technical. Dark by default. Hierarchy comes from **size, weight, and a three-step text-colour ramp** — not from rules, fills, or decoration. Surfaces are separated by 1px hairlines, never by shadow. One accent blue, used sparingly and never as the only signal. Monospace is reserved for metadata: labels, kickers, timestamps, role lines. Type is tightly tracked at display sizes and set loose for reading. Nothing moves except a 150ms colour or border transition.
+Quiet, dense, technical. Dark by default. Hierarchy comes from **size, weight, and a three-step text-colour ramp** — not from rules, fills, or decoration. Surfaces are separated by 1px hairlines, never by shadow. One accent blue, used sparingly and never as the only signal. Monospace is reserved for metadata: labels, kickers, timestamps, role lines. Type is tightly tracked at display sizes and set loose for reading. Nothing moves except a 150ms colour or border transition — true of MVP-1 entirely, and true of every content-level component permanently. Motion beyond that belongs to the Motion Layer, which is a layer beneath the content, not a property of it. See MOTION.
 
 ---
 
@@ -196,14 +196,56 @@ The fix belongs here, not in shorter Arabic: those translations are correct
 
 ## MOTION
 
+### State changes — MVP-1, unchanged
+
 ```
 --duration: 150ms
 --ease: ease
 ```
 
-Only `color`, `background-color`, `border-color`, and `opacity` transition. **Never** `transform`, `width`, `height`, or `box-shadow`. Per decision 023, MVP-1 has no animation, no scroll effects, and no entrance transitions — only these hover/focus state changes.
+Only `color`, `background-color`, `border-color`, and `opacity` transition. **Never** `width`, `height`, or `box-shadow`. Per decision 023, MVP-1 has no animation, no scroll effects, and no entrance transitions — only these hover/focus state changes.
 
-**`prefers-reduced-motion: reduce`** → `--duration: 0ms`, and `scroll-behavior: auto`. Implemented as a token override so no component needs its own media query.
+This is the whole of MVP-1's motion and it does not move. Decision 047 scopes 023 to MVP-1 and permits the Motion Layer after the launch gate; that changes what may exist *later*, not one value above.
+
+### `transform` — scoped to a layer, not forbidden
+
+This section originally forbade `transform` outright. That rule predates the Motion Layer, whose camera is composited entirely from `transform` — as written it forbade the layer. Decision 048 re-scopes it:
+
+| | `transform` |
+|---|---|
+| **Camera and field layers** of the Motion Layer (`docs/design/motion-system.md` §2–§3) | **Permitted.** With `opacity`, the only properties either layer may animate — never `width`, `height`, `top`, `left`, or anything else that triggers layout |
+| **Content-level components** — cards, rows, buttons, images, headings, every component in `components/` | **Forbidden.** In MVP-1 and after it |
+
+**The boundary is the layer, not the phase.** Nothing in MVP-1 transforms, because nothing in MVP-1 is a camera. When the Motion Layer ships, content-level components still do not transform; the camera transforms the containers they sit in. A component that wants to move is asking for the camera, and the answer is the camera.
+
+### Navigation durations — the Motion Layer scale
+
+A single `--duration: 150ms` cannot express a camera move. One duration and one easing per move in the closed grammar of `docs/design/motion-system.md` §3.2, timed per §3.4:
+
+```
+--duration-nav-pan:       600ms    --ease-nav-pan:       ease-in-out
+--duration-nav-zoom-in:   800ms    --ease-nav-zoom-in:   ease-out
+--duration-nav-zoom-out:  700ms    --ease-nav-zoom-out:  ease-in-out
+--duration-nav-lift:      500ms    --ease-nav-lift:      ease-in-out
+```
+
+Named for the move, not the number — `--duration-nav-zoom-in`, never `--duration-800`. A token that survives a retiming, per the naming rule in OUTPUT.
+
+**The values are the midpoints of §3.4's ranges** (pan 500–700, zoom in 700–900, zoom out 600–800, lift 500 flat), which are tuning windows, not settled numbers. Retuning inside a window is a token edit. Leaving one is a decision.
+
+> ⚠️ **900ms is a hard ceiling.** No navigation token may exceed it — not at a breakpoint, not in a theme, not for one move that "needs room". `--duration-nav-zoom-in` sits 100ms below it and is the only one close. Motion that makes a visitor wait for content is a failure regardless of how good it looks (`motion-system.md` §3.4, rule 5).
+
+Easings are the CSS keywords, matching `--ease` above. Bespoke `cubic-bezier()` curves are not introduced here because none has been measured; §3.4 specifies curve *character* (symmetric, decelerating into rest), not coefficients. If a prototype earns a custom curve, it replaces the keyword in the token — no component writes its own.
+
+**Inert until the layer ships.** These tokens are declared so the scale exists in one place and reduced-motion can zero it uniformly. Nothing in MVP-1 reads them, and defining them is not permission to use them — the Motion Layer is behind its feature flag and gated on the launch gate (decision 047).
+
+### Reduced motion
+
+**`prefers-reduced-motion: reduce`** → `--duration: 0ms`, **every `--duration-nav-*: 0ms`**, and `scroll-behavior: auto`. Implemented as a token override so no component needs its own media query — the same mechanism that zeroes `--duration` today, extended to the navigation scale rather than duplicated per move.
+
+Zeroing the navigation durations is precisely what turns every move into the **Cut** of `motion-system.md` §3.2. Easing tokens are left alone: a zero-duration transition never samples its curve.
+
+The token override is necessary but not sufficient for the Motion Layer — §10 requires the field to stop drifting, images to render directly, and count-ups and pulses not to run. Those are the layer's own responsibility, and the user-facing motion toggle (§10) must resolve to the same state as the OS preference, through these same tokens.
 
 ## FOCUS
 
