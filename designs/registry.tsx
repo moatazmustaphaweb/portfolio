@@ -78,25 +78,26 @@ const COVERS: Record<string, (size: CoverSize) => ReactElement> = {
   ),
 
   /*
-   * UAE Acquisition — a biometric identity portrait, from Moataz's written
-   * brief (2026-08-14). EFR — Emirates Face Recognition — is a real biometric
-   * check in the UAE onboarding journey, confirmed by Moataz; the subject is
-   * settled. UAE is nda = true and decision 050 applies: the artwork depicts
-   * the programme from tokens and reproduces no screen, so it has no NDA
-   * surface, and the badge on the card carries the NDA signal.
+   * UAE Acquisition — a digital-identity portrait, from Moataz's second brief
+   * (2026-08-14, superseding the frontal capture-viewfinder version from the
+   * same day). A left-facing profile built from dots, mesh and nodes, one
+   * glowing eye as the focal point, a circuit network dissolving out of the
+   * back of the head. UAE is nda = true and decision 050 applies: the artwork
+   * depicts the programme from tokens and reproduces no screen, so it has no
+   * NDA surface, and the badge on the card carries the NDA signal.
    *
-   * "EFR" stays Latin in both locales — the KYC/OTP/NDA category. The spelt-
-   * out name lives here in the description, which resolves through
-   * translations next pass like every other string; it is never baked into
-   * the artwork.
+   * The brief's cyan/violet palette was adapted to tokens, as every cover's
+   * palette is (decision 049) — the ramp carries the depth and the accent
+   * appears once, on the eye. No text in the artwork; Emirates Face
+   * Recognition lives here in the description, which resolves through
+   * translations next pass.
    */
   "uae-acquisition": () => (
     <UaeAcquisitionCover
       className="h-auto w-full"
       uid="uae-acquisition-cover"
-      tag="EFR"
-      alt="UAE Acquisition — biometric identity portrait"
-      description="A frontal human head rendered as a point cloud — a few hundred dots, denser where the features sit, sparser at the edges of the form, the way a depth camera captures a face. Faint construction lines cross at the bridge of the nose, where a single accent ring marks the point the capture fixes on. Four corner brackets frame the head like a viewfinder, tagged EFR — Emirates Face Recognition, the biometric check in the UAE onboarding journey."
+      alt="UAE Acquisition — digital identity portrait"
+      description="A left-facing human profile built from more than a thousand small dots, overlaid with a fine network mesh whose nodes follow the anatomy of the face. A single glowing eye is the focal point. From the back of the head a printed-circuit network of right-angled traces branches outward and gradually dissolves into a field of drifting particles, with four small outline padlocks floating in the space around the figure — identity, read by machines, held securely."
     />
   ),
 };
