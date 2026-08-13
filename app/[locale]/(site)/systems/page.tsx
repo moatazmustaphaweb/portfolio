@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getChapter } from "@/lib/content/chapters";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
+import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -32,6 +33,29 @@ import type { Locale } from "@/lib/content/types";
  * See lib/content/revalidate.ts for why 300.
  */
 export const revalidate = 300;
+
+/**
+ * The page's own lede becomes its preview description — the first real
+ * sentence of the page, not the site-wide tagline.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const l = locale as Locale;
+  const [{ intro }, ui] = await Promise.all([
+    getPageSections("systems", l),
+    getUiStrings(l),
+  ]);
+  return pageMetadata({
+    locale: l,
+    path: "/systems",
+    title: ui.t("page_systems"),
+    description: intro,
+  });
+}
 
 /**
  * The chapters this page offers as evidence, in the order its argument makes

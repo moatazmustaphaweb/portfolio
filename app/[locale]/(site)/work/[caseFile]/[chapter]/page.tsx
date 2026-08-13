@@ -7,6 +7,7 @@ import { ProseSections } from "@/components/layout/ProseSections";
 import { getChapter, listChapterParams } from "@/lib/content/chapters";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
+import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -51,6 +52,26 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return listChapterParams();
+}
+
+/**
+ * The objective is the chapter's headline, so it is the title; the context is
+ * its opening argument, so it is the description.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; caseFile: string; chapter: string }>;
+}) {
+  const { locale, caseFile, chapter } = await params;
+  const l = locale as Locale;
+  const detail = await getChapter(caseFile, chapter, l);
+  return pageMetadata({
+    locale: l,
+    path: `/work/${caseFile}/${chapter}`,
+    title: detail?.fields.title,
+    description: detail?.fields.objective ?? detail?.fields.context,
+  });
 }
 
 export default async function Chapter({

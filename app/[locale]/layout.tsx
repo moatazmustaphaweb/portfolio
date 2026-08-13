@@ -57,14 +57,6 @@ export async function generateMetadata({
   };
 }
 
-/*
- * Runs before first paint. Applies data-theme only for an explicit stored
- * choice, so the CSS media query keeps handling the OS default, and creates the
- * theme-color meta so mobile browser chrome matches from the first frame.
- * Dark is the default; light is used only when the OS asks for it.
- */
-const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');var explicit=(t==='light'||t==='dark');if(explicit)document.documentElement.setAttribute('data-theme',t);var light=explicit?(t==='light'):window.matchMedia('(prefers-color-scheme: light)').matches;var m=document.createElement('meta');m.name='theme-color';m.content=light?'#ffffff':'#000000';document.head.appendChild(m);}catch(e){}})();`;
-
 export default async function LocaleLayout({
   children,
   params,

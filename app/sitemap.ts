@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 
-import { listCaseFiles } from "@/lib/content/case-files";
+import {
+  listCaseFiles,
+  listCaseFileSlugsWithTargets,
+} from "@/lib/content/case-files";
 import { listChapterParams } from "@/lib/content/chapters";
 import { LOCALES, type Locale } from "@/lib/content/types";
 import { siteUrl } from "@/lib/seo/site";
@@ -19,7 +22,14 @@ import { siteUrl } from "@/lib/seo/site";
  */
 
 /** Static routes that exist for every locale. */
-const STATIC_ROUTES = ["", "/work", "/systems", "/about", "/contact"] as const;
+const STATIC_ROUTES = [
+  "",
+  "/work",
+  "/systems",
+  "/about",
+  "/about/philosophy",
+  "/contact",
+] as const;
 
 function entry(
   path: string,
@@ -40,9 +50,10 @@ function entry(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [caseFiles, chapters] = await Promise.all([
+  const [caseFiles, chapters, withTargets] = await Promise.all([
     listCaseFiles(LOCALES[0]),
     listChapterParams(),
+    listCaseFileSlugsWithTargets(),
   ]);
 
   return [
@@ -53,5 +64,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...chapters.map((c) =>
       entry(`/work/${c.caseFile}/${c.chapter}`, "monthly", 0.7),
     ),
+
+    /*
+     * The two route families the sitemap was missing. Both are real pages a
+     * crawler should reach: the linear view is the printable whole-case-file
+     * read, and the results table is where the metric discipline actually
+     * lives. `/results` is emitted only for case files that declare targets —
+     * the same list `generateStaticParams` uses, so the sitemap cannot list a
+     * URL that 404s.
+     */
+    ...caseFiles.map((cf) => entry(`/work/${cf.slug}/all`, "monthly", 0.6)),
+    ...withTargets.map((slug) => entry(`/work/${slug}/results`, "monthly", 0.7)),
   ];
 }

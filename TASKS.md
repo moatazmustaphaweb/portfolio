@@ -43,7 +43,7 @@
 ### 0.1 Repo & environment
 - [x] `create-next-app` — TypeScript, App Router, Tailwind *(ESLint not installed — add)*
 - [x] Verify `.gitignore` covers `.env*.local` **before first commit** — covered by `.env*`
-- [ ] Add ESLint
+- [x] Add ESLint — `eslint.config.mjs`, flat config. Found a duplicate `THEME_INIT` left by the layout split on its first run
 - [ ] Create `.env.local` with all keys (see `docs/conventions.md` for the list)
 - [ ] Connect Vercel to the repo; add the same env vars in Vercel
 - [ ] First deploy succeeds
@@ -146,9 +146,15 @@
 ---
 
 
+- [x] **Per-page metadata** — `lib/seo/metadata.ts`; title, description, canonical and language alternates per page. A shared case-file link now names the case file
+- [x] **Sitemap** — 22 → 29 URLs; `/about/philosophy`, the four `/all` views and the two `/results` tables added
+- [x] **`NEXT_PUBLIC_SITE_URL`** — the helper was already correct; a production build now warns loudly when it falls back to localhost. Resolves itself at deploy
+- [ ] **3 ESLint errors, all `react-hooks/set-state-in-effect`** — ConsentBanner, GoogleAnalytics, ThemeToggle. Behaviour is correct; the fix is `useSyncExternalStore` and is a refactor of hydration-sensitive components that needs a browser to verify
+
 ### Design rebuild — outstanding
-- [ ] 🔴 **Visual pass, both locales** — never done. The connected Chrome cannot reach the local server (localhost, 127.0.0.1 and the LAN IP all fail while curl gets 200). Everything is DOM-verified only. `npm run fresh`, then look
-- [ ] 🔴 **`--control-h` is 40px; the design mandates 44px** — `Accessibility.dc.html` states "Minimum 44px targets" and `ConsentBanner.dc.html` specs 44px buttons. Only the consent buttons were raised. Changing the token moves every control on the site — Moataz's call
+- [ ] 🔵 **Visual pass, both locales — MOATAZ IS DOING THIS.** Three attempts failed: the connected Chrome cannot reach the local server. Everything remains DOM-verified only
+- [x] **`--control-h` raised to 44px** sitewide, per the rule the Accessibility page states
+- [ ] **`--control-h-sm` is still 32px** — ThemeToggle, LocaleSwitch and the gallery filter chips. Fix is a transparent pseudo-element extending the hit area to 44px without changing visual height (WCAG 2.5.8); flagged rather than restyling the chrome unilaterally
 - [ ] **Systems direction** — Direction B (essay) is built because the content supports it. Direction A (documentation) needs a token table, component inventory and changelog that do not exist as content
 - [ ] **404 `<html lang>`/`dir` for in-route notFound()** — copy and chrome are correct; the wrapper is Next's error shell. `dynamicParams = false` did not fix it. Mitigated by setting lang/dir on the page's own wrapper
 
