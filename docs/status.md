@@ -37,6 +37,90 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — Icons, seed drift closed, and a measurement that says no
+
+Four tasks. Three landed; the second produced a number that does not support its own premise, so it stopped where it was told to.
+
+### `theme_system` Arabic — approved
+
+`تلقائي` replaces `النظام`, in the database and in `0003_seed_site_chrome.sql` together. The red flag in `scripts/export-ui-strings.ts` is cleared and replaced with the reason the word is right: it describes the behaviour rather than naming the machine.
+
+### ⚠️ The icons did not fix the mobile header. Measured, not assumed.
+
+The theme control is now three Iconsax glyphs. It got **28% narrower — 187px → 134px**. The header at 320px did not move:
+
+| viewport | header height | rows |
+|---|---|---|
+| **320** | **183px** | **3** |
+| 360 · 390 | 137px | 3 |
+| 480 · 640 | 94px | 2 |
+
+**183px and three rows, exactly as before the change.** Because the theme control was never the binding constraint. At 320px the content box is 272px, and the three flex children measure:
+
+```
+brand    120px
+nav      243px   ← alone, 89% of the available width
+controls 272px   ← theme 134 + gap 12 + locale 130 = 276, so it wraps internally too
+```
+
+Even at **zero** width for the theme control, nav (243) + locale (130) + brand (120) = 493px against 272px available. The header cannot be one row at 320px with this content, and no icon set changes that. What would: fewer nav items, a narrower nav at small sizes, or dropping the locale switch out of the header — all of which are design decisions, not implementation ones.
+
+**Stopped here as instructed.** No scroll behaviour was added: a hide-on-scroll header is a scroll effect and a `transform`, forbidden by decision 023 and by the transform scoping in decision 048, and it would need a logged decision first.
+
+### 🔴 The sun icon was wrong, and only looking caught it
+
+First build used Iconsax **`Sun`**. At 20px its twelve long rays sit close to a small centre disc and collapse into a dense cluster that **reads as a snowflake** — not merely unclear, the wrong meaning entirely: frost, on a control that means daylight.
+
+Swapped to **`Sun1`**, a larger disc with eight detached round-capped ray dots, which survives the size. Both were verified by looking at the rendered control, which is the only thing that could have found it — the markup is equally valid either way.
+
+The three are `Autobrightness`, `Sun1`, `Moon`, Linear variant, paths inlined from the **MIT-licensed `iconsax-react`** package. **No dependency added.** `Autobrightness` earns the Auto slot on its own merits: it is a badge with a literal "A" in it, so it states the state rather than needing to be learned.
+
+Every stroke is `currentColor` — **zero hex literals**, confirmed in the served HTML in both locales. The icons inherit the button's ramp colour, so active/inactive/hover and both themes come free.
+
+### Accessibility did not get quieter
+
+| | |
+|---|---|
+| Accessible name | `aria-label` from `ui_strings` — `System / Light / Dark`, `تلقائي / فاتح / داكن`. The visible text went, the name did not |
+| Icons | `aria-hidden`, `focusable="false"` |
+| Keyboard | Unchanged from last session — arrows, Home/End, roving tabindex verified `[0, -1, -1]` |
+| Focus ring | Global `:focus-visible`, seen on screen |
+| **Touch target** | Visual **32×44**, target **44×44** — probes 5px above and below the visual button both resolve to the radio |
+
+The 44px comes from a transparent `::after` (`.tap-target-44`), the approach flagged in the tap-target audit and applied here for the first time. Two things it required:
+
+- **No `transform`.** Centring a pseudo-element normally means `translate(-50%)`, and transform is scoped to the Motion Layer (decision 048). Symmetric negative `inset-block` gets there without one.
+- **`overflow-hidden` had to go** from the group. It clips *hit-testing*, not only paint, so the target would have looked extended and silently not been. The end children round themselves with logical `rounded-s`/`rounded-e` instead, which also mirrors — verified in `/ar`, where Auto sits at the start edge on the right.
+
+### Seed drift: eleven → zero
+
+```
+Parsed 84 strings from migrations, 84 in the database.
+No drift. The migration files reproduce the database.
+```
+
+All eleven written into `0003_seed_site_chrome.sql`, **values copied from the live database rather than retyped**. A rebuild now reproduces the contact form's subject options, the CV link, and the cover and results-table headings — previously it would have dropped them silently, leaving unlabelled controls and a subject field with no options.
+
+> 🔴 **All eleven Arabic values are unreviewed — every one of them.** The review pass in `docs/ui-strings-review.md` is dated **2026-08-11** and covered 52 strings; all eleven were written on **2026-08-12**, the day after, and none carried a flag. They are in the migration so a rebuild is faithful, which is a different question from whether the wording is right. Flagged individually in `export-ui-strings.ts`, with specific doubts on three:
+>
+> | key | Arabic | doubt |
+> |---|---|---|
+> | `form_subject_speaking` | مشاركة أو كتابة | `مشاركة` can read as *participation* rather than *speaking* |
+> | `sibling_case_files` | ملفات شقيقة | literal rendering of *sibling*; check it does not read biological |
+> | `status_label` | الحالة | a column header that must not collide with the `status_*` values below it |
+>
+> The other eight are unreviewed rather than suspect.
+
+### The pre-paint script was not touched
+
+Left exactly as it was, per instruction. The unproven flash stays unproven and stays pre-existing.
+
+### Verified
+
+Build, typecheck and ESLint exit 0. Twelve routes checked in a production build — ten 200s and the two intended 404s. Icons and their Arabic names confirmed in the served HTML for both locales. The control looked at in **dark and light**, and in **`/ar`**, where it mirrors.
+
+---
+
 ## 2026-08-13 — The RTL launch blocker, the cover frame, and a three-state theme
 
 Three tasks. The middle one was a launch blocker and your lead on it was exactly right.

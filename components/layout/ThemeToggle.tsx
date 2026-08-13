@@ -1,7 +1,12 @@
 "use client";
 
-import { useRef, useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore, type ReactElement } from "react";
 
+import {
+  AutoThemeIcon,
+  DarkThemeIcon,
+  LightThemeIcon,
+} from "@/components/layout/ThemeIcons";
 import {
   getChoiceServerSnapshot,
   getChoiceSnapshot,
@@ -55,11 +60,13 @@ export function ThemeToggle({
 
   const options = (
     [
-      { value: "system", label: labels.system },
-      { value: "light", label: labels.light },
-      { value: "dark", label: labels.dark },
-    ] as { value: ThemeChoice; label?: string }[]
-  ).filter((o): o is { value: ThemeChoice; label: string } => Boolean(o.label));
+      { value: "system", label: labels.system, Icon: AutoThemeIcon },
+      { value: "light", label: labels.light, Icon: LightThemeIcon },
+      { value: "dark", label: labels.dark, Icon: DarkThemeIcon },
+    ] as { value: ThemeChoice; label?: string; Icon: (p: { className?: string }) => ReactElement }[]
+  ).filter((o): o is { value: ThemeChoice; label: string; Icon: (p: { className?: string }) => ReactElement } =>
+    Boolean(o.label),
+  );
 
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const checkedIndex = options.findIndex((o) => o.value === choice);
@@ -91,9 +98,15 @@ export function ThemeToggle({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className="flex overflow-hidden rounded-control border border-DEFAULT"
+      /*
+        NOT `overflow-hidden`. It would clip the 44px hit area — and clip
+        hit-testing, not just paint, so the target would look extended and
+        silently not be. The end children round themselves instead, with
+        logical `rounded-s`/`rounded-e` so it mirrors.
+      */
+      className="flex rounded-control border border-DEFAULT"
     >
-      {options.map(({ value, label }, index) => {
+      {options.map(({ value, label, Icon }, index) => {
         /*
           `choice` is null until the browser answers — the server cannot know
           it. Nothing is marked selected during SSR and hydration, which is the
@@ -116,14 +129,22 @@ export function ThemeToggle({
             tabIndex={index === (checkedIndex === -1 ? 0 : checkedIndex) ? 0 : -1}
             onClick={() => setThemeChoice(value)}
             onKeyDown={(event) => onKeyDown(event, index)}
+            /*
+              The visible text is gone; the accessible name is not. It is the
+              same `ui_strings` value the label used, so the control is still
+              named from the database in both locales (rule 1) — an icon does
+              not get to be quieter than the word it replaced.
+            */
+            aria-label={label}
             className={[
-              "flex h-control-h-sm items-center px-3 text-ui transition-colors",
+              "tap-target-44 flex h-control-h-sm items-center px-3 transition-colors",
+              "first:rounded-s-control last:rounded-e-control",
               isActive
                 ? "bg-surface-raised text-fg"
                 : "text-fg-dim hover:text-fg",
             ].join(" ")}
           >
-            {label}
+            <Icon className="h-5 w-5" />
           </button>
         );
       })}

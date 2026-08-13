@@ -53,8 +53,28 @@ const NOTES: Record<string, string> = {
   consent_accept: "⚠️ Review — must read as clearly as the decline",
   consent_decline: "⚠️ Review — must not read as softer than accept",
 
-  // Added 2026-08-13 with the three-state theme control. NOT APPROVED.
-  theme_system: "🔴 **Not reviewed** — `النظام` is my rendering, not Moataz's. It is the default state's label, so it is on screen for every Arabic visitor who never touches the control. Check it reads as *the device's setting* rather than *the system* in the abstract",
+  // Added 2026-08-13 with the three-state theme control; Arabic approved the
+  // same day. `تلقائي` — "automatic" — describes the behaviour rather than
+  // naming the machine, which is what النظام did.
+  theme_system: "Approved 2026-08-13 — `تلقائي` describes the behaviour, not the device",
+
+  // Added 2026-08-12, the day AFTER the review pass, and never reviewed. They
+  // were also missing from the seed until 2026-08-13; the migration now carries
+  // them so a rebuild is faithful, which is a separate question from whether
+  // the wording is right.
+  form_subject: "🔴 Not reviewed — added after the 2026-08-11 pass",
+  form_subject_hiring: "🔴 Not reviewed — added after the 2026-08-11 pass",
+  form_subject_project: "🔴 Not reviewed — added after the 2026-08-11 pass",
+  form_subject_speaking: "🔴 Not reviewed — `مشاركة` can read as *participation* rather than *speaking*; check against the intent",
+  form_subject_other: "🔴 Not reviewed — added after the 2026-08-11 pass",
+  form_message_placeholder:
+    "🔴 Not reviewed — longest unreviewed string, and it sets the tone of the contact form",
+  download_cv: "🔴 Not reviewed — also the longest control label; see `--control-min-w`",
+  entry_handles_heading: "🔴 Not reviewed — added after the 2026-08-11 pass",
+  sibling_case_files:
+    "🔴 Not reviewed — `ملفات شقيقة` is a literal rendering of *sibling*; check it does not read biological",
+  results_table: "🔴 Not reviewed — added after the 2026-08-11 pass",
+  status_label: "🔴 Not reviewed — `الحالة` is a table column header, so it must not collide with `status_*` values",
 
   // Open: layout constraints, not translation problems.
   form_sending: "⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction",
