@@ -1,102 +1,283 @@
 /**
  * Case File Cover — Egypt Acquisition (Web).
  *
- * Adapted from `Case File Cover - Egypt Acquisition (Web).dc.html` in Claude
- * Design project 3e8bfb82. The reference is a source, not a target: what
- * carries over is the schematic language — monospace, hairline plates, corner
- * registration marks, a banded system map. What does not carry over is
- * documented at the bottom of this file and in docs/decisions.md.
+ * Rebuilt from `Case File Cover - Egypt Acquisition (Web).dc.html` in Claude
+ * Design project 3e8bfb82, reproducing its matrix exactly.
  *
- * WHY THIS IS A COMPONENT AND NOT A CLOUDINARY ASSET
- * An SVG inside an <img> is an isolated document. It cannot read the page's
- * CSS, so no --color-* variable resolves and the artwork cannot follow the
- * theme. Token binding and Cloudinary delivery are mutually exclusive, and
- * token binding won. The markup therefore has to be *in* the page — which is
- * what a React component gives us, with no build plugin and no new dependency.
+ * WHAT THIS IS. A visual depiction of the programme's system landscape — a
+ * 2×6 matrix of two system bands against six delivery phases. The plate spans
+ * ARE the information: they show which system operates across which phases,
+ * and where systems overlap. It is not a map of published chapters, not a
+ * navigation surface, and not a rendering of database rows. The labels
+ * describe the real programme and are Moataz's to state.
  *
- * EVERY COLOUR IS A TOKEN. There is not one hex literal below. The artwork
- * inverts with the theme because the tokens do, with no JavaScript and no
- * second light-mode file.
+ * WHY A COMPONENT AND NOT A CLOUDINARY ASSET. An SVG inside an <img> is an
+ * isolated document. It cannot read the page's CSS, so no --color-* resolves
+ * and the artwork cannot follow the theme. Token binding and Cloudinary
+ * delivery are mutually exclusive, and token binding won (decision 049).
  *
- * NO TEXT IS HARDCODED. Every string arrives as a prop (rule 1). The Arabic
- * pass is therefore a call-site change and never touches this file.
+ * EVERY COLOUR IS A TOKEN — not one hex literal below. The reference's four
+ * signal hues (#B8453D #C9772F #C9A83A #5FA84B) do not enter the repo; they
+ * are carried by the four-step text ramp instead, with the accent used once.
+ *
+ * NO STRING IS HARDCODED. Title, phases, band labels, plate labels and the
+ * task marker are all props, so the Arabic pass is a call-site change that
+ * never opens this file.
  */
 
-/** One band of the map: a heading, and the two systems that sit under it. */
+export type CoverSize = "card" | "cover";
+
+/**
+ * Which way the phase axis runs.
+ *
+ * The matrix reads left-to-right by phase, and that does not survive
+ * dir="rtl" by reflection — an Arabic reader taking it as a timeline reads it
+ * backwards. "rtl" mirrors the column axis only: phase columns run
+ * right-to-left, plate spans mirror with them, the rail moves to the right,
+ * and TEXT IS NEVER MIRRORED. That is what an RTL Gantt looks like in Arabic
+ * tooling, and it is a pure coordinate change — same composition, no reflow.
+ *
+ * Defaults to "ltr". This pass renders English labels in both locales, so
+ * nothing depends on it yet; the choice lands with the Arabic pass.
+ */
+export type PhaseDirection = "ltr" | "rtl";
+
 export type CoverBand = {
-  /** e.g. "SYSTEM A — CUSTOMER-FACING". */
+  /** e.g. "SYSTEM A   CUSTOMER-FACING", set vertically down the rail. */
   label: string;
-  /** Exactly two. The geometry is fixed; see the note on reflow below. */
-  systems: readonly [string, string];
+  /** Labels in matrix order. The spans belong to the artwork, not the caller. */
+  plates: readonly string[];
 };
 
 export type EgyptAcquisitionCoverProps = {
-  /** The case file name, set across the top plate. */
   title: string;
-  /** Exactly two bands. */
+  /** The six phase columns, in order. */
+  phases: readonly [string, string, string, string, string, string];
+  /** Band A carries four plates, band B five. */
   bands: readonly [CoverBand, CoverBand];
-  /** The mono kicker repeated on every system plate, e.g. "//SYSTEM". */
-  systemKicker: string;
-  /** Accessible name for the whole artwork — what a screen reader announces. */
+  /** The mono marker on every plate, e.g. "//TASK". */
+  taskMarker: string;
+  /** Accessible name — what a screen reader announces. */
   alt: string;
-  /** Read after the name. What the diagram actually shows. */
+  /** Read after the name. What the matrix shows. */
   description: string;
-  /**
-   * Disambiguates the <title>/<desc> ids when more than one cover is on a
-   * page. Defaults to the slug this artwork belongs to.
-   */
+  size?: CoverSize;
+  phaseDirection?: PhaseDirection;
   uid?: string;
   className?: string;
 };
 
-/*
- * GEOMETRY — one coordinate system, fixed, 2:1.
- *
- * The viewBox is the entire responsive strategy: the artwork scales from a
- * 280px gallery card to a full-width cover without a single media query and
- * without reflowing into a second composition. At card size the type is below
- * reading size and the piece reads as a schematic texture; at cover width it
- * resolves into a legible map. That is exactly how the reference behaves — its
- * own runtime scales a 1600px board down to its container.
- *
- * SYMMETRY IS THE RTL STRATEGY. Every element is either centred or placed as
- * one of a mirror-image pair, so the composition is unchanged under
- * reflection. It does not need mirroring for /ar, which is what was asked for
- * — rather than being mirrored, it is built not to require it.
- */
+/* ─── geometry, all of it from the reference ─────────────────────────────── */
+
 const W = 1600;
-const H = 800;
-const PAD_X = 56;
-const INNER_W = W - PAD_X * 2; // 1488
+const PAD_X = 48;
+const PAD_TOP = 44;
+const PAD_BOTTOM = 56;
+const GAP = 14;
+const RAIL_W = 108;
+const BLOCK_GAP = 22; // the outer flex column's gap
 
-const TITLE_Y = 56;
-const TITLE_H = 112;
-const ACCENT_H = 3;
+const CONTENT_W = W - PAD_X * 2; // 1504
+/** 108px + repeat(6, minmax(0,1fr)), gap 14 → each phase column. */
+const COL_W = (CONTENT_W - RAIL_W - GAP * 6) / 6; // 218.667
+const RIGHT_EDGE = W - PAD_X; // 1552
 
-const LABEL_H = 48;
-const CARD_H = 156;
-const CARD_GAP = 24;
-const CARD_W = (INNER_W - CARD_GAP) / 2; // 732
-const CARD_X = [PAD_X, PAD_X + CARD_W + CARD_GAP] as const; // 56, 812
+/** Left edge of grid line n, where line 2 is the first phase column. */
+function lineX(n: number): number {
+  return PAD_X + RAIL_W + GAP + (n - 2) * (COL_W + GAP);
+}
 
-/** Top of each band's label plate, and of its pair of system plates. */
-const BAND_Y = [
-  { label: 200, cards: 272 },
-  { label: 512, cards: 584 },
+/** A CSS `grid-column: a / b` span, in user units. `b = 8` is `-1`. */
+function span(a: number, b: number): { x: number; w: number } {
+  const x = a === 1 ? PAD_X : lineX(a);
+  const right = b >= 8 ? RIGHT_EDGE : lineX(b) - GAP;
+  return { x, w: right - x };
+}
+
+const TITLE_H = 66;
+const TITLE_FS = 36;
+const TITLE_LS = 6;
+const TITLE_PAD = 26;
+
+const PHASE_H = 38;
+const PHASE_FS = 12;
+const PHASE_LS = 2.4;
+
+const BAND_TOP_MARGIN = 16;
+const DIVIDER_TOP = 14;
+const DIVIDER_BOTTOM = 2;
+
+const PLATE_PAD_TOP = 13;
+const PLATE_PAD_X = 18;
+const PLATE_PAD_BOTTOM = 17;
+const PLATE_INNER_GAP = 9;
+const META_H = 13;
+const MARKER_FS = 11;
+const MARKER_LS = 1.6;
+const PLATE_FS = 17;
+const PLATE_LS = 1.7;
+const PLATE_LINE_H = PLATE_FS * 1.4; // 23.8
+
+const CHIP_W = 10;
+const CHIP_H = 8;
+const CHIP_GAP = 4;
+/** skewX(-22deg): the bottom edge shifts left by h·tan(22°). */
+const CHIP_SKEW = CHIP_H * Math.tan((22 * Math.PI) / 180);
+
+/**
+ * Rail type is smaller than the reference's 13px/3.4. At 13/3.4 the longest
+ * band label runs ~291 units against a ~279-unit band height and overflows
+ * the rail it sits in. 12/2.8 fits with room.
+ */
+const RAIL_FS = 12;
+const RAIL_LS = 2.8;
+
+/** Geist Mono advance. Monospace makes character-count wrapping exact. */
+const MONO_ADVANCE = 0.6;
+
+/**
+ * THE ARTWORK SETS ITS OWN DIRECTION. It must not inherit the page's.
+ *
+ * Under dir="rtl" an SVG's text elements inherit the document direction, and
+ * two things break at once — invisibly, because the markup is byte-identical
+ * in both locales and only the rendering differs:
+ *
+ *   · `text-anchor="start"` means "start of the inline base direction", so
+ *     every label anchors to the wrong edge and overflows its plate.
+ *   · The Unicode bidi algorithm reorders neutral characters. "//TASK" renders
+ *     as "TASK//", "SIX SYSTEMS, LIVE" as ".SIX SYSTEMS", and "FULFILMENT &
+ *     AOF" as "& FULFILMENT AOF".
+ *
+ * `direction: ltr` makes the anchors deterministic; `unicode-bidi: isolate`
+ * (which does not inherit, so it goes on every text element) stops neutrals
+ * leaking between runs. The phase axis is mirrored by `phaseDirection` and by nothing
+ * else — layout direction is the artwork's decision, not the page's.
+ *
+ * ⚠️ When Arabic labels arrive, these want `unicode-bidi: plaintext` so each
+ * label takes its base direction from its own first strong character, with the
+ * anchor logic re-derived to match. That is a real follow-up, not a detail.
+ */
+const TEXT_BIDI = { unicodeBidi: "isolate" } as const;
+
+/* ─── the matrix ─────────────────────────────────────────────────────────────
+ *
+ * Spans, rows, chip counts and ramp steps are the artwork's own — the caller
+ * supplies labels in this order and nothing else. Positional, so a relabel
+ * (including the Arabic pass) cannot move a plate.
+ */
+type PlateSpec = {
+  /** grid-column start / end. */
+  a: number;
+  b: number;
+  /** 1-indexed grid row within the band. */
+  row: number;
+  /** Total chips, and how many are filled — the reference's faded last chip. */
+  chips: number;
+  filled: number;
+  /** Which step of the four-step text ramp the chips take. */
+  ramp: 0 | 1 | 2 | 3;
+  /** The one plate the accent marks. */
+  accent?: true;
+};
+
+const MATRIX: readonly (readonly PlateSpec[])[] = [
+  [
+    { a: 2, b: 4, row: 1, chips: 4, filled: 3, ramp: 0 },
+    { a: 3, b: 5, row: 2, chips: 3, filled: 2, ramp: 1 },
+    { a: 4, b: 7, row: 3, chips: 3, filled: 3, ramp: 2 },
+    { a: 7, b: 8, row: 1, chips: 2, filled: 1, ramp: 0 },
+  ],
+  [
+    { a: 2, b: 4, row: 1, chips: 4, filled: 3, ramp: 0 },
+    { a: 3, b: 5, row: 2, chips: 3, filled: 2, ramp: 1 },
+    { a: 4, b: 7, row: 3, chips: 3, filled: 3, ramp: 2 },
+    { a: 6, b: 7, row: 1, chips: 4, filled: 4, ramp: 3 },
+    { a: 7, b: 8, row: 1, chips: 2, filled: 1, ramp: 3, accent: true },
+  ],
+];
+
+const RAMP = [
+  "var(--color-fg)",
+  "var(--color-fg-body)",
+  "var(--color-fg-muted)",
+  "var(--color-fg-dim)",
 ] as const;
 
-const DIVIDER_Y = 470;
+/** Greedy wrap. Exact for the Latin monospace face; approximate for Arabic. */
+function wrapMono(text: string, boxWidth: number): string[] {
+  const advance = PLATE_FS * MONO_ADVANCE + PLATE_LS;
+  const max = Math.max(1, Math.floor((boxWidth - PLATE_PAD_X * 2 + PLATE_LS) / advance));
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length <= max || !line) line = next;
+    else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
 
-/** Corner registration marks — the reference draws these as "+" glyphs. Drawn
- *  as strokes here so they carry no font dependency into a raster export. */
-function Registration({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
-  const arm = 7;
-  const corners = [
-    [x, y],
-    [x + w, y],
-    [x, y + h],
-    [x + w, y + h],
-  ] as const;
+const plateHeight = (lines: number) =>
+  PLATE_PAD_TOP + META_H + PLATE_INNER_GAP + lines * PLATE_LINE_H + PLATE_PAD_BOTTOM;
+
+/* ─── layout ─────────────────────────────────────────────────────────────── */
+
+function layout(bands: readonly [CoverBand, CoverBand]) {
+  const bandRows = MATRIX.map((plates, b) => {
+    const rows = [0, 0, 0];
+    plates.forEach((p, i) => {
+      const label = bands[b].plates[i] ?? "";
+      const h = plateHeight(wrapMono(label, span(p.a, p.b).w).length);
+      rows[p.row - 1] = Math.max(rows[p.row - 1], h);
+    });
+    return rows;
+  });
+  const bandH = bandRows.map((r) => r[0] + GAP + r[1] + GAP + r[2]);
+
+  const titleY = PAD_TOP;
+  const phaseY = titleY + TITLE_H + BLOCK_GAP;
+  const bandAY = phaseY + PHASE_H + BLOCK_GAP + BAND_TOP_MARGIN;
+  const dividerY = bandAY + bandH[0] + BLOCK_GAP + DIVIDER_TOP;
+  const bandBY = dividerY + 1 + DIVIDER_BOTTOM + BLOCK_GAP;
+  const height = Math.round(bandBY + bandH[1] + PAD_BOTTOM);
+
+  return { bandRows, bandH, titleY, phaseY, bandY: [bandAY, bandBY], dividerY, height };
+}
+
+/* ─── pieces ─────────────────────────────────────────────────────────────── */
+
+/** The reference's corner "+" glyphs, drawn as strokes so a raster export
+ *  carries no font dependency. `two` renders only top-left and bottom-right,
+ *  which is what the phase cells use. */
+function Marks({
+  x,
+  y,
+  w,
+  h,
+  two,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  two?: boolean;
+}) {
+  const arm = 5;
+  const corners = two
+    ? ([
+        [x, y],
+        [x + w, y + h],
+      ] as const)
+    : ([
+        [x, y],
+        [x + w, y],
+        [x, y + h],
+        [x + w, y + h],
+      ] as const);
   return (
     <g stroke="var(--color-fg-dim)" strokeWidth={1}>
       {corners.map(([cx, cy]) => (
@@ -106,33 +287,46 @@ function Registration({ x, y, w, h }: { x: number; y: number; w: number; h: numb
   );
 }
 
-/** A hairline plate. One stroke weight, one surface step, no shadow. */
-function Plate({ x, y, w, h, raised }: { x: number; y: number; w: number; h: number; raised?: boolean }) {
-  return (
-    <rect
-      x={x}
-      y={y}
-      width={w}
-      height={h}
-      fill={raised ? "var(--color-surface-raised)" : "var(--color-surface)"}
-      stroke="var(--color-border)"
-      strokeWidth={1}
-    />
-  );
-}
-
 export function EgyptAcquisitionCover({
   title,
+  phases,
   bands,
-  systemKicker,
+  taskMarker,
   alt,
   description,
+  size = "cover",
+  phaseDirection = "ltr",
   uid = "egypt-acquisition-cover",
   className,
 }: EgyptAcquisitionCoverProps) {
+  const L = layout(bands);
+  const H = L.height;
+  const rtl = phaseDirection === "rtl";
+
+  /* Mirroring the phase axis is a coordinate map over finished boxes: the
+   * rail lands on the right, phases run right-to-left, and no glyph flips. */
+  const bx = (x: number, w: number) => (rtl ? W - x - w : x);
+  const px = (x: number) => (rtl ? W - x : x);
+  const anchor = (a: "start" | "middle" | "end") =>
+    !rtl || a === "middle" ? a : a === "start" ? "end" : "start";
+
   const titleId = `${uid}-title`;
   const descId = `${uid}-desc`;
-  const gridId = `${uid}-grid`;
+  const gridId = `${uid}-lattice`;
+  const fadeId = `${uid}-fade`;
+
+  /** A hairline plate. Depth is a border plus a surface step; no shadow. */
+  const plate = (x: number, y: number, w: number, h: number, fill: string, stroke?: string) => (
+    <rect
+      x={bx(x, w)}
+      y={y}
+      width={w}
+      height={h}
+      fill={fill}
+      stroke={stroke ?? "var(--color-border)"}
+      strokeWidth={1}
+    />
+  );
 
   return (
     <svg
@@ -140,174 +334,220 @@ export function EgyptAcquisitionCover({
       className={className}
       role="img"
       aria-labelledby={`${titleId} ${descId}`}
-      /*
-       * The artwork carries meaning — it is the shape of the programme — so it
-       * is labelled rather than hidden. Name first, description second.
-       */
       xmlns="http://www.w3.org/2000/svg"
-      /*
-       * Mono, because the whole language is mono. Arabic never uses
-       * --font-mono: the :lang(ar) fallback to --font-arabic-body at
-       * letter-spacing normal is a globals.css concern, so the Arabic pass
-       * still does not touch this file.
-       */
+      /* Arabic never uses --font-mono; the :lang(ar) fallback to
+       * --font-arabic-body at letter-spacing normal is a globals.css rule, so
+       * the Arabic pass still does not touch this file. */
       fontFamily="var(--font-mono)"
+      /* Not the page's direction — see TEXT_BIDI. */
+      style={{ direction: "ltr" }}
     >
       <title id={titleId}>{alt}</title>
       <desc id={descId}>{description}</desc>
 
-      {/* ---- ground + measure lattice (decorative) ---- */}
       <g aria-hidden="true">
-        <rect width={W} height={H} fill="var(--color-surface)" />
-        <defs>
-          <pattern id={gridId} width={56} height={56} patternUnits="userSpaceOnUse">
-            <path d="M56 0H0V56" fill="none" stroke="var(--color-border)" strokeWidth={1} />
-          </pattern>
-        </defs>
-        <rect width={W} height={H} fill={`url(#${gridId})`} opacity={0.5} />
+        <rect width={W} height={H} fill="var(--color-bg)" />
+
+        {/* The reference's two 56px linear-gradients, as one pattern.
+            On the cover it is a full-frame texture fading at the edges; on a
+            gallery thumbnail it would be noise, so there it becomes a frame. */}
+        {size === "cover" ? (
+          <>
+            <defs>
+              <pattern id={gridId} width={56} height={56} patternUnits="userSpaceOnUse">
+                <path d="M0 0H56M0 0V56" fill="none" stroke="var(--color-border)" strokeWidth={1} />
+              </pattern>
+              {/*
+                The edge fade is a vignette in --color-bg rather than a
+                luminance mask, because a mask needs white/black stops and
+                those are hex literals by any other name. Painting the ground
+                back over the lattice is also what the effect actually is: the
+                texture dissolving into the ground it sits on.
+              */}
+              <radialGradient id={fadeId} cx="50%" cy="50%" r="72%">
+                <stop offset="0%" stopColor="var(--color-bg)" stopOpacity={0} />
+                <stop offset="62%" stopColor="var(--color-bg)" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="var(--color-bg)" stopOpacity={1} />
+              </radialGradient>
+            </defs>
+            <rect width={W} height={H} fill={`url(#${gridId})`} />
+            <rect width={W} height={H} fill={`url(#${fadeId})`} />
+          </>
+        ) : (
+          <rect
+            x={PAD_X / 2}
+            y={PAD_X / 2}
+            width={W - PAD_X}
+            height={H - PAD_X}
+            fill="none"
+            stroke="var(--color-border)"
+            strokeWidth={1}
+          />
+        )}
       </g>
 
-      {/* ---- title plate ---- */}
-      <g>
-        <Plate x={PAD_X} y={TITLE_Y} w={INNER_W} h={TITLE_H} raised />
-        <Registration x={PAD_X} y={TITLE_Y} w={INNER_W} h={TITLE_H} />
-        <text
-          x={W / 2}
-          y={TITLE_Y + 72}
-          textAnchor="middle"
-          fontSize={46}
-          letterSpacing={8}
-          fill="var(--color-fg)"
-        >
-          {title}
-        </text>
-      </g>
-
-      {/*
-        The accent, used exactly once in the whole artwork, as the title
-        plate's baseline rule. It is an underline paired with the title, never
-        the sole indicator of anything (tokens.md, COLOUR rule 2).
-      */}
-      <rect
-        aria-hidden="true"
-        x={PAD_X}
-        y={TITLE_Y + TITLE_H}
-        width={INNER_W}
-        height={ACCENT_H}
-        fill="var(--color-accent)"
-      />
-
-      {/* ---- the two bands ---- */}
-      {bands.map((band, b) => {
-        const { label, cards } = BAND_Y[b];
+      {/* ── title plate: grid-column 2 / -1 ── */}
+      {(() => {
+        const s = span(2, 8);
         return (
-          <g key={label}>
-            <Plate x={PAD_X} y={label} w={INNER_W} h={LABEL_H} />
+          <g>
+            {plate(s.x, L.titleY, s.w, TITLE_H, "var(--color-surface-raised)")}
+            <Marks x={bx(s.x, s.w)} y={L.titleY} w={s.w} h={TITLE_H} />
             <text
-              x={W / 2}
-              y={label + 30}
+              x={px(s.x + s.w - TITLE_PAD)}
+              y={L.titleY + TITLE_H / 2 + TITLE_FS * 0.35}
+              textAnchor={anchor("end")}
+              fontSize={TITLE_FS}
+              letterSpacing={TITLE_LS}
+              fill="var(--color-fg)"
+            
+              style={TEXT_BIDI}
+            >
+              {title}
+            </text>
+          </g>
+        );
+      })()}
+
+      {/* ── the six phase columns ── */}
+      <g>
+        {phases.map((phase, i) => {
+          const s = span(2 + i, 3 + i);
+          return (
+            <g key={phase}>
+              {plate(s.x, L.phaseY, s.w, PHASE_H, "var(--color-surface)")}
+              <Marks x={bx(s.x, s.w)} y={L.phaseY} w={s.w} h={PHASE_H} two />
+              <text
+                x={px(s.x + s.w / 2)}
+                y={L.phaseY + PHASE_H / 2 + PHASE_FS * 0.35}
+                textAnchor="middle"
+                fontSize={PHASE_FS}
+                letterSpacing={PHASE_LS}
+                fill="var(--color-fg-body)"
+              
+              style={TEXT_BIDI}
+            >
+                {phase}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+
+      {/* ── the two system bands ── */}
+      {bands.map((band, b) => {
+        const y0 = L.bandY[b];
+        const rows = L.bandRows[b];
+        const rowY = [y0, y0 + rows[0] + GAP, y0 + rows[0] + GAP + rows[1] + GAP];
+        const railCx = bx(PAD_X, RAIL_W) + RAIL_W / 2;
+        const railCy = y0 + L.bandH[b] / 2;
+
+        return (
+          <g key={band.label}>
+            {/* the rail — grid-row 1 / span 3, vertical type reading upward */}
+            {plate(PAD_X, y0, RAIL_W, L.bandH[b], "var(--color-surface)")}
+            <Marks x={bx(PAD_X, RAIL_W)} y={y0} w={RAIL_W} h={L.bandH[b]} />
+            <text
+              x={railCx}
+              y={railCy + RAIL_FS * 0.35}
+              transform={`rotate(-90 ${railCx} ${railCy})`}
               textAnchor="middle"
-              fontSize={16}
-              letterSpacing={4}
-              fill="var(--color-fg-muted)"
+              fontSize={RAIL_FS}
+              letterSpacing={RAIL_LS}
+              fill="var(--color-fg-body)"
+            
+              style={TEXT_BIDI}
             >
               {band.label}
             </text>
 
-            {band.systems.map((system, s) => (
-              <g key={system}>
-                <Plate x={CARD_X[s]} y={cards} w={CARD_W} h={CARD_H} raised />
-                <Registration x={CARD_X[s]} y={cards} w={CARD_W} h={CARD_H} />
-                <text
-                  x={CARD_X[s] + CARD_W / 2}
-                  y={cards + 52}
-                  textAnchor="middle"
-                  fontSize={16}
-                  letterSpacing={2.4}
-                  fill="var(--color-fg-dim)"
-                >
-                  {systemKicker}
-                </text>
-                <text
-                  x={CARD_X[s] + CARD_W / 2}
-                  y={cards + 108}
-                  textAnchor="middle"
-                  fontSize={30}
-                  letterSpacing={2.4}
-                  fill="var(--color-fg)"
-                >
-                  {system}
-                </text>
-              </g>
-            ))}
+            {MATRIX[b].map((spec, i) => {
+              const label = band.plates[i] ?? "";
+              const s = span(spec.a, spec.b);
+              const y = rowY[spec.row - 1];
+              const lines = wrapMono(label, s.w);
+              const h = plateHeight(lines.length);
+              const chipsW = spec.chips * CHIP_W + (spec.chips - 1) * CHIP_GAP;
+              const chipsX = s.x + s.w - PLATE_PAD_X - chipsW;
+              const metaBaseline = y + PLATE_PAD_TOP + META_H * 0.5 + MARKER_FS * 0.35;
+              const textTop = y + PLATE_PAD_TOP + META_H + PLATE_INNER_GAP;
+
+              return (
+                <g key={label}>
+                  {plate(
+                    s.x,
+                    y,
+                    s.w,
+                    h,
+                    "var(--color-surface-raised)",
+                    spec.accent ? "var(--color-accent)" : undefined,
+                  )}
+                  <Marks x={bx(s.x, s.w)} y={y} w={s.w} h={h} />
+
+                  <text
+                    x={px(s.x + PLATE_PAD_X)}
+                    y={metaBaseline}
+                    textAnchor={anchor("start")}
+                    fontSize={MARKER_FS}
+                    letterSpacing={MARKER_LS}
+                    fill="var(--color-fg-dim)"
+                  
+              style={TEXT_BIDI}
+            >
+                    {taskMarker}
+                  </text>
+
+                  {/* The reference's skewed chips. Its four signal hues become
+                      the four-step text ramp; its 0.35-alpha trailing chip
+                      becomes a hairline outline, so nothing depends on alpha. */}
+                  <g aria-hidden="true">
+                    {Array.from({ length: spec.chips }, (_, c) => {
+                      const cx = bx(chipsX + c * (CHIP_W + CHIP_GAP), CHIP_W);
+                      const top = y + PLATE_PAD_TOP + (META_H - CHIP_H) / 2;
+                      const skew = rtl ? -CHIP_SKEW : CHIP_SKEW;
+                      const d = `M${cx} ${top}h${CHIP_W}l${-skew} ${CHIP_H}h${-CHIP_W}Z`;
+                      const filled = c < spec.filled;
+                      return (
+                        <path
+                          key={c}
+                          d={d}
+                          fill={filled ? RAMP[spec.ramp] : "none"}
+                          stroke={RAMP[spec.ramp]}
+                          strokeWidth={1}
+                        />
+                      );
+                    })}
+                  </g>
+
+                  {lines.map((line, li) => (
+                    <text
+                      key={line}
+                      x={px(s.x + PLATE_PAD_X)}
+                      y={textTop + PLATE_FS + li * PLATE_LINE_H}
+                      textAnchor={anchor("start")}
+                      fontSize={PLATE_FS}
+                      letterSpacing={PLATE_LS}
+                      fill="var(--color-fg)"
+                    
+              style={TEXT_BIDI}
+            >
+                      {line}
+                    </text>
+                  ))}
+                </g>
+              );
+            })}
           </g>
         );
       })}
 
-      {/* ---- the two bands are peers, separated by a hairline, not a fill ---- */}
+      {/* the two bands are peers, separated by a hairline, not a fill */}
       <path
         aria-hidden="true"
-        d={`M${PAD_X} ${DIVIDER_Y}H${W - PAD_X}`}
+        d={`M${PAD_X} ${L.dividerY}H${RIGHT_EDGE}`}
         stroke="var(--color-border-strong)"
         strokeWidth={1}
       />
     </svg>
   );
 }
-
-/*
- * WHAT THE REFERENCE HAD THAT OUR TOKENS DO NOT, AND WHAT REPLACED IT
- *
- * 1. FOUR SIGNAL HUES — #B8453D red, #C9772F orange, #C9A83A gold, #5FA84B
- *    green — driving rows of small skewed chips, some faded, on every plate.
- *    Removed outright, not recoloured. Three reasons, any one sufficient:
- *      · four new hues, where the palette is one accent (tokens.md);
- *      · a red-to-green ramp is a status encoding, and this site does not
- *        signal urgency by colour — decision 042 removed red from the results
- *        table for the same reason;
- *      · a row of "three filled, one faded" chips reads as "3 of 4", and no
- *        such figure exists in the database. Collapsing four hues into one
- *        would still have published an unbacked metric, so the chips are gone
- *        rather than restyled (rule 7).
- *
- * 2. GRADIENT PLATE FILLS, rgba(255,255,255,0.05) → 0.012. The system has no
- *    gradient token and depth is "a 1px border plus a surface step" (COLOUR
- *    rule 4). Replaced by --color-surface-raised against --color-surface.
- *
- * 3. IBM PLEX MONO. Replaced by --font-mono (Geist Mono). No webfont enters
- *    the artwork; it inherits the site's.
- *
- * 4. #0A0A0A GROUND. This is exactly --color-surface in dark, so the artwork
- *    keeps the reference's ground and gains a light theme for free.
- *
- * WHAT CHANGED FOR DIRECTION-NEUTRALITY
- *
- * 5. The title was right-aligned (justify-content:flex-end) — an LTR anchor.
- *    Centred.
- *
- * 6. The 108px vertical rail carrying "SYSTEM A / CUSTOMER-FACING" in rotated
- *    type sat on the left of every band, where RTL would want it on the right.
- *    Replaced by a full-width horizontal label plate above each band, which is
- *    symmetric, and which is also legible at gallery-card scale where rotated
- *    13px type is not.
- *
- * 7. The reference staggers its plates on a descending left-to-right diagonal
- *    (cols 2/4, then 3/5, then 4/7) against a six-phase strip — a Gantt, and
- *    a Gantt reads right-to-left in Arabic. Replaced by mirror-image pairs.
- *    Nothing was lost: the diagonal carried no data, and the plate spans in
- *    the reference are illustrative (decision 021 — the design files carry
- *    dummy content).
- *
- * 8. The six-cell phase strip — DISCOVERY / STRUCTURE / REVIEW / EXCEPTION /
- *    PORTAL / CLOSE — is dropped. No such content exists in the database, so
- *    rendering it would invent six programme phases; and it is inherently a
- *    left-to-right sequence. The six-column measure survives as the lattice.
- *
- * 9. The reference names nine systems. Four of them — Onboarding Journey,
- *    Application Workflow, Customer Portal & Notifications, Fulfilment & AOF —
- *    are Egypt's real published chapters, and they fall into the same two
- *    bands the reference puts them in. The other five, including the plate
- *    reading "SIX SYSTEMS, LIVE", are not in the database; "LIVE" would also
- *    contradict decision 007, which holds Egypt at controlled release. The
- *    call site passes the four verified names.
- */

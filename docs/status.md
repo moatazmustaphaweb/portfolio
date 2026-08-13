@@ -37,6 +37,87 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — Egypt cover rebuilt as the matrix. And the browser finally worked.
+
+The previous build was wrong and had to be redone. I had removed the four signal hues, the six-phase strip, five system names and the "SIX SYSTEMS, LIVE" plate on the grounds that they were not in the database — then symmetrised the staggered plates into four aligned blocks. **That discarded the argument of the piece.** The cover is a depiction of the programme's system landscape, not a rendering of database rows: the plate spans are the information, showing which system runs across which phases and where systems overlap. Rule 7 governs published metrics and copy; it does not govern artwork whose subject is the real programme and whose source is Moataz. Corrected, rebuilt, not re-litigated.
+
+### The matrix, reproduced exactly
+
+Verified against the reference's own grid maths by extracting the emitted coordinates from a production build:
+
+```
+grid: 108px repeat(6, minmax(0,1fr)) gap 14   →  col = 218.67, lines 170 · 402.67 · 635.33 · 868 · 1100.67 · 1333.33
+title  2/-1  x=170    w=1382         ✅        band A  2/4 x=170    w=451.33   ✅
+phases 6 × w=218.67                  ✅                3/5 x=402.67 w=451.33   ✅
+rail   108 wide, rows 1/span 3       ✅                4/7 x=635.33 w=684      ✅
+                                                      7   x=1333.33 w=218.67  ✅
+viewBox 0 0 1600 883                                band B  + col 6 x=1100.67  ✅
+```
+
+Nine plates, both bands, every span, the descending staircase (rows at y=208 · 321.6 · 411.4), the `//TASK` marker on each, the six phase columns, the vertical rails. All eighteen labels present in the served HTML.
+
+### The four signal hues, still not in the repo
+
+They map onto the **four-step text ramp** — `fg` → `fg-body` → `fg-muted` → `fg-dim` — which is a four-value scale the system already has, for a four-group encoding. The reference's 0.35-alpha trailing chip becomes a **hairline outline chip**, so the "n of m" reading survives without depending on alpha. The **accent is used once**, as the border of the `SIX SYSTEMS, LIVE` plate — the terminal plate, paired with its label, never a sole indicator.
+
+Also token-bound: the edge fade. It was a luminance mask needing white/black stops, which are hex literals by another name; it is now a **vignette in `--color-bg`**, which is also what the effect actually is — the lattice dissolving into its ground. **Zero hex literals in the served SVG**, confirmed in all four renders.
+
+### Grid background, per surface
+
+`lattice_refs` in the served HTML: **2 on the cover page, 0 on the gallery card.** Full-frame 56px texture fading at the edges where there is room for it; a frame where it would be noise.
+
+### 🔴 THE BUG THE BROWSER CAUGHT — and nothing else could have
+
+**Chrome reached localhost for the first time in this project.** Every previous session reported it unreachable; it worked on the first attempt today, on a confirmed-bound port.
+
+It immediately found a bug that **no amount of HTML inspection could ever have found**, because the markup is byte-identical in both locales and only the rendering differs. Under `dir="rtl"` the SVG inherited the page's direction, and two things broke at once:
+
+| Rendered in `/ar` | Should be |
+|---|---|
+| `EGY` — title pushed off the right edge | `EGYPT ACQUISITION` |
+| `TASK//` | `//TASK` |
+| `.SIX SYSTEMS` | `SIX SYSTEMS, LIVE` |
+| `& FULFILMENT / AOF` | `FULFILMENT & AOF` |
+| `IBOARDING JOURNEY`, `ICATION WORKFLOW` | labels clipped by their plates |
+
+Two causes. `text-anchor="start"` means *start of the inline base direction*, so every label anchored to the wrong edge; and the Unicode bidi algorithm reordered the neutral characters `/`, `&` and `,`.
+
+**Fix:** the artwork sets its own direction — `direction: ltr` on the root so anchors are deterministic, and `unicode-bidi: isolate` on every text element (it does not inherit) so neutrals cannot leak between runs. Layout direction is now the artwork's decision via `phaseDirection`, and the page's `dir` has no effect on it at all.
+
+> This is the exact failure mode `rtl-guard` describes — *"it breaks silently; the English view stays correct, so the bug ships."* It would have shipped. It is also the strongest argument yet for the visual pass that has been outstanding since the design rebuild.
+
+### Verified by looking — all four combinations
+
+| | dark | light |
+|---|---|---|
+| `/en` | ✅ | ✅ |
+| `/ar` | ✅ | ✅ |
+
+Plus the gallery card at ~295px, where the piece reads as schematic texture and the **UNDER NDA badge renders with no grayscale** — decision 050 working as specified. Build, typecheck and ESLint all exit 0; all four routes 200 in production.
+
+### The direction question — recommendation, not decision
+
+The matrix reads left-to-right by phase and does not survive `dir="rtl"` by reflection. **I recommend mirroring the column axis only**: phase columns run right-to-left, plate spans mirror with them, the rail moves to the right, and **text never mirrors**. That is what an RTL Gantt looks like in Arabic tooling, and it is a pure coordinate change — same composition, no reflow.
+
+**It is built and tested**, not merely proposed. Flipped to `rtl` in a production build, the rail moved to x=1444, the phase labels read `CLOSE → DISCOVERY` left-to-right on screen (so `DISCOVERY` sits on the right), the 2/4 plate moved to x=978.67, and no glyph flipped. Then reverted.
+
+Shipping at `ltr`, and **nothing is silently shipped**: this pass renders English labels in both locales, so `/ar` is `/en` and the axis question does not yet bite. Your answer is one value at the call site when the Arabic pass lands.
+
+The credible alternative is keeping LTR in both locales — treating the horizontal axis as a fixed schematic convention rather than a reading-order-sensitive timeline, which is how circuit diagrams and most Gantt tools behave in Arabic contexts. That is a judgement about what the axis *is*.
+
+### Carried forward unchanged
+
+Token binding · static, no animation · labels as props so the Arabic pass is a call-site change · `role="img"` with `<title>` then `<desc>`, decorative geometry `aria-hidden` · the registry, migration 0026 and both render sites.
+
+### Still open
+
+- **`og_image`** remains a raster and remains NULL.
+- **Arabic labels** will need `unicode-bidi: plaintext` rather than `isolate`, so each label takes its base direction from its own first strong character, with the anchor logic re-derived. Noted in the component; a real follow-up, not a detail.
+- **The rail band label has a length ceiling** — rail type was reduced from the reference's 13px/3.4 to 12/2.8 because the longest label overflowed the rail it sits in. Arabic labels will need re-measuring.
+- **Three covers to go.** One file, one registry line, one `update` each.
+
+---
+
 ## 2026-08-13 — The Egypt cover is built. First component cover; the pattern holds.
 
 **Unblocked by the Claude Design MCP.** The two routes that failed last session — server-side fetch (403) and the browser (login wall) — were both the wrong door. `DesignSync` reads claude.ai/design projects through a dedicated authorisation and returned the file immediately. Worth recording: the project is named *"404 illustration direction"*, not anything Egypt-shaped, and holds 21 files including the cover, `support.js`, and the 404 mark explorations. `support.js` turned out to be the generated `.dc.html` viewer runtime — template parsing, `{{ }}` bindings, `sc-if`, `DCLogic` — and carries no design information.
