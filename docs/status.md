@@ -37,6 +37,77 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — The RTL launch blocker, the cover frame, and a three-state theme
+
+Three tasks. The middle one was a launch blocker and your lead on it was exactly right.
+
+### 🔴 The locale switch did not flip direction until reload
+
+**Reproduced before touching anything.** Clicking العربية on a chapter page:
+
+```
+url  /ar/work/egypt-acquisition/onboarding      ← changed
+h1   أن ننقل طلب فتح حساب…                      ← Arabic
+html lang="en" dir="ltr"                        ← NOT changed
+body computed direction: ltr                    ← so nothing mirrored
+```
+
+**Cause, confirmed:** `app/layout.tsx` renders `<html lang dir>` and sits **above** the `[locale]` segment. A layout above the changing segment is exactly a layout Next does not re-render — it is shared by `/en/*` and `/ar/*`, so it is preserved across the navigation and `getLocale()` runs only on the initial server request. Correct on first paint, wrong on every in-session switch. Precisely the path a bilingual visitor takes, and invisible to anyone testing by loading URLs directly.
+
+**Fix:** `components/layout/DocumentLanguage.tsx` — a client component rendered *inside* the locale segment, so it re-renders when the locale does, writing `lang` and `dir` onto `document.documentElement`. A **layout** effect, not a passive one: passive effects run after paint, which would have shown one frame of Arabic laid out left-to-right on every switch — a smaller version of the same bug rather than a fix. Guarded, so a cold load where the server already got it right touches nothing.
+
+The root layout keeps `<html>`, so **the 404 fix is untouched** — re-verified rather than assumed:
+
+| | status | `<html>` |
+|---|---|---|
+| `/en/nonsense` | 404 | `lang="en" dir="ltr"` |
+| `/ar/nonsense` | 404 | `lang="ar" dir="rtl"` |
+| `/en/work/east` | 404 | — |
+
+Both directions verified by clicking in a real browser, `en → ar → en → ar`, all four transitions flipping `lang`, `dir` and computed direction with no reload. Then the two pages that mirror hardest: the **results table** (columns right-to-left, status pills intact) and the **Egypt cover page**, where the page mirrors while the artwork correctly holds its own direction — the `direction: ltr` / `unicode-bidi: isolate` from last session doing its job.
+
+### The cover frame is gone
+
+The artwork on the case file page had a `rounded-panel border`. Removed. The grid texture fades to the page ground at its own edges, and a hairline around it reasserts exactly the edge the vignette exists to dissolve. The gallery thumbnail keeps its frame — there the texture has no room, so the frame *is* the treatment. Verified in both.
+
+### Theme: System · Light · Dark, System the default
+
+**`system` is not a third stored value.** It is the absence of a choice: selecting it *removes* `data-theme` and *deletes* the `theme` key. Storing the string would mean every reader — the pre-paint script, the store, anything later — has to resolve it, and any one of them getting that wrong is a flash. An absent key already means "follow the OS" to all of them.
+
+Verified in the browser, each transition:
+
+| clicked | `data-theme` | stored | announced | painted | `theme-color` |
+|---|---|---|---|---|---|
+| *(initial)* | `null` | `null` | System | `rgb(0,0,0)` | `#000000` |
+| Light | `light` | `light` | Light | `rgb(255,255,255)` | `#ffffff` |
+| Dark | `dark` | `dark` | Dark | `rgb(0,0,0)` | `#000000` |
+| System | `null` | **`null`** | System | `rgb(0,0,0)` | `#000000` |
+
+An explicit override beats the OS: with the OS preferring dark and `light` stored, the page loads white. That is the precedence `tokens.md` specifies.
+
+**The OS media query is the one already in `lib/theme/store.ts`** — reused, not duplicated. `refresh()` now also syncs `theme-color`, because under `system` the OS flipping repaints the page and the browser chrome has to follow, not just explicit changes.
+
+**Keyboard.** I first shipped `role="radiogroup"` without the keyboard contract that pattern owes, which is worse than not using the pattern. Corrected: arrow keys move and select, Home/End jump to the ends, and a roving tabindex means Tab enters and leaves the group rather than stepping through every option. Verified with real key presses — ArrowRight moved System → Light and repainted, Home returned to System, and only the selected option holds the tab stop (`[0, -1, -1]`). Focus ring from the global `:focus-visible`, seen on screen. State is announced via `aria-checked`, never by highlight alone.
+
+**`theme_system` is a database row**, seeded in both locales and added to `0003_seed_site_chrome.sql`, so a rebuild from scratch does not reintroduce a two-state control. `npm run check:seed-drift` does not list it. `docs/ui-strings-review.md` regenerated: **84 strings, 0 incomplete.**
+
+> 🔴 **The Arabic for `theme_system` is NOT approved.** `النظام` is mine, not yours. It is the default state's label, so it is on screen for every Arabic visitor who never touches the control. Flagged in `scripts/export-ui-strings.ts` so the flag survives regeneration. Worth checking it reads as *the device's setting* rather than *the system* in the abstract.
+
+### Two things I could not prove, stated as such
+
+- **Sub-frame flash.** The three states all *resolve* correctly — verified by loading with an override opposite to the OS. But the pre-paint script is emitted inside `<body>` via Next's `self.__next_s` queue rather than as a raw inline `<head>` script, and the Paint Timing API returned no entries in this environment, so I could not measure the attribute-set time against first paint. Only `system` is provably flash-free, because it needs no JavaScript at all — the CSS media query resolves it at parse time. **This is pre-existing** and applies equally to the old two-state control; it is not a regression, but the "no flash" claim in earlier entries is less proven than it reads.
+- **Live OS switching under `system`.** The media-query subscription is the existing one from the `useSyncExternalStore` session and is wired; changing the OS appearance mid-session could not be simulated here.
+
+### ⚠️ The header got taller on a phone
+
+The theme control went from one button to three: **187px wide, against 130px for the locale switch**. The header uses `flex-wrap`, so it wraps rather than overflowing — no horizontal scroll at 320px, confirmed (`scrollWidth === clientWidth`). But it wraps to **183px tall** at that width, against 56px wide-screen. That is a real cost of the third option on a sticky header, and it wants a look on a device.
+
+### Also noted, not fixed
+
+`check:seed-drift` reports **11 pre-existing drift problems** — `form_subject*`, `download_cv`, `entry_handles_heading`, `sibling_case_files`, `results_table`, `status_label` and others are in the database but in no migration file, so a rebuild from scratch would lose them. None are from this session. Same class of bug as the one task 3 was explicitly told to avoid, already present eleven times over.
+
+---
+
 ## 2026-08-13 — Egypt cover rebuilt as the matrix. And the browser finally worked.
 
 The previous build was wrong and had to be redone. I had removed the four signal hues, the six-phase strip, five system names and the "SIX SYSTEMS, LIVE" plate on the grounds that they were not in the database — then symmetrised the staggered plates into four aligned blocks. **That discarded the argument of the piece.** The cover is a depiction of the programme's system landscape, not a rendering of database rows: the plate spans are the information, showing which system runs across which phases and where systems overlap. Rule 7 governs published metrics and copy; it does not govern artwork whose subject is the real programme and whose source is Moataz. Corrected, rebuilt, not re-litigated.

@@ -116,14 +116,14 @@ export default async function CaseFileCover({
         gallery card renders — one artwork, two sizes, scaled by its viewBox
         rather than reflowed into a second composition.
 
-        Bordered rather than bled: the artwork's own ground is
-        --color-surface, so a hairline is what separates it from the page
-        ground instead of a shadow.
+        No border and no frame. The artwork's grid texture fades to the page
+        ground at its own edges, and a hairline drawn around that would
+        contradict the fade — it would reassert exactly the edge the vignette
+        exists to dissolve. The gallery thumbnail is the opposite case: it has
+        no room for the texture, so there the frame IS the treatment.
       */}
       {detail.cover_kind === "component" && detail.cover_component ? (
-        <div className="mt-8 overflow-hidden rounded-panel border border-DEFAULT">
-          {resolveCover(detail.cover_component, "cover")}
-        </div>
+        <div className="mt-8">{resolveCover(detail.cover_component, "cover")}</div>
       ) : null}
 
       {detail.fields.thesis ? (

@@ -6,6 +6,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Analytics } from "@/components/analytics/Analytics";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { DocumentLanguage } from "@/components/layout/DocumentLanguage";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
 import { getSettings } from "@/lib/content/settings";
@@ -84,6 +85,14 @@ export default async function LocaleLayout({
    */
   return (
     <>
+        {/*
+          <html lang/dir> is emitted by the root layout, which sits above this
+          segment and is therefore NOT re-rendered when the locale changes.
+          This keeps the two attributes in step on client navigation. See the
+          component — it is a fix for a launch blocker, not a nicety.
+        */}
+        <DocumentLanguage locale={typedLocale} />
+
         <PersonJsonLd locale={typedLocale} />
 
         {/*
