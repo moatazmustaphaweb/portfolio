@@ -37,6 +37,64 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — Motion Layer amendments. Documentation only; nothing built.
+
+`docs/design/motion-system.md` v2.0 arrived carrying a §0.3 list of amendments it needs elsewhere, with the instruction that they be *logged as decisions before implementation, not assumed*. This session did that and nothing else.
+
+**Why it mattered enough to do now:** the Motion Layer's camera is composited entirely from `transform`, and `tokens.md` forbade `transform` outright. The token file was, as written, forbidding a layer already scheduled as Layer 2 work. That contradiction would otherwise have been discovered mid-build and resolved under time pressure, which is how a token rule gets bent instead of amended.
+
+### Three decisions
+
+| # | Decision |
+|---|---|
+| **046** | `docs/design/motion-system.md` v2.0 is the Motion Layer spec, superseding **Motion System v1** (the cursor-tracked spotlight) in its entirety. v1 died of its **pointer dependency**: the spotlight followed the cursor, so the site's primary visual language existed only for visitors with a mouse — nothing on touch, nothing on keyboard. v2 keeps the idea (what is attended to is clear, the rest dims) and changes the driver to camera position, which every input method produces |
+| **047** | Decision **023 is scoped to MVP-1**, not permanent. Its stated reason was protecting the 6–9 week target, which expires when the target is met. The Motion Layer is permitted **after the `manifesto.md` launch gate passes, in full**, and **behind one feature flag** — both conditions required. Nothing may be partially implemented inside MVP-1 |
+| **048** | Records the two `tokens.md` amendments below |
+
+### `tokens.md` — MOTION restructured into four parts
+
+**`transform` is re-scoped, not unbanned.** Permitted on the **camera and field layers** of the Motion Layer, with `opacity` and nothing else. **Forbidden on every content-level component** — cards, rows, buttons, images, headings — in MVP-1 and after it. `width`, `height` and `box-shadow` stay forbidden everywhere, for the reason they always were.
+
+> **The boundary is the layer, not the phase.** Nothing in MVP-1 transforms because nothing in MVP-1 is a camera. A component that wants to move is asking for the camera, and the answer is the camera.
+
+**A navigation duration scale, declared but inert.** `--duration: 150ms` is a state-change token and cannot express a camera move. Four durations, four easings, one pair per move in the closed grammar:
+
+```
+--duration-nav-pan:       600ms    --ease-nav-pan:       ease-in-out
+--duration-nav-zoom-in:   800ms    --ease-nav-zoom-in:   ease-out
+--duration-nav-zoom-out:  700ms    --ease-nav-zoom-out:  ease-in-out
+--duration-nav-lift:      500ms    --ease-nav-lift:      ease-in-out
+```
+
+Named for the move, not the number, per the OUTPUT naming rule. Values are the **midpoints of §3.4's ranges**, recorded as tuning windows — retuning inside one is a token edit, leaving one is a decision. The **900ms ceiling is written in as a hard bound**. Easings are CSS keywords, not invented `cubic-bezier()` values: §3.4 specifies curve *character*, not coefficients, and no curve has been measured.
+
+**Nothing in MVP-1 reads these tokens**, and defining them is not permission to use them.
+
+**Reduced motion extended to zero them.** `prefers-reduced-motion: reduce` now also sets every `--duration-nav-*: 0ms`, through the same token override that zeroes `--duration` today — one place, never a per-component media query, never a per-move exception. Zeroing them is exactly what produces the **Cut** move. Easing tokens are untouched, because a zero-duration transition never samples its curve.
+
+### Four contradictions found and corrected
+
+| Where | What was wrong |
+|---|---|
+| **`docs/motion-system.md`** | **Misfiled.** Its own H1, and the `CLAUDE.md` doc-map row, both said `docs/design/motion-system.md`. **Moved there**; the five references across `tokens.md` and `decisions.md` point at the real path |
+| **`motion-system.md` §0.3** | Listed its three amendments as still pending — now marked applied, with decision numbers. Its cross-reference for the duration scale pointed at **§11** (the performance budget); the durations are in **§3.4**. Corrected |
+| **`docs/roadmap.md`** | §0.1 of the spec claims the layer "sits alongside Layer 2", but Layer 2 never mentioned it. Added — as a **sibling to the Door, not a dependency**; either can ship without the other. Gated by 047 |
+| **`docs/redaction-brief.md` §6.5** | Justified "no reveal interaction" partly on *decision 023 rules out animation in MVP-1*. With 023 scoped to MVP-1, **that half of the argument expires at the launch gate**. Rewritten so §3's recoverable-original argument carries the rule permanently, with the forward link to `motion-system.md` §6.2 — masked regions render solid at every stage and never condense or disperse. The mask is the one thing on this site never made of dots |
+
+Also corrected `tokens.md`'s one-paragraph summary, which claimed "nothing moves" as a permanent property of the visual language rather than a property of MVP-1 and of content-level components.
+
+Checked and **deliberately left alone**: `architecture.md:242` and the decision-023 citations throughout this file all describe MVP-1 state and remain true. `.claude/skills/perf-budget/SKILL.md` already forward-referenced this exact scoping — it was accurate about a rule that did not yet exist, and is now simply accurate.
+
+### What this session did not do
+
+- **No application code was touched.** Not a component, not a token file in `app/globals.css`, not `tailwind.config.ts`. The new tokens exist in documentation only.
+- **No part of the Motion Layer was implemented.** No field, no camera, no focus falloff, no dot-matrix media, not a prototype of any of it. Rule 1 of the spec and decision 047 both forbid partial implementation inside MVP-1, and half a camera system is worse than none.
+- **Nothing entered `TASKS.md`.** This adds no build work. It removes a conflict from work that was already scheduled, and Layer 2 tasks do not enter the queue until Layer 2 starts, per the roadmap's tracking rule.
+
+> ⚠️ **Noticed while reading this file, not fixed: the ROUTE MAP at the top is stale on the 404.** It still says `404 🔴 BROKEN — Nothing. app/[locale]/not-found.tsx is dead code, no root app/layout.tsx`, and still carries the "Arabic 404 falls back to English" caveat. Both were overtaken by the design-rebuild entries below: `app/layout.tsx` exists, unmatched URLs render the designed 404 in the correct locale, and that entry explicitly closes the Arabic caveat. What is *actually* still broken is narrower — `notFound()` thrown **inside** a locale route renders Next's `__next_error__` shell, so `<html>` carries no `lang`/`dir`, mitigated by `app/not-found.tsx` setting both on its own wrapper. Left for whoever next touches the route map, since this was a docs-amendment session and the map is a build artefact.
+
+---
+
 ## 2026-08-13 — `useSyncExternalStore` rewrites. ESLint is at zero.
 
 All three `set-state-in-effect` errors are gone **because the cause is gone** — nothing suppressed, no `eslint-disable`. Build, typecheck, sync tests and content verification all exit 0; 24/24 route-locale combinations 200.
