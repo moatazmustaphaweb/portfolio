@@ -23,12 +23,26 @@
  * the time this module executes, first paint has happened.
  */
 
+/** What the page is actually painted as. Always one of two. */
 export type Theme = "light" | "dark";
+
+/**
+ * What the visitor chose. `system` is the default and is NOT a third painted
+ * state — it is the absence of a choice, which is why choosing it CLEARS the
+ * stored value rather than storing the string "system".
+ *
+ * Storing a third value would mean every reader — the pre-paint script, this
+ * store, any future consumer — has to resolve it, and any one of them getting
+ * that wrong is a flash. An absent key already means "follow the OS" to all of
+ * them, so there is nothing to resolve and nothing to get wrong.
+ */
+export type ThemeChoice = "system" | Theme;
 
 const LIGHT_QUERY = "(prefers-color-scheme: light)";
 
 const listeners = new Set<() => void>();
 let cache: Theme | null = null;
+let choiceCache: ThemeChoice | null = null;
 let observer: MutationObserver | null = null;
 let media: MediaQueryList | null = null;
 
@@ -39,10 +53,34 @@ function resolve(): Theme {
   return window.matchMedia(LIGHT_QUERY).matches ? "light" : "dark";
 }
 
+/**
+ * The choice, read from the document rather than from storage.
+ *
+ * `data-theme` is present only for an explicit override — the pre-paint script
+ * sets it from `localStorage` and only then. So its absence IS "system", and
+ * the same MutationObserver that tracks the resolved theme tracks the choice.
+ * No second source of truth, no storage read on every render.
+ */
+function resolveChoice(): ThemeChoice {
+  const explicit = document.documentElement.getAttribute("data-theme");
+  return explicit === "light" || explicit === "dark" ? explicit : "system";
+}
+
+/** Keeps mobile browser chrome in step with whatever is now painted. */
+function syncThemeColor(theme: Theme): void {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#000000");
+}
+
 function refresh() {
-  const next = resolve();
-  if (next === cache) return;
-  cache = next;
+  const nextTheme = resolve();
+  const nextChoice = resolveChoice();
+  if (nextTheme === cache && nextChoice === choiceCache) return;
+  // The OS flipping under a `system` choice repaints the page, so the browser
+  // chrome has to follow it too — not only explicit changes.
+  if (nextTheme !== cache) syncThemeColor(nextTheme);
+  cache = nextTheme;
+  choiceCache = nextChoice;
   for (const listener of listeners) listener();
 }
 
@@ -90,28 +128,52 @@ export function getThemeServerSnapshot(): Theme | null {
   return null;
 }
 
-/**
- * Apply a theme.
- *
- * Writes the attribute, persists the choice, and keeps the `theme-color` meta
- * in step so mobile browser chrome matches. The MutationObserver picks the
- * attribute change up and notifies subscribers — but the cache is set here
- * too, so a caller that toggles while nothing is mounted still leaves the
- * store correct.
- */
-export function setTheme(next: Theme): void {
-  cache = next;
-  document.documentElement.setAttribute("data-theme", next);
+/** The visitor's choice — `system` unless they overrode it. */
+export function getChoiceSnapshot(): ThemeChoice {
+  if (choiceCache === null) choiceCache = resolveChoice();
+  return choiceCache;
+}
 
-  try {
-    localStorage.setItem("theme", next);
-  } catch {
-    // Private browsing can reject writes. The theme still applies for this
-    // page view; only persistence is lost.
+/** `null` on the server for the same reason the theme is: it is not knowable. */
+export function getChoiceServerSnapshot(): ThemeChoice | null {
+  return null;
+}
+
+/**
+ * Apply a choice.
+ *
+ * `light` / `dark` write the attribute and persist, so they beat the OS —
+ * the precedence `docs/design/tokens.md` specifies. `system` REMOVES both the
+ * attribute and the stored key, which hands the decision back to the CSS
+ * media query that was always there underneath. Nothing stores "system".
+ *
+ * The MutationObserver picks the attribute change up and notifies
+ * subscribers, but the caches are set here too, so a caller that changes the
+ * theme while nothing is mounted still leaves the store correct.
+ */
+export function setThemeChoice(next: ThemeChoice): void {
+  const el = document.documentElement;
+
+  if (next === "system") {
+    el.removeAttribute("data-theme");
+    try {
+      localStorage.removeItem("theme");
+    } catch {
+      // Private browsing can reject writes; the removal still applies to this
+      // page view, which is what the visitor asked for.
+    }
+  } else {
+    el.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem("theme", next);
+    } catch {
+      // Persistence lost, theme still applied for this page view.
+    }
   }
 
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", next === "light" ? "#ffffff" : "#000000");
+  choiceCache = next;
+  cache = resolve();
+  syncThemeColor(cache);
 
   for (const listener of listeners) listener();
 }

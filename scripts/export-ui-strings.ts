@@ -53,6 +53,9 @@ const NOTES: Record<string, string> = {
   consent_accept: "⚠️ Review — must read as clearly as the decline",
   consent_decline: "⚠️ Review — must not read as softer than accept",
 
+  // Added 2026-08-13 with the three-state theme control. NOT APPROVED.
+  theme_system: "🔴 **Not reviewed** — `النظام` is my rendering, not Moataz's. It is the default state's label, so it is on screen for every Arabic visitor who never touches the control. Check it reads as *the device's setting* rather than *the system* in the abstract",
+
   // Open: layout constraints, not translation problems.
   form_sending: "⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction",
   form_submit: "⚠️ Layout — see `form_sending`",

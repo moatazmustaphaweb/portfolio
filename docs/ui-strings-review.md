@@ -160,11 +160,12 @@ locale you are in.
 | `target` | Target | الهدف |  |
 | `theme_dark` | Dark | داكن |  |
 | `theme_light` | Light | فاتح |  |
+| `theme_system` | System | النظام | 🔴 **Not reviewed** — `النظام` is my rendering, not Moataz's. It is the default state's label, so it is on screen for every Arabic visitor who never touches the control. Check it reads as *the device's setting* rather than *the system* in the abstract |
 | `theme_toggle` | Toggle theme | تبديل المظهر |  |
 | `view_all` | View all | عرض الكل |  |
 ---
 
-**83 strings.** Every one present in both locales.
+**84 strings.** Every one present in both locales.
 
 To apply corrections: update the database, then re-run
 `npm run export:ui-strings` so this document stays true. The seed migration

@@ -135,7 +135,10 @@ with strings(key, context, en, ar) as (values
   ('language',         'aria-label on the locale switch',     'Language',               'اللغة'),
   ('lang_en',          'Locale switch option',                'English',                'English'),
   ('lang_ar',          'Locale switch option',                'العربية',                 'العربية'),
-  ('theme_toggle',     'aria-label on the theme toggle',      'Toggle theme',           'تبديل المظهر'),
+  ('theme_toggle',     'aria-label on the theme group',       'Toggle theme',           'تبديل المظهر'),
+  -- The default. Follows the OS preference; selecting it clears any override.
+  -- ⚠️ The Arabic here is UNREVIEWED — see docs/ui-strings-review.md.
+  ('theme_system',     'Theme option — follows the OS',       'System',                 'النظام'),
   ('theme_light',      'Theme option',                        'Light',                  'فاتح'),
   ('theme_dark',       'Theme option',                        'Dark',                   'داكن'),
 

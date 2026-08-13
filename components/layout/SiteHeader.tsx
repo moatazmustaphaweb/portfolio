@@ -49,7 +49,11 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
         <div className="flex flex-wrap items-center gap-3 ms-auto">
           <ThemeToggle
             ariaLabel={ui.t("theme_toggle")}
-            labels={{ light: ui.t("theme_light"), dark: ui.t("theme_dark") }}
+            labels={{
+              system: ui.t("theme_system"),
+              light: ui.t("theme_light"),
+              dark: ui.t("theme_dark"),
+            }}
           />
           <LocaleSwitch
             locale={locale}
