@@ -29,6 +29,8 @@ Supabase schema · seed script (settings, navigation, ui_strings) · Notion→Su
 
 The Door (4 steps: word cards → time budget → correctable sentence → persona) · scoring engine (card 2pts primary / 1pt secondary, budget 1pt; tiers SURE / TIE / LIKELY / UNSURE) · five result screens · `/how-this-site-works` · Reverse-UX components (progress, stat side notes, correction prompt) · door events live
 
+**Alongside, not inside — the Motion Layer.** `docs/design/motion-system.md` v2.0: the field, the camera grammar, focus-follows-camera, the dot-matrix media treatment, the About map-timeline. A sibling to the Door rather than a dependency of it — either can ship without the other. Attaches to the Layer 0 foundation with no rework: the field is a sibling layer to the DOM, not a rebuild of it. Gated by decision 047 — the `manifesto.md` launch gate must pass first, and the whole layer sits behind one feature flag that reverts it to MVP-1 behaviour in a single commit.
+
 **Prerequisite:** MVP-1 shipped and stable. **Exit:** archetype inference logging real data for validation.
 
 ---

@@ -446,6 +446,69 @@ Instead of an IP limit:
 
 ---
 
+## 046 — The Motion Layer: `motion-system.md` v2.0 adopted, v1 dropped
+
+*2026-08-13*
+
+**Decision:** `docs/design/motion-system.md` **v2.0** is the source of truth for every animated and interactive surface on the site. It supersedes **Motion System v1** — the cursor-tracked spotlight system — in its entirety. Nothing of v1's driver survives.
+
+**Why v1 was dropped: it depended on a pointer.** The spotlight was the primary visual language and it followed the cursor, so it existed only for a visitor with a mouse. On touch there is no hover state to track; on keyboard navigation there is no pointer position at all. The site's own accessibility posture makes that disqualifying — a design language available to roughly half the audience is not a design language, it is a desktop enhancement pretending to be one. v2 keeps the useful idea (what is attended to renders at full clarity, the rest dims) and changes the driver to camera position, which every input method produces. There is no degraded mode because there is no pointer dependency left to degrade.
+
+Carried forward from v1 unchanged: the density prohibition, no colour signalling urgency, one focal pulse per page, count-up on `[achieved]` figures only (decision 007), and full `prefers-reduced-motion` compliance. Those were right; only the driver was wrong.
+
+**Consequence:** `docs/design/motion-system.md` joins the documentation set and is the doc to read before writing any animation. The camera grammar is closed at six moves — a route that fits none of them is a signal the route is misplaced in the architecture, and the architecture is what gets fixed. The layer requires the two token amendments in decision 048.
+
+**Status:** ACTIVE — supersedes Motion System v1
+
+---
+
+## 047 — Decision 023 is scoped to MVP-1. The Motion Layer is permitted after the launch gate, behind a flag
+
+*2026-08-13*
+
+**Decision:** decision 023 ("MVP-1 is deliberately plain") applies to **MVP-1 only**. It is not a permanent prohibition on motion, and it was never argued as one — its stated reason is protecting the 6–9 week target, which expires when the target is met. The Motion Layer of `docs/design/motion-system.md` is permitted **after the launch gate in `docs/manifesto.md` passes**, and only then.
+
+**Two conditions, both required:**
+
+1. **The gate, in full.** Every box in Phase 2 of `manifesto.md` ticked — all four Case Files complete, the metric truth table applied, no unredacted NDA material, RTL verified, the LLM summary test passed, Lighthouse acceptable, the domain cut over. Not "mostly passing". The gate is the permission.
+2. **Behind one feature flag.** The entire layer, one switch. If it degrades the site it goes off in a single commit and MVP-1's behaviour is exactly what remains. That reversibility is what makes it responsible to build at all, and it is a condition of building it, not an implementation detail to add later.
+
+**Why scope it explicitly rather than leave it implied:** 023 is cited across `architecture.md`, `redaction-brief.md`, `status.md`, and `tokens.md` as the reason something is plain. Read as permanent, it forbids work already planned as Layer 2. Read as MVP-1-scoped, every one of those citations stays correct — they all describe MVP-1. The ambiguity was doing real damage in one direction and none in the other.
+
+**What does not change:** MVP-1 ships plain. Nothing in `motion-system.md` may be partially implemented inside it — not a prototype, not one page, not "just the field". Half a camera system is worse than none, and a partial implementation is how a scoping decision becomes a scope leak. Decision 023 remains ACTIVE and its behaviour in `tokens.md` is untouched.
+
+**Consequence:** the Motion Layer sits alongside Layer 2 in `docs/roadmap.md` on the same Layer 0 foundation, with no rework — the field is a sibling layer to the DOM, not a rebuild of it. It adds **no** work to Phase 0 or Phase 1 and nothing enters `TASKS.md` until Layer 2 starts, per the roadmap's tracking rule.
+
+**Status:** ACTIVE — scopes 023, which remains ACTIVE
+
+---
+
+## 048 — `transform` is scoped to the camera and field layers; navigation gets its own duration scale
+
+*2026-08-13*
+
+**Decision:** two amendments to the MOTION section of `docs/design/tokens.md`, both required by decision 046 and neither affecting MVP-1's rendered behaviour.
+
+**1 — `transform` is re-scoped, not unbanned.** The old rule read "**Never** `transform`, `width`, `height`, or `box-shadow`". It was written before the Motion Layer existed, and the camera is composited entirely from `transform` — so as written it forbade the layer outright. The rule is now:
+
+> `transform` is permitted **only** on the camera and field layers of the Motion Layer, alongside `opacity`. **Content-level components never transform** — in MVP-1 and after it.
+
+The boundary is the layer, not the phase. `width`, `height`, and `box-shadow` stay forbidden everywhere, for the reason they always were: they cost layout or paint on every frame. A component that wants to move is asking for the camera, and it gets the camera.
+
+**2 — a navigation duration scale.** `--duration: 150ms` is a state-change token and cannot express a camera move. Four durations and four easings, one pair per move in the closed grammar, named semantically per the OUTPUT rule — `--duration-nav-pan`, `--duration-nav-zoom-in`, `--duration-nav-zoom-out`, `--duration-nav-lift`, and `--ease-nav-*` alongside them. Values are the midpoints of the ranges in `motion-system.md` §3.4; the ranges are tuning windows, and leaving one is a decision rather than a token edit.
+
+**The 900ms ceiling is a hard bound**, recorded in `tokens.md` as such. No navigation token exceeds it at any breakpoint, in any theme, for any move.
+
+**`prefers-reduced-motion: reduce` zeroes the new tokens the same way it zeroes `--duration` today** — a token override in one place, never a per-component media query, never a per-move exception. Zeroing them is exactly what produces the **Cut** move of §3.2. Easing tokens are untouched, since a zero-duration transition never samples its curve.
+
+**Why now, before any of it is built:** `motion-system.md` §0.3 requires these logged as decisions rather than assumed at implementation time. Amending the tokens now removes a contradiction from work that is already scheduled; deferring it would mean discovering mid-build that the token file forbids the layer, and resolving it under time pressure.
+
+**Consequence:** the new tokens are **declared but inert**. Nothing in MVP-1 reads them and defining them is not permission to use them — the layer is behind the flag from decision 047. `docs/design/tokens.md` is amended; no application code changes.
+
+**Status:** ACTIVE — amends decision 018's token set, required by 046
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

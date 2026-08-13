@@ -131,7 +131,9 @@ Non-negotiable, from `docs/conventions.md`:
 2. **Alt text is public HTML.** It ships in the page source and is indexed. So alt must describe *the redacted image as it appears* — "onboarding screen with customer details masked" — and must never describe the concealed content. Alt text is the easiest place to leak the exact thing the picture is hiding.
 3. **Contrast.** The badge and caption meet WCAG AA against whatever the treatment puts behind them. If the treatment is a flat mid-tone field, check both themes.
 4. **Both themes.** It must read as intentional on `#000` and on `#fff`. Tokens exist (`--color-redacted-fill`, `--color-redacted-stroke`) but are placeholders aliasing existing values — replace them.
-5. **No reveal interaction.** No hover-to-unblur, no click-to-reveal, no progressive disclosure. Decision 023 rules out animation in MVP-1, and more importantly a reveal implies a recoverable original, which §3 says must not exist.
+5. **No reveal interaction.** No hover-to-unblur, no click-to-reveal, no progressive disclosure. **The reason is §3, not the phase.** A reveal implies a recoverable original, which §3 requires must not exist. Decision 023 also rules out animation in MVP-1, but decision 047 scopes 023 to MVP-1 — so that half of the argument expires at the launch gate and this rule does not. It is permanent.
+
+   **This survives the Motion Layer.** `docs/design/motion-system.md` §6.2 carries the boundary forward: for any `media.redacted = true`, the baked masks render solid at every stage and never condense, disperse, or dissolve. A mask that dissolved into points and reassembled would *read* as a reveal even though nothing is recoverable — and the reading is the failure, not the mechanism. The mask is the one thing on the site never made of dots.
 
 ---
 
