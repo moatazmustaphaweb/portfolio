@@ -37,6 +37,45 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-14 — UAE cover: a face in 401 points, six paths
+
+Second component cover, first built from a **written brief rather than a `.dc.html`** — the spec was the design. A biometric identity portrait: a frontal head as a point cloud, capture brackets, faint construction lines, one EFR tag. The pattern held at its promised cost: one file in `designs/`, one registry entry, one `update`. No migration, per the brief.
+
+### Point count and how it stays cheap
+
+**401 points. Six `<path>` elements. Seventeen DOM elements for the whole artwork. 8.7KB of SVG.**
+
+The perf-budget rule — never one DOM node per point — is honoured by batching: a zero-length round-capped stroke segment (`M x y h.01`) paints a filled circle, the same trick the `Sun1` icon's ray dots use, so every point in a bucket joins one `d` string. The six buckets are ramp step × dot size × opacity — `fg` 10u through `fg-dim` 6u — painted dim-first so features sit on top. Individual `<circle>` elements would have cost ~400 DOM nodes and the same again in the RSC flight payload.
+
+**Depth is the opacity ramp, not an effect.** No glow, no blur, no gradient — the falloff that makes the cloud read as a surface is four ramp steps and per-bucket opacity, the same way depth works everywhere else on this site. The smallest dot is 6 user units ≈ **1.05px at a 280px render** — at the floor, never sub-pixel.
+
+**The cloud is deterministic.** A seeded PRNG (mulberry32, fixed seed) generates it once at module scope; `Math.random` would emit different bytes on every render and split the HTML from the flight payload. Verified: two fetches of the production page, **byte-identical SVG by md5**. The composition is symmetric by construction — features generate per side from one table — which is also what makes it reflection-safe.
+
+### The accent went to the capture-lock ring
+
+One element: the ring at the fixation point, where the centre axis crosses the eye line at the bridge of the nose. The reasoning, recorded in the component: everything else in the piece is either **the person** (the cloud, in the text ramp) or **the instrument** (lines and brackets, in `fg`). The ring is the one place instrument meets person — the point the system fixes on, identity reduced to a single captured coordinate, which is the *Required Fields* argument in one mark. Never colour alone: the crosshair it sits on marks the same point.
+
+### EFR
+
+A prop, not a literal (rule 1), set in the top-start bracket's nook where a viewfinder writes its tags — mono, small, `fg-dim`. It is the only text in the artwork. Latin in both locales per the KYC/OTP/NDA convention; the spelt-out name lives in the `description` prop at the call site, which resolves through `translations` next pass and is never baked into the SVG. **Verified in `/ar`: it renders EFR, not RFE** — the `unicode-bidi: isolate` + own-direction lesson from the Egypt cover, applied from the start this time.
+
+### Verified by looking — all four surfaces
+
+| | result |
+|---|---|
+| Cover page, dark | LiDAR reading — light points on black. Head, brows, eyes with irises, nose, lips all resolve |
+| Cover page, light | Inverts to an engraving-style stipple. Reads as form, not dirt |
+| Gallery card ~295px | **The face still reads** — the brief's stated failure case does not occur. Ring, brackets and tag all legible |
+| `/ar` | Page mirrors; the symmetric artwork needs nothing; EFR unmangled |
+
+Both covers render on `/en/work` and `/ar/work` simultaneously, zero hex literals across both, accent used once in each. All six routes 200 in a production build. Build, typecheck, ESLint exit 0. NDA per decision 050: no screen geometry anywhere in the artwork; the card badge carries the signal.
+
+### ⚠️ Flagged, not acted on
+
+The `cover_component = 'uae-acquisition'` row lives in **no migration** — the brief said no migration, and the columns did not need one, but Egypt's equivalent `update` lives in 0026 and this one lives only in the live database. A rebuild from scratch would silently revert UAE to a coverless card. Same class as the eleven strings closed yesterday. One `update` statement appended to a future migration closes it.
+
+---
+
 ## 2026-08-13 — The eleven reviewed, the eleventh named, and the header still wraps
 
 ### The eleventh string was `form_message_placeholder`
