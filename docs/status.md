@@ -37,6 +37,76 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — `useSyncExternalStore` rewrites. ESLint is at zero.
+
+All three `set-state-in-effect` errors are gone **because the cause is gone** — nothing suppressed, no `eslint-disable`. Build, typecheck, sync tests and content verification all exit 0; 24/24 route-locale combinations 200.
+
+### Tap targets — settled, not flagged
+
+`--control-h` stays 44px for primary actions. `--control-h-sm` stays **32px** and the hit-area extension is **rejected**, not deferred — the comment in `globals.css` now records that as a decision rather than an open question, so it does not get re-litigated.
+
+### Two commits, not three — and why
+
+`ConsentBanner` and `GoogleAnalytics` went in **together**. They share one store, so splitting them would have shipped an intermediate commit where GA could not see a consent change. A commit that is knowingly broken is worse than a commit that is slightly larger. `ThemeToggle` is genuinely independent and went separately.
+
+### What actually changed
+
+**`lib/analytics/consent.ts`** — one store, two subscribers, no copies. The custom `CONSENT_EVENT` the two components used to pass between themselves is **deleted**: same-tab changes notify subscribers directly, and a `storage` listener now covers other tabs, which the old code did not handle at all.
+
+Two details worth knowing, because both would be easy to get wrong later:
+
+- **The snapshot is three-state.** `getServerSnapshot()` returns `"unknown"`, not `null`. `null` means *asked and unanswered* and renders the banner — so collapsing the two would server-render the banner and flash it at everyone who already answered.
+- **`setConsent` writes the in-memory cache before, and independently of, `localStorage`.** Private browsing can reject the write; the choice must still hold for that page view. A naive "write then re-read" would have made the banner reappear the instant it was dismissed.
+
+**`lib/theme/store.ts`** — the resolved theme is a property of the document, not component state. It subscribes to **both** inputs: a `MutationObserver` on `data-theme` and the `prefers-color-scheme` media query. **The second one is new** — changing your OS appearance while the page was open used to leave the toggle's label stale until reload, because nothing was listening.
+
+`suppressHydrationWarning` is dropped from the toggle's span: with `getThemeServerSnapshot()` returning `null`, the SSR and hydration passes genuinely agree, so there is no mismatch left to suppress. The one on `<html>` stays — the pre-paint script mutates that element by design.
+
+**The pre-paint script is untouched.** It still resolves and applies the theme before any CSS or JS runs, which is what prevents a flash. Nothing in the new store is on that path.
+
+### What I could verify, and what I could not
+
+Served HTML is **byte-identical before and after**, in both locales, for every marker that matters:
+
+| | before | after |
+|---|---|---|
+| small controls | 5 | 5 |
+| consent dialog in SSR | 0 | 0 |
+| GA script in SSR | 0 | 0 |
+| pre-paint script | 2 | 2 |
+| toggle inner HTML | `<span></span>` | `<span></span>` |
+
+That proves the server output did not change. **It cannot prove the client behaviour**, because all three components do their real work after hydration and I have no browser.
+
+### ⚠️ What to check when you open it — expected vs failure
+
+**Theme flash on first paint.** Hard-reload with the OS in the *opposite* appearance to your stored choice, and watch the first frame.
+- ✅ The page paints in the stored theme immediately. No white flash on a dark theme.
+- ❌ A frame of the wrong theme before it corrects. That would mean the pre-paint script is not running early enough — and it would be a **pre-existing** bug, not from this change, since that script is untouched.
+
+**The toggle's label.** It names the theme you would switch *to*.
+- ✅ Empty for a fraction of a second on load, then the label appears.
+- ❌ It stays empty, or shows the theme you are *already* in.
+
+**New, worth testing because nothing listened before:** with the page open, change your OS between light and dark in System Settings.
+- ✅ The label updates on its own — but only if you have never pressed the toggle. An explicit choice wins over the OS, by design.
+
+**Theme survives a reload.** Toggle it, then reload.
+- ✅ The new theme persists, and the mobile browser chrome colour matches.
+- ❌ It reverts. That would mean the `localStorage` write failed.
+
+**The consent banner reappearing** — the one I most want eyes on.
+- ✅ Appears once on a first visit, in whichever language you are viewing. Press either button and it disappears. **Reload: it does not come back.** Navigate: it does not come back.
+- ❌ It reappears after any reload → the store is re-reading over the answer. It flashes on every page load before disappearing → `"unknown"` has been collapsed into `null`.
+- Private-window check: answer it, then reload **in the same window**. ✅ still gone. Open a *new* private window: ✅ it returns, which is correct and deliberate — no stored consent means no GA.
+
+**Google Analytics.** With DevTools → Network open and filtered to `googletagmanager`:
+- ✅ **Zero requests** before you press Allow — not a blocked one, none at all.
+- ✅ The request appears the moment you press Allow, without a reload.
+- ❌ Any request before pressing Allow is a decision-030 violation and the most serious failure on this list.
+
+---
+
 ## 2026-08-13 — Tap targets, the four distribution items, and ESLint
 
 **30/30 route-locale combinations 200 in production.** Typecheck, sync tests, content verification and build all exit 0.

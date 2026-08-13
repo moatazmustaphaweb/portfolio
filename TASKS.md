@@ -149,12 +149,14 @@
 - [x] **Per-page metadata** — `lib/seo/metadata.ts`; title, description, canonical and language alternates per page. A shared case-file link now names the case file
 - [x] **Sitemap** — 22 → 29 URLs; `/about/philosophy`, the four `/all` views and the two `/results` tables added
 - [x] **`NEXT_PUBLIC_SITE_URL`** — the helper was already correct; a production build now warns loudly when it falls back to localhost. Resolves itself at deploy
-- [ ] **3 ESLint errors, all `react-hooks/set-state-in-effect`** — ConsentBanner, GoogleAnalytics, ThemeToggle. Behaviour is correct; the fix is `useSyncExternalStore` and is a refactor of hydration-sensitive components that needs a browser to verify
+- [x] **ESLint at zero.** ConsentBanner, GoogleAnalytics and ThemeToggle rewritten with `useSyncExternalStore` — the cause removed, not suppressed. Server HTML byte-identical before/after in both locales; client behaviour needs eyes (checklist in `docs/status.md`)
+
+- [ ] 🔵 **Verify the three rewritten client components** — theme flash on first paint, toggle label, theme survives reload, consent banner does not reappear, and zero `googletagmanager` requests before Allow. Expected-vs-failure checklist in `docs/status.md`
 
 ### Design rebuild — outstanding
 - [ ] 🔵 **Visual pass, both locales — MOATAZ IS DOING THIS.** Three attempts failed: the connected Chrome cannot reach the local server. Everything remains DOM-verified only
 - [x] **`--control-h` raised to 44px** sitewide, per the rule the Accessibility page states
-- [ ] **`--control-h-sm` is still 32px** — ThemeToggle, LocaleSwitch and the gallery filter chips. Fix is a transparent pseudo-element extending the hit area to 44px without changing visual height (WCAG 2.5.8); flagged rather than restyling the chrome unilaterally
+- [x] **`--control-h-sm` stays 32px** — decided 2026-08-13. The size distinction is intentional and the hit-area extension was considered and rejected. 44px applies to `--control-h`, which every primary action uses
 - [ ] **Systems direction** — Direction B (essay) is built because the content supports it. Direction A (documentation) needs a token table, component inventory and changelog that do not exist as content
 - [ ] **404 `<html lang>`/`dir` for in-route notFound()** — copy and chrome are correct; the wrapper is Next's error shell. `dynamicParams = false` did not fix it. Mitigated by setting lang/dir on the page's own wrapper
 
