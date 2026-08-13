@@ -5,6 +5,7 @@ import {
   type CoverSize,
   type PhaseDirection,
 } from "@/designs/egypt-acquisition-cover";
+import { UaeAcquisitionCover } from "@/designs/uae-acquisition-cover";
 
 /**
  * Component covers — the registry `case_files.cover_component` keys into.
@@ -73,6 +74,29 @@ const COVERS: Record<string, (size: CoverSize) => ReactElement> = {
       ]}
       alt="Egypt Acquisition — programme system map"
       description="A matrix of the Egypt Acquisition programme across six delivery phases — Discovery, Structure, Review, Exception, Portal and Close. The customer-facing band carries Onboarding Journey, Document Capture & OCR, Customer Portal & Notifications, and Account Activation. The bank-facing band carries Application Workflow, Name Screening, Exception Handling, Fulfilment & AOF, and closes on six systems live. Each plate spans the phases its system operates across, so overlapping plates show systems running concurrently."
+    />
+  ),
+
+  /*
+   * UAE Acquisition — a biometric identity portrait, from Moataz's written
+   * brief (2026-08-14). EFR — Emirates Face Recognition — is a real biometric
+   * check in the UAE onboarding journey, confirmed by Moataz; the subject is
+   * settled. UAE is nda = true and decision 050 applies: the artwork depicts
+   * the programme from tokens and reproduces no screen, so it has no NDA
+   * surface, and the badge on the card carries the NDA signal.
+   *
+   * "EFR" stays Latin in both locales — the KYC/OTP/NDA category. The spelt-
+   * out name lives here in the description, which resolves through
+   * translations next pass like every other string; it is never baked into
+   * the artwork.
+   */
+  "uae-acquisition": () => (
+    <UaeAcquisitionCover
+      className="h-auto w-full"
+      uid="uae-acquisition-cover"
+      tag="EFR"
+      alt="UAE Acquisition — biometric identity portrait"
+      description="A frontal human head rendered as a point cloud — a few hundred dots, denser where the features sit, sparser at the edges of the form, the way a depth camera captures a face. Faint construction lines cross at the bridge of the nose, where a single accent ring marks the point the capture fixes on. Four corner brackets frame the head like a viewfinder, tagged EFR — Emirates Face Recognition, the biometric check in the UAE onboarding journey."
     />
   ),
 };
