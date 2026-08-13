@@ -7,6 +7,7 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { listChapterBodies } from "@/lib/content/chapters";
 import { getUiStrings } from "@/lib/content/ui";
+import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale, TargetStatus } from "@/lib/content/types";
 
 /**
@@ -49,6 +50,24 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
+}
+
+/** Preview metadata for a shared link. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; caseFile: string }>;
+}) {
+  const { locale, caseFile } = await params;
+  const l = locale as Locale;
+  const [detail, ui] = await Promise.all([getCaseFile(caseFile, l), getUiStrings(l)]);
+  const name = detail?.fields.title;
+  return pageMetadata({
+    locale: l,
+    path: `/work/${caseFile}/all`,
+    title: name && ui.t("linear_view") ? `${name} — ${ui.t("linear_view")}` : name,
+    description: detail?.fields.thesis,
+  });
 }
 
 /** Same form-not-colour encoding as the full Results Table. */

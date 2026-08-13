@@ -9,6 +9,7 @@ import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
+import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -44,6 +45,23 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
+}
+
+/** The thesis is the case file's own summary — the right preview description. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; caseFile: string }>;
+}) {
+  const { locale, caseFile } = await params;
+  const l = locale as Locale;
+  const detail = await getCaseFile(caseFile, l);
+  return pageMetadata({
+    locale: l,
+    path: `/work/${caseFile}`,
+    title: detail?.fields.title,
+    description: detail?.fields.thesis,
+  });
 }
 
 /** Maps a `case_files.domain` value to its `ui_strings` key. */

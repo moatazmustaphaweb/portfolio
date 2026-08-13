@@ -88,6 +88,12 @@ export function CloudinaryImage({
     });
 
   return (
+    /*
+     * `CldImage` is a client component and this is a server component. The URL
+     * is already built by `getCldImageUrl` from a named preset, so next/image
+     * would put a second optimiser in front of Cloudinary's for no gain.
+     */
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={urlFor(config.width)}
       // 2x for high-density displays. Cloudinary caches each derived width, so

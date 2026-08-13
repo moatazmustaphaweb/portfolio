@@ -129,7 +129,25 @@
   --radius-pill: 999px;
   --border-width: 1px;
   --blur-header: 12px;
-  --control-h: 40px;
+  /*
+   * 44px, not 40px. `Accessibility.dc.html` states "Minimum 44px targets" as a
+   * rule this portfolio argues for, and `ConsentBanner.dc.html` specs 44px
+   * buttons — so at 40px the site was violating the standard its own
+   * accessibility page makes an argument about. That is the inconsistency a
+   * design lead notices first, and it undercuts the page.
+   */
+  --control-h: 44px;
+
+  /*
+   * ⚠️ 32px, and therefore still under the 44px rule. Used by ThemeToggle,
+   * LocaleSwitch and the gallery filter chips — all interactive.
+   *
+   * Not simply raised to 44px: that would erase the distinction between the
+   * two control sizes and inflate the header. The correct fix keeps the
+   * visual height and extends the HIT AREA to 44px with a transparent
+   * pseudo-element (WCAG 2.5.8 permits this). Left as a flagged decision
+   * rather than a unilateral restyle of the site chrome — see docs/status.md.
+   */
   --control-h-sm: 32px;
 
   /*

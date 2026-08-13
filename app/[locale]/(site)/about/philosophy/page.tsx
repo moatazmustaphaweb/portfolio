@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
+import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -28,6 +29,29 @@ import type { Locale } from "@/lib/content/types";
  * See lib/content/revalidate.ts for why 300.
  */
 export const revalidate = 300;
+
+/**
+ * The page's own lede becomes its preview description — the first real
+ * sentence of the page, not the site-wide tagline.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const l = locale as Locale;
+  const [{ intro }, ui] = await Promise.all([
+    getPageSections("about/philosophy", l),
+    getUiStrings(l),
+  ]);
+  return pageMetadata({
+    locale: l,
+    path: "/about/philosophy",
+    title: ui.t("page_philosophy"),
+    description: intro,
+  });
+}
 
 export default async function Philosophy({
   params,

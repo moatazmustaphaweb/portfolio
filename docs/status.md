@@ -37,6 +37,76 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — Tap targets, the four distribution items, and ESLint
+
+**30/30 route-locale combinations 200 in production.** Typecheck, sync tests, content verification and build all exit 0.
+
+### Tap targets — `--control-h` is 44px
+
+The site was violating the standard its own Accessibility page argues for. Fixed, verified in the served CSS.
+
+> ⚠️ **`--control-h-sm` is still 32px** and is used by three interactive controls: ThemeToggle, LocaleSwitch, and the gallery filter chips. Not raised, because making it 44px erases the distinction between the two control sizes and inflates the header. The correct fix keeps the visual height and extends the **hit area** to 44px with a transparent pseudo-element (WCAG 2.5.8 permits exactly this). Left as a flagged decision rather than a unilateral restyle of the site chrome.
+
+### Per-page metadata — the distribution fix
+
+Every page used to emit `og:title = "Moataz Mustapha"` and the same description, so sharing a case file told the recipient nothing. Now each page carries its own title, a description taken from its own first real sentence, a canonical, and `alternates.languages`:
+
+```
+/en/work/egypt-acquisition            Egypt Acquisition (Web) — Moataz Mustapha
+/en/work/…/onboarding                 Onboarding Journey — Moataz Mustapha
+/en/about                             About — Moataz Mustapha
+/ar/work/cervello                     Cervello Cloud — منصة IoT — مُعتز مصطفى
+```
+
+One thing that surfaced: `/ar/work/cervello` falls back to the site-wide description because Cervello has **no Arabic thesis**. The fallback rule working as designed (decision 013), and visible now that descriptions are per-page.
+
+`og:image` still resolves to nothing — `settings.og_image` is NULL and remains a launch-gate blocker. Omitted rather than substituted.
+
+### Sitemap — 22 → 29 URLs
+
+The three missing families are in: `/about/philosophy`, all four `…/all` linear views, and `…/results` for the two case files that declare targets. `/results` is generated from the **same list `generateStaticParams` uses**, so the sitemap cannot advertise a URL that 404s.
+
+### `NEXT_PUBLIC_SITE_URL` — the helper was already right
+
+`siteUrl()` already prefers `NEXT_PUBLIC_SITE_URL`, then `VERCEL_PROJECT_PRODUCTION_URL`, then `VERCEL_URL`. **Nothing needed fixing in the logic** — the localhost fallback bites only because nothing is deployed and no domain is chosen.
+
+What I could fix is the silence. A production build now **warns loudly** when it falls back:
+
+```
+⚠️  NEXT_PUBLIC_SITE_URL is not set and no Vercel URL is present.
+    Absolute URLs will be emitted as http://localhost:3000 —
+    sitemap.xml, llms.txt, canonicals and og:url will all be wrong.
+```
+
+Verified: it fired 4× in the production build. On Vercel it will not fire at all, because Vercel supplies the URL. **This resolves itself at deploy** — it is a domain decision, not a code gap.
+
+### ESLint — installed, and it earned its keep in the first run
+
+`eslint-config-next` 16 ships flat configs directly; the `FlatCompat` shim throws a circular-JSON error against it, so they are imported natively.
+
+**It immediately found dead code `tsc` could not see:** a duplicate `THEME_INIT` constant left in `app/[locale]/layout.tsx` after last session's layout split. Exactly the class of bug the rule exists for, and exactly what I predicted when I set `no-unused-vars` to error rather than warn.
+
+Also suppressed, with the reason recorded in the code: `no-img-element` in `CloudinaryImage` — `CldImage` is a client component, this is a server component, and the URL is already built from a named preset, so `next/image` would stack a second optimiser in front of Cloudinary's.
+
+**Three errors remain, all one rule, all pre-existing:**
+
+| File | Rule |
+|---|---|
+| `ConsentBanner.tsx:64` | `react-hooks/set-state-in-effect` |
+| `GoogleAnalytics.tsx:30` | `react-hooks/set-state-in-effect` |
+| `ThemeToggle.tsx:27` | `react-hooks/set-state-in-effect` |
+
+All three read a browser-only value after mount — `localStorage`, a `data-theme` attribute — and `setState`. The behaviour is correct; React 19's lint flags the cascading render. The proper fix is `useSyncExternalStore`, which is a real refactor of three **hydration-sensitive** components. **Not doing that blind**, with no browser to check the result against. Reported instead.
+
+### Still not verified by looking
+
+Per your instruction I did not attempt the browser again. Everything above is structural. The list of what needs eyes is unchanged from the previous entry, with two additions from this session:
+
+- **44px controls at narrow width in Arabic** — the longest control strings are `جارٍ الإرسال…` and `تحميل السيرة الذاتية`; `--control-min-w` is 8rem and was eyeballed, never measured
+- **The consent banner stacked**, now that its buttons are 44px
+
+---
+
 ## 2026-08-13 — DESIGN REBUILD, groups 6–7. Two of the three tasks landed.
 
 **36/36 route-locale combinations 200 in production.** Typecheck, sync tests and content verification all exit 0.
