@@ -7,6 +7,7 @@ import { LivingMap } from "@/components/case-file/LivingMap";
 import { OutcomeStrip } from "@/components/case-file/OutcomeStrip";
 import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { resolveCover } from "@/designs/registry";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -109,6 +110,21 @@ export default async function CaseFileCover({
       ) : null}
 
       <h1 className="mt-5 max-w-measure text-title text-fg">{title}</h1>
+
+      {/*
+        The cover, below the title, at the large size. The same component the
+        gallery card renders — one artwork, two sizes, scaled by its viewBox
+        rather than reflowed into a second composition.
+
+        Bordered rather than bled: the artwork's own ground is
+        --color-surface, so a hairline is what separates it from the page
+        ground instead of a shadow.
+      */}
+      {detail.cover_kind === "component" && detail.cover_component ? (
+        <div className="mt-8 overflow-hidden rounded-panel border border-DEFAULT">
+          {resolveCover(detail.cover_component, "cover")}
+        </div>
+      ) : null}
 
       {detail.fields.thesis ? (
         <p className="mt-6 max-w-measure text-lead text-fg-body">
