@@ -95,8 +95,8 @@ locale you are in.
 | `domain_banking` | Banking | الخدمات المصرفية |  |
 | `domain_branding` | Branding | الهوية |  |
 | `domain_smart_things` | Smart Things | الأنظمة الذكية |  |
-| `download_cv` | Download CV | تحميل السيرة الذاتية |  |
-| `entry_handles_heading` | Three ways in | ثلاث طرق للدخول |  |
+| `download_cv` | Download CV | تحميل السيرة الذاتية | 🔴 Not reviewed — also the longest control label; see `--control-min-w` |
+| `entry_handles_heading` | Three ways in | ثلاث طرق للدخول | 🔴 Not reviewed — added after the 2026-08-11 pass |
 | `error_cta` | Try again | حاول مرة أخرى |  |
 | `error_title` | Something went wrong | حدث خطأ ما |  |
 | `evidence` | Evidence | الدليل |  |
@@ -105,15 +105,15 @@ locale you are in.
 | `form_email` | Email | البريد الإلكتروني | Kept — correct Arabic; length is a layout problem, handled in CSS |
 | `form_error` | That didn’t send. Try again, or email me directly. | لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة. |  |
 | `form_message` | Message | الرسالة |  |
-| `form_message_placeholder` | The more context you give, the more useful my first reply will be. | كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة. |  |
+| `form_message_placeholder` | The more context you give, the more useful my first reply will be. | كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة. | 🔴 Not reviewed — longest unreviewed string, and it sets the tone of the contact form |
 | `form_name` | Name | الاسم |  |
 | `form_required` | This field is required. | هذا الحقل مطلوب. |  |
 | `form_sending` | Sending… | جارٍ الإرسال… | ⚠️ Layout — submit button needs a min-width so it cannot resize mid-interaction |
-| `form_subject` | What's this about? | عن ماذا تودّ الحديث؟ |  |
-| `form_subject_hiring` | Hiring | توظيف |  |
-| `form_subject_other` | Something else | شيء آخر |  |
-| `form_subject_project` | A project | مشروع |  |
-| `form_subject_speaking` | Speaking or writing | مشاركة أو كتابة |  |
+| `form_subject` | What's this about? | عن ماذا تودّ الحديث؟ | 🔴 Not reviewed — added after the 2026-08-11 pass |
+| `form_subject_hiring` | Hiring | توظيف | 🔴 Not reviewed — added after the 2026-08-11 pass |
+| `form_subject_other` | Something else | شيء آخر | 🔴 Not reviewed — added after the 2026-08-11 pass |
+| `form_subject_project` | A project | مشروع | 🔴 Not reviewed — added after the 2026-08-11 pass |
+| `form_subject_speaking` | Speaking or writing | مشاركة أو كتابة | 🔴 Not reviewed — `مشاركة` can read as *participation* rather than *speaking*; check against the intent |
 | `form_submit` | Send | إرسال | ⚠️ Layout — see `form_sending` |
 | `form_success` | Thanks — I’ll reply soon. | شكراً — سأردّ قريباً. |  |
 | `home` | Home | الرئيسية |  |
@@ -147,12 +147,12 @@ locale you are in.
 | `reflection` | Reflection | خلاصة | ✅ Corrected — `خلاصة` |
 | `result` | Result | النتيجة |  |
 | `results` | Results | النتائج |  |
-| `results_table` | Results table | جدول النتائج |  |
+| `results_table` | Results table | جدول النتائج | 🔴 Not reviewed — added after the 2026-08-11 pass |
 | `role_label` | Role | الدور |  |
-| `sibling_case_files` | Sibling case files | ملفات شقيقة |  |
+| `sibling_case_files` | Sibling case files | ملفات شقيقة | 🔴 Not reviewed — `ملفات شقيقة` is a literal rendering of *sibling*; check it does not read biological |
 | `skip_to_content` | Skip to content | انتقل إلى المحتوى | ✅ Corrected — no diacritic |
 | `status_achieved` | Achieved | محقَّق | ✅ Corrected — adjective form |
-| `status_label` | Status | الحالة |  |
+| `status_label` | Status | الحالة | 🔴 Not reviewed — `الحالة` is a table column header, so it must not collide with `status_*` values |
 | `status_missed` | Missed | غير محقَّق | ✅ Corrected — adjective form |
 | `status_not_measurable` | Not measurable | غير قابل للقياس | ⚠️ Layout — status pills need a shared min-width |
 | `status_projected` | Projected | تقديري | ✅ Corrected — `تقديري`; `متوقّع` over-claimed against decision 007 |
@@ -160,7 +160,7 @@ locale you are in.
 | `target` | Target | الهدف |  |
 | `theme_dark` | Dark | داكن |  |
 | `theme_light` | Light | فاتح |  |
-| `theme_system` | System | النظام | 🔴 **Not reviewed** — `النظام` is my rendering, not Moataz's. It is the default state's label, so it is on screen for every Arabic visitor who never touches the control. Check it reads as *the device's setting* rather than *the system* in the abstract |
+| `theme_system` | System | تلقائي | Approved 2026-08-13 — `تلقائي` describes the behaviour, not the device |
 | `theme_toggle` | Toggle theme | تبديل المظهر |  |
 | `view_all` | View all | عرض الكل |  |
 ---

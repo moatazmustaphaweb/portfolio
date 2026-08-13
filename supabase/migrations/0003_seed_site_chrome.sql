@@ -131,14 +131,42 @@ with strings(key, context, en, ar) as (values
   ('form_error',       'Contact form failure',                'That didn’t send. Try again, or email me directly.', 'لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة.'),
   ('form_required',    'Validation message',                  'This field is required.', 'هذا الحقل مطلوب.'),
 
+  -- ───────────────────────────────────────────────────────────────────────
+  -- Backfilled 2026-08-13. These eleven were written straight to the database
+  -- on 2026-08-12 and never landed in a migration, so `check:seed-drift`
+  -- reported them for a day: the site read them correctly, but a rebuild from
+  -- scratch would have dropped them silently — no error, just unlabelled
+  -- controls and a contact form whose subject field had no options.
+  --
+  -- Values copied from the live database, not retyped.
+  --
+  -- ⚠️ THE ARABIC BELOW IS UNREVIEWED. The review pass in
+  -- docs/ui-strings-review.md is dated 2026-08-11 and covered 52 strings;
+  -- every one of these was created the day after it. They are recorded here so
+  -- a rebuild is faithful, NOT because the wording is settled. Flagged in
+  -- scripts/export-ui-strings.ts until reviewed.
+  -- ───────────────────────────────────────────────────────────────────────
+  ('form_subject',     'Contact form — the "What''s this about?" select label', 'What''s this about?', 'عن ماذا تودّ الحديث؟'),
+  ('form_subject_hiring',   'Contact form — subject option',  'Hiring',                 'توظيف'),
+  ('form_subject_project',  'Contact form — subject option',  'A project',              'مشروع'),
+  ('form_subject_speaking', 'Contact form — subject option',  'Speaking or writing',    'مشاركة أو كتابة'),
+  ('form_subject_other',    'Contact form — subject option',  'Something else',         'شيء آخر'),
+  ('form_message_placeholder', 'Contact form — placeholder in the message field', 'The more context you give, the more useful my first reply will be.', 'كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة.'),
+  ('download_cv',      'Contact page — CV download link; hidden until settings.cv_url exists', 'Download CV', 'تحميل السيرة الذاتية'),
+  ('entry_handles_heading', 'Cover — heading above the three entry handles', 'Three ways in', 'ثلاث طرق للدخول'),
+  ('sibling_case_files', 'Cover — heading above links to sibling case files', 'Sibling case files', 'ملفات شقيقة'),
+  ('results_table',    'Results Table page — title and the link to it from the cover', 'Results table', 'جدول النتائج'),
+  ('status_label',     'Results Table — the Status column header', 'Status',            'الحالة'),
+
   -- Language and theme
   ('language',         'aria-label on the locale switch',     'Language',               'اللغة'),
   ('lang_en',          'Locale switch option',                'English',                'English'),
   ('lang_ar',          'Locale switch option',                'العربية',                 'العربية'),
   ('theme_toggle',     'aria-label on the theme group',       'Toggle theme',           'تبديل المظهر'),
   -- The default. Follows the OS preference; selecting it clears any override.
-  -- ⚠️ The Arabic here is UNREVIEWED — see docs/ui-strings-review.md.
-  ('theme_system',     'Theme option — follows the OS',       'System',                 'النظام'),
+  -- Arabic approved 2026-08-13: تلقائي ("automatic") rather than النظام —
+  -- it describes the behaviour, not the machine.
+  ('theme_system',     'Theme option — follows the OS',       'System',                 'تلقائي'),
   ('theme_light',      'Theme option',                        'Light',                  'فاتح'),
   ('theme_dark',       'Theme option',                        'Dark',                   'داكن'),
 

@@ -350,3 +350,43 @@
     outline-offset: var(--focus-offset);
   }
 }
+
+@layer components {
+  /*
+   * A 44px touch target on a control that is deliberately smaller than 44px.
+   *
+   * `--control-h-sm` is 32px and stays 32px: the size difference between a
+   * primary action and a chrome control is intentional, and raising it would
+   * flatten that hierarchy and grow the header. WCAG 2.5.8 permits exactly
+   * this — the *target* must be 44px, the ink need not be. So a transparent
+   * pseudo-element extends the hit area past the glyph without moving it.
+   *
+   * This is the approach flagged in docs/status.md when the tap-target audit
+   * ran, applied for the first time here because icon buttons are where the
+   * gap actually bites.
+   *
+   * No `transform`. Centring a pseudo-element usually means translate(-50%),
+   * and transform is scoped to the Motion Layer's camera and field (decision
+   * 048) — a content-level component may not use it. Symmetric negative
+   * block insets get there without one.
+   *
+   * `inset-block`, not `top`/`bottom`: logical, so it is direction-neutral by
+   * construction rather than by review.
+   *
+   * ⚠️ The ancestor must not clip. `overflow: hidden` on a parent clips
+   * hit-testing as well as paint, which would silently undo this — the target
+   * would look extended and not be. The theme control rounds its end children
+   * instead of clipping for exactly this reason.
+   */
+  .tap-target-44 {
+    position: relative;
+  }
+
+  .tap-target-44::after {
+    content: "";
+    position: absolute;
+    /* (44 - 32) / 2 — grows the target to 44px vertically. */
+    inset-block: -6px;
+    inset-inline: 0;
+  }
+}
