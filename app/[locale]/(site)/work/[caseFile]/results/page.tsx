@@ -8,28 +8,24 @@ import { getUiStrings } from "@/lib/content/ui";
 import type { Locale, TargetStatus } from "@/lib/content/types";
 
 /**
- * Results Table.
+ * Results Table — composed from `CaseResults.dc.html`.
  *
- * The page the manifesto's fourth commitment lives on: **every declared target
- * closed** — achieved, missed, or not-measurable, with the evidence beside it.
+ * The design's status encoding is adopted wholesale, and it is better than
+ * what shipped before: **form carries the meaning, not colour.**
  *
- * It is the opposite of the outcome strip on the cover. The strip says what
- * went well; this says what was promised and what became of it, including the
- * promises that cannot yet be judged. Six of Egypt's eleven target rows across
- * both case files are `not-measurable`, and that is the point rather than a
- * gap: a controlled release has no commercial launch to measure against, and
- * saying so is the claim.
+ *   achieved        filled pill
+ *   missed          dashed outline
+ *   not-measurable  thin solid outline
  *
- * `not-measurable` is deliberately not styled as a failure. A target nobody
- * can measure yet is not a missed target, and colouring it like one would
- * misreport the work in the direction of self-criticism — which is no more
- * honest than the other direction.
+ * Plus a legend, so the encoding is stated rather than inferred. This reaches
+ * decision 042's no-red conclusion by a stronger route — it survives
+ * greyscale, colour-blindness, and a printed page, and the accent stays free
+ * for its one job. The pills carry their label as text regardless, so nothing
+ * depends on reading the shape.
  *
- * Route: `/work/[caseFile]/results`. A static segment beside `[chapter]`, so
- * it cannot be shadowed by a chapter slug. Notion models this page as a
- * "(close)" annotation on the cover's route rather than a route of its own,
- * which is why the sync's collision check keys on kind (decision: the results
- * table legitimately shares its parent's route).
+ * The count pills above the table ("4 achieved · 2 missed") are the design's
+ * summary. They are computed, never authored, so they cannot contradict the
+ * rows beneath them.
  */
 /**
  * ISR window (decision 009). Next requires this to be a literal — an imported
@@ -43,19 +39,24 @@ export async function generateStaticParams() {
 }
 
 /**
- * Visual weight per status, within the one-accent system.
- *
- * There is no red. The palette has a single accent and the rule that colour is
- * never the sole indicator of a state, so the LABEL carries the meaning and
- * these only set emphasis: accent for closed, full-strength foreground for
- * missed, dimmed for not-measurable. A red "missed" would also be the loudest
- * thing on a page whose credibility comes from being even-handed.
+ * Status → pill form. Deliberately no colour beyond the ramp: `missed` is not
+ * an error and `not-measurable` is a statement about evidence, not about the
+ * work (decision 042).
  */
-const STATUS_STYLE: Record<TargetStatus, string> = {
-  achieved: "border-accent text-accent",
-  missed: "border-strong text-fg",
-  "not-measurable": "border-DEFAULT text-fg-dim",
+const PILL: Record<TargetStatus, string> = {
+  achieved: "border-fg bg-fg text-bg",
+  missed: "border-dashed border-strong text-fg-muted",
+  "not-measurable": "border-strong text-fg-muted",
 };
+
+/** The legend's swatch mirrors the pill it explains. */
+const SWATCH: Record<TargetStatus, string> = {
+  achieved: "bg-fg border-fg",
+  missed: "border-dashed border-strong",
+  "not-measurable": "border-strong",
+};
+
+const ORDER: TargetStatus[] = ["achieved", "missed", "not-measurable"];
 
 export default async function ResultsTable({
   params,
@@ -68,22 +69,22 @@ export default async function ResultsTable({
 
   const [detail, ui] = await Promise.all([getCaseFile(caseFile, l), getUiStrings(l)]);
   if (!detail) notFound();
-
-  /*
-   * A case file with no declared targets has no results table. Neobiz's cover
-   * declares its position in prose instead — designed and internally
-   * validated, not built — and a page rendering an empty table under a
-   * "Results" heading would read as a missing table rather than a deliberate
-   * absence.
-   */
   if (detail.targets.length === 0) notFound();
 
   const caseTitle = detail.fields.title ?? caseFile;
-  const statusLabel: Record<TargetStatus, string | undefined> = {
+  const label: Record<TargetStatus, string | undefined> = {
     achieved: ui.t("status_achieved"),
     missed: ui.t("status_missed"),
     "not-measurable": ui.t("status_not_measurable"),
   };
+
+  /* The design's count pills. Computed from the rows, so they cannot drift. */
+  const counts = ORDER.map((status) => ({
+    status,
+    n: detail.targets.filter((t) => t.status === status).length,
+  })).filter((c) => c.n > 0);
+
+  const sibling = detail.siblings[0];
 
   return (
     <div className="mx-auto max-w-container px-gutter py-section-y">
@@ -98,41 +99,55 @@ export default async function ResultsTable({
         ]}
       />
 
-      <header className="max-w-measure">
-        {ui.t("results_table") ? (
-          <p className="font-mono text-label uppercase text-fg-dim">
-            {ui.t("results_table")}
-          </p>
-        ) : null}
-        <h1 className="mt-4 text-title text-fg">{caseTitle}</h1>
-      </header>
+      {/*
+        The design's kicker is a label ("Case ending"); there is no such
+        string, so the case title carries the slot — more informative, and it
+        keeps the page identifiable now that the h1 is generic.
+      */}
+      <p className="font-mono text-label uppercase text-fg-dim">{caseTitle}</p>
+      {ui.t("results") ? (
+        <h1 className="mt-4 text-title text-fg">{ui.t("results")}</h1>
+      ) : null}
+
+      {counts.length > 0 ? (
+        <div className="mt-8 flex flex-wrap gap-4">
+          {counts.map((c) => (
+            <span
+              key={c.status}
+              className="inline-flex items-center gap-2 rounded-pill border border-DEFAULT px-3 py-1 text-body-sm text-fg-muted"
+            >
+              <span className="font-mono text-meta text-fg">{c.n}</span>
+              {label[c.status]}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {/*
-        A real <table>: this is tabular data — target, status, evidence — and a
-        screen reader should be able to say "row 3 of 6, evidence: …". A stack
-        of divs would look identical and navigate far worse.
-
-        It scrolls inside its own container rather than widening the page.
+        A real <table> with `scope`, styled as the design's card. The design
+        draws this with divs and `display: grid`; the element is kept because
+        this is tabular data and a screen reader should be able to say
+        "row 3 of 6, evidence: …". Same picture, correct semantics.
       */}
-      <div className="mt-12 overflow-x-auto">
+      <div className="mt-10 overflow-x-auto rounded-panel border border-DEFAULT bg-surface">
         <table className="w-full border-collapse text-start">
           <thead>
-            <tr className="border-b border-strong">
+            <tr className="bg-surface-raised">
               <th
                 scope="col"
-                className="py-3 pe-6 text-start font-mono text-micro uppercase text-fg-dim"
+                className="px-6 py-3 text-start font-mono text-micro uppercase text-fg-muted"
               >
                 {ui.t("target")}
               </th>
               <th
                 scope="col"
-                className="py-3 pe-6 text-start font-mono text-micro uppercase text-fg-dim"
+                className="border-s border-DEFAULT px-6 py-3 text-start font-mono text-micro uppercase text-fg-muted"
               >
-                {ui.t("status_label") ?? ""}
+                {ui.t("outcome")}
               </th>
               <th
                 scope="col"
-                className="py-3 text-start font-mono text-micro uppercase text-fg-dim"
+                className="border-s border-DEFAULT px-6 py-3 text-start font-mono text-micro uppercase text-fg-muted"
               >
                 {ui.t("evidence")}
               </th>
@@ -142,21 +157,21 @@ export default async function ResultsTable({
             {detail.targets.map((target) => {
               const status = target.status as TargetStatus;
               return (
-                <tr key={target.id} className="border-b border-DEFAULT align-top">
+                <tr key={target.id} className="border-t border-DEFAULT align-top">
                   <th
                     scope="row"
-                    className="max-w-measure py-5 pe-6 text-start text-body font-normal text-fg"
+                    className="max-w-measure px-6 py-5 text-start text-body font-normal text-fg"
                   >
                     {target.fields.target}
                   </th>
-                  <td className="py-5 pe-6">
+                  <td className="border-s border-DEFAULT px-6 py-5">
                     <span
-                      className={`inline-flex whitespace-nowrap rounded-control border px-3 py-1 font-mono text-micro uppercase ${STATUS_STYLE[status]}`}
+                      className={`inline-flex whitespace-nowrap rounded-pill border px-3 py-1 font-mono text-micro uppercase ${PILL[status]}`}
                     >
-                      {statusLabel[status] ?? status}
+                      {label[status] ?? status}
                     </span>
                   </td>
-                  <td className="max-w-measure py-5 text-body-sm text-fg-muted">
+                  <td className="max-w-measure border-s border-DEFAULT px-6 py-5 text-body-sm text-fg-muted">
                     {target.fields.note}
                   </td>
                 </tr>
@@ -166,13 +181,62 @@ export default async function ResultsTable({
         </table>
       </div>
 
-      {/* No dead ends. */}
+      {/* The legend states the encoding rather than leaving it to be inferred. */}
+      <ul className="mt-4 flex flex-wrap gap-5">
+        {ORDER.filter((s) => label[s]).map((status) => (
+          <li
+            key={status}
+            className="inline-flex items-center gap-2 text-meta text-fg-dim"
+          >
+            <span
+              aria-hidden="true"
+              className={`h-2 w-2 rounded-pill border ${SWATCH[status]}`}
+            />
+            {label[status]}
+          </li>
+        ))}
+      </ul>
+
+      {/*
+        The design closes on a "Next case" card. Siblings are the real
+        equivalent — a case file this one is meant to be read against
+        (decision 039) — so the first one fills the slot when it exists.
+      */}
+      {sibling?.title ? (
+        <section className="mt-18">
+          <Link
+            href={`/${l}/work/${sibling.slug}`}
+            className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg hover:bg-surface-raised"
+          >
+            {ui.t("sibling_case_files") ? (
+              <span className="font-mono text-label uppercase text-fg-dim">
+                {ui.t("sibling_case_files")}
+              </span>
+            ) : null}
+            <span className="mt-4 flex flex-wrap items-end gap-6">
+              <span className="min-w-0 flex-1 text-h2 text-fg">{sibling.title}</span>
+              <span aria-hidden="true" className="text-h3 text-fg rtl:rotate-180">
+                →
+              </span>
+            </span>
+            {sibling.note ? (
+              <span className="mt-4 block max-w-measure text-body text-fg-muted">
+                {sibling.note}
+              </span>
+            ) : null}
+          </Link>
+        </section>
+      ) : null}
+
       <nav className="mt-18 flex flex-wrap items-center justify-between gap-4 border-t border-DEFAULT pt-8">
         <Link
           href={`/${l}/work/${caseFile}`}
           className="text-ui text-fg-muted transition-colors hover:text-fg"
         >
-          ← {caseTitle}
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">
+            ←
+          </span>{" "}
+          {caseTitle}
         </Link>
         {ui.t("page_work") ? (
           <Link

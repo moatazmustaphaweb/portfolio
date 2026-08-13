@@ -210,6 +210,9 @@ export const getChapter = cache(
     return {
       ...chapterRow,
       fields: chapterFields.get(chapterRow.id) ?? {},
+      // 1-based for display; index is -1 for a comparison or accessibility
+      // page, which is not part of the sequence and shows no indicator.
+      position: { current: index + 1, total: siblings.length },
       prev: prevRow
         ? { slug: prevRow.slug, title: neighbourTitles.get(prevRow.id)?.title }
         : null,

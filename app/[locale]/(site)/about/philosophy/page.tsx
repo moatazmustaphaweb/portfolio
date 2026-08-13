@@ -2,22 +2,25 @@ import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
-import { ProseSections } from "@/components/layout/ProseSections";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 
 /**
- * Philosophy — docs-style, like a design system's Foundations page.
+ * Philosophy — composed from `Philosophy.dc.html`.
  *
- * The thesis is "to design is to build, not to draw", and the page is built to
- * be *cited*: numbered positions, stable anchors, one idea per section. That
- * is the docs convention and it is the right one here, because these sections
- * get linked to individually — a position held is a thing to point at, and a
- * position you cannot link to is a position nobody can quote back to you.
+ * Two corrections to what shipped before, both from the design:
  *
- * Every section gets an `id` derived from its slug and a hover anchor, so any
- * paragraph of this page has a URL.
+ * 1. **The h1 is the thesis, not the word "Philosophy".** The word belongs in
+ *    the breadcrumb and the kicker. "To design is to build, not to draw" is
+ *    the page, and setting it at title size is the whole point of it.
+ * 2. **No contents sidebar.** I invented one here; the design puts a docs
+ *    sidebar on Systems and leaves this page a single 820px column of
+ *    numbered principles. The numbering carries the structure instead.
+ *
+ * Anchors are kept on every section — they are not in the design, but a
+ * position you cannot link to is a position nobody can quote back at you, and
+ * they cost nothing visually.
  */
 /**
  * ISR window (decision 009). Next requires this to be a literal — an imported
@@ -40,8 +43,15 @@ export default async function Philosophy({
     getUiStrings(l),
   ]);
 
+  /*
+   * The first section IS the thesis — it is the one whose heading states the
+   * position the rest of the page follows from. Taking it positionally rather
+   * than by heading text means a rewrite in Notion cannot break this.
+   */
+  const [thesis, ...principles] = sections;
+
   return (
-    <div className="mx-auto max-w-container px-gutter py-section-y">
+    <div className="mx-auto max-w-prose px-gutter py-section-y">
       <Breadcrumb
         locale={l}
         label={ui.t("breadcrumb_label")}
@@ -53,104 +63,87 @@ export default async function Philosophy({
       />
 
       {ui.t("page_philosophy") ? (
-        <h1 className="max-w-measure text-title text-fg">
+        <p className="font-mono text-label uppercase text-fg-dim">
           {ui.t("page_philosophy")}
+        </p>
+      ) : null}
+
+      {thesis?.fields.heading ? (
+        <h1
+          id={thesis.slug}
+          className="mt-4 max-w-measure scroll-mt-18 text-title text-fg"
+        >
+          {thesis.fields.heading}
         </h1>
       ) : null}
 
-      <div className="mt-12 gap-16 lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]">
-        {/*
-          Contents. A docs page earns a sidebar the moment it has more sections
-          than fit on a screen — this one has five, each a distinct position.
-          Sticky on wide screens, a plain list on narrow ones.
-        */}
-        {sections.length > 1 ? (
-          <nav
-            aria-labelledby="contents-heading"
-            className="mb-12 lg:sticky lg:top-24 lg:mb-0 lg:self-start"
-          >
-            <h2
-              id="contents-heading"
-              className="font-mono text-micro uppercase text-fg-dim"
-            >
-              {ui.t("page_philosophy")}
-            </h2>
-            <ol className="mt-4 flex flex-col gap-2">
-              {sections.map((section, i) =>
-                section.fields.heading ? (
-                  <li key={section.id}>
-                    <a
-                      href={`#${section.slug}`}
-                      className="flex gap-3 text-body-sm text-fg-muted transition-colors hover:text-fg"
-                    >
-                      <span className="font-mono text-micro text-fg-dim">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span>{section.fields.heading}</span>
-                    </a>
-                  </li>
-                ) : null,
-              )}
-            </ol>
-          </nav>
-        ) : null}
+      {intro ? (
+        <p className="mt-6 max-w-measure whitespace-pre-line text-lead text-fg-body">
+          {intro}
+        </p>
+      ) : null}
 
-        <div className="min-w-0">
-          {intro ? (
-            <p className="max-w-measure whitespace-pre-line text-lead text-fg-body">
-              {intro}
-            </p>
-          ) : null}
+      {thesis?.fields.body ? (
+        <p className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-body">
+          {thesis.fields.body}
+        </p>
+      ) : null}
 
-          {sections.map((section, i) =>
-            section.fields.body ? (
-              <section
-                key={section.id}
-                id={section.slug}
-                className="mt-14 scroll-mt-24 first:mt-0"
+      {/*
+        The principles. A flat numbered list: number in its own column, name,
+        body. No card, no border per item — the hairline between them is the
+        only separation the design allows.
+      */}
+      {principles.length > 0 ? (
+        <section className="mt-18">
+          {principles.map((principle, i) =>
+            principle.fields.body ? (
+              <article
+                key={principle.id}
+                id={principle.slug}
+                className="flex scroll-mt-18 flex-wrap items-start gap-6 border-t border-DEFAULT py-10"
               >
-                {section.fields.heading ? (
-                  <>
-                    <p className="font-mono text-micro uppercase text-fg-dim">
-                      {String(i + 1).padStart(2, "0")}
-                    </p>
-                    <h2 className="mb-4 mt-2 max-w-measure text-h3 text-fg">
-                      {/*
-                        The heading links to itself — the docs convention for
-                        "this is the citable unit".
-                      */}
-                      <a href={`#${section.slug}`} className="hover:text-accent">
-                        {section.fields.heading}
+                <span className="pt-1 font-mono text-label text-fg-dim">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {principle.fields.heading ? (
+                    <h2 className="max-w-measure text-h3 text-fg">
+                      <a href={`#${principle.slug}`} className="hover:text-accent">
+                        {principle.fields.heading}
                       </a>
                     </h2>
-                  </>
-                ) : null}
-                <p className="max-w-measure whitespace-pre-line text-body text-fg-body">
-                  {section.fields.body}
-                </p>
-              </section>
+                  ) : null}
+                  <p className="mt-3 max-w-measure whitespace-pre-line text-body text-fg-body">
+                    {principle.fields.body}
+                  </p>
+                </div>
+              </article>
             ) : null,
           )}
+        </section>
+      ) : null}
 
-          <nav className="mt-18 flex flex-wrap gap-3 border-t border-DEFAULT pt-8">
-            {[
-              { label: ui.t("page_systems"), href: `/${l}/systems` },
-              { label: ui.t("page_work"), href: `/${l}/work` },
-              { label: ui.t("page_about"), href: `/${l}/about` },
-            ].map((link) =>
-              link.label ? (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="inline-flex h-control-h items-center rounded-control border border-DEFAULT px-4 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
-                >
-                  {link.label}
-                </Link>
-              ) : null,
-            )}
-          </nav>
-        </div>
-      </div>
+      <nav className="flex flex-wrap gap-6 border-t border-DEFAULT pt-8">
+        {[
+          { label: ui.t("page_work"), href: `/${l}/work` },
+          { label: ui.t("page_systems"), href: `/${l}/systems` },
+          { label: ui.t("page_about"), href: `/${l}/about` },
+        ].map((link) =>
+          link.label ? (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="inline-flex items-center gap-2 text-ui text-fg-muted transition-colors hover:text-fg"
+            >
+              {link.label}
+              <span aria-hidden="true" className="rtl:rotate-180">
+                →
+              </span>
+            </Link>
+          ) : null,
+        )}
+      </nav>
     </div>
   );
 }
