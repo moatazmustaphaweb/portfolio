@@ -37,6 +37,105 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — DESIGN AUDIT. Nothing built or changed.
+
+### The headline
+
+**The tokens came from the designs. The page compositions did not.**
+
+Decision 018 extracted colour, type, space and motion from these files into `docs/design/tokens.md`, and that transfer is faithful. But I built every page from the Notion content plus my own judgement, and — with the partial exception of the cover — **I did not open the page designs while building**. Twelve designs existed the whole time. Most describe a richer page than what shipped.
+
+### Full inventory — Claude Design `f6113c80`
+
+47 paths. Grouped:
+
+| Group | Files |
+|---|---|
+| **Page designs (12)** | `Home` · `Work` · `CaseFile` · `CaseChapter` · `CaseLinear` · `CaseResults` · `Comparison` · `About` · `Philosophy` · `Systems` · `Contact` · `NotFound` — all `*.dc.html` |
+| **Abandoned system (11)** | `_ds/neubrutalist-design-system-536ae39f…/` — `styles.css`, `readme.md`, `_ds_bundle.js`, `_ds_manifest.json`, `_adherence.oxlintrc.json`, `tokens/{base,borders,colors,elevation,fonts,spacing,typography}.css`. Dead per decisions 018 + 022 |
+| **Fonts (5)** | `fonts/LANTX-Regular.woff2` · `MeralSans-{Regular,Medium,SemiBold,Bold}.woff2` — the same four weights I shipped |
+| **Scraps (5)** | `scraps/0{1,2,3,4}-cf-map.png` (living-map explorations) · `scraps/home-ar.png` |
+| **Uploads (2)** | `uploads/LANTX-Regular.otf` · `uploads/draw-4eb580e7….png` |
+| **Runtime (2)** | `support.js` (generated React runtime for `.dc.html`) · `image-slot.js` |
+
+### Coverage — 13 of your 14 page types have a design
+
+| Page type | Design file | |
+|---|---|---|
+| Landing | `Home.dc.html` | ✅ |
+| Classic Gallery | `Work.dc.html` | ✅ |
+| Case File Cover | `CaseFile.dc.html` | ✅ |
+| Chapter | `CaseChapter.dc.html` | ✅ |
+| Linear View | `CaseLinear.dc.html` | ✅ |
+| Results Table | `CaseResults.dc.html` | ✅ |
+| Comparison | `Comparison.dc.html` | ✅ |
+| **Accessibility** | — | ❌ **none** |
+| About | `About.dc.html` | ✅ |
+| Philosophy | `Philosophy.dc.html` | ✅ |
+| Systems | `Systems.dc.html` | ✅ |
+| Contact | `Contact.dc.html` | ✅ |
+| 404 | `NotFound.dc.html` | ✅ |
+| **Consent banner** | — | ❌ **none, in any file** |
+
+Nothing else is missing: every route in the shipped site maps to one of the twelve.
+
+### Drift, page by page
+
+| Design | Verdict | What differs |
+|---|---|---|
+| `Home` | 🟡 **drifted** | Missing the **radial hero glow** (`rgba(0,112,243,0.16)`, 900×520, top −260px) and the **eyebrow pill**. Design has **two** CTAs (filled "See the work" + outlined "Let's talk"); I built one. Neither the glow nor the pill reached `tokens.md`, so they were lost at extraction, not at build |
+| `Work` | 🟢 **close** | Missing the second filter row — design filters by **Domain *and* Type** (Case File / Design System / Art) and puts a type tag on each card. My NDA badge is an addition from decisions 002/036, not drift |
+| `CaseFile` | 🟡 **drifted, and the design is wrong in one place** | See "conflicts" below. Also missing: the **4-up metric grid** under the thesis, "Take the journey / Just scroll" dual CTA, the inline first-chapter preview, and the reflection card |
+| `CaseChapter` | 🔴 **heavily drifted** | Design h1 is the **objective**, not the chapter title, with a "1 of 4" progress indicator. Decision card carries a **"What it cost / What it bought" grid**. Then Evidence (masked figures), Feature strip, a **milestone metric grid**, and a next-chapter card. Only three of these were tracked as missing |
+| `CaseLinear` | 🔴 **heavily drifted** | Missing a **scroll progress bar**, a **read-time line**, per-chapter objective-as-h2, an **embedded results table**, a next-case card, and a floating "Switch to map view" pill |
+| `CaseResults` | 🔴 **heavily drifted** | Missing **count pills** (4 achieved · 2 missed · 1 not measurable), the **legend**, a "What I'd do differently" section, and the next-case card. Status encoding differs — see below |
+| `Comparison` | 🔴 **heavily drifted** | The design maps almost 1:1 onto the real Notion content and I rendered it generically. Missing the **accent-bordered "Governing rule" card** (= "The rule that governs every row") and the **numbered two-column "What stayed fixed" grid** (= "What never changes") |
+| `About` | 🔴 **heavily drifted** | Missing the **career timeline** (years / role+line / place), the **origin-story card**, and the sub-page card grid |
+| `Philosophy` | 🔴 **drifted** | Design h1 is the **thesis**; "Philosophy" appears only in the breadcrumb. Flat numbered principles, 820px, **no sidebar** — I invented a sticky contents sidebar here |
+| `Systems` | 🔴 **conflicts with content** | Design is a **docs page with a left sidebar** (Foundations / Tokens / Components / Patterns / Changelog). See below |
+| `Contact` | 🟡 **drifted** | Design is **two-column** — methods list + availability on one side, form card on the other. h1 is the intro sentence, not "Contact". "What happens next" is mono micro-copy inside the card |
+| `NotFound` | 🔴 **design fine, build broken** | The page never renders at all (see the launch-gate audit below). Design also has **two** CTAs — the second is "Tell me what broke" → Contact |
+
+**I put the docs sidebar on the wrong page.** The design puts it on Systems and leaves Philosophy a plain single column. I did the exact opposite.
+
+### The About timeline and the LLM read test are the same finding
+
+Worth stating on its own, because two independent audits landed on it from opposite directions.
+
+The read test's top gap was: *"There is no CV, no work history, no 'Senior Product Designer at X, 2019–present.' 'IoTBlue' appears once, buried on the Systems page."*
+
+The `About` design has had a **career timeline component since before I wrote a line of this site** — mono years in a 92px column, role and description, place. It renders exactly the dates-and-employers the read test says a hiring manager looks for first.
+
+**The component was designed, the content was never written, and I never built the component because there was nothing to put in it.** So this is not one gap, it is a matched pair: a design waiting for content, and a reader asking for that exact content. It is the cheapest high-value item on either list.
+
+### Three places where the design and reality disagree — your call, not mine
+
+**1. The `CaseFile` design contradicts your own instruction about the role statement.**
+The design styles `role` as `font-family: mono; font-size: 12px; color: var(--dim)` — a caption, directly above the metric grid. You told me on 2026-08-12: *"The role statement is the fix for the entire problem this portfolio exists to solve… It has to be prominent, not a caption."* I built it at `text-statement` in its own bordered block. **The build is right and the design is stale** — fix it in the design before rebuilding from it.
+
+**2. `Systems` — the design and the content describe different pages.**
+The design is living documentation of a design system: a token table, a component list with `stable/beta/review` pills, a changelog with versions. The Notion content is an essay that points at evidence — "What I've actually built", "Working inside a system I didn't own", "The patterns that repeat", "Coming". Neither is wrong; they are different pages. The content is newer.
+
+**3. The `CaseFile`/`CaseResults` status vocabulary is pre-decision-024.**
+Designs use **Confirmed / In progress / Directional**. The schema and decision 024 settled on **achieved / missed / not-measurable**. The designs need updating, not the build.
+
+### Two places the design is right and the build is wrong
+
+- **`CaseResults` encodes status without colour at all** — filled pill for achieved, dashed border for missed, solid thin border for not-measurable, plus a legend. That is stronger than what I shipped (accent colour for achieved) and it independently reaches the same conclusion as decision 042's no-red rule, by a better route. Worth adopting.
+- **`Contact` forces `dir="ltr"` on the email input.** My build does not, so in Arabic the email field renders RTL. Real bug, found only by reading the design.
+
+### Not drift — deliberate, logged deviations
+
+- **The living map is an SVG node diagram in the design** (1040×460, connector lines, positioned chapter cards, a "Start here" entry node). Decision 023 and your instruction this session keep MVP-1 a plain structural list. `scraps/0{1..4}-cf-map.png` are the explorations behind it.
+- **`div[dir="rtl"] * { letter-spacing: normal !important }`** appears in all twelve files; decision 020 rejected it for scoped `:lang(ar)`.
+- **All twelve designs already wire LANTX + Meral Sans**, with LANTX on `h1–h3` and Meral on body — exactly what decision 045 shipped. The font decision was convergent, not invented.
+
+### For the record
+
+The designs carry dummy content (decision 021) — "Your Name", Banque Misr, Fawry, a father who ran an import business. None of it entered the codebase and none should. What matters here is **form and structure**, which is what this audit compares.
+
+---
+
 ## 2026-08-13 — LAUNCH GATE AUDIT. Nothing fixed; this is the honest list.
 
 Run against a **real production build** (`next build` + `next start`), not dev. 36/36 route-locale combinations return 200 and the intended 404s 404 correctly.
