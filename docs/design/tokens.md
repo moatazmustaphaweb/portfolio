@@ -55,6 +55,8 @@ Driven by:   case_files.nda     one flag per client relationship
 
 **The contrast is the explanation.** Grey work is under NDA; colour work is not. The gallery makes that legible at a glance and no caption has to say it.
 
+> ⚠️ **Scoped to `cover_kind = 'media'` and to chapter evidence, per decision 050.** A **component cover** — inline SVG artwork in `designs/`, decision 049 — never passes through Cloudinary, so the transform cannot run on it, and with three of four published case files under NDA there is no colour cover left for a grey one to contrast against. Those cards carry the signal in the badge alone, which is the half that always worked. The treatment is unchanged everywhere else.
+
 The accent blue is preserved in the **frame** — the `redacted_notice` badge and the border — not inside the image. Cloudinary has no selective-hue effect, so "grayscale except blue" is not achievable; the alternatives are a duotone that tints the whole screen and costs legibility, or uniform partial desaturation that mutes every colour rather than keeping one.
 
 ```css

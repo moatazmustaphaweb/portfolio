@@ -55,6 +55,8 @@ export type Database = {
           status: Database["public"]["Enums"]["content_status"];
           nda: boolean;
           cover_media_id: string | null;
+          cover_kind: "media" | "component";
+          cover_component: string | null;
           published_at: string | null;
           created_at: string;
           updated_at: string;
@@ -68,6 +70,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["content_status"];
           nda?: boolean;
           cover_media_id?: string | null;
+          cover_kind?: "media" | "component";
+          cover_component?: string | null;
           published_at?: string | null;
           created_at?: string;
           updated_at?: string;

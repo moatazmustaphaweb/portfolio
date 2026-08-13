@@ -21,7 +21,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]/about` | 🟢 **REAL** | Intro + 6 sections in chronological order, the deaf-school year, links onward | — |
 | `/[locale]/about/philosophy` | 🟢 **REAL** | Docs-style: thesis, 5 numbered positions, sticky contents, an anchor per section | — |
 | `/[locale]/contact` | 🟢 **REAL** | Intro, contact methods, full form **with working delivery** (honeypot · timing · rate limit), what-happens-next, LinkedIn. CV absent until `cv_url` | — |
-| `404` | 🔴 **BROKEN** | Nothing. `app/[locale]/not-found.tsx` is dead code — no root `app/layout.tsx`, so `notFound()` falls to Next's stock page with no `lang`, no chrome, no copy | The whole page, both locales |
+| `404` | 🟡 **mostly real** | `app/layout.tsx` exists, so `notFound()` has a boundary that renders a document. **Unmatched URLs render the designed page in the correct locale**, both CTAs, `lang`/`dir` correct. Copy also renders for in-route `notFound()` | `notFound()` **inside** a locale route (a draft slug like `/en/work/east`) still gets Next's `__next_error__` document wrapper, so `<html>` carries no `lang`/`dir`. Mitigated — `app/not-found.tsx` sets both on its own wrapper |
 | `/robots.txt` · `/sitemap.xml` · `/llms.txt` | 🟢 **real** | Generated from the database | — |
 | `/api/events` · `/api/revalidate` | 🟢 **real** | Verified against live requests | — |
 | `/[locale]/work/[caseFile]/cut/[cut]` | ⚪ not built | — | Layer 3 |
@@ -29,11 +29,144 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 **Every stub renders its title and body copy from Supabase.** Rule 1 applies to scaffolding too — a hardcoded heading in a stub survives into the real page because nobody remembers to remove it.
 
-> ⚠️ **404 locale caveat.** A `not-found` boundary receives no route params, so it cannot read the locale from the URL and falls back to English. An Arabic visitor hitting a bad URL currently gets an English 404. Known gap, tracked in `TASKS.md`.
+> ✅ **The 404 locale caveat is closed.** It said an Arabic visitor hitting a bad URL got an English 404. `app/layout.tsx` fixed that: `/ar/nonsense` renders `lang=ar dir=rtl` with Arabic copy. For the one remaining case — `notFound()` thrown inside a locale route — `app/not-found.tsx` sets `lang` and `dir` on its own wrapper, so the page still mirrors and a screen reader still switches voice. What is unreachable by composition is the `<html>` attribute itself.
 
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-13 — The Egypt cover is built. First component cover; the pattern holds.
+
+**Unblocked by the Claude Design MCP.** The two routes that failed last session — server-side fetch (403) and the browser (login wall) — were both the wrong door. `DesignSync` reads claude.ai/design projects through a dedicated authorisation and returned the file immediately. Worth recording: the project is named *"404 illustration direction"*, not anything Egypt-shaped, and holds 21 files including the cover, `support.js`, and the 404 mark explorations. `support.js` turned out to be the generated `.dc.html` viewer runtime — template parsing, `{{ }}` bindings, `sc-if`, `DCLogic` — and carries no design information.
+
+**Build is green.** Typecheck, ESLint and `next build` all exit 0. Verified against a production build on a confirmed-bound port: `/en/work`, `/en/work/egypt-acquisition` and `/ar/work/egypt-acquisition` all 200, each with the artwork inline.
+
+### What shipped
+
+| | |
+|---|---|
+| `designs/egypt-acquisition-cover.tsx` | The artwork. One `<svg>`, `viewBox="0 0 1600 800"`, every colour a token |
+| `designs/registry.tsx` | `cover_component` key → artwork, and the throwing resolver |
+| `supabase/migrations/0026_…` | `cover_kind` + `cover_component`, two CHECK constraints. **Applied** |
+| `ProjectCard` · case file cover page | Both render sites wired. The cover page had no image at all before |
+| Decisions **049**, **050** | The pattern, and the NDA answer |
+
+### The inlining method, and why not the alternatives
+
+The component **is** the artwork — a `.tsx` returning `<svg>` JSX, not a `.svg` file rendered through something.
+
+- `<img src="…svg">` — the whole reason this is a component. An SVG in an `<img>` is an isolated document; no `--color-*` resolves, no theme.
+- **SVGR** — a new dependency, ruled out, and it would not give typed per-label props.
+- **`fs.readFileSync` + `dangerouslySetInnerHTML`** — no typed props, and swapping labels means splicing content into markup as strings, which bypasses React's escaping. For text that becomes Arabic next session, that is the wrong mechanism.
+- **A `.svg` of record plus a `.tsx` that mirrors it** — two sources of truth for one artwork, and artwork drift is invisible until someone looks.
+
+Verified in the served HTML: **34 `var(--color-…)` references inside the `<svg>`, and zero hex literals.** The second cluster of tokens on the cover page is the RSC flight payload serialising the same JSX — expected, not a duplicate render.
+
+### Theme
+
+Every token the artwork uses — `surface`, `surface-raised`, `border`, `border-strong`, `fg`, `fg-muted`, `fg-dim`, `accent` — is defined **three times** in `globals.css`: `:root`, the `prefers-color-scheme: light` block, and the explicit `[data-theme="light"]` block. So all three theme paths resolve, structurally.
+
+> ⚠️ **That is a structural check, not a look.** The visual pass still has not happened — same gap as every session since the design rebuild. What needs eyes: the artwork on `#fff`, where hairlines that read as structure on black can read as noise on white.
+
+### What the reference used that our tokens do not have
+
+| Reference | Substituted |
+|---|---|
+| **Four signal hues** — `#B8453D` `#C9772F` `#C9A83A` `#5FA84B` — driving chip rows, some faded | **Removed, not recoloured.** Four new hues against a one-accent palette; a red→green ramp is a status encoding, which decision 042 already stripped from the results table; and *three filled, one faded* reads as **"3 of 4"**, a figure that exists nowhere in the database. Collapsing four hues into one would still publish an unbacked metric, so the chips are gone (rule 7) |
+| Gradient plate fills `rgba(255,255,255,0.05→0.012)` | `--color-surface-raised` on `--color-surface`. No gradient token exists; depth here is a hairline plus a surface step |
+| IBM Plex Mono | `--font-mono` |
+| Ground `#0A0A0A` | Exactly `--color-surface` in dark — the reference's ground kept, and a light theme gained free |
+| Accent | Used **once**: the title plate's baseline rule, an underline paired with the title, never a sole indicator |
+
+### What changed to make it not need mirroring
+
+The reference is a **left-to-right Gantt** — plates staggered on a descending diagonal against a six-phase strip — and a Gantt reads right-to-left in Arabic.
+
+- The right-aligned title is **centred**.
+- The 108px vertical rail carrying rotated `SYSTEM A / CUSTOMER-FACING` down the left edge became a **full-width horizontal label plate** above each band. Symmetric, and legible at card scale where rotated 13px type is not.
+- The diagonal stagger became **mirror-image pairs**. Nothing was lost: the diagonal carried no data, and the plate spans are illustrative per decision 021.
+- The six-cell phase strip — DISCOVERY / STRUCTURE / REVIEW / EXCEPTION / PORTAL / CLOSE — is **dropped**. No such content exists in the database, so rendering it would invent six programme phases, and it is inherently a sequence. The six-column measure survives as the background lattice.
+
+Every element is now centred or half of a mirrored pair. The composition is unchanged under reflection, so `/ar` needs no mirroring rather than being denied it.
+
+### Content: four names, not nine
+
+The reference names nine systems. **Four are Egypt's real published chapters** — Onboarding Journey, Application Workflow, Customer Portal & Notifications, Fulfilment & AOF — verified against the database this session, and they fall into the same two bands the reference puts them in, so the customer-facing / bank-facing split is the designer's own and not invented here.
+
+The other five are not in the database. One of them reads **"SIX SYSTEMS, LIVE"**, and *live* is a claim decision 007 does not support for Egypt, which is at controlled release. The call site passes the four verified names.
+
+**No string is hardcoded in the artwork.** Every label is a prop, so the Arabic pass is a call-site change that never opens the SVG. One caveat: the artwork sets `font-family: var(--font-mono)`, and Arabic never uses mono — the `:lang(ar)` fallback to `--font-arabic-body` at `letter-spacing: normal` is a `globals.css` rule, which still leaves the artwork untouched.
+
+### Does Egypt carry `nda = true`? Yes — and it changes the treatment
+
+Queried directly: **Egypt Acquisition, Neobiz Mobile and UAE Acquisition are all `nda = true`. Only Cervello is not.**
+
+Decision 050 resolves what renders. The grayscale half of amendment 036 **does not apply to component covers** — it is a Cloudinary transform and this path never reaches Cloudinary, so mechanically it cannot run. More importantly it would have nothing to signal against: amendment 036's argument is *grey beside colour*, and with three of four covers under NDA and all four drawn from the same two-token palette, that pairing does not survive. The badge carries the signal, which is what the code already called *"the half that always works"*.
+
+**The rule this sets for the remaining three covers:** a component cover may depict only what is already published in prose on the site. That is what keeps "no NDA surface" true rather than asserted.
+
+### Accessibility
+
+`role="img"` with `aria-labelledby` pointing at `<title>` then `<desc>`, in that order. Decorative geometry — the lattice, the accent rule, the divider, the registration marks — is `aria-hidden`. The system names stay real DOM text, which the LLM read test reads.
+
+> ⚠️ **Known and accepted:** at gallery-card width the type is well below reading size and the piece reads as schematic texture, resolving into a legible map at cover width. That is what the reference does too — its own runtime scales a 1600px board into its container. It is a scaling artwork, not a reflowing one, per the brief.
+
+### Still open
+
+- **`og_image` remains a raster** and remains NULL. Link previews cannot render SVG at all, so the PNG export is a technical floor. Not done this session.
+- **Three covers to go.** The pattern is one migration total; each further cover is one file plus one registry line plus one `update`.
+- The five unverified system names from the reference. If they are real, they are content, and they belong in the database rather than in a call site.
+
+---
+
+## 2026-08-13 — Egypt cover: BLOCKED before the first line. Nothing built.
+
+The first of the four case file covers, to be built as an **inline SVG React component** rather than a Cloudinary raster — a deliberate exception to rule 3, with Egypt as the test case for a pattern the other three would follow. It did not start.
+
+### The design reference cannot be reached
+
+Three independent routes, all closed:
+
+| Route | Result |
+|---|---|
+| Server-side fetch of the Claude Design share URL | **403 Forbidden** |
+| Filesystem search for `*.dc.html` | One file on the machine — `~/Downloads/Portfolio Home - Intake (frames).dc.html`. That is a Layer 2 intake design, not the Egypt cover. The `f6113c80` project files are **not** on disk; every previous design session read them some other way |
+| The browser, against the same URL | Redirected to **claude.ai/login**. That Chrome profile is not signed in, and signing in is not something I will do on your behalf |
+
+Stopped after the third rather than keep retrying.
+
+### Why I did not build it anyway
+
+The brief was explicit that the reference is *a source to adapt, never to copy*, and it closed by asking **what the reference used that our tokens do not have, and what I substituted**. That question has no honest answer without the file. Producing a composition from imagination and presenting it as an adaptation of your design would be fabricated content under rule 7 — and it would specifically defeat the purpose, because a cover I invented proves nothing about whether the pattern generalises to the other three.
+
+Two things I also could not determine without it, both of which the brief anticipated: whether the artwork carries text at all (which decides whether the component needs typed string props, and therefore its entire interface), and whether the composition has any left-to-right dependency to design out.
+
+> **To unblock, any one of:** save the `.dc.html` anywhere on disk and give the path · paste the SVG source · sign that Chrome profile into claude.ai.
+
+### The database question — proposed, awaiting your answer
+
+`case_files.cover_media_id` → `media(id)`, and an SVG component has no media row. Read: the three triggers in `0007_enforce_redacted_media_constraints.sql`, the cover resolution in `lib/content/case-files.ts`, and both render sites.
+
+**First, the thing worth recording regardless of which option wins.** The triggers are **not bypassed — they are inapplicable**, and the difference needs stating. They guard `case_files.cover_media_id`, `settings.og_image`, and the reverse direction on `media.redacted`. A component cover leaves `cover_media_id` NULL, so `assert_cover_not_redacted` passes trivially and *correctly*: the risk decision 028 exists for is a raster of a real screen escaping into a link preview, and an SVG drawn from tokens has no NDA surface at all. But the next person to read `cover_media_id IS NULL` on a published case file will reasonably wonder whether the guard was dodged. That belongs in a comment or a decision entry.
+
+| Option | Trade-off |
+|---|---|
+| **A — NULL `cover_media_id` + registry keyed by slug** | Zero schema change, zero migration, type-safe, tree-shakeable. **Cost:** which case file gets which artwork is an *editorial* decision, and this puts it in a TypeScript object literal — the same class of thing as the hardcoded-heading warning already in `ProjectCard`. A slug with no entry silently renders nothing, and the Layer 4 admin panel cannot swap a cover without a deploy |
+| **B — `cover_kind` + `cover_component` on `case_files`** *(recommended)* | Two columns, mutually exclusive with `cover_media_id` via CHECK. The registry still exists in code — the component must — but the **decision becomes data while the implementation stays code**. Same split already used for media: the `public_id` is data, the transform preset is code. Makes the NULL explicit rather than inferred, survives Layer 4, and an unresolvable key should throw the way `assertNotRedacted` throws, for the reason that comment already gives. **Cost:** one migration — one *total*, not one per cover |
+
+**`og_image` is the asymmetry, and neither option resolves it.** Link previews do not render SVG and do not run our React, so the artwork has to exist twice — component in-site, raster out-of-site — and the two will drift. Cheapest honest path: export each cover to PNG once, upload, store the `public_id` as today, leaving `settings.og_image` and all three triggers untouched. Generating at request time via `ImageResponse` is the alternative, but satori renders arbitrary SVG poorly and adds a runtime path for something that changes twice a year. `settings.og_image` is NULL today and already a launch-gate blocker; per-case-file OG images are probably what actually matters for a site distributed by pasted link.
+
+**Flagged, not decided:** whether the SVG *replaces* the cover slot or sits alongside it — the cover page currently renders **no image at all**, and `caseFile.cover` is used only by the gallery card — and whether Egypt Acquisition carries `nda = true`, which would put the grayscale treatment and a token-drawn SVG in the same frame.
+
+### For the record
+
+No component was written. `components/` contains 22 files and none of them is a cover; there is **no `<svg` anywhere in `app/`, `components/` or `lib/`**, no `.svg` file in the repo, and no commit in any branch has ever added one. Verified after the question was asked directly, because "I did not build it" and "it is not there" are different claims and only the second one is checkable.
+
+### Also corrected this session
+
+The **ROUTE MAP** at the top of this file, which the previous entry flagged as stale and left alone. It still carried the pre-rebuild 404 state — `🔴 BROKEN — nothing, dead code, no root layout` — and the Arabic-404 caveat that the design-rebuild entry below explicitly closed. Both were two rebuilds out of date on a table whose whole job is to be current. The 404 row is now 🟡 with the one genuinely remaining case named, and the caveat is marked closed with the mitigation stated.
 
 ---
 

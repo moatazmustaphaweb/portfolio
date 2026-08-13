@@ -509,6 +509,48 @@ The boundary is the layer, not the phase. `width`, `height`, and `box-shadow` st
 
 ---
 
+## 049 — Case file covers are inline SVG components, not Cloudinary assets
+
+*2026-08-13*
+
+**Decision:** the four case file covers are conceptual artwork built as **inline SVG React components in `designs/`**, bound to the design tokens. They are not uploaded to Cloudinary and do not render through `CloudinaryImage`. `case_files` gains `cover_kind` (`media | component`) and `cover_component`, mutually exclusive with `cover_media_id` via CHECK (migration 0026). Egypt Acquisition is the first.
+
+**Why, and why it is not reopenable:** an SVG inside an `<img>` is an isolated document. It cannot read the page's CSS, so no `--color-*` variable resolves and the artwork cannot follow the theme. **Token binding and Cloudinary delivery are mutually exclusive**, and token binding won — one artwork that inverts with the theme, with no JavaScript and no second light-mode file, beats two rasters that drift.
+
+**Why a column rather than an inferred NULL.** Leaving `cover_media_id` NULL and inferring "it must be a component" makes a case file that has no cover yet indistinguishable from one whose cover is code. `cover_kind` states it. The decision is data; the implementation stays code — the same split already used for media, where the `public_id` is data and the transform preset is code. An unresolvable `cover_component` **throws** at render, for the reason `assertNotRedacted` throws: a silently-dropped cover looks like a missing image and gets ignored, a thrown error gets fixed.
+
+**The redaction triggers are not bypassed — they are inapplicable.** A component cover leaves `cover_media_id` NULL, so `assert_cover_not_redacted` (migration 0007, decision 028) passes trivially and *correctly*: the risk it exists for is a raster of a real screen escaping into a link preview, and a schematic drawn entirely from tokens has no NDA surface to leak. Recorded in the migration comment as well as here, because the next person to read `cover_media_id IS NULL` on a published case file will reasonably wonder whether the guard was dodged. It was not. The guards on `settings.og_image` and `media.redacted` are untouched and still load-bearing.
+
+**`og_image` stays a raster.** Link previews cannot render SVG at all, so a PNG export is a technical floor, not duplication. `settings.og_image` and its trigger are unchanged.
+
+**Consequence:** `designs/` is a new top-level folder holding artwork components and the registry. The other three covers follow this pattern. Reflow is not permitted — one composition, scaled by its `viewBox`, from a 280px card to full container width.
+
+**Status:** ACTIVE — extends decision 010 (Cloudinary for media) with a stated exception; requires 050
+
+---
+
+## 050 — Component covers take no NDA grayscale. The badge carries the signal
+
+*2026-08-13*
+
+**Decision:** the **grayscale half of amendment 036 does not apply to component covers**. An NDA case file with `cover_kind = 'component'` renders its artwork in full token colour, including the single accent. The NDA signal on that card is carried entirely by the `redacted_notice` badge.
+
+**Why.** Three reasons, and the first alone settles it:
+
+1. **Mechanically it cannot apply.** The grayscale is a Cloudinary transform (`e_grayscale`) driven by `case_files.nda`. A component cover never passes through Cloudinary. There is no stage at which the transform could run.
+2. **It has nothing left to signal against.** Amendment 036's argument is *contrast* — "grey work is under NDA; colour work is not… the gallery makes that legible at a glance". **Three of the four published case files carry `nda = true`** (Egypt Acquisition, Neobiz Mobile, UAE Acquisition; only Cervello does not). Once all four covers are token-drawn artwork in the same two-token palette, there is no colour cover for a grey one to contrast against. The signal was never *grey*; it was *grey beside colour*, and that pairing does not survive.
+3. **There is nothing to conceal.** The artwork contains no client pixels — it is a schematic of chapter names already published as prose on the site. Desaturating it would signal caution about a diagram that discloses nothing.
+
+**What still carries the signal:** the badge, which `ProjectCard` already renders from `case_files.nda` independently of the image, and which the code already describes as *"the half that always works"* — because grayscale alone signals by colour only, which the accessibility baseline forbids and which vanishes on a greyscale display. That reasoning now carries the whole load rather than half of it.
+
+**The rule this sets for the remaining three covers:** a component cover may depict **only what is already published in prose on the site**. Chapter names, system names, and structure that a visitor can already read. Nothing drawn from a real screen, no layout traced from a client artefact, no figure that is not in the database. That is what keeps "no NDA surface" true rather than merely asserted.
+
+**Consequence:** `docs/design/tokens.md`'s NDA section describes the Cloudinary path only and now needs a line scoping it to `cover_kind = 'media'`. Amendment 036 is otherwise unchanged — evidence images inside chapters still desaturate, and that is where the treatment does its work.
+
+**Status:** ACTIVE — scopes amendment 036 to media covers and chapter evidence
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

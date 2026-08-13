@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { resolveCover } from "@/designs/registry";
 import type { CaseFile, Locale } from "@/lib/content/types";
 
 /**
@@ -42,7 +43,24 @@ export function ProjectCard({
         href={`/${locale}/work/${caseFile.slug}`}
         className="group flex h-full flex-col overflow-hidden rounded-panel border border-DEFAULT bg-surface transition-colors hover:border-strong"
       >
-        {caseFile.cover ? (
+        {/*
+          Two cover sources, never both — the database says which via
+          `cover_kind`, and the CHECK in migration 0026 makes them exclusive.
+
+          A component cover is inline SVG bound to our tokens, so it follows
+          the theme with no JavaScript. It replaces the image slot rather than
+          sitting beside it: a card shows one cover or none.
+
+          Note it takes no NDA treatment. The grayscale half of amendment 036
+          is a Cloudinary transform and this artwork never reaches Cloudinary —
+          the badge below is the half that always worked, and it is what
+          carries the signal here (decision 050).
+        */}
+        {caseFile.cover_kind === "component" && caseFile.cover_component ? (
+          <div className="border-b border-DEFAULT">
+            {resolveCover(caseFile.cover_component, "card")}
+          </div>
+        ) : caseFile.cover ? (
           <div className="border-b border-DEFAULT">
             <CloudinaryImage
               media={caseFile.cover}
