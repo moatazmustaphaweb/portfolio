@@ -37,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-13 — DESIGN REBUILD, groups 1–5 of 7
+
+Compositions rebuilt from the `.dc.html` files, design as source of truth for layout. Build exit 0, typecheck exit 0, **26/26 route-locale combinations 200 in a production build.**
+
+**Groups 6 and 7 are not done.** `Systems.dc.html` + the new `SystemsEssay.dc.html`, `Accessibility.dc.html` and `ConsentBanner.dc.html` are unread and unbuilt. I stopped rather than rush three fresh designs at the end of a long session.
+
+### Per page
+
+**Chapter** — h1 is now the **objective**, not the title, with a `Chapter N of M` indicator built from the `chapter_of` template. Decision gets the accent card and filled accent pill. A full next-chapter card replaces the button pair.
+*Not built, no data:* the decision card's **"What it cost / What it bought"** grid (no such fields); the **feature strip** (`features` table has 0 rows); the **evidence figures** (`media` has 0 rows, and only 1 of 13 chapters has `evidence_note`); the closing **metric grid** (no `milestone` field exists at all — 0 rows).
+
+**Results** — adopted as instructed: **form, not colour**. Filled pill / dashed outline / thin outline, plus the legend. Count pills are computed from the rows so they cannot contradict them. Kept `<table>` + `scope` inside the design's card styling; the design draws it with divs, and this is tabular data.
+*Design/content:* the design's third column is "Why"; ours is `evidence`, which is what the field actually holds.
+
+**Linear** — reading-progress hairline, objective-as-h2 per chapter, decision as an accent **inset** (not the chapter page's full card), embedded results table, floating return-to-map pill.
+*Not built:* the design's **"about 9 minutes"** read time. Word counts differ substantially between Arabic and English for the same content, so one text would advertise two different reading times. Chapter count only.
+
+**Comparison** — the first headed section becomes the accent **governing rule** card, the last becomes a closing statement. Positional, not keyed to heading text, so a Notion rewrite can't break it.
+*Not built:* the numbered **"What stayed fixed"** grid. That content is a bulleted list in Notion, and the sync flattens lists into one text blob — rendering it as a grid needs the sync to preserve list structure, which is a data-layer change.
+
+**About** — opens with a **statement**, not the word "About": the intro's first line takes the h1 when it's short enough. Sub-page card grid.
+*Not built:* the **career timeline**. Still no dates-or-employers content anywhere. Third time this gap has surfaced.
+*Design/content:* the design assumes one **origin-story card**; the real origin is told across three sections (Before · The Artist's Book · What that year taught me). Left as prose.
+
+**Philosophy** — h1 is the **thesis**; the contents sidebar I invented is gone, per the design's single column of numbered principles. Anchors kept.
+
+**Home** — restored the **radial hero glow**, the **eyebrow pill**, and the **second CTA**. None of the three were in `tokens.md`, so they were lost at extraction, not at build.
+
+**Case File Cover** — the corrected role card: 4px accent spine, mono label, statement at `text-h3`.
+*Not built:* the design's mono meta line under the role — `Product Design & Strategy · Mashreq Bank · 2023–2024`. Same missing content as the About timeline.
+*Design/content:* `OutcomeStrip` was rendering outcomes at `text-metric` (28–38px), which is right for "30%" and wrong for "Live in production for over a year and a half". Dropped to `text-statement` — the design's container, type sized for the content that actually goes in it.
+*Not built, deliberate:* inlining chapter 1 and the results table on the cover. Both have their own routes and their own designs in the same system; inlining them duplicates two pages. **Flagging rather than deciding.**
+
+**Contact** — two columns as drawn. `dir="ltr"` on the email input **and** the mailto link — verified in the Arabic DOM.
+
+**Work** — **the Type filter row cannot be built.** `case_files` has no `type` column, there are no type labels, and there is no `filter_type` string. All three would be schema/content changes.
+
+### 404 — fixed, with one case remaining
+
+`app/layout.tsx` now exists. `<html>`/`<body>` moved up out of `app/[locale]/layout.tsx`, which is why `notFound()` had no boundary that produced a document.
+
+**Unmatched URLs now render the designed 404 in the correct locale:**
+
+```
+/en/nonsense  → lang=en dir=ltr, site chrome, both CTAs
+/ar/nonsense  → lang=ar dir=rtl, Arabic copy
+```
+
+That also closes the Arabic-404 caveat that has been in the route map since the page was scaffolded.
+
+⚠️ **Still broken:** `notFound()` thrown *inside* a locale route — a draft slug like `/en/work/east` — renders Next's `__next_error__` shell. Removing `app/[locale]/not-found.tsx` made no difference. The likely fix is `dynamicParams = false` on the dynamic segments, which is a **routing** change I was told not to make. I tried it once, used the wrong path, and the test proved nothing — I am not claiming it works.
+
+### Two conventions worth knowing
+
+- The design's 2px rules become `h-px`. The system has one stroke weight and no 2px token. The 4px role spine uses `w-1` (`--space-1`), because it is a graphic element rather than a border.
+- Where a design element maps to a section, the mapping is **positional**, never keyed to heading text — so the Arabic page composes identically to the English one.
+
+### Not verified
+
+Structural checks only, in both locales. **The visual reading-width pass did not happen** — two Chrome browsers are connected and neither responded to the switch request. Everything above is verified by DOM inspection, not by looking at it.
+
+---
+
 ## 2026-08-13 — DESIGN AUDIT. Nothing built or changed.
 
 ### The headline

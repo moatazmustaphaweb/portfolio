@@ -129,13 +129,21 @@ export function ContactForm({
         <label htmlFor="contact-email" className={label}>
           {strings.email}
         </label>
+        {/*
+          `dir="ltr"` and `text-align: start`, from the design.
+          An email address is always left-to-right. Left in the page's RTL
+          direction, "moataz@example.com" renders with the domain leading and
+          the caret jumping — the field is unusable in Arabic. The label above
+          it stays RTL; only the value is forced.
+        */}
         <input
           id="contact-email"
           name="email"
           type="email"
+          dir="ltr"
           required
           autoComplete="email"
-          className={field}
+          className={`${field} text-start`}
         />
       </div>
 

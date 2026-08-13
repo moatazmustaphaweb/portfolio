@@ -9,18 +9,19 @@ import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 
 /**
- * Contact.
+ * Contact — composed from `Contact.dc.html`.
  *
- * Four sections from Notion, in order: the intro, Reach me, Or write here,
- * What happens next, Also here. The form is mounted inside "Or write here"
- * rather than after all the prose, because that heading is what introduces it.
+ * Two columns, not one: the ways to reach a person on one side, the form on
+ * the other, so neither reads as the only option. The h1 is the opening
+ * sentence rather than the word "Contact" — the same move the About design
+ * makes, and for the same reason.
  *
- * ⚠️ Form delivery is open question D — see `ContactForm`. Until it is
- * answered, `deliveryConfigured` is false and the form offers the direct email
- * instead of a submit button. Nothing collects personal data in the meantime.
+ * "What happens next" sits inside the form card as mono micro-copy, where the
+ * design puts it: it is a promise about the thing you just pressed, not a
+ * separate topic.
  *
- * The CV link is absent while `settings.cv_url` is null. That is the fallback
- * rule doing its job — no placeholder, no "coming soon", no disabled button.
+ * ⚠️ Form delivery is live (decision 044, option A) — Supabase table, honeypot,
+ * timing check, global rate limit, no IP read or stored.
  */
 /**
  * ISR window (decision 009). Next requires this to be a literal — an imported
@@ -30,14 +31,20 @@ import type { Locale } from "@/lib/content/types";
 export const revalidate = 300;
 
 /**
- * Delivery is decided and built: a Supabase table (decision 044, option A).
+ * Delivery is decided and built (decision 044, option A).
  *
- * Still a constant rather than an env var. The reasoning that kept it one
- * while the question was open holds now that it is closed — this is a
- * decision about where personal data goes, and it should be visible in a diff
- * and reviewable, not flippable per environment.
+ * Still a constant rather than an env var: this is a decision about where
+ * personal data goes, and it should be visible in a diff.
  */
 const CONTACT_DELIVERY_CONFIGURED = true;
+
+/** See About — only promotes a short opening line to the h1. */
+function splitLede(intro?: string): { headline?: string; rest?: string } {
+  if (!intro) return {};
+  const [first, ...others] = intro.split("\n\n");
+  if (!first || first.length > 140) return { rest: intro };
+  return { headline: first, rest: others.join("\n\n") || undefined };
+}
 
 export default async function Contact({
   params,
@@ -54,9 +61,17 @@ export default async function Contact({
     getSettings(l),
   ]);
 
+  const { headline, rest } = splitLede(intro);
   const email = settings.get("email");
   const cvUrl = settings.get("cv_url");
   const linkedIn = settings.get("linkedin_url");
+
+  /*
+   * Positional, matching both the design's composition and the Notion order:
+   * Reach me · Or write here · What happens next · Also here. Taken by index
+   * rather than by heading text so the Arabic version maps identically.
+   */
+  const [methods, formIntro, whatNext, alsoHere] = sections;
 
   const subjectOptions = [
     { value: "hiring", label: ui.t("form_subject_hiring") },
@@ -66,7 +81,7 @@ export default async function Contact({
   ].filter((o) => o.label);
 
   return (
-    <div className="mx-auto max-w-prose px-gutter py-section-y">
+    <div className="mx-auto max-w-container px-gutter py-section-y">
       <Breadcrumb
         locale={l}
         label={ui.t("breadcrumb_label")}
@@ -76,101 +91,134 @@ export default async function Contact({
         ]}
       />
 
-      {ui.t("page_contact") ? (
-        <h1 className="max-w-measure text-title text-fg">{ui.t("page_contact")}</h1>
-      ) : null}
-
-      {intro ? (
-        <p className="mt-6 max-w-measure whitespace-pre-line text-lead text-fg-body">
-          {intro}
+      <h1 className="max-w-measure text-h2 text-fg">
+        {headline ?? ui.t("page_contact")}
+      </h1>
+      {rest ? (
+        <p className="mt-5 max-w-measure whitespace-pre-line text-body text-fg-muted">
+          {rest}
         </p>
       ) : null}
 
-      {sections.map((section) => {
-        if (!section.fields.body && section.slug !== "or-write-here") return null;
-
-        return (
-          <section key={section.id} className="mt-14">
-            {section.fields.heading ? (
-              <h2 className="mb-4 max-w-measure text-h3 text-fg">
-                {section.fields.heading}
-              </h2>
-            ) : null}
-
-            {section.fields.body ? (
-              <p className="max-w-measure whitespace-pre-line text-body text-fg-body">
-                {section.fields.body}
+      <div className="mt-14 grid items-start gap-10 lg:grid-cols-2 lg:gap-18">
+        {/* Left — the direct routes. */}
+        <div>
+          {methods?.fields.body ? (
+            <section>
+              {methods.fields.heading ? (
+                <h2 className="font-mono text-label uppercase text-fg-dim">
+                  {methods.fields.heading}
+                </h2>
+              ) : null}
+              <p className="mt-4 max-w-measure whitespace-pre-line text-body text-fg-body">
+                {methods.fields.body}
               </p>
-            ) : null}
+            </section>
+          ) : null}
 
-            {/*
-              The form belongs under its own heading, not after the whole page.
-              "Or write here" is the sentence that introduces it.
-            */}
-            {section.slug === "or-write-here" ? (
-              <ContactForm
-                strings={{
-                  name: ui.t("form_name"),
-                  email: ui.t("form_email"),
-                  subject: ui.t("form_subject"),
-                  subjectOptions,
-                  message: ui.t("form_message"),
-                  messagePlaceholder: ui.t("form_message_placeholder"),
-                  submit: ui.t("form_submit"),
-                  sending: ui.t("form_sending"),
-                  success: ui.t("form_success"),
-                  error: ui.t("form_error"),
-                  required: ui.t("form_required"),
-                }}
-                deliveryConfigured={CONTACT_DELIVERY_CONFIGURED}
-                fallbackEmail={email}
-              />
+          {/* The prose names these; these are the ones that work. */}
+          <div className="mt-6 flex flex-col">
+            {email ? (
+              <a
+                href={`mailto:${email}`}
+                dir="ltr"
+                className="border-t border-DEFAULT py-4 text-start text-body text-fg transition-colors hover:text-accent"
+              >
+                {email}
+              </a>
             ) : null}
+            {linkedIn && ui.t("linkedin") ? (
+              <a
+                href={linkedIn}
+                rel="me noopener"
+                className="flex items-center gap-3 border-t border-DEFAULT py-4 text-body text-fg transition-colors hover:text-accent"
+              >
+                {ui.t("linkedin")}
+                <span aria-hidden="true" className="ms-auto text-fg-dim rtl:rotate-180">
+                  →
+                </span>
+              </a>
+            ) : null}
+          </div>
+        </div>
 
-            {/*
-              "Also here" — the prose names these; these are the working links.
-              The CV is simply absent until `settings.cv_url` exists.
-            */}
-            {section.slug === "also-here" ? (
-              <div className="mt-6 flex flex-wrap gap-3">
-                {cvUrl && ui.t("download_cv") ? (
-                  <a
-                    href={cvUrl}
-                    className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
-                  >
-                    {ui.t("download_cv")}
-                  </a>
-                ) : null}
-                {linkedIn && ui.t("linkedin") ? (
-                  <a
-                    href={linkedIn}
-                    rel="me noopener"
-                    className="inline-flex h-control-h items-center rounded-control border border-DEFAULT px-4 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
-                  >
-                    {ui.t("linkedin")}
-                  </a>
-                ) : null}
-                {ui.t("page_work") ? (
-                  <Link
-                    href={`/${l}/work`}
-                    className="inline-flex h-control-h items-center rounded-control border border-DEFAULT px-4 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
-                  >
-                    {ui.t("page_work")}
-                  </Link>
-                ) : null}
-                {ui.t("page_about") ? (
-                  <Link
-                    href={`/${l}/about`}
-                    className="inline-flex h-control-h items-center rounded-control border border-DEFAULT px-4 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
-                  >
-                    {ui.t("page_about")}
-                  </Link>
-                ) : null}
-              </div>
+        {/* Right — the form, in its own card. */}
+        <section className="rounded-panel border border-DEFAULT bg-surface p-card-p">
+          {formIntro?.fields.heading ? (
+            <h2 className="font-mono text-label uppercase text-fg-dim">
+              {formIntro.fields.heading}
+            </h2>
+          ) : null}
+          {formIntro?.fields.body ? (
+            <p className="mt-4 whitespace-pre-line text-body-sm text-fg-muted">
+              {formIntro.fields.body}
+            </p>
+          ) : null}
+
+          <ContactForm
+            strings={{
+              name: ui.t("form_name"),
+              email: ui.t("form_email"),
+              subject: ui.t("form_subject"),
+              subjectOptions,
+              message: ui.t("form_message"),
+              messagePlaceholder: ui.t("form_message_placeholder"),
+              submit: ui.t("form_submit"),
+              sending: ui.t("form_sending"),
+              success: ui.t("form_success"),
+              error: ui.t("form_error"),
+              required: ui.t("form_required"),
+            }}
+            deliveryConfigured={CONTACT_DELIVERY_CONFIGURED}
+            fallbackEmail={email}
+          />
+
+          {/* The promise about the button you just pressed. */}
+          {whatNext?.fields.body ? (
+            <p className="mt-6 whitespace-pre-line font-mono text-meta leading-relaxed text-fg-dim">
+              {whatNext.fields.body}
+            </p>
+          ) : null}
+        </section>
+      </div>
+
+      {/* "Also here" — the CV is absent until settings.cv_url exists. */}
+      {alsoHere ? (
+        <section className="mt-18 border-t border-DEFAULT pt-10">
+          {alsoHere.fields.heading ? (
+            <h2 className="font-mono text-label uppercase text-fg-dim">
+              {alsoHere.fields.heading}
+            </h2>
+          ) : null}
+          <div className="mt-5 flex flex-wrap gap-3">
+            {cvUrl && ui.t("download_cv") ? (
+              <a
+                href={cvUrl}
+                className="inline-flex h-control-h items-center gap-2 rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+              >
+                {ui.t("download_cv")}
+                <span aria-hidden="true">↓</span>
+              </a>
             ) : null}
-          </section>
-        );
-      })}
+            {ui.t("page_work") ? (
+              <Link
+                href={`/${l}/work`}
+                className="inline-flex h-control-h items-center rounded-control border border-DEFAULT px-4 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
+              >
+                {ui.t("page_work")}
+              </Link>
+            ) : null}
+            {ui.t("page_about") ? (
+              <Link
+                href={`/${l}/about`}
+                className="inline-flex h-control-h items-center rounded-control border border-DEFAULT px-4 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
+              >
+                {ui.t("page_about")}
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
