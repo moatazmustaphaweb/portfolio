@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin:0; padding:0; background:#0A0A0A; }
+  a { color:#C9A83A; } a:hover { color:#fff; }
+</style>
+</helmet>
+<div ref="{{ wrapRef }}" style="width:100%;overflow:hidden;background:#0A0A0A;height:{{ wrapHeight }}">
+<div style="position:relative;width:1600px;transform-origin:top left;transform:scale({{ scale }});background:#0A0A0A;padding:44px 48px 56px;box-sizing:border-box;font-family:'IBM Plex Mono',ui-monospace,monospace;color:#fff">
+  <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:56px 56px"></div>
+  </sc-if>
+
+  <div style="position:relative;display:flex;flex-direction:column;gap:22px">
+
+    <div style="display:grid;grid-template-columns:108px repeat(6,minmax(0,1fr));gap:14px">
+      <div></div>
+      <div style="position:relative;grid-column:2 / -1;border:1px solid rgba(255,255,255,0.11);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));height:66px;display:flex;align-items:center;justify-content:flex-end;padding:0 26px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="font-size:36px;font-weight:400;letter-spacing:6px;color:#fff">EGYPT ACQUISITION</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:108px repeat(6,minmax(0,1fr));gap:14px">
+      <div></div>
+      <div style="position:relative;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.022);height:38px;display:flex;align-items:center;justify-content:center"><span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="font-size:12px;letter-spacing:2.4px;color:rgba(255,255,255,0.82)">DISCOVERY</span></div>
+      <div style="position:relative;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.022);height:38px;display:flex;align-items:center;justify-content:center"><span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="font-size:12px;letter-spacing:2.4px;color:rgba(255,255,255,0.82)">STRUCTURE</span></div>
+      <div style="position:relative;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.022);height:38px;display:flex;align-items:center;justify-content:center"><span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="font-size:12px;letter-spacing:2.4px;color:rgba(255,255,255,0.82)">REVIEW</span></div>
+      <div style="position:relative;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.022);height:38px;display:flex;align-items:center;justify-content:center"><span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="font-size:12px;letter-spacing:2.4px;color:rgba(255,255,255,0.82)">EXCEPTION</span></div>
+      <div style="position:relative;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.022);height:38px;display:flex;align-items:center;justify-content:center"><span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="font-size:12px;letter-spacing:2.4px;color:rgba(255,255,255,0.82)">PORTAL</span></div>
+      <div style="position:relative;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.022);height:38px;display:flex;align-items:center;justify-content:center"><span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.35)">+</span><span style="font-size:12px;letter-spacing:2.4px;color:rgba(255,255,255,0.82)">CLOSE</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:108px repeat(6,minmax(0,1fr));gap:14px;margin-top:16px;align-items:start">
+      <div style="position:relative;align-self:stretch;grid-row:1 / span 3;border:1px solid rgba(255,255,255,0.11);background:rgba(255,255,255,0.018);display:flex;align-items:center;justify-content:center">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px;letter-spacing:3.4px;color:rgba(255,255,255,0.9);text-align:center">SYSTEM A&nbsp;&nbsp;&nbsp;CUSTOMER-FACING</span>
+      </div>
+
+      <div style="position:relative;grid-column:2 / 4;grid-row:1;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:rgba(184,69,61,0.35);transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">ONBOARDING JOURNEY</div>
+      </div>
+
+      <div style="position:relative;grid-column:3 / 5;grid-row:2;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#C9772F;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#C9772F;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:rgba(201,119,47,0.35);transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">DOCUMENT CAPTURE &amp; OCR</div>
+      </div>
+
+      <div style="position:relative;grid-column:4 / 7;grid-row:3;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#C9A83A;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#C9A83A;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#C9A83A;transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">CUSTOMER PORTAL &amp; NOTIFICATIONS</div>
+      </div>
+
+      <div style="position:relative;grid-column:7;grid-row:1;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:rgba(184,69,61,0.35);transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">ACCOUNT ACTIVATION</div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:rgba(255,255,255,0.12);margin:14px 0 2px"></div>
+
+    <div style="display:grid;grid-template-columns:108px repeat(6,minmax(0,1fr));gap:14px;align-items:start">
+      <div style="position:relative;align-self:stretch;grid-row:1 / span 3;border:1px solid rgba(255,255,255,0.11);background:rgba(255,255,255,0.018);display:flex;align-items:center;justify-content:center">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.4)">+</span>
+        <span style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px;letter-spacing:3.4px;color:rgba(255,255,255,0.9);text-align:center">SYSTEM B&nbsp;&nbsp;&nbsp;BANK-FACING</span>
+      </div>
+
+      <div style="position:relative;grid-column:2 / 4;grid-row:1;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#B8453D;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:rgba(184,69,61,0.35);transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">APPLICATION WORKFLOW</div>
+      </div>
+
+      <div style="position:relative;grid-column:3 / 5;grid-row:2;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#C9772F;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#C9772F;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:rgba(201,119,47,0.35);transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">NAME SCREENING</div>
+      </div>
+
+      <div style="position:relative;grid-column:4 / 7;grid-row:3;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#C9A83A;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#C9A83A;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#C9A83A;transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">EXCEPTION HANDLING</div>
+      </div>
+
+      <div style="position:relative;grid-column:6;grid-row:1;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#5FA84B;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#5FA84B;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#5FA84B;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:#5FA84B;transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">FULFILMENT &amp; AOF</div>
+      </div>
+
+      <div style="position:relative;grid-column:7;grid-row:1;border:1px solid rgba(255,255,255,0.13);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));padding:13px 18px 17px;display:flex;flex-direction:column;gap:9px">
+        <span style="position:absolute;left:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;top:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;left:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span><span style="position:absolute;right:-4px;bottom:-4px;font-size:9px;line-height:1;color:rgba(255,255,255,0.45)">+</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px">
+          <span style="font-size:11px;letter-spacing:1.6px;color:rgba(255,255,255,0.4)">//TASK</span>
+          <span style="display:flex;gap:4px"><i style="display:block;width:10px;height:8px;background:#5FA84B;transform:skewX(-22deg)"></i><i style="display:block;width:10px;height:8px;background:rgba(95,168,75,0.35);transform:skewX(-22deg)"></i></span>
+        </div>
+        <div style="font-size:17px;letter-spacing:1.7px;line-height:1.4;color:#fff;overflow-wrap:break-word;hyphens:none;min-width:0">SIX SYSTEMS, LIVE</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1600,&quot;height&quot;:1000},&quot;showGrid&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { scale: 1, inner: 0 };
+  wrapRef = React.createRef();
+  measure = () => {
+    const el = this.wrapRef.current;
+    if (!el) return;
+    const w = el.getBoundingClientRect().width;
+    const scale = Math.min(1, w / 1600);
+    const content = el.firstElementChild;
+    const inner = content ? content.getBoundingClientRect().height / (this.state.scale || 1) : 0;
+    if (scale !== this.state.scale || Math.abs(inner - this.state.inner) > 1) this.setState({ scale, inner });
+  };
+  componentDidMount() {
+    this.measure();
+    this.ro = new ResizeObserver(this.measure);
+    this.ro.observe(this.wrapRef.current);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(this.measure);
+  }
+  componentDidUpdate() { this.measure(); }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); }
+  renderVals() {
+    return {
+      showGrid: this.props.showGrid ?? true,
+      wrapRef: this.wrapRef,
+      scale: this.state.scale,
+      wrapHeight: this.state.inner ? Math.round(this.state.inner * this.state.scale) + 'px' : 'auto'
+    };
+  }
+}
+</script>
+</body>
+</html>
