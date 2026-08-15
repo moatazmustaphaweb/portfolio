@@ -37,6 +37,72 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-15 — UAE cover: Moataz's own artwork, verbatim
+
+The generated point-cloud cover is replaced by `designs/OBJECTS.svg` — Moataz's own drawing. Third version of this cover, and the first that is his geometry rather than mine.
+
+### Why this took two sessions to land
+
+The previous session's brief carried a stop condition — *"If it embeds a raster image, stop"* — and the file embeds nine. I stopped and reported rather than shipping. When the request came again, the point cloud was still rendering and it read as though the change had been lost.
+
+**It had not been reverted.** `OBJECTS.svg` was byte-identical between sessions (md5 `e30c74d5…`, 144,400 bytes, same mtime), still untracked, still 9 `<image>` elements. Nothing had been written, deliberately. Restating that would have wasted a third session, so this time the file was taken apart to find what was actually recoverable — which turned out to be the answer.
+
+### The finding: the vector survives whole
+
+The export splits cleanly. `BACKGROUND` is pure raster. **`OBJECTS` holds all 100 `<path>` elements — and they are the complete face mesh.** Stripped of rasters and tokenised, it was rendered on both grounds and at card size before anything was written, and Moataz chose it from the render rather than from a description.
+
+**What the nine PNGs were carrying, and what is gone with them:** the glow bloom, the dark navy panel, the perspective grid floor, four glow blobs. Pixels cannot take a token — they would have rendered fixed cyan in both themes and punched a dark square into the light page. The mesh itself was always vector and is untouched.
+
+### The mapping
+
+| Source | Uses | → Token |
+|---|---|---|
+| `stroke: rgb(0,255,255)` | 51 | `--color-fg-body` — the mesh |
+| `stroke: white` | 51 | `--color-fg` — the structural lines |
+| `fill: rgb(0,255,255)` | **2** | **`--color-accent`** ← the accent |
+
+The accent lands on the only two *filled* cyan shapes in the file: the circular endpoint markers of the scan beam at eye level. They are the capture moment — the same role the lock ring played in the version this replaces — and they read as one element rendered symmetrically, one marker per side.
+
+### What was and was not changed
+
+**Verbatim:** all 100 `<path>` elements and 4 `<rect>`s, with their `d` data, transform matrices, order and node structure exactly as exported. Nothing redrawn, simplified or regenerated. `designs/OBJECTS.svg` stays where it is under exactly that name, as the source of record.
+
+**Changed:** colour only, plus three mechanical fixes that needed no asking —
+
+- The `_clip1` clipPath dropped: it was a 500×500 rect identical to the viewBox, so it clipped nothing, and its id would have collided with the Egypt cover on the gallery page. **Verified: zero duplicate ids across both covers on one page, in both locales.** No other ids or classes existed inside `OBJECTS`, so there was nothing left to namespace.
+- `role="img"` with `<title>`/`<desc>`; the geometry group `aria-hidden`.
+- Nothing to strip for decision 023 — the source had no animation, no SMIL, no `<style>`, no script.
+
+**No `<text>` at all**, so the acronym question and the third-typeface question were both moot.
+
+**The registry `alt`/`description` were rewritten** — not the entry, key or render sites, which are untouched. They described the point cloud's dots, circuit traces and padlocks, none of which exist here; a screen reader would have announced a picture that is not on the page.
+
+### Numbers
+
+| | before (point cloud) | after |
+|---|---|---|
+| Nodes | 36 | **212** (100 paths, 4 rects, 105 groups) |
+| Payload | 31 KB | **23.4 KB** |
+| Source file | — | 141 KB → 23.4 KB, the 84 KB of PNG dropped |
+
+Zero hex, zero `rgb()`, zero rasters, accent twice — all confirmed in the served HTML.
+
+### Verified by looking
+
+Cover page in **dark** (white mesh on black) and **light** (black mesh on white — it inverts properly, which the raster version could not), the **gallery card at ~295px** where the mesh still reads and the UNDER NDA badge is intact, and **`/ar`**, where the page mirrors and the frontal symmetric artwork needs nothing. Six routes 200 in production; build, typecheck and ESLint exit 0.
+
+### NDA
+
+UAE carries `nda = true`. All nine PNGs were decoded and viewed before any conversion: a low-poly facial-recognition mesh over a grid. **No screen geometry, no field layouts, no interface fragments** — rule 6 not engaged. Decision 050 stands: the badge carries the signal.
+
+### ⚠️ Flagged, not acted on
+
+- **The artwork is 1:1 (500×500), and it is large.** At full container width on the cover page it renders ~1000px tall — noticeably bigger than Egypt (1.81:1). That is the aspect ratio of the source file and the brief said not to change it or reposition anything, so it ships as drawn. A `viewBox` crop or a max-width would fix it if it reads too tall in situ.
+- **`designs/OBJECTS.svg` carries `<g id="DESIGNED-BY-FREEPIK">`.** It is a Freepik asset; the visible credit was deleted from the artwork but the exporter's marker survived. Worth confirming the licence covers unattributed use, on a portfolio whose argument is provenance.
+- **The generated point-cloud component is kept on disk, unreferenced**, pending Moataz's decision.
+
+---
+
 ## 2026-08-14 — UAE cover v2: the holographic profile replaces the viewfinder
 
 The frontal capture-viewfinder portrait from earlier today is superseded by Moataz's second brief: a left-facing profile built from dots, a low-poly mesh and network nodes, one glowing eye as the focal point, a PCB circuit network dissolving out of the back of the head, four floating padlocks, and a particle field. Canvas 900×1200, transparent ground. Same pattern cost: the component file replaced, the registry entry updated, nothing else touched.
