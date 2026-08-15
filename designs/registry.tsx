@@ -78,26 +78,30 @@ const COVERS: Record<string, (size: CoverSize) => ReactElement> = {
   ),
 
   /*
-   * UAE Acquisition — a digital-identity portrait, from Moataz's second brief
-   * (2026-08-14, superseding the frontal capture-viewfinder version from the
-   * same day). A left-facing profile built from dots, mesh and nodes, one
-   * glowing eye as the focal point, a circuit network dissolving out of the
-   * back of the head. UAE is nda = true and decision 050 applies: the artwork
-   * depicts the programme from tokens and reproduces no screen, so it has no
-   * NDA surface, and the badge on the card carries the NDA signal.
+   * UAE Acquisition — Moataz's own artwork, from `designs/OBJECTS.svg`
+   * (2026-08-15). Replaces the generated point-cloud portrait entirely; that
+   * component's file is kept on disk, unreferenced, pending his decision.
    *
-   * The brief's cyan/violet palette was adapted to tokens, as every cover's
-   * palette is (decision 049) — the ramp carries the depth and the accent
-   * appears once, on the eye. No text in the artwork; Emirates Face
-   * Recognition lives here in the description, which resolves through
-   * translations next pass.
+   * The geometry is his, verbatim — see the component. Only colour changed,
+   * onto tokens (decision 049), and the export's 9 embedded rasters were
+   * dropped with his approval, since pixels cannot take a token.
+   *
+   * UAE is nda = true and decision 050 applies: every PNG was decoded and
+   * viewed before conversion — a facial-recognition mesh, no screen geometry
+   * and no interface fragments — so the artwork has no NDA surface, and the
+   * badge on the card carries the signal.
+   *
+   * The alt and description below are rewritten for THIS artwork. They
+   * described the point cloud's dots, circuit traces and padlocks, none of
+   * which exist here; a screen reader would have announced a picture that is
+   * not on the page. They resolve through translations next pass.
    */
   "uae-acquisition": () => (
     <UaeAcquisitionCover
       className="h-auto w-full"
       uid="uae-acquisition-cover"
-      alt="UAE Acquisition — digital identity portrait"
-      description="A left-facing human profile built from more than a thousand small dots, overlaid with a fine network mesh whose nodes follow the anatomy of the face. A single glowing eye is the focal point. From the back of the head a printed-circuit network of right-angled traces branches outward and gradually dissolves into a field of drifting particles, with four small outline padlocks floating in the space around the figure — identity, read by machines, held securely."
+      alt="UAE Acquisition — facial recognition mesh"
+      description="A frontal human face rendered as a low-polygon wireframe mesh: flat planes bounded by fine lines, following the brow, eye sockets, the bridge and length of the nose, the lips and the line of the jaw. A horizontal scanning beam crosses the face at eye level, marked at each end by a small filled circle — the moment of capture, in a biometric identity check."
     />
   ),
 };
