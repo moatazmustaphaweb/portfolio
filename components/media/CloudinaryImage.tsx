@@ -40,6 +40,20 @@ export function CloudinaryImage({
 }) {
   if (!media) return null;
 
+  /*
+   * Cloudinary unconfigured -> omit the image, do not throw.
+   *
+   * `getCldImageUrl` raises without a cloud name, and because this renders on
+   * the server that exception took the whole /work gallery down with a 500 the
+   * moment the first cover row existed. `docs/status.md` already states the
+   * intended behaviour -- "every image is omitted until it exists" -- so this
+   * is the code catching up to the documented contract, not a new policy.
+   *
+   * Read inline rather than through a variable: NEXT_PUBLIC_ values are
+   * substituted textually at build time and a destructured read would not be.
+   */
+  if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) return null;
+
   const alt = decorative ? "" : media.fields.alt;
   if (alt === undefined) return null;
 

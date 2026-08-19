@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
 import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
+import { routing } from "@/i18n/routing";
 
 /**
  * Landing — composed from `Home.dc.html`.
@@ -33,6 +36,15 @@ export default async function Landing({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  /*
+   * The parent layout guards too, but a layout does not gate its page: Next
+   * renders both concurrently, so this page's query reached Postgres with
+   * locale="favicon.ico" -- a browser asking for an icon that does not exist
+   * matches [locale] -- and the enum rejected it before notFound() upstream
+   * could take effect. Guarding at every entry point is the fix; the cast on
+   * the next line is only sound once this has run.
+   */
+  if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   const l = locale as Locale;
 

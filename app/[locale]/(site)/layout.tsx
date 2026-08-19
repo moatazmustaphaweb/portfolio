@@ -1,5 +1,9 @@
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
+
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import type { Locale } from "@/lib/content/types";
+import { routing } from "@/i18n/routing";
 
 /**
  * Every page except the Landing page.
@@ -18,6 +22,8 @@ export default async function SiteLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  // See the landing page: the cast below is only sound behind this guard.
+  if (!hasLocale(routing.locales, locale)) notFound();
   /*
    * `flex-1` on <main> is what pins the footer: <body> is a
    * `min-h-screen` flex column, so main absorbs the free space and the footer
