@@ -1,4 +1,5 @@
 import { getNavigation } from "@/lib/content/navigation";
+import { CvRequestPanel } from "@/components/contact/CvRequestPanel";
 import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
@@ -37,7 +38,6 @@ export async function SiteFooter({
   const name = settings.get("name");
   const email = settings.get("email");
   const linkedin = settings.get("linkedin_url");
-  const cvUrl = settings.get("cv_url");
 
   return (
     <footer className="border-t border-DEFAULT bg-surface">
@@ -70,14 +70,30 @@ export async function SiteFooter({
               {ui.t("linkedin")}
             </a>
           ) : null}
-          {cvUrl && ui.t("cv") ? (
-            <a
-              href={cvUrl}
-              className="text-ui text-fg-muted transition-colors hover:text-fg"
-            >
-              {ui.t("cv")}
-            </a>
-          ) : null}
+          {/*
+            The CV is a request, not a download — see CvRequestPanel. The
+            footer offers the same single `request_cv` label the contact page
+            uses, so the two cannot drift apart in wording.
+          */}
+          <CvRequestPanel
+            variant="link"
+            toAddress={settings.get("email")}
+            strings={{
+              trigger: ui.t("request_cv"),
+              toLabel: ui.t("cv_to_label"),
+              subjectLabel: ui.t("cv_subject_label"),
+              subjectValue: ui.t("cv_subject_value"),
+              greeting: ui.t("cv_greeting"),
+              body: ui.t("cv_body"),
+              optionalPlaceholder: ui.t("cv_optional_placeholder"),
+              emailPlaceholder: ui.t("cv_email_placeholder"),
+              close: ui.t("cv_close"),
+              submit: ui.t("form_submit"),
+              sending: ui.t("form_sending"),
+              success: ui.t("form_success"),
+              error: ui.t("form_error"),
+            }}
+          />
 
           {/* On Landing the footer carries the language switch, because the
               minimal footer is the only chrome below the fold. */}

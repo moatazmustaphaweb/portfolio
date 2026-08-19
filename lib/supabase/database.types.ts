@@ -55,6 +55,11 @@ export type Database = {
           status: Database["public"]["Enums"]["content_status"];
           nda: boolean;
           cover_media_id: string | null;
+          /**
+           * The image beside the cover's leading run of sections (0033).
+           * NOT the cover image — a case file may carry both.
+           */
+          lead_media_id: string | null;
           cover_kind: "media" | "component";
           cover_component: string | null;
           published_at: string | null;
@@ -70,6 +75,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["content_status"];
           nda?: boolean;
           cover_media_id?: string | null;
+          lead_media_id?: string | null;
           cover_kind?: "media" | "component";
           cover_component?: string | null;
           published_at?: string | null;
@@ -123,6 +129,12 @@ export type Database = {
           subject: string | null;
           message: string;
           created_at: string;
+          /**
+           * Operator-notification state (migration 0029, decision 051).
+           * Both null means no attempt was recorded — see the column comments.
+           */
+          notified_at: string | null;
+          notify_error: string | null;
         };
         Insert: {
           id?: string;
@@ -131,8 +143,61 @@ export type Database = {
           subject?: string | null;
           message: string;
           created_at?: string;
+          notified_at?: string | null;
+          notify_error?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["contact_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      /**
+       * Cover slots (0031). The slot is structure; the heading text a cover
+       * uses for it is content and lives in `translations`.
+       */
+      cover_sections: {
+        Row: {
+          id: string;
+          case_file_id: string;
+          /** One of lib/sync/cover-slots.ts ALL_SLOTS. Text, not an enum. */
+          slot: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          case_file_id: string;
+          slot: string;
+          sort_order: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["cover_sections"]["Insert"]>;
+        Relationships: [];
+      };
+      /** One row per paragraph, ordered. Never a joined string. */
+      cover_paragraphs: {
+        Row: {
+          id: string;
+          cover_section_id: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          cover_section_id: string;
+          sort_order: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["cover_paragraphs"]["Insert"]>;
+        Relationships: [];
+      };
+      /** Heading as written → slot. An unrecognised heading FAILS the cover. */
+      cover_slot_aliases: {
+        Row: {
+          heading_norm: string;
+          slot: string;
+          observed_on: string | null;
+        };
+        Insert: {
+          heading_norm: string;
+          slot: string;
+          observed_on?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["cover_slot_aliases"]["Insert"]>;
         Relationships: [];
       };
       page_sections: {
@@ -454,7 +519,10 @@ export type Database = {
         | "case_file_sibling"
         | "page_section"
         | "ui_string"
-        | "decision";
+        | "decision"
+        /* Added by migration 0030 for the cover slot model. */
+        | "cover_section"
+        | "cover_paragraph";
       grammar_type: "country-culture" | "ecosystem" | "design-system";
       locale_code: "en" | "ar";
       nav_location: "header" | "footer";

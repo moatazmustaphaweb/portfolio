@@ -1,8 +1,17 @@
 -- 0024 — Contact form delivery: a Supabase table (decision 044, option A).
 --
--- Chosen over an email service because it adds no third-party processor, so
--- /how-this-site-works needs no new disclosure, and the data stays inside
--- infrastructure already governed by the retention policy.
+-- Chosen over an email service because the data stays inside infrastructure
+-- already governed by the retention policy.
+--
+-- ⚠️ SUPERSEDED IN PART, 2026-08-15 (decision 051). This comment originally
+-- continued "...it adds no third-party processor, so /how-this-site-works needs
+-- no new disclosure". That is no longer true. The table is still the system of
+-- record and nothing about the storage decision changed — but an operator
+-- notification now sends a copy of each submission through Resend, so a
+-- third-party processor DOES exist and /how-this-site-works must disclose it
+-- when that page is built. The CV request flow forced the change: the panel
+-- promises a reply, and under storage-only nothing told Moataz to make one.
+-- See migration 0029 and lib/notify/contact-notification.ts.
 --
 -- ── What is NOT here ────────────────────────────────────────────────────────
 --

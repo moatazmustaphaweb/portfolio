@@ -58,15 +58,43 @@ export async function generateMetadata({
 }
 
 /**
- * The chapters this page offers as evidence, in the order its argument makes
- * them. Content pointers, resolved through the query layer so a renamed or
- * unpublished chapter drops out rather than 404ing.
+ * The chapters each argument section offers as evidence.
+ *
+ * ── KEYED BY SECTION SLUG, NOT BY POSITION ──────────────────────────────────
+ *
+ * This was a flat array zipped against the sections by index, and `filter()`
+ * COMPACTS — so an unresolvable chapter did not leave a hole, it shifted every
+ * later card up onto an argument that does not support it. Unpublishing
+ * Cervello put Egypt's accessibility chapter under the paragraph about the
+ * Cervello design system.
+ *
+ * The index was never a real relationship, only a coincidence of ordering that
+ * held while both lists were full. A section's evidence is now named by the
+ * section's own slug, so the binding is stated rather than inferred and cannot
+ * slip: if a chapter cannot be resolved, THAT section renders without a card
+ * and no other section is affected.
+ *
+ * `page_sections.slug` is the key because it already exists, is stable, and is
+ * the only identifier the page and the database agree on — no schema change,
+ * no new column, nothing to migrate. Its one weakness is that the slug derives
+ * from the heading, so renaming a heading in Notion breaks the binding — and
+ * it breaks SAFELY, to no card, with a warning in development (see below).
+ *
+ * A section may name more than one chapter. `what-ive-actually-built` argues
+ * two things and its prose points at both, so it gets both cards; flattening
+ * them into a positional list is what let them bleed into the next section.
  */
-const EVIDENCE = [
-  { caseFile: "cervello", chapter: "method" },
-  { caseFile: "cervello", chapter: "permission-architecture" },
-  { caseFile: "egypt-acquisition", chapter: "accessibility" },
-] as const;
+const EVIDENCE: Record<string, readonly { caseFile: string; chapter: string }[]> = {
+  "what-ive-actually-built": [
+    { caseFile: "cervello", chapter: "method" },
+    { caseFile: "cervello", chapter: "permission-architecture" },
+  ],
+  "working-inside-a-system-i-didnt-own": [
+    { caseFile: "egypt-acquisition", chapter: "accessibility" },
+  ],
+  // "the-patterns-that-repeat-across-the-work" names no chapter. Its argument
+  // is drawn from all of them, and a card would have to pick one arbitrarily.
+};
 
 export default async function Systems({
   params,
@@ -77,30 +105,55 @@ export default async function Systems({
   setRequestLocale(locale);
   const l = locale as Locale;
 
-  const [{ intro, sections }, ui, resolved] = await Promise.all([
+  const [{ intro, sections }, ui, resolvedBySlug] = await Promise.all([
     getPageSections("systems", l),
     getUiStrings(l),
-    Promise.all(
-      EVIDENCE.map(async (e) => {
-        const chapter = await getChapter(e.caseFile, e.chapter, l);
-        if (!chapter?.fields.title) return null;
-        return {
-          href: `/${l}/work/${e.caseFile}/${e.chapter}`,
-          title: chapter.fields.title,
-          caseFile: chapter.caseFile.fields.title,
-        };
-      }),
-    ),
+    /*
+     * Resolved per section, and the section slug is carried through the whole
+     * way. Nothing downstream re-derives which section a card belongs to, so
+     * there is no step at which the association can be lost.
+     */
+    (async () => {
+      const entries = await Promise.all(
+        Object.entries(EVIDENCE).map(async ([sectionSlug, pointers]) => {
+          const cards = await Promise.all(
+            pointers.map(async (e) => {
+              const chapter = await getChapter(e.caseFile, e.chapter, l);
+              // Unresolvable — unpublished, renamed, or the parent case file
+              // withdrawn. This section loses THIS card and nothing else.
+              if (!chapter?.fields.title) return null;
+              return {
+                href: `/${l}/work/${e.caseFile}/${e.chapter}`,
+                title: chapter.fields.title,
+                caseFile: chapter.caseFile.fields.title,
+              };
+            }),
+          );
+          return [sectionSlug, cards.filter((c) => c !== null)] as const;
+        }),
+      );
+      return new Map(entries);
+    })(),
   ]);
 
-  const evidence = resolved.filter((e): e is NonNullable<typeof e> => e !== null);
-
   /*
-   * The design pairs each argument section with one evidence card. Sections
-   * and evidence are independent lists of different lengths, so they are
-   * zipped by index and any surplus section simply renders without a card —
-   * better than repeating a link to pad the pattern out.
+   * A binding that names a section which no longer exists is a silent failure:
+   * the card simply never renders, and the page looks intentional. Warned in
+   * development only — it is an authoring mistake, not a runtime error, and it
+   * must never take a page down in production.
    */
+  if (process.env.NODE_ENV !== "production") {
+    const present = new Set(sections.map((s) => s.slug));
+    for (const slug of Object.keys(EVIDENCE)) {
+      if (!present.has(slug)) {
+        console.warn(
+          `[systems] EVIDENCE names section "${slug}", which is not on the page. ` +
+            "A heading was probably renamed in Notion; its evidence card is not rendering.",
+        );
+      }
+    }
+  }
+
   const [lastSection, ...rest] = [...sections].reverse();
   const argument = rest.reverse();
   const close = sections.length > 1 ? lastSection : undefined;
@@ -132,8 +185,10 @@ export default async function Systems({
         </p>
       ) : null}
 
-      {argument.map((section, i) => {
-        const card = evidence[i];
+      {argument.map((section) => {
+        // By slug. `i` is deliberately no longer in scope — reintroducing a
+        // positional lookup here is exactly the bug this replaced.
+        const cards = resolvedBySlug.get(section.slug) ?? [];
         return section.fields.body ? (
           <section key={section.id} className="mt-14 border-t border-DEFAULT pt-10">
             {section.fields.heading ? (
@@ -145,8 +200,9 @@ export default async function Systems({
               {section.fields.body}
             </p>
 
-            {card ? (
+            {cards.map((card) => (
               <Link
+                key={card.href}
                 href={card.href}
                 className="mt-6 flex max-w-measure items-center gap-4 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong"
               >
@@ -168,7 +224,7 @@ export default async function Systems({
                   →
                 </span>
               </Link>
-            ) : null}
+            ))}
           </section>
         ) : null;
       })}

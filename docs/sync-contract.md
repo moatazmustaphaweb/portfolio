@@ -121,11 +121,77 @@ Put it in the chapter's `Context` prose, attributed to its source. It is more us
 
 ## STEP 4 — BILINGUAL HANDLING
 
-Arabic content lives as a **child page** under each English page, titled `العربية` (or `Arabic`).
+Arabic content lives as a **child page** under each English page.
+
+### Identifying the child page — prefix and parent, never the full title
+
+The page is identified by **two things and nothing else**: it is a direct child of
+the page it translates, and its title **opens with** `النسخة العربية` (the older
+bare `العربية` / `Arabic` still matches).
+
+Everything after that prefix is a **human label**. It exists so the pages are
+distinguishable in Notion's sidebar, and it varies freely:
+
+```
+النسخة العربية — نبذة عني              (under About)
+النسخة العربية — الفلسفة                (under Philosophy)
+النسخة العربية — الغلاف (مصر)           (under the Egypt cover)
+النسخة العربية — الفصل الأول: رحلة فتح الحساب
+```
+
+**Nothing in the sync may match on the full title, and no title needs renaming to
+suit the script.** The suffix carries no meaning; the script strips it
+(`stripArabicScaffolding`) before the title is used for anything.
+
+> ⚠️ This paragraph previously said the child was titled `العربية` **exactly**, and
+> the matcher tested for exactly that. No page in Notion has ever been titled that
+> way. The result was invisible: a missing Arabic translation is the *normal* state
+> under decision 013, so a systematic sync failure and "not written yet" produced
+> identical output. **A contract that describes a convention nobody follows is not
+> documentation, it is a bug with a paper trail.** Where the script and this file
+> disagree, the script is authoritative and this file is wrong — fix it here.
+
+### Headings inside the Arabic page
+
+The Arabic page uses **Arabic headings**, and the script matches them by an alias
+map plus prefix, not by literal translation of the English:
+
+| Content | Headings accepted |
+|---|---|
+| Entry handles | `ثلاثة مداخل` *(prefix — the tail varies)* · `ثلاث طرق للدخول` · `three ways in` |
+| Outcomes / results | `النتائج` · `Outcomes` · `Results` |
+| Page title echo | The first heading is dropped and becomes the lede **when it matches the child page title with the prefix stripped** — see below |
+
+### Separators are direction-aware
+
+An entry handle is `<invitation> ← <payoff>` in Arabic and `<invitation> → <payoff>`
+in English. **`←` is the forward arrow in RTL** (see the `rtl-guard` skill), so the
+Arabic parser accepts `←` and `⬅`; the English parser does not, because `←` appears
+in English copy as hierarchy notation (`Instance ← Organisation ← Team ← Project`)
+and splitting on it would cut a sentence in half.
+
+### Pairing is by position, and only when the counts match
+
+Arabic sections, handles, outcomes and decisions are paired with their English
+counterparts **by position**. Where the counts differ, the Arabic is **skipped and
+reported** — attaching the wrong Arabic to the wrong row is worse than showing
+English. This also applies when *some* lines in a list fail to parse: a partial
+list whose count happens to equal English's is refused, because it would pair
+silently and wrongly.
+
+Every such notice prints **both heading lists**, so "not translated yet" (Moataz's
+work) can be told apart from "the parser split it differently" (a bug). Those need
+opposite responses and are indistinguishable from a count alone.
+
+### The rest
 
 - English body → `translations` rows with `locale = 'en'`
 - Arabic child page body → same fields, `locale = 'ar'`
 - **Missing Arabic is normal.** Do not warn, do not block. The English fallback rule in `docs/schema.md` covers it.
+
+> The fallback is what makes every failure above silent, and is still correct
+> (decision 013). The mitigation is not to remove it but to make the sync **say**
+> when it found Arabic and refused it — which is what the notices now do.
 
 ---
 
@@ -174,6 +240,49 @@ Images are **not** synced from Notion. Upload to Cloudinary manually, then refer
 **Deletions are not propagated.** Removing a Notion page does not delete the Supabase row — it must be archived manually. This prevents accidental content loss.
 
 **Dry run:** `--dry-run` reports every create, update, and skip without writing.
+
+### FAILURE POLICY — completeness, not just equality
+
+A missing status marker or an unparseable title aborts **that entity** and reports
+it; the rest of the sync continues; partial or guessed data is never written.
+
+That policy now extends to **positional pairing**, which is how every Arabic list
+is attached to its English counterpart. Pairing by index is only valid if both
+lists are complete, and the guard used to be **length equality alone**. Equality is
+necessary and **not sufficient**:
+
+> The UAE cover had four candidate handle lines. One was dropped silently. The
+> surviving three matched English's three, the length check passed, and Arabic
+> handle 3 would have been published under English handle 2.
+
+The drop and the guard measured different things, so a coincidental match read as
+success. Every pairing site therefore now compares **candidates found** against
+**candidates kept**, and refuses when they differ.
+
+**A candidate is something that announced itself.** This distinction is what makes
+the rule usable rather than paralysing:
+
+| | Counted? |
+|---|---|
+| A heading that opens `Decision ·` and has no name after it | **Yes — a drop.** Something was meant to be there |
+| A table row whose label is empty once the marker is stripped | **Yes — a drop** |
+| A block with no heading, no body and no table | **Yes — a drop** |
+| A line opening `ملف شقيق:` under the handles heading | No — a sibling, never a handle |
+| Headings like `Objective`, `Context`, `Result` in a chapter body | No — they were never decisions |
+
+Implemented once in `lib/sync/sift.ts` and used at each site, rather than four
+copies of the same counting.
+
+**What a refusal does:** the Arabic for that entity is dropped **as a whole set** —
+never partially — the English is written unchanged, and a notice names *what* was
+dropped and *why*. A count alone ("kept 3 of 4") is a guard that sends someone
+hunting; the offending line is the answer, and it distinguishes "a separator the
+parser does not know" from "a stray paragraph that was never a handle".
+
+**Known asymmetry, stated rather than hidden:** the ENGLISH handle loop does not
+count its drops — a line that fails to parse is silently ignored. English is the
+source of truth, so a silent drop there means content missing from the published
+page rather than a missing translation. This is a gap, not a decision.
 
 **Order of operations:**
 1. Fetch all Notion pages, filtered by Build Layer / In MVP-1

@@ -73,9 +73,11 @@ export function parsePageSections(
     tables?: readonly (readonly string[])[][];
   }[],
   pageName: string,
-): { intro: string; sections: ParsedSection[] } {
+): { intro: string; sections: ParsedSection[]; dropped: { what: string; why: string }[] } {
   let intro = "";
   const sections: ParsedSection[] = [];
+  /* Blocks that were offered and produced nothing. See lib/sync/sift.ts. */
+  const dropped: { what: string; why: string }[] = [];
   const seen = new Set<string>();
 
   /** Reserve a slug, suffixing rather than colliding on (page, slug). */
@@ -101,7 +103,21 @@ export function parsePageSections(
       continue;
     }
 
-    if (!heading && !body && tables.length === 0) continue;
+    /*
+     * An entirely empty block. Counted as a DROP rather than skipped past.
+     *
+     * Removing it is almost always harmless — an empty block carries no
+     * content, so both language sides shed theirs independently and the
+     * pairing still lines up. The case it is not harmless in is the one that
+     * hides: English sheds an empty block while Arabic is genuinely missing a
+     * real section, both come out at N, and the length guard passes on two
+     * lists that no longer describe the same thing. Counting it makes that
+     * coincidence visible instead of silent.
+     */
+    if (!heading && !body && tables.length === 0) {
+      dropped.push({ what: `block ${i + 1}`, why: "no heading, no body and no table" });
+      continue;
+    }
     if (!heading && tables.length === 0) {
       // Prose before any heading is also lede material.
       intro = intro ? `${intro}\n\n${body}` : body;
@@ -127,7 +143,13 @@ export function parsePageSections(
       const rows = grid
         .map((row) => row.map((cell) => cell.replace(/[\t\n]+/g, " ").trim()).join("\t"))
         .filter((row) => row.replace(/\t/g, "").trim());
-      if (rows.length === 0) continue;
+      if (rows.length === 0) {
+        dropped.push({
+          what: `table under ${heading ? JSON.stringify(heading) : `block ${i + 1}`}`,
+          why: "every cell is empty",
+        });
+        continue;
+      }
 
       sections.push({
         slug: claim(`${headingToSlug(heading || "section")}-table`),
@@ -138,7 +160,7 @@ export function parsePageSections(
     }
   }
 
-  return { intro, sections };
+  return { intro, sections, dropped };
 }
 
 /**
@@ -151,5 +173,41 @@ function echoesPageName(heading: string, pageName: string): boolean {
   if (!heading) return false;
   const norm = (s: string) =>
     s.toLowerCase().replace(/\([^)]*\)/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-  return norm(heading) === norm(pageName);
+  /*
+   * The page name is compared with its Arabic scaffolding removed.
+   *
+   * An Arabic child page is titled `النسخة العربية — نبذة عني` ("the Arabic
+   * version — About Me") while the heading inside it is just `نبذة عني`. Those
+   * do not match, so the title-echo rule never fired on any Arabic page: its
+   * opening heading stayed a section instead of becoming the lede, and the
+   * Arabic side came out with EXACTLY ONE MORE SECTION than the English.
+   *
+   * That off-by-one then hit the section-count guard in the sync, which skipped
+   * the Arabic for every static page — About, Philosophy, Systems, Contact and
+   * both comparisons — with a notice rather than an error. The site fell back
+   * to English, which decision 013 makes the normal state for untranslated
+   * content, so a systematic sync bug was indistinguishable from "not written
+   * yet" and stayed invisible.
+   *
+   * Stripped here rather than at the call site so both sides of the comparison
+   * are normalised in one place; a caller that forgets is how this happened.
+   */
+  return norm(heading) === norm(stripArabicScaffolding(pageName));
+}
+
+/**
+ * Remove the `النسخة العربية — ` prefix an Arabic child page carries.
+ *
+ * The prefix is a human label. It exists so the pages are distinguishable in
+ * Notion's sidebar while Moataz works, and the suffix after it is whatever
+ * makes that page identifiable to him — a page name, a chapter name, a
+ * bracketed country. **None of it carries meaning for the sync**, so nothing
+ * downstream may depend on the full title matching anything.
+ */
+export function stripArabicScaffolding(title: string): string {
+  return title
+    // A leading flag or other emoji, which Notion page titles often carry.
+    .replace(/^[\u{1F1E6}-\u{1F1FF}\p{Emoji_Presentation}\s]+/u, "")
+    .replace(/^(النسخة العربية|العربية|arabic)\s*[—–-]\s*/iu, "")
+    .trim();
 }

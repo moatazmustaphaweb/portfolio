@@ -66,7 +66,7 @@ export async function generateMetadata({
     locale: l,
     path: `/work/${caseFile}/all`,
     title: name && ui.t("linear_view") ? `${name} — ${ui.t("linear_view")}` : name,
-    description: detail?.fields.thesis,
+    description: detail?.summary,
   });
 }
 
@@ -94,6 +94,18 @@ export default async function LinearView({
   if (!detail || !chapters) notFound();
 
   const caseTitle = detail.fields.title ?? caseFile;
+
+  /*
+   * The opening slot — `thesis` where a cover has one, `what-it-is` where it
+   * does not. Same rule as `detail.summary`, and the reason Cervello's linear
+   * read finally opens with something.
+   */
+  const opening =
+    detail.sections.find((s) => s.slot === "thesis") ??
+    detail.sections.find((s) => s.slot === "what-it-is");
+  const roleSection = detail.sections.find(
+    (s) => s.slot === "role" && s.paragraphs.length > 0,
+  );
   const chapterWord = ui.t("chapter");
   const sibling = detail.siblings[0];
 
@@ -127,10 +139,23 @@ export default async function LinearView({
           ) : null}
           <h1 className="mt-4 max-w-measure text-title text-fg">{caseTitle}</h1>
 
-          {detail.fields.thesis ? (
-            <p className="mt-6 max-w-measure text-lead text-fg-body">
-              {detail.fields.thesis}
-            </p>
+          {/*
+            The opening slot only — the linear read is the CHAPTERS, and the
+            cover's later sections (status, why-it-matters, the map) belong on
+            the cover rather than repeated above a full read-through.
+
+            Each paragraph is its own <p> at body size. This block previously
+            joined them into one <p> at `--text-lead` with no
+            `whitespace-pre-line`, which is the same collapse the cover had.
+          */}
+          {opening ? (
+            <div className="mt-6 flex max-w-measure flex-col gap-4">
+              {opening.paragraphs.map((paragraph, i) => (
+                <p key={i} className="text-body text-fg-body">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           ) : null}
 
           {/*
@@ -151,14 +176,19 @@ export default async function LinearView({
           appears, and someone arriving here from a shared link must not lose
           the one sentence that says what he personally did.
         */}
-        {detail.fields.role ? (
+        {roleSection ? (
           <section className="mt-10 max-w-measure border-s border-strong ps-6">
-            {ui.t("role_label") ? (
+            {roleSection.heading || ui.t("role_label") ? (
               <h2 className="font-mono text-micro uppercase text-fg-dim">
-                {ui.t("role_label")}
+                {roleSection.heading ?? ui.t("role_label")}
               </h2>
             ) : null}
-            <p className="mt-3 text-statement text-fg">{detail.fields.role}</p>
+            <p className="mt-3 text-statement text-fg">{roleSection.paragraphs[0]}</p>
+            {roleSection.paragraphs.slice(1).map((paragraph, i) => (
+              <p key={i} className="mt-3 text-body text-fg-body">
+                {paragraph}
+              </p>
+            ))}
           </section>
         ) : null}
 

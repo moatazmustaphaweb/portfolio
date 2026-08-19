@@ -53,6 +53,23 @@ export type ParsedHandle = {
 const ARROW = /\s*(?:→|➔|=>|->)\s*/u;
 
 /**
+ * The same, plus the RTL arrow `←` (U+2190).
+ *
+ * Arabic handles are written `<invitation> ← <payoff>`, because in RTL the
+ * forward arrow IS `←` — the project's own rtl-guard states this, and the
+ * Arabic body copy relies on it. The parser knew only `→`, so **every Arabic
+ * entry handle failed to parse**: all twelve were written in Notion, found by
+ * the sync, and silently dropped.
+ *
+ * Kept separate from ARROW rather than added to it, because `←` is NOT a
+ * separator in the English copy — it appears there as hierarchy notation, in
+ * `Instance ← Organisation ← Team ← Project`. Splitting an English payoff on
+ * it would cut a sentence in half at its first hierarchy mark. One arrow set
+ * per direction; the caller knows which it is reading.
+ */
+const ARROW_RTL = /\s*(?:←|⬅|→|➔|=>|->|<-)\s*/u;
+
+/**
  * Parse one handle paragraph.
  *
  * The shape is `<invitation> → <payoff>`, in two registers that both appear in
@@ -65,11 +82,16 @@ const ARROW = /\s*(?:→|➔|=>|->)\s*/u;
  * is not a handle, and inventing one from it would put words on the cover that
  * were never written as a handle.
  */
-export function parseEntryHandle(raw: string): ParsedHandle | null {
+export function parseEntryHandle(
+  raw: string,
+  /** Pass `"ar"` when reading an Arabic page, so `←` counts as the separator. */
+  locale: "en" | "ar" = "en",
+): ParsedHandle | null {
   const text = raw.trim();
   if (!text) return null;
 
-  const match = ARROW.exec(text);
+  const arrow = locale === "ar" ? ARROW_RTL : ARROW;
+  const match = arrow.exec(text);
   if (!match || match.index === 0) return null;
 
   const invitation = stripQuotes(text.slice(0, match.index).trim());
@@ -183,9 +205,68 @@ export type ParsedSiblings = {
  * "Cross-cutting: Accessibility — …" — which points at a chapter, not a case
  * file, and must not become a sibling link.
  */
+/** The sibling-line opener, in both languages. */
+const SIBLING_PREFIX = /^(?:sibling case files?|siblings?|ملف شقيق|ملفات شقيقة)\s*:/iu;
+
+/**
+ * Does this line ANNOUNCE itself as a sibling line, whatever else is wrong
+ * with it?
+ *
+ * Deliberately weaker than `parseSiblingLine`, which additionally requires
+ * `[Bracketed]` titles and returns null without them. The Arabic sibling line
+ * on the UAE cover names its siblings in prose rather than brackets, so it
+ * parsed as neither a sibling nor a handle — it simply fell through, and was
+ * counted as a handle line that failed. That put UAE at "4 lines, 3 parsed"
+ * and made the whole Arabic handle set unpairable.
+ *
+ * A line opening `ملف شقيق:` is not an entry handle. That is true regardless
+ * of whether the rest of it can be parsed, so the exclusion is tested on the
+ * prefix alone.
+ */
+export function looksLikeSiblingLine(raw: string): boolean {
+  return SIBLING_PREFIX.test(raw.trim());
+}
+
+/**
+ * A cross-cutting pointer: a line under the handles heading that points at
+ * something spanning the whole case file rather than at one chapter.
+ *
+ *   Cross-cutting: Accessibility — Bilingual, RTL & Regulatory Comprehension: …
+ *   شامل عبر الفصول: قابلية الوصول والاستخدام في منتج مصرفي ثنائي اللغة: …
+ *
+ * A deliberate authoring convention, not a stray line, so the parser learns it
+ * rather than the writing moving to suit the parser. It is not an entry handle:
+ * it names no chapter to link and carries no invitation/payoff split.
+ *
+ * Verified against the Egypt cover in Notion rather than assumed — both
+ * spellings appear there verbatim, English and Arabic, each as the fourth line
+ * under the handles heading.
+ *
+ * Excluded by PREFIX for the same reason sibling lines are: a line that
+ * announces what it is stops being a handle candidate at that point, whatever
+ * else is true of its syntax.
+ */
+const CROSS_CUTTING_PREFIX = /^(cross-cutting|شامل عبر الفصول)\s*:/iu;
+
+export function looksLikeCrossCuttingLine(raw: string): boolean {
+  return CROSS_CUTTING_PREFIX.test(raw.trim());
+}
+
+/**
+ * Any line that announces itself as something other than an entry handle.
+ *
+ * One predicate for both loops so English and Arabic cannot drift — the English
+ * loop silently skipped its `Cross-cutting:` line for months while the Arabic
+ * side reported the identical line as a failure, because only one of the two
+ * had a completeness check.
+ */
+export function isNonHandleLine(raw: string): boolean {
+  return looksLikeSiblingLine(raw) || looksLikeCrossCuttingLine(raw);
+}
+
 export function parseSiblingLine(raw: string): ParsedSiblings | null {
   const text = raw.trim();
-  if (!/^(?:sibling case files?|siblings?|ملف شقيق|ملفات شقيقة)\s*:/iu.test(text)) {
+  if (!SIBLING_PREFIX.test(text)) {
     return null;
   }
 

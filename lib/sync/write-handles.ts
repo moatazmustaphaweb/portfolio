@@ -98,7 +98,37 @@ export async function replaceEntryHandles(
 ): Promise<{ written: number; error?: string }> {
   await clearChildren(db, "entry_handles", "entry_handle", "case_file_id", caseFileId);
 
-  const pairArabic = arabic.length === handles.length;
+  /*
+   * ── WHAT THIS FUNCTION CAN AND CANNOT VERIFY ────────────────────────────
+   *
+   * It receives two arrays that have already been parsed. It never saw the
+   * Notion page, the heading they came from, or the lines that failed to
+   * parse — so it CANNOT tell whether either list is complete. Completeness
+   * is the caller's guarantee, checked in sync-notion.ts against candidates
+   * found versus candidates kept, and re-deriving it here is not possible
+   * from this side of the boundary.
+   *
+   * Deliberately NOT added here: a second parse-completeness check. It would
+   * duplicate the upstream one, and a duplicated guard is worse than one
+   * guard — it reads as defence in depth while testing the same fact, and the
+   * next person to change the rule changes it in one place of two.
+   *
+   * What it CAN verify is that the arrays it was handed are internally usable
+   * for a positional write, and that is what it checks:
+   *
+   *   - equal lengths, so index i means the same row on both sides;
+   *   - no empty element, because a blank invitation or payoff written at
+   *     index i is indistinguishable downstream from a correct pairing.
+   *
+   * A failure of either means the caller handed over something it should have
+   * refused, so the Arabic is dropped for the whole set rather than per item.
+   * Partial pairing is the exact failure being designed against.
+   */
+  const arabicUsable =
+    arabic.length === handles.length &&
+    arabic.every((a) => a.invitation.trim() !== "" && a.payoff.trim() !== "");
+
+  const pairArabic = arabicUsable;
   let written = 0;
 
   for (const [i, handle] of handles.entries()) {

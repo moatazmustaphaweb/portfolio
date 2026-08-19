@@ -281,6 +281,26 @@ export function findRouteCollisions(
  *
  * Returns null for a heading that is not a decision.
  */
+/**
+ * Does this heading ANNOUNCE itself as a decision, whether or not it parses?
+ *
+ * The candidate test for `sift`. A chapter body is full of headings that are
+ * legitimately not decisions — `Objective`, `Context`, `Result` — and those must
+ * not be counted as dropped items or every chapter on the site would refuse.
+ * What must be counted is a near-miss: a heading that opens with the decision
+ * word and then fails to yield a name, e.g. `Decision ·` with nothing after it,
+ * or `القرار الأول` with no separator at all. Something was meant to be there.
+ */
+export function looksLikeDecisionHeading(heading: string): boolean {
+  /*
+   * The terminator is spelled out rather than `\b`. `\b` is defined against
+   * `\w` = [A-Za-z0-9_], so there is NO word boundary after Arabic letters and
+   * `/^القرار\b/` matches nothing at all. That exact mistake cost a session
+   * earlier this week in findArabicChild; it is not repeated here.
+   */
+  return /^(Decision|القرار)($|[\s·:—–-])/iu.test(heading.trim());
+}
+
 export function parseDecisionHeading(heading: string): { name: string } | null {
   const text = heading.trim();
 

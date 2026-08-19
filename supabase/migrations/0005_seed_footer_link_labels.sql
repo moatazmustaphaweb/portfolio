@@ -8,8 +8,10 @@
 -- Applied as `seed_footer_link_labels`.
 
 with strings(key, context, en, ar) as (values
-  ('linkedin', 'Footer link label. Brand name — stays Latin in Arabic.', 'LinkedIn', 'LinkedIn'),
-  ('cv',       'Footer CV link label. Renders only once settings.cv_url is set.', 'CV', 'السيرة الذاتية')
+  ('linkedin', 'Footer link label. Brand name — stays Latin in Arabic.', 'LinkedIn', 'LinkedIn')
+  -- ('cv') RETIRED 2026-08-15. The CV is not published as a file, so a footer
+  -- link to one has nothing to point at. Both CV call sites now use the single
+  -- `request_cv` key seeded in 0003, which opens the request panel.
 ), upsert_keys as (
   insert into ui_strings (key, context)
   select key, context from strings

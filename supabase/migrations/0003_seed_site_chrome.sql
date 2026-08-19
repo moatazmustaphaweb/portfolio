@@ -156,7 +156,23 @@ with strings(key, context, en, ar) as (values
   ('form_subject_speaking', 'Contact form — subject option',  'Speaking or writing',    'ندوة أو مقال'),
   ('form_subject_other',    'Contact form — subject option',  'Something else',         'شيء آخر'),
   ('form_message_placeholder', 'Contact form — placeholder in the message field', 'The more context you give, the more useful my first reply will be.', 'كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة.'),
-  ('download_cv',      'Contact page — CV download link; hidden until settings.cv_url exists', 'Download CV', 'تحميل السيرة الذاتية'),
+  -- ('download_cv') RETIRED 2026-08-15 — replaced by the CV request flow.
+  -- The CV is not published as a file; a visitor asks and Moataz sends it.
+  -- `cv` (the footer label) was retired with it: both call sites now use one
+  -- key, `request_cv`, so the two buttons cannot drift apart in wording.
+  ('request_cv',       'CV request — the button that opens the request panel', 'Request CV', 'اطلب السيرة الذاتية'),
+
+  -- The CV request panel. Styled as a mail compose window: everything is
+  -- fixed except the visitor's email and one optional line. The To address is
+  -- NOT seeded here — it is `settings.email`, so there is one source for it.
+  ('cv_to_label',      'CV request panel — the To field label', 'To:',        'إلى:'),
+  ('cv_subject_label', 'CV request panel — the Subject field label', 'Subject:', 'الموضوع:'),
+  ('cv_subject_value', 'CV request panel — the fixed subject line', 'CV request — moatazmustapha.com', 'طلب السيرة الذاتية — moatazmustapha.com'),
+  ('cv_greeting',      'CV request panel — the fixed greeting', 'Hi Moataz,', 'مرحباً معتز،'),
+  ('cv_body',          'CV request panel — the fixed body line', 'I came across your portfolio and I''d like to see your CV.', 'اطّلعت على أعمالك وأودّ الحصول على سيرتك الذاتية.'),
+  ('cv_optional_placeholder', 'CV request panel — placeholder for the one optional line', 'Optional: who you are and what this is about', 'اختياري: من أنت وسبب التواصل'),
+  ('cv_email_placeholder', 'CV request panel — placeholder for the required email', 'your@email.com', 'your@email.com'),
+  ('cv_close',         'CV request panel — close button label', 'Close',      'إغلاق'),
   ('entry_handles_heading', 'Cover — heading above the three entry handles', 'Three ways in', 'ثلاث طرق للدخول'),
   -- ملفات مرتبطة, not ملفات شقيقة (reviewed 2026-08-13). شقيقة is a literal
   -- rendering of "sibling" and reads biological; مرتبطة states the actual

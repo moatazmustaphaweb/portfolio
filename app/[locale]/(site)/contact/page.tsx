@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
 
+import { CvRequestPanel } from "@/components/contact/CvRequestPanel";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getPageSections } from "@/lib/content/pages";
@@ -87,7 +88,6 @@ export default async function Contact({
 
   const { headline, rest } = splitLede(intro);
   const email = settings.get("email");
-  const cvUrl = settings.get("cv_url");
   const linkedIn = settings.get("linkedin_url");
 
   /*
@@ -206,7 +206,7 @@ export default async function Contact({
         </section>
       </div>
 
-      {/* "Also here" — the CV is absent until settings.cv_url exists. */}
+      {/* "Also here" — the CV request opens a panel; there is no file. */}
       {alsoHere ? (
         <section className="mt-18 border-t border-DEFAULT pt-10">
           {alsoHere.fields.heading ? (
@@ -215,15 +215,29 @@ export default async function Contact({
             </h2>
           ) : null}
           <div className="mt-5 flex flex-wrap gap-3">
-            {cvUrl && ui.t("download_cv") ? (
-              <a
-                href={cvUrl}
-                className="inline-flex h-control-h items-center gap-2 rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
-              >
-                {ui.t("download_cv")}
-                <span aria-hidden="true">↓</span>
-              </a>
-            ) : null}
+            {/*
+              A request, not a download. The CV is not published as a file —
+              a visitor asks and Moataz sends it. No longer gated on
+              `settings.cv_url`, because there is no file to point at.
+            */}
+            <CvRequestPanel
+              toAddress={settings.get("email")}
+              strings={{
+                trigger: ui.t("request_cv"),
+                toLabel: ui.t("cv_to_label"),
+                subjectLabel: ui.t("cv_subject_label"),
+                subjectValue: ui.t("cv_subject_value"),
+                greeting: ui.t("cv_greeting"),
+                body: ui.t("cv_body"),
+                optionalPlaceholder: ui.t("cv_optional_placeholder"),
+                emailPlaceholder: ui.t("cv_email_placeholder"),
+                close: ui.t("cv_close"),
+                submit: ui.t("form_submit"),
+                sending: ui.t("form_sending"),
+                success: ui.t("form_success"),
+                error: ui.t("form_error"),
+              }}
+            />
             {ui.t("page_work") ? (
               <Link
                 href={`/${l}/work`}

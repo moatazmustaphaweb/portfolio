@@ -551,6 +551,93 @@ The boundary is the layer, not the phase. `width`, `height`, and `box-shadow` st
 
 ---
 
+## 051 — 044 amended: storage is the record, not the notification. The CV flow forced it
+
+*2026-08-15 — amends decision 044*
+
+**What option A was.** Delivery *is* the row. `/api/contact` inserts into
+`contact_messages`, returns `ok: true`, and Moataz reads the table in the Supabase
+dashboard. Chosen deliberately in 044 over an email service, on the argument that it
+adds no third-party processor and keeps every message inside infrastructure already
+governed by the retention policy.
+
+**What it now is.** The insert stays exactly as it is and remains the system of
+record. **An email notification to Moataz is added on top of it**, on every
+submission of either kind. Email is a notification layer over storage and never a
+replacement: if mail fails, the row is still there and the visitor still sees
+success.
+
+**Why the CV flow forced it.** 044's reasoning has a hidden premise — *"a portfolio
+contact form that is checked daily does not need one"* — and the CV request panel
+breaks it. The panel tells a recruiter *"Thanks — I'll reply soon"*. That is a
+promise made by the site, in the site's voice, and under option A nothing at all
+tells Moataz it was made. A contact form that sits unread for a week is untidy; a CV
+request that sits unread for a week is the site lying to the exact visitor the site
+exists to reach. The polling model was tolerable only while nothing depended on
+latency, and the CV flow depends on latency.
+
+**What this costs, stated rather than buried.** 044's central argument was that
+option A introduces **no third-party processor**. Adding a provider ends that, and
+message contents will transit one. `/how-this-site-works` is unbuilt and the four
+`privacy_*` strings render nowhere, so there is no page to correct today — which is
+exactly how a disclosure gets lost. It is recorded here so the page inherits a
+correct processor list whenever it is built. The header comment on migration
+`0024_contact_messages.sql`, which asserts no new disclosure is needed, becomes
+false on implementation and is corrected in the same change.
+
+**Constraints this amendment fixes, whatever mechanism is chosen:**
+
+- Insert first, then send. Mail failure must never turn a stored message into a
+  visitor-facing error.
+- The failure must be **durably** findable — not only a log line, which is ephemeral
+  and does not exist at all before deployment.
+- The notification distinguishes a CV request from a general enquiry, because they
+  need different reactions.
+- No `Reply-To` built from unvalidated input. The visitor's address is body content,
+  not a header.
+- Secrets are server-side only. Never `NEXT_PUBLIC_`.
+- Nothing is sent to the visitor — no auto-reply, no confirmation. The CV is never
+  attached and never sent automatically. Moataz replies himself; that is the design
+  of the flow, not a limitation of it.
+
+**Rule 1 boundary, decided here so it is not re-argued.** Rule 1 governs what a
+**visitor** reads. An operator notification is an operational artifact, and its
+scaffolding is plain English in code. The one exception is the **subject label**,
+which is the visitor's own choice from a `ui_strings` list and is resolved from the
+database, so the notification and the site never describe that choice differently.
+
+**Mechanism: Resend, called from the route with `fetch`, no SDK.** Approved
+2026-08-15 and implemented the same day.
+
+Resend because it is the only provider that works **with no domain**: its sandbox
+sends from `onboarding@resend.dev` to the account's own signup address and nowhere
+else. That restriction normally disqualifies it in production; here it fits exactly,
+because the only intended recipient in the whole design is Moataz. Postmark and the
+rest refuse `outlook.com` as a sender signature and need a verified domain, which
+does not exist yet.
+
+**No dependency.** The REST endpoint is one POST with a bearer token and a JSON
+body — precisely what the `resend` package wraps. `package.json` is unchanged.
+
+**Three env vars, none `NEXT_PUBLIC_`:** `RESEND_API_KEY`, `CONTACT_NOTIFY_TO`,
+`CONTACT_NOTIFY_FROM`. All three unset is a supported state, not a crash: the row is
+still written, the visitor still sees success, and `notify_error` records
+`not configured`. When the domain is bought, `CONTACT_NOTIFY_FROM` changes and no
+code changes.
+
+**A security property worth recording:** while the account has no verified domain,
+the key is only capable of emailing Moataz. A leak could not be used to send mail to
+anyone else.
+
+**Failure is recorded on the row, not only in a log** — `notified_at` and
+`notify_error`, migration 0029. Vercel's runtime logs are ephemeral and absent
+entirely before deployment, and a log line cannot be joined to the message it failed
+to announce. `where notified_at is null` answers "who did I never hear about?".
+
+**Status:** ACTIVE — amends 044. Mechanism decided and built.
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

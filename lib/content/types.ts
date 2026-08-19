@@ -49,9 +49,33 @@ export type Media = MediaRow & {
 };
 
 export type CaseFile = Tables<"case_files"> & {
-  /** From translations: `title`, `thesis`, `role`, `reflection`. */
+  /**
+   * From translations: `title`, plus the legacy `thesis` · `role` ·
+   * `reflection` fields the cover slot model (0031) replaces. Those three are
+   * still written and are removed in a separate cleanup migration once the
+   * site is verified rendering from `cover_sections`.
+   */
   fields: Fields;
+  /**
+   * The opening slot's first paragraph — `thesis` where a cover has one,
+   * `what-it-is` where it does not. For metadata, the gallery and llms.txt.
+   */
+  summary?: string;
   cover: Media | null;
+  /**
+   * A card-shaped variant of the cover, when one exists.
+   *
+   * The gallery card slot is 1.6:1 and crops with `c_fill`; a cover drawn
+   * square loses its top and bottom to that crop, and `g_auto` picks the
+   * centre by content analysis, so the result is neither correct nor stable
+   * across re-uploads. Where a hand-made crop exists it is used instead.
+   *
+   * Resolved by convention: the media row whose `cloudinary_public_id` is the
+   * cover's plus `-card`. Null when there is no such row, and the card then
+   * falls back to `cover` — so a case file with one asset behaves exactly as
+   * it did before. See `resolveCoverCard`.
+   */
+  coverCard: Media | null;
   /**
    * The first outcome, for the gallery card.
    *
@@ -117,7 +141,28 @@ export type NavItem = Tables<"navigation"> & {
 };
 
 /** A full case file with everything needed to render its cover. */
+/**
+ * One slot on a cover.
+ *
+ * The `slot` is structure — which of the known kinds of section this is. The
+ * `heading` is content: the words that cover chose, as written, in this locale.
+ * A cover renders the heading it has; nothing invents a default.
+ */
+export type CoverSection = {
+  id: string;
+  slot: string;
+  /** The heading as written, or undefined when this locale has no translation. */
+  heading?: string;
+  /** One entry per paragraph, in order. Never a joined string. */
+  paragraphs: string[];
+};
+
 export type CaseFileDetail = CaseFile & {
+  /**
+   * The cover's slots, in the order the database says — not a fixed order and
+   * not the same order for every case file.
+   */
+  sections: CoverSection[];
   /** Numbered narrative only — `kind = 'chapter'`, in `sort_order`. */
   chapters: Chapter[];
   /**

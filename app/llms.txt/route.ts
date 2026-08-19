@@ -55,7 +55,7 @@ export async function GET() {
     lines.push("");
     for (const cf of caseFiles) {
       const title = cf.fields.title ?? cf.slug;
-      const thesis = cf.fields.thesis;
+      const thesis = cf.summary ?? cf.fields.thesis;
       lines.push(
         `- [${title}](${base}/en/work/${cf.slug})${thesis ? `: ${thesis}` : ""}`,
       );

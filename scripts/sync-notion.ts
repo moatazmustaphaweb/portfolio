@@ -21,6 +21,7 @@ import {
   findEmptyMvpRows,
   findRouteCollisions,
   findStatusContradictions,
+  looksLikeDecisionHeading,
   parseDecisionHeading,
   OUTCOME_STATUSES,
   parseStatusItem,
@@ -31,6 +32,7 @@ import {
 } from "@/lib/sync/classify";
 import {
   normalizeTitle,
+  isNonHandleLine,
   parseEntryHandle,
   parseSiblingLine,
   resolveHandleTarget,
@@ -43,8 +45,16 @@ import {
   type SiblingWrite,
 } from "@/lib/sync/write-handles";
 import {
+  isProseSlot,
+  resolveSlot,
+  unknownHeadingMessage,
+  type Slot,
+} from "@/lib/sync/cover-slots";
+import { describeDrops, sift, type Sifted } from "@/lib/sync/sift";
+import {
   parsePageSections,
   routeToPageKey,
+  stripArabicScaffolding,
   type ParsedSection,
 } from "@/lib/sync/static-pages";
 
@@ -366,14 +376,16 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
 /**
  * Find the Arabic child page.
  *
- * The contract says the child is titled `العربية` (or `Arabic`) and the
- * matcher tested for exactly that. The live pages are titled
- * `النسخة العربية — الغلاف`, `النسخة العربية — النتائج` and so on, so nothing
- * matched and NO ARABIC SYNCED AT ALL — silently, because a missing Arabic
- * translation is indistinguishable from "not written yet" (decision 013 makes
- * that the normal state, which is exactly what hid this).
+ * Identified by TWO things and nothing else: it is a direct child of the page
+ * it translates, and its title opens with `النسخة العربية` (or the older bare
+ * `العربية` / `Arabic`). Everything after that prefix is a human label —
+ * `— نبذة عني`, `— الغلاف (مصر)`, `— الفصل الأول: رحلة فتح الحساب` — which
+ * exists to tell the pages apart in Notion's sidebar and carries no meaning
+ * here. **Nothing may match on the full title.**
  *
- * Now matched by containment, which is robust to the trailing section name.
+ * A prefix test rather than the containment test this used to do: containment
+ * would also claim a child called `ملاحظات العربية` ("Arabic notes"), and
+ * silently translating a page from a notes page is worse than not finding one.
  */
 async function findArabicChild(
   pageId: string,
@@ -383,10 +395,26 @@ async function findArabicChild(
     const b = block as { type: string; id: string; child_page?: { title: string } };
     if (b.type !== "child_page") continue;
     const raw = (b.child_page?.title ?? "").trim();
-    const t = raw.toLowerCase();
-    if (t.includes("العربية") || t.includes("arabic")) return { id: b.id, title: raw };
+    // Compared with any leading emoji removed, so a flag on the page title
+    // cannot stop it matching.
+    const t = stripLeadingEmoji(raw).toLowerCase();
+    /*
+     * The terminator is spelled out rather than using `\b`.
+     *
+     * `\b` is defined against `\w`, which is [A-Za-z0-9_] — Arabic letters are
+     * not word characters to it, so there is no boundary after `العربية` and
+     * `/^العربية\b/` matches NOTHING. It silently found no Arabic child at all,
+     * which looks exactly like a page with no translation.
+     */
+    if (/^(النسخة العربية|العربية|arabic)($|[\s—–:-])/iu.test(t)) {
+      return { id: b.id, title: raw };
+    }
   }
   return null;
+}
+
+function stripLeadingEmoji(value: string): string {
+  return value.replace(/^[\u{1F1E6}-\u{1F1FF}\p{Emoji_Presentation}\s]+/u, "").trim();
 }
 
 /**
@@ -401,8 +429,8 @@ function arabicTitleFrom(sections: ReadonlyMap<string, string[]>, pageTitle: str
   const h1 = sections.get("__h1__")?.[0];
   if (h1) return h1;
 
-  let t = pageTitle.replace(/^[\u{1F1E6}-\u{1F1FF}\p{Emoji}\s]+/u, "").trim();
-  t = t.replace(/^النسخة العربية\s*[—–-]\s*/, "").trim();
+  // One stripper, shared with the section parser — see stripArabicScaffolding.
+  let t = stripArabicScaffolding(pageTitle);
   const colon = t.indexOf(":");
   if (colon !== -1) t = t.slice(colon + 1).trim();
   return t;
@@ -478,19 +506,40 @@ const COVER_FIELDS: Record<string, string> = {
  * `readBody` keys sections by canonical heading, so the raw heading is
  * preserved under `__headings__` to reconstruct order and names.
  */
+/**
+ * Decisions in a chapter body, with the near-misses counted.
+ *
+ * Returns a `Sifted` rather than an array so the caller can tell "there were
+ * three decisions" from "there were four and one was unusable" — see
+ * lib/sync/sift.ts for why that distinction is load-bearing.
+ */
 function decisionsFromBody(
   sections: ReadonlyMap<string, string[]>,
-): { name: string; body: string }[] {
-  const out: { name: string; body: string }[] = [];
-  for (const [heading, lines] of sections) {
+): Sifted<{ name: string; body: string }> {
+  return sift<[string, string[]], { name: string; body: string }>(
+    sections,
+    ([heading, lines]) => {
     // "::table" keys hold a heading's table rows, not a separate section — they
     // would otherwise be counted as a second decision with a mangled name.
-    if (heading.startsWith("__") || heading.endsWith("::table")) continue;
+    if (heading.startsWith("__") || heading.endsWith("::table")) return "skip";
+
     const parsed = parseDecisionHeading(heading);
-    if (!parsed) continue;
-    out.push({ name: parsed.name, body: lines.join("\n\n").trim() });
-  }
-  return out;
+    if (parsed) return { keep: { name: parsed.name, body: lines.join("\n\n").trim() } };
+
+    // Announced itself and could not be used — something was meant to be here.
+    if (looksLikeDecisionHeading(heading)) {
+      return {
+        drop: {
+          what: heading,
+          why: "opens as a decision but has no name after the separator",
+        },
+      };
+    }
+
+      // Objective, Context, Result and friends. Never a candidate.
+      return "skip";
+    },
+  );
 }
 
 function fieldsFromBody(
@@ -506,6 +555,225 @@ function fieldsFromBody(
     if (value) fields[field] = value;
   }
   return fields;
+}
+
+/* ------------------------------------------------------- cover slot model */
+
+type OrderedBlock = { heading: string; level: 0 | 1 | 2 | 3; lines: string[]; tables: string[][][] };
+
+/**
+ * The sections of one cover, resolved to slots.
+ *
+ * Level 1 is the page's own H1 — the document title. Its paragraphs are
+ * authoring notes ("Status: Draft v1. Written from interview, 6 Aug 2026.") and
+ * must never publish, so the whole block is skipped rather than becoming a slot.
+ * Level 0 is anything before the first heading; also skipped.
+ */
+function resolveCoverSections(
+  coverTitle: string,
+  blocks: readonly OrderedBlock[],
+  aliases: ReadonlyMap<string, string>,
+): {
+  sections: { slot: Slot; heading: string; paragraphs: string[] }[];
+  failures: string[];
+} {
+  const sections: { slot: Slot; heading: string; paragraphs: string[] }[] = [];
+  const failures: string[] = [];
+  const seen = new Map<string, string>();
+
+  for (const block of blocks) {
+    if (block.level < 2 || !block.heading) continue;
+
+    const r = resolveSlot(block.heading, aliases);
+    if (!r.ok) {
+      // GUARD 1 — unrecognised heading. Never discarded, never guessed.
+      failures.push(unknownHeadingMessage(coverTitle, r));
+      continue;
+    }
+
+    // GUARD 2 — duplicate slot. The database enforces this too, via
+    // unique (case_file_id, slot); caught here so the message names both
+    // headings rather than surfacing as a Postgres constraint error.
+    const already = seen.get(r.slot);
+    if (already !== undefined) {
+      failures.push(
+        `${coverTitle}: two sections both resolve to slot "${r.slot}" — ` +
+          `${JSON.stringify(already)} and ${JSON.stringify(block.heading)}. ` +
+          `Neither was written. This is the overwrite the slot model exists to ` +
+          `prevent: the old code kept whichever came last, silently.`,
+      );
+      continue;
+    }
+    seen.set(r.slot, block.heading);
+
+    sections.push({
+      slot: r.slot,
+      heading: block.heading,
+      paragraphs: block.lines.map((l) => l.trim()).filter(Boolean),
+    });
+  }
+
+  return { sections, failures };
+}
+
+/**
+ * Write one cover's slots.
+ *
+ * Arabic is resolved through the SAME alias table, independently — `ما هو`
+ * resolves to `what-it-is` on its own merits. So Arabic no longer pairs with
+ * English by position, and a cover whose Arabic has three sections to English's
+ * four is no longer a refusal: the three attach to their own slots and the
+ * fourth simply has no Arabic. Decision 013's fallback applies per slot instead
+ * of all-or-nothing.
+ *
+ * Paragraph pairing WITHIN a slot stays positional, and keeps its guard.
+ */
+async function writeCoverSections(opts: {
+  rowTitle: string;
+  caseFileId: string;
+  enBlocks: readonly OrderedBlock[];
+  arBlocks: readonly OrderedBlock[] | null;
+  aliases: ReadonlyMap<string, string>;
+}): Promise<string | null> {
+  const { rowTitle, caseFileId, enBlocks, arBlocks, aliases } = opts;
+
+  const en = resolveCoverSections(rowTitle, enBlocks, aliases);
+  const ar = arBlocks
+    ? resolveCoverSections(`${rowTitle} (ar)`, arBlocks, aliases)
+    : { sections: [], failures: [] };
+
+  for (const f of [...en.failures, ...ar.failures]) fail(rowTitle, f);
+  if (en.failures.length > 0 || ar.failures.length > 0) return null;
+
+  const prose = en.sections.filter((s) => isProseSlot(s.slot));
+
+  // GUARD 3 — a slot that was written and left empty. An ABSENT slot is silent
+  // and correct; an empty one is a heading with nothing under it, which is a
+  // mistake worth reporting rather than a shape worth supporting.
+  for (const s of prose) {
+    if (s.paragraphs.length === 0) {
+      notice(rowTitle,
+        `${rowTitle}: slot "${s.slot}" (heading ${JSON.stringify(s.heading)}) has a ` +
+          "heading but no paragraphs. Written as an empty slot — it will render " +
+          "its heading and nothing else.",
+      );
+    }
+  }
+
+  /*
+   * GUARD 4 — a cover with no prose is malformed. But "malformed" and "not
+   * written yet" are different things and the guard has to tell them apart.
+   *
+   * The four mini case files (EAST, PideTaxi, Kshemam, AAM) are placeholders:
+   * a title, no headings, no content in either language. Failing them would be
+   * a guard crying wolf on every run, which is how guards get ignored — and
+   * this one exists to be believed.
+   *
+   * So the test is not "did any prose resolve" but "did this page OFFER any
+   * sections and none of them became prose". A page with no sections at all is
+   * an unwritten draft and says so by saying nothing.
+   */
+  const offeredSections = enBlocks.filter((b) => b.level >= 2 && b.heading).length;
+  if (offeredSections === 0) return null;
+
+  if (prose.length === 0) {
+    fail(rowTitle,
+      `${rowTitle}: ${offeredSections} section(s) on the page and not one resolved to a ` +
+        "prose slot. A cover made only of tables and lists is malformed.",
+    );
+    return null;
+  }
+
+  const arBySlot = new Map(ar.sections.map((s) => [s.slot, s]));
+
+  const shape =
+    `slots [${prose.map((s) => `${s.slot}(${s.paragraphs.length}¶${arBySlot.has(s.slot) ? "+ar" : ""})`).join(" · ")}]` +
+    ` claimed [${en.sections.filter((s) => !isProseSlot(s.slot)).map((s) => s.slot).join(" · ") || "—"}]`;
+
+  if (DRY_RUN) return shape;
+
+  /*
+   * Replace wholesale, translations first — the same polymorphic-orphan trap
+   * every other pass documents. `translations` has no foreign key to cascade,
+   * so deleting the rows alone would orphan their text and every re-sync would
+   * accumulate another dead set.
+   */
+  const { data: oldSections } = await (await db())
+    .from("cover_sections").select("id").eq("case_file_id", caseFileId);
+
+  if (oldSections && oldSections.length > 0) {
+    const sectionIds = oldSections.map((s) => s.id);
+    const { data: oldParas } = await (await db())
+      .from("cover_paragraphs").select("id").in("cover_section_id", sectionIds);
+    if (oldParas && oldParas.length > 0) {
+      await (await db()).from("translations").delete()
+        .eq("entity_type", "cover_paragraph").in("entity_id", oldParas.map((p) => p.id));
+    }
+    await (await db()).from("translations").delete()
+      .eq("entity_type", "cover_section").in("entity_id", sectionIds);
+    await (await db()).from("cover_sections").delete().eq("case_file_id", caseFileId);
+  }
+
+  for (const [i, section] of prose.entries()) {
+    const { data: sectionRow, error } = await (await db())
+      .from("cover_sections")
+      .insert({ case_file_id: caseFileId, slot: section.slot, sort_order: i })
+      .select("id").single();
+
+    if (error || !sectionRow) {
+      fail(rowTitle, `${rowTitle}: slot "${section.slot}" — ${error?.message ?? "insert returned no row"}`);
+      continue;
+    }
+
+    const arSection = arBySlot.get(section.slot);
+
+    // The heading, as written, in each language that has one.
+    await upsertTranslations("cover_section", sectionRow.id, "en", { heading: section.heading });
+    if (arSection) {
+      await upsertTranslations("cover_section", sectionRow.id, "ar", { heading: arSection.heading });
+    }
+
+    /*
+     * Paragraphs pair by position within the slot, and only when the counts
+     * match — the same rule and the same reasoning as everywhere else. Where
+     * they differ the Arabic paragraphs are skipped and reported rather than
+     * attached one row off.
+     */
+    const pairParagraphs =
+      arSection !== undefined &&
+      arSection.paragraphs.length > 0 &&
+      arSection.paragraphs.length === section.paragraphs.length;
+
+    if (arSection && arSection.paragraphs.length > 0 && !pairParagraphs) {
+      notice(rowTitle,
+        `${rowTitle}: slot "${section.slot}" has ${section.paragraphs.length} paragraph(s) ` +
+          `in English and ${arSection.paragraphs.length} in Arabic. Arabic paragraphs ` +
+          "skipped for this slot — pairing by position across different counts would " +
+          "attach the wrong paragraph to the wrong place. The heading still synced.",
+      );
+    }
+
+    for (const [j, text] of section.paragraphs.entries()) {
+      const { data: paraRow, error: paraError } = await (await db())
+        .from("cover_paragraphs")
+        .insert({ cover_section_id: sectionRow.id, sort_order: j })
+        .select("id").single();
+
+      if (paraError || !paraRow) {
+        fail(rowTitle, `${rowTitle}: slot "${section.slot}" paragraph ${j + 1} — ${paraError?.message ?? "no row"}`);
+        continue;
+      }
+
+      await upsertTranslations("cover_paragraph", paraRow.id, "en", { body: text });
+      if (pairParagraphs) {
+        await upsertTranslations("cover_paragraph", paraRow.id, "ar", {
+          body: arSection.paragraphs[j],
+        });
+      }
+    }
+  }
+
+  return shape;
 }
 
 /* ------------------------------------------------------------------ writes */
@@ -545,9 +813,17 @@ async function upsertTranslations(
  */
 async function readOrderedBlocks(
   pageId: string,
-): Promise<{ heading: string; lines: string[]; tables: string[][][] }[]> {
-  const blocks: { heading: string; lines: string[]; tables: string[][][] }[] = [
-    { heading: "", lines: [], tables: [] },
+): Promise<{ heading: string; level: 0 | 1 | 2 | 3; lines: string[]; tables: string[][][] }[]> {
+  /*
+   * `level` records which heading tag introduced the block, and the cover pass
+   * depends on it. A cover opens with an H1 carrying the page title and, beneath
+   * it, authoring notes — "Status: Draft v1. Written from interview, 6 Aug 2026."
+   * Those are notes to Moataz, not content, and they must never publish. An H1 is
+   * the document title; H2 and H3 introduce sections. Level 0 is the synthetic
+   * block holding anything before the first heading.
+   */
+  const blocks: { heading: string; level: 0 | 1 | 2 | 3; lines: string[]; tables: string[][][] }[] = [
+    { heading: "", level: 0, lines: [], tables: [] },
   ];
   let cursor: string | undefined;
 
@@ -575,6 +851,7 @@ async function readOrderedBlocks(
       if (headingText) {
         blocks.push({
           heading: headingText.map((t) => t.plain_text).join("").trim(),
+          level: b.heading_1 ? 1 : b.heading_2 ? 2 : 3,
           lines: [],
           tables: [],
         });
@@ -676,6 +953,20 @@ async function main() {
     console.log("");
   }
 
+  /*
+   * The slot aliases, loaded once. A DRY RUN needs them too — resolving a
+   * heading is exactly what a dry run is for, and it writes nothing.
+   */
+  const coverAliases = new Map<string, string>();
+  {
+    const { data, error } = await (await db()).from("cover_slot_aliases").select("heading_norm, slot");
+    if (error) {
+      console.error(`Could not load cover_slot_aliases: ${error.message}`);
+      process.exit(1);
+    }
+    for (const row of data ?? []) coverAliases.set(row.heading_norm, row.slot);
+  }
+
   /* ---- Pass 1: case files ---------------------------------------------- */
 
   const caseFileIdBySlug = new Map<string, string>();
@@ -698,6 +989,24 @@ async function main() {
       // this the dry run reports chapters as syncable when a real run would
       // fail them for a missing parent — the dry run would be lying.
       caseFileIdBySlug.set(caseFile, `dry-run:${caseFile}`);
+
+      /*
+       * Slots ARE resolved in a dry run, and their shape printed. Resolving a
+       * heading is precisely what a dry run is for — it is where an
+       * unrecognised heading should surface, before anything is written. The
+       * call returns before it writes, so this stays read-only.
+       */
+      const dryEn = await readOrderedBlocks(row.id);
+      const dryArabic = await findArabicChild(row.id);
+      const dryAr = dryArabic ? await readOrderedBlocks(dryArabic.id) : null;
+      const dryShape = await writeCoverSections({
+        rowTitle: row.title,
+        caseFileId: `dry-run:${caseFile}`,
+        enBlocks: dryEn,
+        arBlocks: dryAr,
+        aliases: coverAliases,
+      });
+      if (dryShape) console.log(`  cover ${caseFile}: ${dryShape}`);
       continue;
     }
 
@@ -778,6 +1087,27 @@ async function main() {
         fieldsFromBody(arBody, COVER_FIELDS, arabicTitleFrom(arBody, arabic.title)),
       );
     }
+
+    /*
+     * The slot model (0031). Written alongside the legacy thesis/role/reflection
+     * fields above, NOT instead of them — the old rows are removed in a separate
+     * migration once the site is verified rendering from the new tables, so that
+     * a failure here cannot take the covers down.
+     */
+    const enBlocks = await readOrderedBlocks(row.id);
+    const arBlocks = arabic ? await readOrderedBlocks(arabic.id) : null;
+    const shape = await writeCoverSections({
+      rowTitle: row.title,
+      caseFileId: data.id,
+      enBlocks,
+      arBlocks,
+      aliases: coverAliases,
+    });
+
+    // GUARD 6 — the resolved shape of every cover, printed every run. A section
+    // disappearing then shows as a line that CHANGED, rather than as nothing at
+    // all; absence being invisible is what hid Cervello's opening for months.
+    if (shape) console.log(`  cover ${caseFile}: ${shape}`);
   }
 
   /* ---- Pass 2: chapters ------------------------------------------------- */
@@ -849,7 +1179,11 @@ async function main() {
     );
 
     const arabic = await findArabicChild(row.id);
-    let arDecisions: { name: string; body: string }[] = [];
+    let arDecisions: Sifted<{ name: string; body: string }> = {
+      kept: [],
+      dropped: [],
+      found: 0,
+    };
     if (arabic) {
       const arBody = await readBody(arabic.id);
       await upsertTranslations(
@@ -873,14 +1207,28 @@ async function main() {
      * genuinely splits what the English combines, and pairing those by index
      * would attach the wrong Arabic to the wrong decision.
      */
-    const enDecisions = decisionsFromBody(body);
-    if (enDecisions.length > 0 || arDecisions.length > 0) {
+    const enSift = decisionsFromBody(body);
+    const enDecisions = enSift.kept;
+    if (enDecisions.length > 0 || arDecisions.kept.length > 0) {
       decisionReport.push({
         chapter: `${caseFile}/${slug}`,
         en: enDecisions.length,
-        ar: arDecisions.length,
+        ar: arDecisions.kept.length,
         names: enDecisions.map((d) => d.name),
       });
+    }
+
+    /*
+     * A dropped candidate on EITHER side refuses the pairing.
+     *
+     * An English drop is reported too, and it is the more serious of the two:
+     * a decision that announced itself and could not be read is content
+     * missing from the published page, not merely from the translation.
+     */
+    for (const [side, s] of [["English", enSift], ["Arabic", arDecisions]] as const) {
+      if (s.dropped.length > 0) {
+        notice(row.title, describeDrops(`${row.title}: ${side} decisions`, s));
+      }
     }
 
     const { data: oldDecisions } = await (await db())
@@ -891,12 +1239,21 @@ async function main() {
       await (await db()).from("decisions").delete().eq("chapter_id", data.id);
     }
 
+    /*
+     * Length equality AND completeness on both sides. Equality alone is what
+     * let the UAE handles through: three parsed of four found matched
+     * English's three, and the guard passed on a list that had lost an item.
+     */
+    const decisionsComplete = enSift.dropped.length === 0 && arDecisions.dropped.length === 0;
     const pairArabic =
-      arDecisions.length > 0 && arDecisions.length === enDecisions.length;
-    if (arDecisions.length > 0 && !pairArabic) {
+      decisionsComplete &&
+      arDecisions.kept.length > 0 &&
+      arDecisions.kept.length === enDecisions.length;
+
+    if (arDecisions.kept.length > 0 && !pairArabic && decisionsComplete) {
       notice(row.title,
         `${row.title}: ${enDecisions.length} decision(s) in English but ` +
-          `${arDecisions.length} in Arabic. Arabic skipped — pairing by position ` +
+          `${arDecisions.kept.length} in Arabic. Arabic skipped — pairing by position ` +
           "across different counts would attach the wrong Arabic to the wrong decision.",
       );
     }
@@ -913,7 +1270,7 @@ async function main() {
       });
 
       if (pairArabic) {
-        const ar = arDecisions[i];
+        const ar = arDecisions.kept[i];
         await upsertTranslations("decision", dec.id, "ar", {
           name: ar.name,
           ...(ar.body ? { body: ar.body } : {}),
@@ -1075,12 +1432,44 @@ async function main() {
     if (arabic) {
       const arBody = await readBody(arabic.id);
       const arSelection = selectItemLines(arBody, isTargets);
-      for (const arLine of arSelection.lines) {
+
+      /*
+       * Every selected line IS a candidate here — unlike a chapter body, these
+       * lines were already chosen as the rows of the outcomes table. So a row
+       * whose label is empty after stripping the marker is a genuine drop, not
+       * something that was never a row, and it must be counted rather than
+       * skipped past: four rows in, three out, English has three, and the old
+       * length check would have paired every note one row off.
+       */
+      const arSift = sift<string, { label: string; note: string | null }>(
+        arSelection.lines,
+        (arLine) => {
         const [arLabelCell, arNoteCell] = arLine.split(CELL_SEP);
         // Strip any marker from the Arabic label; the status is English-side.
         const label = arLabelCell.replace(/\[[^\]]+\]/, "").trim();
-        if (label) arabicItems.push({ label, note: arNoteCell?.trim() || null });
+        if (!label) {
+          return {
+            drop: {
+              what: arLine.replace(new RegExp(CELL_SEP, "g"), " | "),
+              why: "label cell is empty once the status marker is removed",
+            },
+          };
+        }
+          return { keep: { label, note: arNoteCell?.trim() || null } };
+        },
+      );
+
+      if (arSift.dropped.length > 0) {
+        notice(row.title,
+          describeDrops(
+            `${row.title}: Arabic ${isTargets ? "targets" : "outcomes"} table`,
+            arSift,
+          ),
+        );
+      } else {
+        arabicItems.push(...arSift.kept);
       }
+
       if (arabicItems.length > 0 && arabicItems.length !== parsed.length) {
         notice(row.title,
           `${row.title}: Arabic ${isTargets ? "targets" : "outcomes"} table has ` +
@@ -1287,7 +1676,10 @@ async function main() {
     }
 
     for (const line of lines) {
-      if (parseSiblingLine(line)) continue; // handled above
+      // Prefix test, not a full parse: a line that announces itself as a
+      // sibling is not a handle even when its own syntax is malformed.
+      // Both loops use the same exclusion so they cannot drift.
+      if (isNonHandleLine(line)) continue; // siblings + cross-cutting; handled above
 
       const parsedHandle = parseEntryHandle(line);
       if (!parsedHandle) continue;
@@ -1310,11 +1702,97 @@ async function main() {
     const arabicChild = await findArabicChild(row.id);
     if (arabicChild) {
       const arBody = await readBody(arabicChild.id);
-      const arLines =
-        arBody.get("ثلاث طرق للدخول") ?? arBody.get("three ways in") ?? [];
-      for (const line of arLines) {
-        const h = parseEntryHandle(line);
+      /*
+       * The Arabic handles heading, matched by PREFIX across its real spellings.
+       *
+       * The script looked only for `ثلاث طرق للدخول` ("three ways in", a literal
+       * translation of the English heading). Notion actually uses `ثلاثة مداخل`
+       * ("three entries") — and on Neobiz, `ثلاثة مداخل لقراءة هذا الملف`
+       * ("three ways into reading this file"). Neither matched, so ALL TWELVE
+       * Arabic entry handles were written, sat in Notion, and never synced.
+       *
+       * Prefix-matched for the same reason the child page is: the tail is a
+       * human label that varies per page and means nothing to the sync. The
+       * literal translation is kept as an accepted spelling so nothing that
+       * did match before stops matching now.
+       */
+      const AR_HANDLE_HEADINGS = ["ثلاثة مداخل", "ثلاث طرق للدخول", "three ways in"];
+      const handlesKey = [...arBody.keys()].find((key) =>
+        AR_HANDLE_HEADINGS.some((h) => key.trim().startsWith(h)),
+      );
+      const arLines = handlesKey ? (arBody.get(handlesKey) ?? []) : [];
+      /*
+       * Sibling lines are removed BEFORE anything is counted.
+       *
+       * The Arabic loop had no sibling exclusion, so the `ملف شقيق:` note under
+       * this heading counted as a handle line that failed to parse — which is
+       * what put UAE at "4 lines, 3 parsed" and made its Arabic unpairable.
+       * The completeness check below must measure candidates, not raw lines,
+       * or a correctly-skipped sibling reads as a dropped handle forever.
+       */
+      const arCandidates = arLines.filter((l) => !isNonHandleLine(l));
+      for (const line of arCandidates) {
+        const h = parseEntryHandle(line, "ar");
         if (h) arabicHandles.push({ invitation: h.invitation, payoff: h.payoff });
+      }
+
+      /*
+       * An Arabic page that exists but yields no handles is reported.
+       *
+       * Silence here is ambiguous in the one way that matters: it means either
+       * "Moataz has not written the Arabic handles yet" — his work — or "the
+       * heading is spelled differently and the lookup missed" — a bug. Those
+       * need opposite responses, and without this notice they are the same
+       * empty result. The headings actually searched are named, so the answer
+       * is readable from the notice rather than requiring a trip to Notion.
+       */
+      if (arLines.length === 0) {
+        notice(row.title,
+          `${row.title}: Arabic page found, but no entry-handle list under ` +
+            `${AR_HANDLE_HEADINGS.map((h) => `"${h}"`).join(" / ")}. Either the ` +
+            "handles are not written in Arabic yet, or they sit under a " +
+            "different heading. Headings present: " +
+            `${[...arBody.keys()].filter((k) => k !== "__h1__").join(" · ") || "(none)"}`,
+        );
+      } else if (arabicHandles.length > 0 && arabicHandles.length !== arCandidates.length) {
+        /*
+         * SOME lines parsed and some did not, which is the dangerous shape.
+         *
+         * The handles are paired with English BY POSITION, and that pairing is
+         * only valid if the Arabic list is complete. Drop the second of four
+         * lines and the third Arabic handle silently lands under the second
+         * English one — wrong words, on the cover, with nothing to indicate it.
+         * A count that happens to match English after a drop is worse than a
+         * count that does not, because the guard below will accept it.
+         */
+        /*
+         * The offending lines are named, not just counted.
+         *
+         * "4 lines, 3 parsed" says something is wrong and nothing about what.
+         * The line that failed is the whole answer — it is either a real handle
+         * with a separator the parser does not know (fix the parser) or a stray
+         * paragraph that was never a handle (fix nothing, or the page). Those
+         * are opposite responses and a count cannot tell them apart.
+         */
+        const unparsed = arCandidates.filter((l) => !parseEntryHandle(l, "ar"));
+        notice(row.title,
+          `${row.title}: ${arCandidates.length} Arabic handle line(s) but only ` +
+            `${arabicHandles.length} parsed. Arabic skipped — pairing by position ` +
+            "from an incomplete list would attach the wrong text to the wrong handle.\n" +
+            unparsed
+              .map((l, i) => `      unparsed ${i + 1}: ${JSON.stringify(l.slice(0, 160))}`)
+              .join("\n"),
+        );
+        arabicHandles.length = 0;
+      } else if (arabicHandles.length === 0) {
+        // Found the list, parsed nothing from it. The line is shown because the
+        // only way this happens is a separator the parser does not know, and
+        // the separator is invisible in a count.
+        notice(row.title,
+          `${row.title}: Arabic entry-handle list found (${arCandidates.length} line(s)) ` +
+            "but none parsed — no recognised separator. First line: " +
+            `${JSON.stringify(arCandidates[0]?.slice(0, 120) ?? "")}`,
+        );
       }
       if (arabicHandles.length > 0 && arabicHandles.length !== handles.length) {
         notice(row.title,
@@ -1383,7 +1861,8 @@ async function main() {
     if (row.kind === "static" && !STATIC_PROSE_PAGES.has(pageKey)) continue;
 
     const blocks = await readOrderedBlocks(row.id);
-    const { intro, sections } = parsePageSections(blocks, row.title);
+    const enPage = parsePageSections(blocks, row.title);
+    const { intro, sections } = enPage;
 
     if (sections.length === 0 && !intro) {
       notice(row.title, `${row.title}: no prose found on the page. Nothing written.`);
@@ -1399,15 +1878,49 @@ async function main() {
     if (arabicChild) {
       const arBlocks = await readOrderedBlocks(arabicChild.id);
       const parsedAr = parsePageSections(arBlocks, arabicChild.title);
-      if (
+
+      /*
+       * Completeness before equality. A block that produced nothing is not
+       * automatically harmful — but a side that shed one while the other did
+       * not can still arrive at the same count, and then the length check
+       * below passes on two lists that no longer describe the same page.
+       */
+      const pageDrops = [
+        ["English", enPage] as const,
+        ["Arabic", parsedAr] as const,
+      ].filter(([, s]) => s.dropped.length > 0);
+
+      if (pageDrops.length > 0) {
+        for (const [side, s] of pageDrops) {
+          notice(row.title,
+            describeDrops(`${row.title}: ${side} page blocks`, {
+              kept: s.sections,
+              dropped: s.dropped,
+              found: s.sections.length + s.dropped.length,
+            }),
+          );
+        }
+      } else if (
         parsedAr.sections.length > 0 &&
         parsedAr.sections.length !== sections.length
       ) {
+        /*
+         * The headings are printed, not just the counts.
+         *
+         * This notice used to say only "Arabic has 7 to English's 6", which is
+         * true and unactionable — it cannot distinguish "one section is not
+         * translated yet" (Moataz's work) from "the parser split the Arabic
+         * differently" (a bug). The second is what had been happening on every
+         * static page, undetected, because both look identical at the level of
+         * a count. Showing both lists makes the extra or missing one obvious.
+         */
         notice(
           row.title,
           `${row.title}: Arabic has ${parsedAr.sections.length} section(s) to ` +
             `English's ${sections.length}. Arabic skipped — pairing by position ` +
-            "across different counts would attach the wrong text to the wrong section.",
+            "across different counts would attach the wrong text to the wrong section.\n" +
+            `      EN: ${sections.map((s) => s.heading || "(untitled)").join(" · ")}\n` +
+            `      AR: ${parsedAr.sections.map((s) => s.heading || "(untitled)").join(" · ")}`,
         );
       } else {
         arabic.intro = parsedAr.intro;

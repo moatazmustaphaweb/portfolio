@@ -7,6 +7,8 @@ import { LivingMap } from "@/components/case-file/LivingMap";
 import { OutcomeStrip } from "@/components/case-file/OutcomeStrip";
 import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CoverSections, splitCoverSections } from "@/components/case-file/CoverSections";
+import { CloudinaryImage } from "@/components/media/CloudinaryImage";
 import { resolveCover } from "@/designs/registry";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
@@ -61,7 +63,7 @@ export async function generateMetadata({
     locale: l,
     path: `/work/${caseFile}`,
     title: detail?.fields.title,
-    description: detail?.fields.thesis,
+    description: detail?.summary,
   });
 }
 
@@ -88,6 +90,30 @@ export default async function CaseFileCover({
   const title = detail.fields.title ?? caseFile;
   const domainLabel = ui.t(DOMAIN_LABEL_KEYS[detail.domain] ?? "");
   const kicker = [ui.t("case_file"), domainLabel].filter(Boolean).join(" · ");
+
+  /*
+   * The opening passage and the role card share the two-column container; every
+   * later slot stays full width below it. See splitCoverSections for why the
+   * split is positional rather than by slot NAME — selecting `thesis` by name
+   * would reverse Cervello's reading order.
+   */
+  const { lead, rest } = splitCoverSections(detail.sections);
+
+  /*
+   * What occupies the reserved third. Null today.
+   *
+   * ⚠️ THE BRIEF'S PREMISE WAS PARTLY WRONG and this is deliberately left for a
+   * decision rather than resolved here: `media` is NOT empty and two covers DO
+   * carry artwork — Egypt an inline SVG component, UAE a 2400×2400 Cloudinary
+   * image. Both currently render as a FULL-WIDTH hero above this container.
+   *
+   * Moving them in here was not done, for two reasons. It is a visible change
+   * to two working covers that was not asked for; and Egypt's cover is a
+   * landscape system diagram that would be illegible at a third of the width,
+   * where UAE's square image would suit it. Whether that existing artwork is
+   * what the reserved column is FOR is a content decision — see docs/status.md.
+   */
+  const sideImage: React.ReactNode = null;
   const firstChapter = detail.chapters[0];
 
   return (
@@ -124,37 +150,82 @@ export default async function CaseFileCover({
       */}
       {detail.cover_kind === "component" && detail.cover_component ? (
         <div className="mt-8">{resolveCover(detail.cover_component, "cover")}</div>
-      ) : null}
+      ) : detail.cover ? (
+        /*
+          The media branch. This page rendered a component cover and nothing
+          else — no `else`, no import — so a case file on the Cloudinary path
+          showed no cover at all, silently. That gap is what this closes.
 
-      {detail.fields.thesis ? (
-        <p className="mt-6 max-w-measure text-lead text-fg-body">
-          {detail.fields.thesis}
-        </p>
+          `hero` (w_1200, c_limit) rather than `card`: limit never crops, so
+          the artwork arrives whole whatever its aspect. `priority` because
+          this is the LCP image on the page.
+
+          The wrapper carries no border or background of its own — a case file
+          with neither cover kind falls through to null and the page closes up
+          cleanly, with no empty frame left behind.
+        */
+        <div className="mt-8">
+          <CloudinaryImage
+            media={detail.cover}
+            preset="hero"
+            priority
+            className="h-auto w-full"
+          />
+        </div>
       ) : null}
 
       {/*
-        The role card. The accent spine is `w-1` (4px) — a graphic element,
-        not a border, so it is exempt from the one-stroke-weight rule the way
-        the design treats it.
+        ── THE TWO-COLUMN CONTAINER ─────────────────────────────────────────
+        
+        The opening passage and the role card share a container two thirds
+        wide; the remaining third is reserved for an image and spans both of
+        them, because it is ONE grid cell beside a column that stacks two
+        sections — not one cell each.
 
-        The design also carries a mono meta line here — "Product Design &
-        Strategy · Mashreq Bank · 2023–2024". No such field exists; see
+        `lg` (1024px) is the breakpoint. Below it, one column. See docs/status.md
+        for the measurement behind that choice: at `md` the two-thirds column is
+        480px against a 721px measure, which wraps prose far tighter than the
+        measure allows for no gain.
+
+        ⚠️ WHILE THE COLUMN IS EMPTY THE CONTAINER DOES NOT ACTIVATE. `sideImage`
+        is null today, so this renders as one full-width column and the grid
+        never engages. That is deliberate and is the recommendation in
+        docs/status.md: prose is capped at `--measure-prose`, so at ≥1130px the
+        paragraphs sit in exactly the same place either way, while below that a
+        reserved-but-empty column would wrap them EARLIER than the measure
+        permits — strictly worse reading, bought with dead space.
+
+        No placeholder, no skeleton, no border. Empty means empty, so it renders
+        nothing at all.
+
+        The design also carries a mono meta line on the role card — "Product
+        Design & Strategy · Mashreq Bank · 2023–2024". No such field exists; see
         docs/status.md, where this is the same missing content as the About
         timeline.
       */}
-      {detail.fields.role ? (
-        <section className="mt-10 flex max-w-measure-lead items-stretch overflow-hidden rounded-panel border border-strong bg-surface">
-          <div aria-hidden="true" className="w-1 shrink-0 bg-accent" />
-          <div className="flex flex-col gap-3 p-card-p">
-            {ui.t("role_label") ? (
-              <span className="font-mono text-label uppercase text-fg-dim">
-                {ui.t("role_label")}
-              </span>
-            ) : null}
-            <p className="text-h3 text-fg">{detail.fields.role}</p>
+      {lead.length > 0 ? (
+        <div
+          className={
+            sideImage
+              ? "grid items-start gap-x-10 lg:grid-cols-3"
+              : undefined
+          }
+        >
+          {/*
+            Logical by construction: CSS Grid places items along the INLINE
+            axis, so under `dir="rtl"` the text column lands on the right and
+            the image column on the left with no direction check anywhere.
+          */}
+          <div className={sideImage ? "lg:col-span-2" : undefined}>
+            <CoverSections sections={lead} roleLabel={ui.t("role_label")} />
           </div>
-        </section>
+
+          {sideImage ? <div className="mt-10 lg:mt-0">{sideImage}</div> : null}
+        </div>
       ) : null}
+
+      {/* map · what-it-is · status · why-it-matters — full width, below. */}
+      <CoverSections sections={rest} roleLabel={ui.t("role_label")} />
 
       {/* The metric grid. Empty for a case file that claims no numbers. */}
       {detail.outcomes.length > 0 ? (
@@ -190,20 +261,6 @@ export default async function CaseFileCover({
         locale={l}
         heading={ui.t("entry_handles_heading")}
       />
-
-      {/* The design puts the reflection in a bordered card. */}
-      {detail.fields.reflection ? (
-        <section className="mt-14 max-w-measure-lead rounded-panel border border-DEFAULT bg-surface p-card-p">
-          {ui.t("reflection") ? (
-            <h2 className="font-mono text-label uppercase text-fg-dim">
-              {ui.t("reflection")}
-            </h2>
-          ) : null}
-          <p className="mt-4 whitespace-pre-line text-body text-fg-body">
-            {detail.fields.reflection}
-          </p>
-        </section>
-      ) : null}
 
       {detail.chapters.length > 0 ? (
         <section className="mt-14">

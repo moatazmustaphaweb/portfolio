@@ -14,8 +14,8 @@ with k as (
     ('form_subject_project',     'Contact form — subject option'),
     ('form_subject_speaking',    'Contact form — subject option'),
     ('form_subject_other',       'Contact form — subject option'),
-    ('form_message_placeholder', 'Contact form — placeholder in the message field'),
-    ('download_cv',              'Contact page — CV download link; hidden until settings.cv_url exists')
+    ('form_message_placeholder', 'Contact form — placeholder in the message field')
+    -- ('download_cv') RETIRED 2026-08-15 — see 0003. Replaced by request_cv.
   on conflict (key) do update set context = excluded.context
   returning id, key
 )
@@ -29,13 +29,14 @@ from k, (values
   ('form_subject_project','en','A project'),
   ('form_subject_project','ar','مشروع'),
   ('form_subject_speaking','en','Speaking or writing'),
-  ('form_subject_speaking','ar','مشاركة أو كتابة'),
+  -- Reviewed 2026-08-13: was 'مشاركة أو كتابة', which reads *participation*.
+  -- This file runs AFTER 0003 and its ON CONFLICT DO UPDATE would otherwise
+  -- overwrite the approved wording on a rebuild.
+  ('form_subject_speaking','ar','ندوة أو مقال'),
   ('form_subject_other','en','Something else'),
   ('form_subject_other','ar','شيء آخر'),
   ('form_message_placeholder','en','The more context you give, the more useful my first reply will be.'),
-  ('form_message_placeholder','ar','كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة.'),
-  ('download_cv','en','Download CV'),
-  ('download_cv','ar','تحميل السيرة الذاتية')
+  ('form_message_placeholder','ar','كلما أعطيتني سياقاً أوضح، كان ردّي الأول أكثر فائدة.')
 ) as v(key, locale, value)
 where v.key = k.key
 on conflict (entity_type, entity_id, locale, field) do update set value = excluded.value;

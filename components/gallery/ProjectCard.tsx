@@ -62,8 +62,15 @@ export function ProjectCard({
           </div>
         ) : caseFile.cover ? (
           <div className="border-b border-DEFAULT">
+            {/*
+              `coverCard` when a hand-made 1.6:1 crop exists, otherwise the
+              cover itself. The card slot crops with `c_fill`, so a square
+              master loses its top and bottom here and `g_auto` picks the
+              centre by content analysis rather than by intent. Falling back
+              keeps every case file that has only one asset unchanged.
+            */}
             <CloudinaryImage
-              media={caseFile.cover}
+              media={caseFile.coverCard ?? caseFile.cover}
               preset="card"
               className="h-auto w-full"
             />

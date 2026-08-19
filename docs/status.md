@@ -20,7 +20,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]/systems` | 🟢 **REAL** | Intro, 4 sections, three evidence chapters resolved through the query layer, open-source pointer with no placeholder | — |
 | `/[locale]/about` | 🟢 **REAL** | Intro + 6 sections in chronological order, the deaf-school year, links onward | — |
 | `/[locale]/about/philosophy` | 🟢 **REAL** | Docs-style: thesis, 5 numbered positions, sticky contents, an anchor per section | — |
-| `/[locale]/contact` | 🟢 **REAL** | Intro, contact methods, full form **with working delivery** (honeypot · timing · rate limit), what-happens-next, LinkedIn. CV absent until `cv_url` | — |
+| `/[locale]/contact` | 🟢 **REAL** | Intro, contact methods, full form (honeypot · timing · rate limit), what-happens-next, LinkedIn, **CV request panel**. Both write rows to `contact_messages` | **Nothing emails anybody.** Rows must be read in Supabase — see the 2026-08-15 CV entry |
 | `404` | 🟡 **mostly real** | `app/layout.tsx` exists, so `notFound()` has a boundary that renders a document. **Unmatched URLs render the designed page in the correct locale**, both CTAs, `lang`/`dir` correct. Copy also renders for in-route `notFound()` | `notFound()` **inside** a locale route (a draft slug like `/en/work/east`) still gets Next's `__next_error__` document wrapper, so `<html>` carries no `lang`/`dir`. Mitigated — `app/not-found.tsx` sets both on its own wrapper |
 | `/robots.txt` · `/sitemap.xml` · `/llms.txt` | 🟢 **real** | Generated from the database | — |
 | `/api/events` · `/api/revalidate` | 🟢 **real** | Verified against live requests | — |
@@ -34,6 +34,3433 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-19 (evening) — `lead_media_id` and both redaction triggers. Each proven to refuse
+
+Not committed. One migration: `0033_case_file_lead_media.sql`, applied. Types
+updated. **No render path, no placeholder** — the slot only.
+
+### The column
+
+```sql
+alter table case_files
+  add column lead_media_id uuid references media(id) on delete set null;
+```
+
+Nullable FK, parallel to `cover_media_id`. **Nothing about `cover_media_id`,
+Egypt's SVG component or UAE's Cloudinary artwork changed** — verified after the
+migration: UAE still has its cover, all four `lead_media_id` are null.
+
+Alt text needs nothing new: it belongs to the `media` row as a `translations`
+row, the same path 0028 uses. Recorded in the migration that `CloudinaryImage`
+omits an image entirely when alt is undefined, so a lead image without an alt row
+renders nothing rather than an unlabelled picture — the alt is not optional in
+practice.
+
+### Both triggers extended, and the first one HAD to be recreated
+
+The subtle half, written into the migration because it would otherwise look like
+a stylistic choice:
+
+> `assert_cover_not_redacted` fired `before insert or update **of
+> cover_media_id**`. A trigger with a column list does not fire for a write that
+> touches only another column. Adding the `lead_media_id` branch to the FUNCTION
+> alone would have produced a guard that exists in the function body and is
+> **unreachable from the table** — it would have looked correct in review and
+> refused nothing.
+
+So the trigger is dropped and recreated with the wider column list. Confirmed
+against `pg_get_triggerdef` rather than assumed:
+
+```
+BEFORE INSERT OR UPDATE OF cover_media_id, lead_media_id ON public.case_files
+```
+
+`media_redacted_not_in_use` keeps its column list (`update of redacted`) and only
+its function changed.
+
+### The asymmetry with `chapters.hero_media_id`, named in the migration
+
+Stated there so it is found rather than discovered: **a chapter hero has no
+redaction trigger, deliberately.** A redacted asset may legitimately appear
+inside a chapter — that is what the redaction treatment is *for*. What decision
+028 forbids is a redacted asset in the two places that travel.
+
+The lead image is grouped with the cover rather than the chapter hero because it
+renders on the case file's own cover page, the most-shared URL of the four, and
+rule 6 is the hardest constraint here.
+
+Also recorded there: decision 028's stated reason — "covers are shared into link
+previews outside our control" — is **not literally true of the code today**.
+`lib/seo/metadata.ts` builds `og:image` from `settings.og_image` alone and the
+cover feeds no preview. The protection is kept; the reasoning written down is the
+exposure of the page, not the preview.
+
+### Proven — each rejection, verbatim
+
+Two throwaway `media` rows, one redacted and one clean, deleted afterwards.
+
+**1 · Attach a redacted asset to `lead_media_id`:**
+
+```
+ERROR: case_files.lead_media_id references a redacted asset
+       (ae5f5438-a2c7-47e0-bdc5-a9f98f726adf). The lead image renders on the
+       case file cover page and must use non-NDA imagery only — see decision
+       028 and rule 6.
+CONTEXT: PL/pgSQL function assert_cover_not_redacted() line 15 at RAISE
+```
+
+**2 · Attach a CLEAN asset, then mark it redacted** — the attach-then-flag bypass
+the reverse direction exists to close. The attach succeeded, as it should; the
+flag did not:
+
+```
+ERROR: media 084993fc-bfb9-47b4-934b-722cfc27cc62 cannot be marked redacted:
+       it is in use as a case_files lead image. Replace the lead image first
+       — see decision 028.
+CONTEXT: PL/pgSQL function assert_redacted_not_in_use() line 10 at RAISE
+```
+
+**3 · The pre-existing cover guard, re-tested** — because I recreated that
+trigger and a regression there would be silent:
+
+```
+ERROR: case_files.cover_media_id references a redacted asset (…). Covers are
+       shared into link previews outside our control and must use non-NDA
+       imagery only — see decision 028.
+CONTEXT: PL/pgSQL function assert_cover_not_redacted() line 6 at RAISE
+```
+
+All three refuse. The test rows were deleted and `cervello.lead_media_id` reset
+to null; UAE's cover is untouched.
+
+### Verified
+
+`check:seed-drift` — **no drift, the migration files reproduce the database** ·
+`npx tsc --noEmit` clean · `npm run test:sync` passes.
+
+**Nothing renders.** `grep lead_media_id` across `app`, `components` and
+`lib/content` returns nothing — the column is not read anywhere. The container
+stays dormant: `lg:grid-cols-3` appears **0 times** on a cover with no outcomes.
+All routes checked still 200 in both locales.
+
+### Still open from earlier entries
+
+Unchanged by this task: the cleanup migration for the legacy
+`thesis`/`role`/`reflection` translations, and the two heading trade-offs flagged
+in the previous entry — the opening slot's label reading as metadata, and
+`uppercase` flattening "Status, honestly" in English.
+
+---
+
+## 2026-08-19 (later) — Cover heading size reduced. Column-image schema PROPOSED, not written
+
+Not committed. One file changed: `components/case-file/CoverSections.tsx`.
+**No migration written** — task 1 is waiting on your ruling, as asked.
+
+## 1 · THE COLUMN IMAGE — shape for approval
+
+Understood and not conflated: this is a **new** image, not the cover.
+`cover_media_id`, Egypt's SVG component and UAE's Cloudinary artwork are
+untouched and stay full width above the title.
+
+### The shape
+
+Your expectation was right, and I checked rather than agreeing:
+
+```sql
+alter table case_files
+  add column column_media_id uuid references media(id) on delete set null;
+```
+
+A nullable FK on `case_files`, exactly parallel to `cover_media_id`
+(`0001_layer0_schema.sql:58`) and to `chapters.hero_media_id`. One per case
+file, which matches "it sits beside the leading run" — the leading run is
+per cover, so the image is too. **No new table, no enum, no `entity_type`
+value.** Unlike the slot model, nothing here touches an enum, so this really is
+a one-line migration.
+
+On the name: `column_media_id` uses your vocabulary. `lead_media_id` would match
+the code, which already calls that pair the "lead" (`splitCoverSections`), but it
+reads as `--text-lead` at a glance. I lean to your word. Say if you prefer the
+other.
+
+### Alt text — yes, the normal path, unchanged
+
+`media` alt text is a `translations` row —
+`(entity_type='media', entity_id, locale, field='alt')` — set per **asset**, not
+per usage. Migration `0028` seeds exactly that for the UAE cover. So a column
+image gets its alt the same way every other image does, in both locales, with
+nothing new to build.
+
+⚠️ One property worth restating because it is load-bearing: **`CloudinaryImage`
+omits the image entirely when alt is undefined.** A column image with no alt row
+renders nothing at all rather than an unlabelled picture. That is the existing
+behaviour and it is the right one, but it means the alt is not optional in
+practice.
+
+### 🔴 Redaction triggers — NO, they do not apply. Both directions.
+
+This is the part where checking mattered. The triggers in `0007` are **hardcoded
+to `cover_media_id`** and would not cover a new column:
+
+| Trigger | What it does | Covers a new column? |
+|---|---|---|
+| `case_files_cover_not_redacted` | `before insert or update **of cover_media_id**` → rejects a redacted asset | ❌ **No** — it does not even fire on the new column |
+| `media_redacted_not_in_use` | blocks marking an asset redacted while `c.cover_media_id = new.id` | ❌ **No** — the reverse direction is trivially bypassable: attach the asset, then flag it redacted |
+
+Extending both is small, but it is a **decision, not a mechanical follow-on**,
+because two facts cut against it:
+
+1. **Decision 028's stated reason does not hold for the cover today.** Its text
+   is *"covers are shared into link previews outside our control"* — but
+   `lib/seo/metadata.ts:91` builds `og:image` from **`settings.og_image` only**.
+   The cover does not feed a link preview at all. The trigger is protecting
+   against something the code does not currently do.
+2. **The precedent for on-page images is NO trigger.** `chapters.hero_media_id`
+   has none. A redacted asset may legitimately appear inside a chapter; what it
+   may not be is a cover or the OG image.
+
+By that precedent the column image is a chapter hero, not a cover, and needs no
+trigger.
+
+**My recommendation is still to extend both triggers**, and the reason is not the
+precedent: it is that the column image sits on the case file's own cover page —
+the most-shared URL of the four — and rule 6 is this project's hardest
+constraint. The trigger costs two lines and one migration. Erring toward
+protection is cheap here, and the asymmetry with chapter heroes is worth naming
+in the migration rather than leaving for someone to find.
+
+**Waiting on:** the column name, and whether to extend the triggers.
+
+## 2 · THE HEADING SIZE — done, with one correction and one flag
+
+### Your premise was off by one element
+
+| element | before | token |
+|---|---|---|
+| `Thesis`, `The map`, `What it is` (h2) | **28px w600** | `--text-h3` ← these were the large ones |
+| `MY ROLE` (span) | **11px w500** | `--text-label` ← already the smallest label on the page |
+
+`MY ROLE` was not at `--text-h3`; it has been 11px throughout. The 28px headings
+were the prose section headings. I applied the instruction to those, and to the
+card headings, so the cover is now consistent.
+
+### Before and after
+
+| | English | Arabic |
+|---|---|---|
+| **Before** | 28px w600 LANTX/Geist | 28px **w400** LANTX |
+| **After** | **11px w500** uppercase mono | **14.3px w500** Meral |
+
+### The scale has no step that works — measured, then solved without a new token
+
+Everything between `--text-h3` and `--text-body` failed, and the reason is
+Arabic. `:lang(ar) h2` forces `font-weight: 400` with
+`font-synthesis-weight: none` — LANTX ships one weight and a faked 600 smears the
+joins closed — so **in Arabic an h2 has no weight axis and hierarchy is size
+alone.** Measured on the live page:
+
+| candidate | Arabic renders | verdict |
+|---|---|---|
+| `--text-ui` | 16.1px w400 | **fails** — smaller than the 18.4px body AND no heavier |
+| `--text-label` on the h2 | 14.3px w400 | fails, worse |
+| `--text-statement` | **29.9px** | **LARGER than `--text-h3`'s 28px** — it scales by `--type-scale` (1.15) where h3 uses `--type-scale-display` (1.00) |
+
+That last one is genuinely counter-intuitive and I would have got it wrong by
+reasoning: the token that looks like the middle step is the biggest of the three
+in Arabic.
+
+**The solution uses no new token.** The label goes on a **`<span>` inside the
+`<h2>`**. The span is not a heading element, so it escapes the Arabic weight
+rule: it keeps **weight 500** and takes the Arabic **body** face (Meral, four
+weights) instead of the display face. It renders **14.3px/500 — byte-identical to
+the `MY ROLE` label**, which has always read correctly. `--type-scale-small`
+(1.30) is what lifts 11px to 14.3px, which is exactly what that factor exists
+for, and 14.3px is comfortably above the ~11.5px dot-resolution floor.
+
+**The heading level is unchanged.** Still `<h2>` — size is a token, heading level
+is document structure. The outline a screen reader announces did not move.
+
+### ⚠️ Two things I am flagging rather than shipping quietly
+
+**The opening heading now reads as metadata.** At 14.3px against 18.4px body
+text, `ما هو` — the section doing Cervello's thesis job — is quieter than the
+prose it introduces. It is legible and it is consistent with the site's label
+treatment, but it no longer announces "this is the opening of the argument". You
+asked to be told if the size drop made a label read as less important than it is.
+**On the opening slot specifically, it does.** The role card is unaffected and
+remains the loudest element, as approved.
+
+**`uppercase` flattens voice in English.** "Status, honestly" renders
+"STATUS, HONESTLY" and "Why this one still matters" becomes
+"WHY THIS ONE STILL MATTERS". Those are written phrases, and the comma is doing
+work. Arabic is unaffected — it has no case. Dropping `uppercase` is one class,
+but it would break consistency with `MY ROLE`, `REACH ME` and `EVIDENCE`
+sitewide, so I did not do it unilaterally.
+
+### Verified on `localhost:3000`
+
+All four covers, both locales, both themes. Every cover section heading now
+carries the same treatment — checked in the served HTML, not sampled:
+
+```
+/en · Thesis · The map · What it is · Status, honestly · Why it matters anyway · What's in it
+/ar · الأطروحة · الخريطة · ما هو · الحالة، بصراحة · ولماذا يهم رغم أنه لم يُبنَ
+```
+
+`Results` and `Three ways in` still render at 28px — those are `OutcomeStrip` and
+`EntryHandles`, not this component, and were not in scope.
+
+Arabic dark at the measured 14.3px/500/Meral: looked at, legible, reads as a
+label. `npx tsc --noEmit` clean · `eslint` clean.
+
+**Not verified:** 320px specifically — the automation viewport is still pinned at
+1800px. `--text-label` is a fixed 11px with no clamp, so it does not change with
+viewport and the Arabic 14.3px holds at every width; that is an argument from the
+token definition, not an observation.
+
+---
+
+## 2026-08-19 — Two-column cover container. Built, dormant, and TWO PREMISES NEED YOUR RULING
+
+Not committed. Two files: `components/case-file/CoverSections.tsx`,
+`app/[locale]/(site)/work/[caseFile]/page.tsx`.
+
+### 🔴 1 · `media` is NOT empty — two covers already carry artwork
+
+The brief says "media is empty and no cover images exist". Checked before
+building, because the whole task turns on it:
+
+| Cover | `cover_kind` | artwork | renders today |
+|---|---|---|---|
+| **Egypt** | `component` | inline SVG (`egypt-acquisition`) | ✅ **yes**, full-width hero |
+| **UAE** | `media` | `uae-acquisition`, 2400×2400 | ✅ **yes**, full-width hero |
+| Cervello | `media` | `cover_media_id` null | no |
+| Neobiz | `media` | `cover_media_id` null | no |
+
+**Half the covers have a working image, rendering full width above the title
+area.** So "reserved and empty" and "no image exists" describe two different
+things, and I did not resolve the difference by guessing.
+
+**What I did:** built the container with the column reserved and **left every
+existing hero exactly where it is**. Nothing that works was moved.
+
+**What you need to decide:** is that existing artwork what the reserved column is
+FOR? If yes it moves in and the container activates immediately for Egypt and
+UAE. I did not do it, for two reasons — it is a visible change to two working
+covers that was not asked for, and **Egypt's cover is a landscape system diagram
+that would be illegible at a third of the width**, where UAE's square image would
+suit it. That is a design call, not a mechanical one.
+
+### 🔴 2 · "thesis + role" would have reversed Cervello's reading order
+
+Cervello's slots are `what-it-is(0) · role(1) · status(2) · why-it-matters(3)`.
+Selecting the pair by NAME — thesis and role — and leaving `what-it-is` to the
+full-width treatment below would have put Cervello's **opening passage beneath
+its role card**, silently reversing the page.
+
+So the split is **the leading run up to and including `role`**, which preserves
+order on all four:
+
+| | container | below |
+|---|---|---|
+| Egypt · UAE | thesis · role | map |
+| **Cervello** | **what-it-is · role** | status · why-it-matters |
+| **Neobiz** *(no role)* | **thesis** | what-it-is · status · why-it-matters |
+
+Absent slots stay absent, and no slot is substituted into a gap.
+
+### The measure — measured, not assumed
+
+| | `--measure-prose` (68ch) | two-thirds column | prose renders at |
+|---|---|---|---|
+| English | **721px** | 755px | **721px** |
+| Arabic | **742px** *(type-scale 1.15)* | 755px | 742px |
+
+At a 1200px container the two-thirds column is **755px** after the 40px gap is
+shared — so it **exceeds the English measure by 34px**. **The measure wins:**
+paragraphs cap at 721px and simply do not fill the column. Measured in the
+browser with the container forced on, not calculated.
+
+### Breakpoint: `lg` (1024px)
+
+| viewport | content | two-thirds | verdict |
+|---|---|---|---|
+| `md` 768px | 720px | **480px** | far below the 721px measure — prose wraps much tighter than intended, image column only 240px. Rejected |
+| **`lg` 1024px** | 976px | **651px** | close to the measure, image column 325px is a usable width. **Chosen** |
+
+Below `lg`, one column. The image column drops beneath the text rather than
+beside it. Static — no transition on the reflow (decision 023).
+
+### Your open question: what the reserved column does while empty
+
+**Recommendation: the text takes full width until that cover has an image.** The
+container is built this way and is therefore **dormant today**.
+
+Three reasons, and the first is the one that decided it:
+
+1. **Prose is measure-capped, so reserving the column buys nothing visible.** At
+   ≥1130px viewport the paragraphs render at 721px whether the column is 755px or
+   1152px — **identical position, identical wrapping**. The reserved third would
+   be pure empty space with no effect on the text beside it.
+2. **Below ~1130px it is actively worse.** There the two-thirds column is
+   narrower than the measure, so reserving it makes prose wrap EARLIER than the
+   measure permits — a real cost, for a column holding nothing.
+3. **Dead space with no affordance reads as a bug**, and no placeholder is
+   permitted to explain it. This project has repeatedly shipped things that
+   looked intentional and were not.
+
+**And it costs almost nothing later:** because prose is measure-capped and
+inline-start aligned, when an image arrives **the paragraphs do not move.** Only
+the whitespace beside them is filled. The layout is per-cover and data-driven, so
+it resolves itself as artwork lands — no second layout to maintain.
+
+### Verified
+
+**The container geometry**, with a temporary image forced in via devtools — never
+written to the codebase, cleared by the next reload, no placeholder shipped:
+
+```
+viewport 1800 · grid 1152 · text column 755 · image column 357
+paragraph width 721  ← the measure, exactly
+```
+
+Thesis and role stack inside the left column; the image column is **one cell
+beside both**, not one each. Screenshot taken.
+
+**RTL mirrors through the grid's inline axis, no direction check anywhere:**
+
+```
+dir=rtl · text column left edge 714 · image column left edge 317 · text is on the right ✓
+```
+
+Confirmed by looking, in both locales, dark and light.
+
+**Today's output is unchanged**, which is the point of the recommendation. All
+four covers, both locales: same sections, same order, no grid emitted. The
+`lg:grid-cols-3` that appears in Egypt's and UAE's HTML belongs to
+**`OutcomeStrip`**, not this container — Cervello, which has no outcomes, emits
+none. Checked rather than assumed.
+
+Egypt still renders **five separate `<p>` elements**. Cervello shows no thesis
+section and Neobiz no role section — no empty headings anywhere.
+
+`npx tsc --noEmit` clean · `eslint` clean.
+
+### ⚠️ Not verified, and I am not claiming it
+
+**The five viewport widths were not tested at those widths.** The automation
+browser's render viewport is pinned at 1800px — `resize_window` moves the window
+but `innerWidth` does not follow, so media queries cannot be driven. The same
+limitation appeared at 700px in an earlier session.
+
+What that means concretely: the `lg` breakpoint behaviour is **reasoned and
+measured, not observed**. Since the container is dormant, the pages today render
+one column at every width — which is the state before this task, so there is no
+regression to miss. **But the two-column layout has never been seen at 1024px,
+and 320/390/768/1440 were not exercised at all.** If you can open the four covers
+at those widths yourself, that is the gap.
+
+---
+
+## 2026-08-18 (evening) — BUILT: cover slots. Cervello's opening renders for the first time
+
+Not committed. Migrations 0030–0032, `lib/sync/cover-slots.ts`,
+`components/case-file/CoverSections.tsx`, the sync, the query layer, both render
+sites. Sync run for real: **`failed 0`**.
+
+### Step 0 — the sync is unblocked
+
+`Cross-cutting:` verified against the Egypt cover in Notion rather than taken on
+trust. It is exactly that, and the Arabic `شامل عبر الفصول:` sits beside it as the
+fourth line under `Three ways in` in both languages.
+
+Excluded by prefix through one predicate, `isNonHandleLine`, used by **both**
+loops — English had been silently skipping its copy of that line for months while
+Arabic reported the identical line as a failure, because only one of the two had a
+completeness check. That asymmetry is now closed.
+
+```
+entry handles egypt-acquisition: 3 (2 linked), siblings: 1     ← 3 Arabic against 3 English
+failed  0
+```
+
+The real sync then restored what the blockage had been holding: **Egypt's thesis
+went from 4 stored paragraphs to 5** (1085 chars against the stale 1087), in both
+locales, and its three Arabic handles survived.
+
+### The schema, as approved
+
+| | |
+|---|---|
+| `0030` | two `entity_type` values, in **their own migration** — Postgres refuses to use a new enum label in the transaction that adds it |
+| `0031` | `cover_sections`, `cover_paragraphs`, `cover_slot_aliases`; RLS on, no policy |
+| `0032` | the alias seed — 23 rows, every one read from the live Notion pages |
+
+`slot` is `text`, not an enum: the enum on `entity_type` is exactly what made this
+a migration, and repeating it on the set most likely to grow would mean a
+migration per slot. `unique (case_file_id, slot)` makes the overwrite trap
+impossible at the database level rather than by convention.
+
+### What the database now holds — Notion, exactly
+
+| | slots, in order | headings as written |
+|---|---|---|
+| **Egypt** | thesis(5¶) · role(3¶) · map(6¶) | Thesis · My role · The map |
+| **UAE** | thesis(3¶) · role(2¶) · map(2¶) | Thesis · My role · **What's in it** |
+| **Neobiz** | thesis(3¶) · what-it-is(4¶) · status(2¶) · why-it-matters(1¶) | Thesis · What it is · Status, honestly · **Why it matters anyway** |
+| **Cervello** | **what-it-is(3¶)** · role(2¶) · status(3¶) · why-it-matters(3¶) | What it is · My role · Status, honestly · **Why this one still matters** |
+
+Every paragraph paired in Arabic. **Neobiz has no `role` slot. Cervello has no
+`thesis` slot.** Neither was corrected.
+
+Two headings that only this model could carry: UAE's `What's in it` and Egypt's
+`The map` are the same slot in different words, and Neobiz's Arabic thesis is
+`الفكرة الأساسية` where the others use `الأطروحة` — that single unmapped word is
+why Neobiz's thesis was the only field missing Arabic across all four case files.
+
+### The hard part: heading → slot
+
+An alias table, seeded from what the covers say, consulted after normalisation.
+**It never discards and it never guesses** — an unrecognised heading fails the
+cover with a message naming it and listing the slots.
+
+Rejected, and worth recording: storing the slot ORDER per cover and zipping it
+against the sections found. That is index-pairing across two independently
+varying lists — the bug class removed twice this month. One inserted section and
+every later slot shifts silently.
+
+### The guards — all six, each shown refusing
+
+Constructed the failure for each. Full output was reviewed; messages abbreviated
+here.
+
+| Guard | Constructed failure | Result |
+|---|---|---|
+| 1 · unrecognised heading | `## What I would do differently` | **fails**, names the heading, the normalised form and all 8 slots |
+| 2 · duplicate slot | `Thesis` + `الأطروحة` on one cover | **fails**, names both headings; the caller then writes **nothing** for that cover |
+| 3 · empty slot | a heading with no paragraphs | **reported** — an absent slot is silent, an empty one is a mistake |
+| 4 · zero prose slots | a cover of only `Outcomes` + `Three ways in` | **fails** |
+| 5 · structural intact | `Outcomes`, `Three ways in` | resolve structurally, neither becomes prose |
+| 6 · shape printed | every run, dry or real | see below |
+
+```
+Case File Cover — Egypt: heading "What I would do differently" matches no cover slot.
+The section was NOT written — nothing is discarded silently.
+      normalised to: "what i would do differently"
+      known slots: thesis · what-it-is · role · map · status · why-it-matters · outcomes · entry-handles
+      fix: add a row to cover_slot_aliases mapping this heading to a slot
+           (no code change, no deploy), or correct the heading in Notion.
+```
+
+And the negative control, which matters as much — **the trap it must not fall
+into**: `Thesis` + `What it is` on one cover resolve to **two different slots** and
+both survive. That is Neobiz, and it works.
+
+> **Guard 4 caught a false positive of its own during the build.** Its first form
+> failed all four mini case files, which are empty placeholders — a guard crying
+> wolf on every run is a guard that gets ignored. It now distinguishes "sections
+> were offered and none became prose" (malformed) from "no sections at all"
+> (an unwritten draft, silent and correct).
+
+Guard 6, printed every run:
+
+```
+cover cervello:          slots [what-it-is(3¶+ar) · role(2¶+ar) · status(3¶+ar) · why-it-matters(3¶+ar)] claimed [entry-handles]
+cover egypt-acquisition: slots [thesis(5¶+ar) · role(3¶+ar) · map(6¶+ar)]                                claimed [outcomes · entry-handles]
+```
+
+A section disappearing now shows as a line that CHANGED. Absence being invisible
+is what hid Cervello's opening for the life of the project.
+
+### Verified on `localhost:3000` — all four covers, all four `/all`, both locales
+
+All 16 routes **200**.
+
+- **Egypt renders five separate `<p>` elements**, including the third that was
+  missing from the database. Counted in the served HTML, not eyeballed.
+- **Cervello's opening renders.** "What it is", three paragraphs, first time.
+- **Neobiz shows no role section; Cervello shows no thesis section.** No empty
+  headings, no invented defaults.
+- **Sections appear in database order** on every cover.
+- `text-lead` **no longer appears on any cover**. Headings `--text-h3`,
+  paragraphs `--text-body`.
+- Dark and light, `/en` and `/ar`. RTL correct — the role card's accent spine
+  sits on the inline-start edge and the Arabic paragraphs break as five.
+
+**The role card is now the loudest element on the cover**, as approved. Its first
+paragraph takes `--text-statement`; any paragraphs after it drop to body size,
+because Egypt's role section runs to three and setting all three at statement size
+would shout the detail as loudly as the claim.
+
+`npx tsc --noEmit` clean · `eslint` clean · `check:seed-drift` no drift ·
+throwaway scripts deleted.
+
+### Step 2 — NOT done, deliberately
+
+The legacy `case_file` translations are **still present and still written**:
+`thesis` 5 rows, `role` 6, `reflection` 4. Nothing was deleted. The cleanup
+migration is a separate step for separate approval, as instructed — the site is
+now rendering from the new model, which is the evidence that was wanted first.
+
+`llms.txt` and the four metadata sites already read `summary` (the `thesis`
+slot's first paragraph, falling back to `what-it-is`), so **Cervello has a
+summary for the first time** — it had none, because it has no thesis field. The
+list query resolves `summary` too, so the cleanup will not silently strip every
+description from `llms.txt`.
+
+### Still open
+
+The `--text-lead` question on other surfaces is untouched; only the two cover
+renders changed. `docs/decisions.md` has no entry for the slot model yet — it
+warrants one, and I have not written it without being asked.
+
+---
+
+## 2026-08-18 (later) — SCHEMA FOR APPROVAL: named cover slots. Migration NOT written
+
+Not committed. **No code, no migration.** Waiting on the schema decision, as asked.
+
+### 🔴 Correction: a migration IS needed, and my earlier "no migration" was wrong
+
+I told you `field` and `page` are unconstrained text. Both true. But
+`translations.entity_type` is **a Postgres enum**, not text — I had not checked it,
+and the claim did not cover it:
+
+```
+entity_type = case_file | chapter | feature | outcome | target | article | series
+            | studio_work | experiment | media | nav_item | setting | ui_string
+            | decision | entry_handle | case_file_sibling | page_section
+```
+
+Seventeen values, none usable for cover sections. So this needs a real migration,
+not "little or none". Correcting it before you approve on the strength of it.
+
+### The schema, for approval
+
+**Two new tables and two new enum values.** Nothing existing is altered or dropped.
+
+```sql
+-- 1. Two enum values. Must be their OWN migration/statement: Postgres refuses to
+--    use a new enum label in the same transaction that adds it.
+alter type entity_type add value 'cover_section';
+alter type entity_type add value 'cover_paragraph';
+
+-- 2. Which slots this cover has, and in what order.
+create table cover_sections (
+  id           uuid primary key default gen_random_uuid(),
+  case_file_id uuid not null references case_files(id) on delete cascade,
+  slot         text not null,
+  sort_order   integer not null,
+  unique (case_file_id, slot)          -- a slot appears at most once per cover
+);
+create index cover_sections_case_file_idx on cover_sections (case_file_id, sort_order);
+
+-- 3. Each paragraph, its own row, its own order.
+create table cover_paragraphs (
+  id               uuid primary key default gen_random_uuid(),
+  cover_section_id uuid not null references cover_sections(id) on delete cascade,
+  sort_order       integer not null,
+  unique (cover_section_id, sort_order)
+);
+```
+
+Text lives in `translations`, as everything else does:
+
+| Row | entity_type | field |
+|---|---|---|
+| the heading you wrote | `cover_section` | `heading` |
+| one paragraph | `cover_paragraph` | `body` |
+
+**`slot` is deliberately `text`, not an enum.** The enum on `entity_type` is what
+made this a migration; repeating that mistake on the set most likely to grow would
+mean a migration every time a slot is added. A CHECK constraint is the alternative
+and has the same cost. The valid set is enforced in the sync, where it can fail
+with a message instead of a Postgres error.
+
+**Why `unique (case_file_id, slot)`:** it is the trap, enforced by the database.
+Two sections resolving to `thesis` on one cover cannot both be written — the insert
+fails rather than the second silently overwriting the first.
+
+**Why paragraphs are rows and not `\n\n`:** the collapse stops being *possible*
+rather than being *fixed*. There is no separator to lose, no `whitespace-pre-line`
+to forget, and the admin panel writes one row per paragraph.
+
+**RLS:** both tables get RLS enabled with **no policy**, matching every other
+content table — reads happen through the service role in `lib/content/*`.
+
+### The hard question: mapping a free heading to a slot
+
+**First, the answer I rejected, because it is the tempting one.** "Which slots and
+what order are data" invites: store the slot order per cover, then zip it against
+the sections found in the page. **No.** That is index-pairing across two lists that
+vary independently — the exact bug class this project spent two sessions removing
+(the UAE handles, the Systems evidence cards). Insert one section in Notion and
+every later slot silently shifts by one. It must not come back wearing a new name.
+
+**The recommendation: the vocabulary moves out of code and into data, and it never
+guesses.**
+
+```sql
+create table cover_slot_aliases (
+  heading_norm text primary key,   -- lowercased, punctuation-normalised
+  slot         text not null
+);
+```
+
+Seeded with exactly what the four covers say today, both languages:
+
+| heading | slot |
+|---|---|
+| thesis · الأطروحة | `thesis` |
+| what it is · ما هو | `what-it-is` |
+| my role · role · دوري | `role` |
+| the map · what's in it · الخريطة | `map` |
+| status, honestly · الحالة، بصراحة | `status` |
+| why it matters anyway · why this one still matters · ولماذا يهم رغم ذلك · ولماذا يهم رغم أنه لم يُبنَ | `why-it-matters` |
+| outcomes · results · النتائج | `outcomes` *(structural)* |
+| three ways in · ثلاثة مداخل | `entry-handles` *(structural)* |
+
+Note `why-it-matters` already carries **two different English headings** across two
+covers — which is the model working: same slot, different words, both stored as
+written.
+
+**Why this is not just the old vocabulary relocated:**
+
+1. **It never discards.** An unrecognised heading does not vanish — the original
+   sin that lost Cervello's opening for months. It **fails that cover loudly**,
+   naming the heading and listing the eight slots.
+2. **It never guesses.** No nearest-match, no aliasing `what it is` to `thesis`.
+   The trap is impossible because the two are separate rows pointing at separate
+   slots.
+3. **It changes without a deploy.** Adding a heading is an INSERT, not a code edit.
+4. **It has a defined end.** When the admin panel lands, `slot` is a field in the
+   UI and the heading is typed beside it. The alias table is scaffolding for the
+   Notion era, and it can be dropped when Notion is no longer the author.
+
+**Structural slots do not consult it.** `outcomes` and `entry-handles` are still
+identified by their existing matchers — a table with status markers, a list of
+handle lines — with this week's guards unchanged. The alias row exists so the
+section is *accounted for* rather than reported as unrecognised.
+
+### A whole class of failure disappears
+
+Today Arabic cover sections pair with English **by position**, guarded by count
+equality — the mechanism that has misfired repeatedly.
+
+Under slots, **the Arabic page is read the same way the English one is**: each
+Arabic heading resolves through the same alias table to the same slot. `ما هو` →
+`what-it-is`, on its own merits.
+
+**So the Arabic no longer pairs by position at all.** A cover whose Arabic has
+three sections to English's four is no longer a refusal — the three that exist
+attach to their own slots and the fourth simply has no Arabic. Decision 013's
+fallback applies per slot instead of all-or-nothing. Paragraph pairing within a
+slot stays positional and keeps its guard.
+
+### The redundant fields, and the five consumers
+
+`case_file` translations `thesis`, `role`, `reflection` stop being written.
+
+The five consumers do not each learn the slot model. `getCaseFile` exposes one
+derived value:
+
+```ts
+detail.summary   // thesis slot's first paragraph; if no thesis slot, what-it-is's
+```
+
+Explicit, not positional, and it is how **Cervello finally gets a summary** —
+`llms.txt` and its three metadata sites have had none. `fields.role` becomes the
+`role` slot; `fields.reflection` becomes `status` and `why-it-matters`, which is
+the split the current single field was flattening.
+
+> ⚠️ **Sequencing, and it matters.** The old rows cannot be deleted until the new
+> tables are populated, and populating them needs a successful
+> `npm run sync:notion` — **which is still blocked by the Egypt entry-handle
+> refusal.** So: migration → sync (blocked) → component switch → cleanup migration.
+> **That blockage is now on the critical path for this work**, alongside Egypt's
+> missing fifth paragraph. It is the next thing to decide.
+
+### How a malformed cover still fails loudly
+
+1. **Unrecognised heading → the cover fails**, naming the heading and the slots.
+   Never discarded, never guessed.
+2. **Duplicate slot → the database refuses it**, via `unique (case_file_id, slot)`.
+3. **A slot with no paragraphs** — a heading you wrote and left empty — is
+   reported. An absent slot is silent and correct; an *empty* one is a mistake.
+4. **Zero prose slots** on a cover fails.
+5. **Structural slots keep every guard added this week** — drop counting,
+   candidate-vs-parsed, the sibling exclusion.
+6. **The dry run prints each cover's resolved shape**, so a section disappearing
+   shows as a changed line rather than as nothing:
+
+```
+cover cervello: slots [what-it-is(3¶) · role(1¶) · status(2¶) · why-it-matters(1¶)]
+                claimed [entry-handles→3]
+```
+
+### `--text-lead`
+
+Fixed with the render rewrite, as you framed it — the cover and
+`work/[caseFile]/all/page.tsx:131`. Headings take `--text-h3`; paragraphs take
+`--text-body` (16px/1.7) instead of `--text-lead` (clamp 20–28px/1.3). Each
+paragraph is its own `<p>`, so `whitespace-pre-line` is not needed anywhere.
+
+**This makes the role card the loudest element on the cover**, which the component's
+own comment argues it should be. Still your call, and still a design change rather
+than a bug fix.
+
+### Waiting on
+
+The schema above. On approval I build: migration → alias seed → sync rewrite →
+query layer → component → guards → verification on `:3000` in both locales.
+
+---
+
+## 2026-08-18 — PROPOSAL ONLY: invert the cover contract. Nothing built
+
+Not committed. **No code written.** This is the design for approval.
+
+### The reframe: the vocabulary should SHRINK, not grow
+
+The instinct on reading the trap is to make `COVER_FIELDS` cleverer — aliases,
+per-case-file overrides, "what it is means thesis except on Neobiz". Every one of
+those keeps the contract pointing the wrong way and adds a rule that has to be
+maintained each time a cover is written differently.
+
+The inversion is the opposite move. **Only STRUCTURAL sections need a vocabulary,
+because a parser genuinely has to recognise them** — a table has to be read as
+outcomes, a list of `←` lines has to be read as entry handles. Those already have
+their own matchers and already report when they fail.
+
+**Everything else is prose, and prose needs no vocabulary at all.** It is carried
+through in document order, under the heading as written.
+
+So `COVER_FIELDS` does not gain entries. **It stops being a gate.**
+
+### The precedent already exists in this codebase
+
+A cover is *ordered prose with headings*, which is exactly what About, Philosophy,
+Systems and Contact are — and that model already works:
+
+```
+page_sections (page, slug, sort_order, kind)  +  translations(heading, body)
+```
+
+`page` is **plain text with no constraint** and already carries case-file-adjacent
+routes: `work/egypt-acquisition/accessibility`,
+`work/egypt-acquisition/web-vs-mobile-onboarding`. A cover is
+`page = 'work/egypt-acquisition'` — the same shape, one segment shorter.
+
+`components/layout/ProseSections.tsx` already renders it, and its own doc comment
+states the principle this task is asking for:
+
+> *"The rule is positional, not keyed to any heading text, so it survives a
+> rewrite in Notion."*
+
+That is not a coincidence to exploit; it is the pattern this project already chose
+for prose and then failed to apply to covers.
+
+### The model: sections are CLAIMED, and whatever is unclaimed is prose
+
+One pass over the cover's blocks. A structural parser may **claim** a section; a
+section nobody claims becomes prose.
+
+| Claimed by | Recognised as | Already exists? |
+|---|---|---|
+| outcomes / targets | `Outcomes` · `Results` · `النتائج` + a table | yes — `selectItemLines` |
+| entry handles | `Three ways in` · `ثلاثة مداخل` prefix | yes — hardened this week |
+| sibling links | any line opening `Sibling case file:` · `ملف شقيق:` | yes — `looksLikeSiblingLine`, line-level, position-independent |
+| **nothing** | **everything else** | **this is the change** |
+
+Applied to the four covers as they are written today:
+
+| | Prose sections, in order | Claimed |
+|---|---|---|
+| **Egypt** | Thesis · My role · The map | Outcomes · Three ways in · sibling line inside The map |
+| **UAE** | Thesis · My role · What's in it | Results · Three ways in · trailing sibling line |
+| **Neobiz** | Thesis · What it is · Status, honestly · Why it matters anyway | Three ways in · sibling line inside What it is |
+| **Cervello** | What it is · My role · Status, honestly · Why this one still matters | Three ways in |
+
+Nothing is discarded. No heading is interpreted. The differences between the four
+stop being a problem the parser has to be taught and become **data the parser
+carries**.
+
+### 🔴 How Cervello's opening and Neobiz's second section both survive
+
+They are never compared to a vocabulary, so the collision cannot arise.
+
+- **Cervello** — `What it is` is prose section **1**. Stored as
+  `slug='what-it-is'`, `sort_order=0`, heading `"What it is"`.
+- **Neobiz** — `Thesis` is prose section **1** (`sort_order=0`); `What it is` is
+  prose section **2** (`sort_order=1`), heading `"What it is"`.
+
+Two rows, different `sort_order`, different `page`, **both stored under the same
+slug in different pages** — which `UNIQUE (page, slug)` permits by design.
+`fields[field] = value` and its last-one-wins overwrite is gone entirely, because
+nothing is keyed by heading name any more.
+
+**And the trap is guarded against explicitly** rather than merely avoided: if two
+sections ever resolve to the same semantic role (below), the sync **fails that
+entity loudly and names both headings**. It never silently keeps the last.
+
+### Does a heading you invent tomorrow work with no code change?
+
+**Yes, for prose — which is the whole point.** Write `## What I would do
+differently` on any cover tomorrow and it syncs and renders, in place, under that
+heading, with no code change and no migration.
+
+**No, for structure — and that is correct.** A *new kind of table*, or a new list
+that must become linked entry handles, needs a parser to know what it is. That is
+a real requirement, not a vocabulary tax: something has to decide that these rows
+are outcomes with status markers and those lines are handles pointing at chapters.
+The line between the two is now drawn where it belongs — around the handful of
+things that must be machine-read, instead of around all prose.
+
+### Schema — confirmed, no migration
+
+- `page_sections.page` — `text`, **no CHECK, no enum**. Verified against
+  `pg_constraint`: the only constraints are the primary key,
+  `UNIQUE (page, slug)`, and `kind IN ('prose','table')`.
+- `translations.field` — `text`, no constraint. Already carries `heading` and
+  `body` for page sections.
+
+**Nothing to migrate.** The rows are new values in existing columns.
+
+One consequence worth stating: `case_file` translations for `thesis`, `role` and
+`reflection` become redundant. I would **stop writing them** rather than keep two
+sources of the same sentence. The five consumers that read `fields.thesis`
+(`llms.txt`, and metadata on the cover, `/all` and `/results`, plus the cover and
+`/all` render) instead read a single derived value — see below.
+
+### `thesis` has one real job left, and it is positional
+
+Five places need *"the case file's summary"* for metadata and `llms.txt`. Under
+this model that is **the body of prose section 1**, whatever it is headed:
+
+| Cover | Section 1 heading | Summary source |
+|---|---|---|
+| Egypt · UAE · Neobiz | Thesis | its body |
+| **Cervello** | **What it is** | **its body — which is how Cervello finally gets one** |
+
+Derived once in `lib/content/case-files.ts` as `detail.summary`; consumers change
+from `fields.thesis` to `summary`. No consumer keeps a vocabulary.
+
+### Keeping the role card without reintroducing a gate
+
+The design gives **My role** an accent-spine card and **Status, honestly** a
+distinct placement. Losing that would be a real regression, so a *thin* semantic
+layer stays — but as a **renderer hint, never a gate**:
+
+```
+role       ← "My role" · "Role" · "دوري"
+reflection ← "Status, honestly" · "Why it matters anyway" · "الحالة، بصراحة" …
+```
+
+The difference from today is total: **a section that matches no hint is still
+stored and still rendered**, as plain prose in its place. The hint only decides
+*which treatment* a section gets, never *whether it survives*. Neobiz has no role
+section and therefore no role card — correct, since its role sentence lives inside
+its Thesis.
+
+### How a malformed page still fails loudly
+
+The guards are not relaxed; the permissive path gets its own.
+
+1. **Drop counting stays.** `parsePageSections` already counts and reports blocks
+   that produced nothing (added this week), and the Arabic pairing still refuses
+   on any drop.
+2. **Collision is a hard failure.** Two sections resolving to the same hint —
+   the exact trap — fails that cover and names both headings. Never last-one-wins.
+3. **A claimed section that yields nothing is reported.** `Outcomes` with no
+   parseable table already notices; unchanged.
+4. **Zero prose sections on a cover is a failure.** A cover with no prose is
+   malformed, not empty.
+5. **NEW — the dry run prints the resolved shape of every cover:**
+
+```
+cover egypt-acquisition: prose [thesis · my-role · the-map]
+                         claimed [outcomes→6 targets · three-ways-in→3 handles · 1 sibling]
+```
+
+This is the direct antidote to the original failure. Cervello's opening passage
+vanished for months because *absence was invisible* — decision 013 makes a missing
+translation normal, so nothing looked wrong. Printing what each cover resolved to
+means a section disappearing shows up as a line that changed, on every run,
+without anyone having to suspect it first.
+
+### The two structural defects — both resolved by the same move
+
+**Collapsed paragraphs.** Fixed by construction: `ProseSections` already renders
+with `whitespace-pre-line`, which is why About, Philosophy, Systems and Contact
+have never had this bug. The cover stops being the exception.
+`work/[caseFile]/all/page.tsx:131` shares the defect and is fixed in the same pass.
+
+**`--text-lead` on 1,085 characters.** The opening section renders as heading +
+body, with **paragraphs at `--text-body`** (16px/1.7) rather than `--text-lead`
+(clamp 20–28px/1.3). `--text-lead` stays what it is elsewhere: a one-sentence lede.
+
+> ⚠️ **One thing this changes that is a design decision, not a bug fix.** Today the
+> cover's opening passage is visually the loudest thing under the title. At
+> `--text-body` it becomes ordinary prose, and the **role card becomes the loudest
+> element on the page** — which the cover's own comment already argues it should
+> be. I think that is right, and it is your call, not mine.
+
+### Open question I am not answering alone
+
+**Should section 1's heading render on the cover?** The page already shows an H1
+immediately above it, so `Thesis` or `What it is` would be the second heading in
+six lines. Three defensible answers: always render it; never render section 1's
+heading and always render the rest; or store it always and let the component
+decide per variant. **Storing it is not in question** — that happens either way,
+and it is what makes the choice reversible without a re-sync.
+
+### Not built
+
+No parser change, no component change, no migration, no sync. The real sync remains
+blocked by the Egypt entry-handle refusal — and that blockage is now also holding
+back Egypt's fifth thesis paragraph, diagnosed in the previous entry.
+
+---
+
+## 2026-08-17 (evening) — DIAGNOSIS ONLY: the cover thesis. Nothing built, nothing changed
+
+Not committed. **No code written.** Two throwaway read-only scripts were used to
+read Notion and replay the parser; both deleted. The real sync was **not** run.
+
+### 1 · What each cover actually holds in Notion
+
+Read from Notion directly, block by block, not inferred from the database.
+
+| Cover | Heading | Paragraphs | Type |
+|---|---|---|---|
+| Egypt Acquisition (Web) | `## Thesis` | **5** | **Type 1** |
+| UAE Acquisition | `## Thesis` | 3 | **Type 1** |
+| Neobiz Mobile (Egypt) | `## Thesis` | 3 | **Type 1** |
+| Cervello Cloud (IoT) | **`## What it is`** | 3 | **Type 1** |
+
+**All four are Type 1.** None is Type 2 or Type 3 today — which does not make those
+shapes less valid, only unexercised.
+
+> 🔴 **The brief's fourth state is wrong, and this is the most important finding
+> here. Cervello HAS a thesis passage** — a heading and three paragraphs, opening
+> *"Cervello is an IoT platform for integrating, monitoring, automating and
+> controlling devices…"*. It is absent from the database because its heading is
+> **`What it is`**, and `COVER_FIELDS` (sync-notion.ts:479) maps only `thesis`,
+> `role`, `my role`, `reflection`, `status, honestly` and `الحالة، بصراحة`.
+> `what it is` is not in the map, so `fieldsFromBody` hits `if (!field) continue`
+> and **discards the passage silently.**
+>
+> This is the contract pointing the wrong way, exactly as the principle describes:
+> the writing used a different word and the parser refused to learn it. The same
+> applies to the Arabic cover, headed `ما هو`.
+
+### 2 · Does the schema separate heading from body? No — and it needs no migration
+
+`case_files` has **no thesis column at all**. Cover prose lives in `translations`,
+which is an EAV-shaped table:
+
+```
+translations (entity_type, entity_id, locale, field, value)
+UNIQUE (entity_type, entity_id, locale, field)
+```
+
+`field` is **plain `text` with no CHECK constraint and no enum** — verified against
+`pg_constraint`; the only constraints are the primary key and that uniqueness
+tuple. Today `case_file` uses four field values: `title`, `thesis`, `role`,
+`reflection`.
+
+**So carrying a heading separately requires no schema change and no migration.** It
+is one additional field value — `thesis_heading` — written as another row. The
+query layer already returns every field for an entity as a `fields` record, so it
+arrives at the component with nothing new to plumb.
+
+That is the whole answer to the question the brief asked to be told before a
+migration was written: **there is no migration.**
+
+### 3 · Where the structure is lost — two places, and neither is where it looked
+
+**A · The heading — lost in the SYNC, `scripts/sync-notion.ts:545–550`:**
+
+```ts
+for (const [heading, lines] of sections) {
+  const field = map[heading];          // ← heading used ONLY as a lookup key
+  if (!field) continue;                // ← and an unmapped heading drops the passage
+  const value = lines.join("\n\n").trim();
+  if (value) fields[field] = value;    // ← only the paragraphs are stored
+}
+```
+
+`readBody` preserves the structure perfectly — it returns `Map<heading, lines[]>`,
+so the heading is the key and the paragraphs are the value. `fieldsFromBody` then
+consumes the key to decide *which field this is* and throws it away. There is
+nowhere to put it and nothing asks for it.
+
+**B · The paragraph breaks — NOT lost in the sync. Lost in the COMPONENT,
+`app/[locale]/(site)/work/[caseFile]/page.tsx:152–156`:**
+
+```tsx
+{detail.fields.thesis ? (
+  <p className="mt-6 max-w-measure text-lead text-fg-body">
+    {detail.fields.thesis}
+  </p>
+) : null}
+```
+
+The paragraphs survive the whole pipeline as `\n\n` inside one string — confirmed
+in the database. They die at render: **one `<p>` element, no `whitespace-pre-line`,
+so HTML collapses every `\n\n` to a single space.** Verified in the served HTML —
+five paragraphs arrive as one unbroken run of text.
+
+**This surface is the exception, not the rule.** Every other prose surface on the
+site already does it correctly: `about`, `about/philosophy`, `systems`, `contact`
+and `ProseSections` all carry `whitespace-pre-line`. Only two files omit it — the
+cover above, and `work/[caseFile]/all/page.tsx:131`, which has the same bug.
+
+**And the token.** `--text-lead` is `clamp(20px, 3vw, 28px)` at line-height 1.3 — a
+display-scale size, correct for a one-sentence lede, which is how every other page
+uses it. On the Egypt cover it is applied to **1,085 characters across five
+paragraphs**. That is the domination the brief describes, and it is a second,
+independent defect from the collapsing.
+
+### 4 · Egypt's "missing" fifth paragraph — a stale row, not a bug
+
+The database holds **four** paragraphs of Egypt's thesis; Notion holds **five**.
+The missing one is the third: *"Egypt has none of that. Banks have no verification
+API for the national ID…"*.
+
+I replayed `readBody` + `fieldsFromBody` against the live Notion page without
+writing anything. **The parser reads all five and would store all five** — 1,085
+characters against the 1,087 currently stored, a different string entirely.
+
+So nothing is dropping it. **The row is simply stale**, written before that
+paragraph was edited in, and it will correct itself on the next successful sync —
+which is the sync currently blocked by the Egypt entry-handle refusal. That
+blockage is now holding back real content, which raises its priority.
+
+### What a fix would have to do — not built, for approval
+
+- **Sync:** store the heading it found as `thesis_heading` alongside `thesis`, and
+  stop requiring the heading word to be in a vocabulary. A cover's passage is the
+  block between the page title and `My role`, whatever it is called. That is the
+  direction change: the map stops being a gate and becomes, at most, a hint.
+- **No migration.** One new field value.
+- **Component:** render the heading if present, in a heading token
+  (`--text-h3`, or `--text-statement` at 500 weight if it should sit below the
+  role card in the hierarchy), and the paragraphs in `--text-body` with
+  `whitespace-pre-line`. Never invent a heading; never synthesise a paragraph;
+  render nothing extra when either is absent.
+- **Same fix for `work/[caseFile]/all/page.tsx:131`,** which shares the defect.
+
+Whether the heading should render at all on the cover — given the page already has
+an H1 and the passage sits directly beneath it — is a design question I have not
+answered. Types 2 and 3 exist precisely so that it can be answered per cover.
+
+### Stopped here
+
+No parser change, no component change, no migration, no sync. The real sync
+remains blocked by the Egypt entry-handle refusal, untouched.
+
+---
+
+## 2026-08-17 (later) — Cervello restored. The withdrawal took down the one clean part
+
+Not committed. **One database update, no code:**
+`update case_files set status='published' where slug='cervello'` — the exact
+inverse of the 2026-08-16 (late) change.
+
+### Why the withdrawal was wrong
+
+The audit's 18 passages are **all in chapters** — 6 in `on-premises-to-cloud`,
+5 in `permission-architecture`, 6 in `method`. The **cover was audited separately
+and came back clean.**
+
+Unpublishing the case file works at the parent level, so it took down the cover —
+the one part with no problem in it — along with the parts that have. It also took
+down the three entry handles, the LivingMap and the linear read, none of which
+were implicated.
+
+And the exposure it was protecting against does not exist yet: **nothing is
+deployed.** The domain still points at the old Webflow site, so "published" here
+means *visible on localhost*. The 18 passages are a **launch-gate item**, not a
+live exposure — and the launch gate already fails on other counts.
+
+The reversibility claimed in the previous entry held exactly: one line out, one
+line back, nothing else to restore.
+
+### Nothing needed restoring — verified, not assumed
+
+Every child record was checked before and after. All identical:
+
+| | Before restore | After |
+|---|---|---|
+| chapters | 3, all `status='published'` | **3, unchanged** |
+| entry handles | 3 | **3, unchanged** |
+| decisions | 5 | **5, unchanged** |
+| case_file translations | 6 | **6** |
+| chapter translations | 20 | **20** |
+| entry-handle translations | 12 | **12** |
+| outcomes / targets | 0 / 0 | 0 / 0 — Cervello declares none, by design |
+
+The chapters kept their own `published` status throughout, which is why the parent
+flag alone was sufficient in both directions.
+
+### Routes — both locales
+
+| Route | Result |
+|---|---|
+| `/en/work` · `/ar/work` | **200 — four cards, Cervello among them** |
+| `/en/work/cervello` · `/ar/…` | **200** |
+| `/…/cervello/on-premises-to-cloud` | **200** both locales |
+| `/…/cervello/permission-architecture` | **200** both locales |
+| `/…/cervello/method` | **200** both locales |
+| `/…/cervello/all` | **200** both locales |
+| `/sitemap.xml` | Cervello URLs back — cover, `all`, and all three chapters |
+| `/llms.txt` | Cervello present again |
+
+**Two 404s appeared in the first pass and neither was a fault:**
+
+- `/work/cervello/cloud` — **my error.** I guessed the slug; the real one is
+  `on-premises-to-cloud`. 200 once asked for correctly.
+- `/work/cervello/all` — returned 404 once, then 200. A **stale route cache** from
+  while Cervello was draft. Re-tested **10 consecutive times per locale: 20/20
+  200s.** Recorded because a single 404 here would otherwise look like a
+  restoration that half-worked, and this project has been misled by that cache
+  twice already.
+
+`/work/cervello/results` **correctly 404s** — Cervello declares no targets, which
+is the honest state the results route is built to express.
+
+### The cover renders in full
+
+Title, role, three entry handles with their chapter pointers, reflection, the
+LivingMap of three chapters, and the linear read. Arabic renders RTL with `الدور`
+and `ثلاث طرق للدخول`.
+
+> **One correction to the brief's checklist:** it asked to confirm the **thesis**
+> renders. Cervello has no thesis and never had one — its `translations` carry
+> `title`, `role` and `reflection` only. That is not something the withdrawal
+> removed; it is how the case file has always been, and the cover leads with
+> `ROLE` instead. Flagged so the absence is not later read as restoration damage.
+
+All three entry handles intact with Arabic on both fields and **all three linked
+to their chapters** — `أصعب مشكلة معمارية`, `تعقيد مُدار`, `المنهج`.
+
+### The Systems fix stands, and now shows what it was built to show
+
+Unchanged, as instructed — and the restore is what demonstrates it was right
+independently of Cervello. Evidence hrefs in document order, both locales:
+
+| Section | Cards |
+|---|---|
+| What I've actually built · ما بنيته فعلاً | **`cervello/method`** + **`cervello/permission-architecture`** |
+| Working inside a system I didn't own · العمل داخل نظام لا أملكه | **`egypt-acquisition/accessibility`** |
+| The patterns that repeat · الأنماط التي تتكرر | none — names no chapter |
+| Coming · قادم | closing section |
+
+**Under the old index zip this state was wrong**, and had been for as long as the
+page existed: `working-inside-a-system-i-didnt-own` would have received
+`cervello/permission-architecture` while its own final line reads
+`→ Egypt — Accessibility & the component library`. Two of three sections carried
+the wrong card. The slug binding puts both Cervello chapters under the Cervello
+argument and Egypt's under the Mashreq one, each card sitting directly beneath the
+prose pointer that names it.
+
+Zero `[systems] EVIDENCE names section …` warnings in the dev log — every bound
+slug exists on the page.
+
+**The two dangling prose pointers reported on 2026-08-16 are no longer dangling.**
+`→ Cervello — Method, System & Documentation` and `→ Cervello — Permission
+Architecture` now name chapters that exist again. The **"thirteen sections"** count
+claim in that same block is untouched and still unverified — it was never
+dependent on Cervello's status, and it is still live in both locales.
+
+### Untouched, as instructed
+
+- The Systems evidence fix — no change.
+- **The entry-handle refusal on the Egypt cover still blocks `npm run sync:notion`.**
+  A real sync was **not** run. That decision is still open: the
+  `شامل عبر الفصول:` line is a cross-chapter pointer the handles parser reads as a
+  failed handle, and a real run would delete Egypt's three Arabic handles.
+- The four hardened pairing sites — no change.
+
+---
+
+## 2026-08-17 — Four pairing sites hardened. 🔴 THE REAL SYNC WAS NOT RUN — it would delete working Arabic
+
+Not committed. `lib/sync/sift.ts` (new), `lib/sync/classify.ts`,
+`lib/sync/static-pages.ts`, `lib/sync/write-handles.ts`, `scripts/sync-notion.ts`,
+`docs/sync-contract.md`.
+
+### 🔴 STOP HERE FIRST — one refusal on real content, and I did not proceed
+
+The dry run surfaced a refusal that was not there last session:
+
+```
+Case File Cover — Egypt Acquisition (Web): 4 Arabic handle line(s) but only 3 parsed.
+   unparsed 1: "شامل عبر الفصول: قابلية الوصول والاستخدام في منتج مصرفي ثنائي اللغة:
+                حجة الموافقة المستنيرة التي حسمت معمار اللغة، وإسهام RTL في نظام
+                التصميم المشترك للبنك."
+```
+
+**Egypt's three Arabic entry handles are in the database right now** — they synced
+successfully last session and render on `/ar/work/egypt-acquisition` as three list
+items. Under this refusal, `replaceEntryHandles` clears the set and rewrites it
+**English-only**, so a real sync would **delete three working Arabic handles**.
+
+**So the real sync was not run.** The instruction was to stop before changing
+content or loosening a guard, and deleting live translations is a bigger version
+of the same thing.
+
+**It is not caused by today's changes.** The entry-handle path is byte-identical
+to last session — `arCandidates`, `looksLikeSiblingLine` and the completeness
+check are all untouched (lines 1391–1507). The only way the candidate count moved
+from 3 to 4 is a **content change in Notion**. The guard is doing exactly its job
+on newly-added content.
+
+**What the line actually is:** it opens `شامل عبر الفصول:` — "spanning across the
+chapters" — and points at the accessibility page. It is a **cross-chapter pointer,
+not an entry handle**, structurally the same kind of thing as the `ملف شقيق:`
+sibling line that caused the identical false refusal on UAE last session.
+
+**Your decision, three options.** I am not guessing at this one:
+
+1. **Treat it as a recognised construct** and exclude it by prefix, exactly as
+   `ملف شقيق:` is — the cleanest fix if `شامل عبر الفصول:` is a deliberate
+   authoring convention you intend to keep using. Tell me the English spelling and
+   I will match both.
+2. **Move the line** out from under `ثلاثة مداخل` in Notion, so it is not offered
+   as a handle candidate at all.
+3. **Leave it refusing** — Egypt's Arabic handles then disappear on the next sync,
+   which I do not recommend.
+
+> ⚠️ **Do not run `npm run sync:notion` until this is decided.** A dry run is safe;
+> a real run is not.
+
+### The remedy, applied to all four
+
+One helper, `lib/sync/sift.ts`, not four copies. The four were similar enough — all
+of them walk candidates, keep some and drop others — and the piece that had to be
+shared is the piece nobody would have duplicated identically: the **three-way**
+classification.
+
+```ts
+{ keep }  — understood, use it
+{ drop }  — ANNOUNCED itself and could not be used   ← the dangerous case
+"skip"    — never a candidate; not counted, not reported
+```
+
+**That middle case is the whole design.** `decisionsFromBody` walks every heading
+in a chapter — `Objective`, `Context`, `Result` — and almost none are decisions.
+Counting those as drops would refuse every chapter on the site. A drop is a
+**near-miss**: a heading that opens `Decision ·` with no name after it. Something
+was meant to be there.
+
+| Site | Candidate | Counted as a drop |
+|---|---|---|
+| decisions | a heading opening `Decision`/`القرار` | announces a decision, yields no name |
+| outcomes / targets | every selected table row | label empty once the marker is stripped |
+| page sections | every block | no heading, no body and no table; or a table whose cells are all empty |
+| write-handles | — | see below |
+
+### `write-handles.ts` — what it can actually verify, and what it must not
+
+It receives two already-parsed arrays. It never saw the Notion page, the heading,
+or the lines that failed — so it **cannot** determine completeness, and no check
+placed there could. Completeness is the caller's guarantee.
+
+**Deliberately not added:** a second parse-completeness check. It would duplicate
+the upstream one, and a duplicated guard is worse than one guard — it reads as
+defence in depth while testing the same fact, and the next person to change the
+rule changes it in one place of two.
+
+**What it can verify for itself**, and now does: that the arrays it was handed are
+usable for a positional write — equal lengths, and **no empty element**. A blank
+invitation written at index *i* is indistinguishable downstream from a correct
+pairing. On failure the Arabic is dropped for the whole set; English still writes.
+
+### Proof — each guard refuses the failure it exists for
+
+Constructed and run against each. **Every case shares the property that matters:
+the kept counts MATCH, so the old length-equality guard would have passed.**
+
+| Site | Constructed failure | found → kept | Old guard | New guard |
+|---|---|---|---|---|
+| decisions | `القرار ·` with no name, among 3 headings | 3 → 2 | ✅ passes (2 = 2) | **refuses** |
+| outcomes/targets | row `[achieved]` with an empty label cell | 4 → 3 | ✅ passes (3 = 3) | **refuses** |
+| page sections | a block with no heading, body or table | 3 → 2 | ✅ passes (2 = 2) | **refuses** |
+| write-handles | equal lengths, one element blank | 2 = 2 | ✅ pairs | **refuses, English still written** |
+
+Messages printed, verbatim:
+
+```
+Chapter — Cervello / Cloud: Arabic decisions: 3 candidate(s) found, 2 usable.
+Arabic skipped — pairing by position from an incomplete list would attach the
+wrong text to the wrong row.
+      dropped 1: "القرار ·" — opens as a decision but has no name after the separator
+
+Results Table — Egypt: Arabic targets table: 4 candidate(s) found, 3 usable. …
+      dropped 1: "[achieved] | ملاحظة بلا عنوان" — label cell is empty once the status marker is removed
+
+About: Arabic page blocks: 3 candidate(s) found, 2 usable. …
+      dropped 1: "block 2" — no heading, no body and no table
+```
+
+And the negative control, which matters as much: `Objective`/`Result` headings on
+the English side produced **0 drops**. A guard that refuses everything is not a
+guard.
+
+### A fifth site, found while proving the fourth
+
+**The ENGLISH handle loop counts nothing.** `if (!parsedHandle) continue;` — a line
+that fails to parse is silently ignored, with no completeness check at all.
+
+This is the more serious asymmetry of the two, because English is the source of
+truth: a silent drop there is content missing from the **published page**, not a
+missing translation. It is almost certainly why the `شامل عبر الفصول:` line above
+has never been reported on the English cover — the English side has been quietly
+skipping its equivalent all along.
+
+**Not fixed** — it is outside the four named, and fixing it would very likely
+produce more refusals on real content, which is precisely the situation this entry
+is already stopped on. Recorded in `docs/sync-contract.md` as a known gap rather
+than left to be rediscovered.
+
+### Dry run against real content
+
+`failed 0` · `created 0` · `updated 21` · `notices 10`.
+
+**None of the four hardened sites refused any real content.** Decisions, outcomes,
+targets and page sections all pass their new completeness checks across every page
+and chapter on the site. The one refusal is the entry-handles guard from last
+session, on content added since — analysed above.
+
+Every other notice is unchanged from the previous run: four mini case files with no
+outcomes table, Cervello's absent targets, Egypt's unresolved pointer, both
+comparisons and the accessibility page still differing in section counts.
+
+### Verified on `localhost:3000`
+
+No real sync ran, so the site is unchanged — and confirmed so rather than assumed.
+`/en` and `/ar` for systems, about, work, the Egypt cover and contact all **200**.
+The Egypt Arabic handles list still renders **exactly 3 items**, which is the
+content the refusal is protecting.
+
+`npx tsc --noEmit` clean · `npm run test:sync` all pass · throwaway proof script
+deleted.
+
+---
+
+## 2026-08-16 (latest) — Systems evidence bound by section slug. The pairing was wrong BEFORE Cervello came down
+
+Not committed. One file: `app/[locale]/(site)/systems/page.tsx`. No schema change,
+no migration, no content edited.
+
+### The fix, and why this binding
+
+Evidence is now keyed by **`page_sections.slug`** instead of array position:
+
+```ts
+const EVIDENCE: Record<string, readonly {caseFile: string; chapter: string}[]> = {
+  "what-ive-actually-built":            [ cervello/method, cervello/permission-architecture ],
+  "working-inside-a-system-i-didnt-own":[ egypt-acquisition/accessibility ],
+  // "the-patterns-that-repeat-across-the-work" names none, deliberately.
+};
+```
+
+**Why the slug.** It is the only identifier the page and the database already
+agree on, it is stable, and it needs **no schema change** — the alternative was a
+column on `page_sections` and a migration for a three-row relationship that lives
+on one page. Its one weakness is that the slug derives from the heading, so
+renaming a heading in Notion breaks the binding — and it breaks **safely**, to no
+card, which is the required failure mode rather than a bug.
+
+Considered and rejected: a positional list with holes preserved instead of
+`filter()` — it still encodes the relationship as an accident of ordering, and
+the next person to add a section reintroduces the bug. Also rejected: parsing the
+`→ Cervello — …` pointers out of the prose. That copy is Moataz's and lives in
+Notion; deriving behaviour from it would make an editorial edit silently change
+what the page links to.
+
+**The index is now impossible to reintroduce by accident** — `argument.map()` no
+longer receives `i` at all, and the render looks up by `section.slug`.
+
+Sections may name more than one chapter, because one of them genuinely does.
+Flattening two chapters into a positional list is what let them bleed into the
+next section in the first place.
+
+**Development-only warning** when a binding names a section slug that is not on
+the page, so a renamed heading is noticed rather than silently dropping a card.
+Never in production: it is an authoring mistake, not a runtime error.
+
+### 🔴 The pairing was already wrong before Cervello was unpublished
+
+This was not caused by the withdrawal. The withdrawal only changed *which* wrong
+card appeared, and my previous entry did not go far enough.
+
+With everything published, the zip produced:
+
+| Argument section | Card it got | Card its own prose points at |
+|---|---|---|
+| What I've actually built | cervello/method | cervello/method ✅ |
+| Working inside a system I didn't own | **cervello/permission-architecture** | **egypt-acquisition/accessibility** ❌ |
+| The patterns that repeat across the work | **egypt-acquisition/accessibility** | **none** ❌ |
+
+**Two of the three sections carried the wrong evidence for as long as this page has
+existed.** The section about working inside *Mashreq's* component library — whose
+own last line reads `→ Egypt — Accessibility & the component library` — was
+offering *Cervello's* permission architecture as its proof. Nothing looked broken,
+because a plausible card sat under every argument.
+
+The cause is that `what-ive-actually-built` names **two** chapters. Flattened into
+a positional list, its second chapter occupied index 1, which belonged to the next
+section, and everything after shifted by one.
+
+### The same shape elsewhere — five sites, four still carrying it
+
+Searched for index-zipped pairing across two independently-varying lists, by
+`[i]`/`[index]` lookups and by intent (`pair by position`, `zip`, `paired`).
+
+`components/layout/ThemeToggle.tsx:121` indexes its **own** refs array — same list,
+not cross-list. Not an instance.
+
+Every remaining instance is in the sync, and every one is guarded by an
+equal-length check. **This week proved equal length is necessary and not
+sufficient**: the UAE handles matched English's count *after* a line was dropped,
+and would have paired handle 3 under handle 2. The handles path now also compares
+*candidates parsed* against *candidates found*. **The other four have no such
+check**, and each has a confirmed silent-drop path:
+
+| Site | Guard | Can silently drop an item? |
+|---|---|---|
+| `scripts/sync-notion.ts:914` decisions | length equality | **Yes** — `decisionsFromBody:510` `if (!parsed) continue` drops any heading that is not a decision heading |
+| `scripts/sync-notion.ts:1104` outcomes/targets | length equality | **Yes** — line 1102 `if (label)` drops any table row with an empty label cell |
+| `scripts/sync-notion.ts:1520` page sections | length equality | **Yes** — `parsePageSections:104` drops a block with no heading, no body and no table |
+| `lib/sync/write-handles.ts:101` handle writes | length equality | Inherits whatever the caller passed; the real guard is upstream |
+| `scripts/sync-notion.ts:1400` entry handles | length equality **+ parsed-vs-found** | Covered — this is the one that was hardened |
+
+**None is known to be misfiring today.** They are reported because the failure is
+silent by construction: the drop and the guard measure different things, so a
+coincidental match reads as success. **Not fixed — you asked to see where the
+pattern lives, not to have it fixed one incident at a time.** The cheap general
+remedy, if you want it later, is the one already applied to handles: compare what
+was *found* with what was *kept*, and refuse when they differ.
+
+### The dangling prose pointers — exact text and location, not edited
+
+**Row:** `page_sections`, `page = 'systems'`, `slug = 'what-ive-actually-built'`,
+`sort_order = 0`, id `eded0cf4-e5fe-4d82-a7d4-f5a3f1ce7d9d`.
+
+**In Notion:** the Systems page, under the heading **"What I've actually built"**;
+the Arabic in its child page **`النسخة العربية — الأنظمة`**, under **`ما بنيته فعلاً`**.
+
+Two lines in each locale, each on its own paragraph:
+
+| Locale | Line | Position in the section |
+|---|---|---|
+| `en` | `→ Cervello — Method, System & Documentation` | after paragraph 1 ("A design system from scratch…") |
+| `en` | `→ Cervello — Permission Architecture` | **final line** of the section |
+| `ar` | `← Cervello — المنهج والنظام والتوثيق` | after paragraph 1 |
+| `ar` | `← Cervello — معمار الصلاحيات` | **final line** of the section |
+
+They render as **plain text, not links** — verified by scanning every `href` on
+both pages, which yields only the Egypt one. Nothing 404s on click. But they still
+direct a reader to two chapters that are no longer on the site.
+
+**Untouched**, as instructed. The same section also carries the unverified
+"thirteen sections" claim reported in the previous entry — if you are editing this
+section in Notion anyway, both live in the same block.
+
+### Anything else in the blast radius
+
+Two code files mention Cervello and my previous entry had not examined them:
+
+- `lib/seo/metadata.ts:45` — `"/work/cervello"` in a **doc comment**, as an example
+  of a locale-less path. No behaviour.
+- `lib/sync/classify.ts:110, 221` — `/work/cervello (close)` and the route-collision
+  example, both in **doc comments**. No behaviour.
+
+Neither needs changing; noted so the search is not repeated. Nothing else was
+found: no sibling rows in either direction, no cross-case-file entry handle, no
+sitemap or `llms.txt` entry, no `settings` or `features` reference.
+
+### Verified on `localhost:3000`, both locales
+
+Section-by-section, by parsing the rendered HTML for card placement rather than
+eyeballing it:
+
+| Section | Card |
+|---|---|
+| What I've actually built · ما بنيته فعلاً | **none** — both its chapters are unavailable |
+| Working inside a system I didn't own · العمل داخل نظام لا أملكه | **Accessibility — Bilingual, RTL & Regulatory Comprehension · Egypt Acquisition (Web)** |
+| The patterns that repeat · الأنماط التي تتكرر | **none** — names no chapter |
+| Coming · قادم | closing section, never carried one |
+
+Identical in both locales. The card now sits directly beneath the prose line that
+points at it. The Cervello section shows no card rather than a borrowed one — the
+requirement, confirmed on screen.
+
+`npx tsc --noEmit` clean · `eslint` clean.
+
+---
+
+## 2026-08-16 (late) — Cervello unpublished. One DB field changed; the blast radius is bigger than the routes
+
+Not committed. **One database update, no code, no content touched:**
+`update case_files set status='draft' where slug='cervello'`.
+
+### Why — this is a content-integrity withdrawal, not housekeeping
+
+A content audit found **18 places** across the Cervello case file where published
+text presents inference as Moataz's own decisions. The file was written by
+reconstructing an old work presentation rather than from an interview, so the
+reasoning around several decisions was **composed rather than reported**. The three
+worst: a specific methodological claim about research activities he may not have
+run; a full justification for the belongs/relates link types built only on the two
+names existing; and a stated count of thirteen Feature Catalogue sections against
+twelve actually listed.
+
+`docs/brief.md` names "a published claim that cannot be defended in an interview"
+as a stated failure condition. The file therefore comes down until the claims are
+checked against what actually happened. **Nothing was deleted, archived or edited.**
+
+### Nothing was lost
+
+| | Before | After |
+|---|---|---|
+| `case_files.status` | published | **draft** |
+| chapters | 3 (all `published` at chapter level) | **3, unchanged** |
+| entry handles | 3 | **3, unchanged** |
+| case_file translations | 6 | **6, unchanged** |
+| chapter translations | 20 | **20, unchanged** |
+
+The chapters keep their own `status = 'published'`; only the parent changed. That
+is what makes this reversible with the inverse one-line update.
+
+### What actually removes it — NOT RLS
+
+The brief expected RLS to do the filtering. **It does not, and it could not:**
+`lib/supabase/server.ts` uses the **service role, which bypasses RLS entirely.**
+`lib/content/case-files.ts:21` says so in as many words.
+
+What removes Cervello is an explicit `.eq("status", "published")` on **every** query
+in `lib/content/*`, and for children an inner join —
+`.select("… case_files!inner(slug, status)").eq("case_files.status","published")` —
+so child visibility genuinely derives from the parent. The outcome is the one
+expected; the mechanism is not. Worth correcting, because "RLS protects it" would
+be a dangerous belief to carry into Layer 4's admin panel.
+
+### Verified, not assumed — every route, both locales
+
+| Route | Result |
+|---|---|
+| `/en/work` · `/ar/work` | **200** — three cards, **Cervello absent** |
+| `/en/work/cervello` · `/ar/work/cervello` | **404** |
+| `/en/work/cervello/method` · `/ar/…` | **404** |
+| `/en/work/cervello/permission-architecture` | **404** |
+| `/en/work/cervello/all` · `/results` | **404** |
+| `/sitemap.xml` | 200 — **zero** Cervello URLs |
+| `/llms.txt` | 200 — **zero** Cervello mentions |
+| `/en/systems` · `/ar/systems` | 200 — see below |
+
+The 404s render the **designed** page in the correct locale — `That page doesn't
+exist` / `هذه الصفحة غير موجودة`, with working CTAs. Checked with cache-busting
+query strings, because a stale route cache misled this project once already.
+
+### Blast radius — reported, NOT fixed
+
+**1 · 🔴 The Systems page now pairs an evidence card with the wrong argument.**
+
+This is the serious one and it is not a broken link — it is worse, because it looks
+correct.
+
+`EVIDENCE` is a fixed list of three chapters, zipped against the page's argument
+sections **by index**:
+
+```ts
+const evidence = resolved.filter((e) => e !== null);   // ← compacts the array
+…
+const card = evidence[i];                              // ← i is the SECTION index
+```
+
+Dropping the two Cervello chapters does not leave holes — `filter` **compacts**, so
+the surviving Egypt card slides from index 2 to index 0. The result, live right now
+in both locales:
+
+> Section **"What I've actually built"** — which argues about the *Cervello design
+> system* — now carries the evidence card **"Accessibility — Bilingual, RTL &
+> Regulatory Comprehension · Egypt Acquisition (Web)"**.
+
+Egypt's accessibility chapter is presented as evidence for a claim about Cervello.
+The component's own comment anticipates "any surplus section simply renders without
+a card", which is true — but nobody anticipated that a *removed* card shifts every
+later card up onto an argument it does not support.
+
+**2 · 🟡 Two dangling prose pointers, in the section body, both locales.**
+
+`page_sections` row `systems / what-ive-actually-built` contains, as body text:
+
+```
+→ Cervello — Method, System & Documentation        (en)
+→ Cervello — Permission Architecture               (en)
+← Cervello — المنهج والنظام والتوثيق                (ar)
+← Cervello — معمار الصلاحيات                        (ar)
+```
+
+These render as **plain text, not links** — confirmed by scanning every `href` on
+the page, which yields only the Egypt one. So there is no 404 to click. But the
+prose still directs a reader to two chapters that no longer exist, and the
+surrounding paragraphs still describe the Cervello design system at length: **6
+mentions of "Cervello" per locale, 12 in total, all still published.**
+
+**3 · ✅ Clean, nothing to do.** Sitemap, `llms.txt`, both galleries. No
+`case_file_siblings` row points at Cervello and Cervello has none of its own
+(confirmed by query, in both directions). No entry handle on any other case file
+targets a Cervello chapter.
+
+### The count error — every place it appears, for one pass later
+
+**Not corrected**, per instruction — the right number is not yet known.
+
+It appears in exactly **two rows**, and they are the two locales of one section:
+
+| Entity | id | Locale | Text |
+|---|---|---|---|
+| `page_section` `systems / what-ive-actually-built` | `eded0cf4-e5fe-4d82-a7d4-f5a3f1ce7d9d` | `en` | "one document per feature, **thirteen sections**, tracking it from…" |
+| same row | same | `ar` | "مستند واحد لكل خاصية، **ثلاثة عشر قسماً**، يتابعها من…" |
+
+Searched across **all** `translations` for `thirteen`, `Thirteen`, `ثلاثة عشر`, `١٣`
+and a word-bounded `13`. No other row matches. Every other "Feature Catalogue"
+mention — the `permission-architecture` chapter's result, and the Cervello entry
+handle payoff in both locales — describes the format **without stating a count**,
+and all of those are now off-site anyway.
+
+> ⚠️ **Unpublishing Cervello did NOT remove this claim.** The count lives on the
+> **Systems** page, which is still live in both locales. The list of twelve lived
+> in the case file, which is now gone — so the contradiction is no longer visible
+> to a reader, but **the unverified assertion is still published and still in
+> Moataz's voice.** If the intent was that no undefendable Cervello claim remains
+> on the site, this row is the exception and needs a decision of its own.
+
+The enumeration of twelve is not in the database at all — no `translations` row
+lists the sections — so the "twelve actually listed" is in Notion or the original
+presentation, not in anything the site renders.
+
+### Recommendation, for when the decision is made
+
+Not acted on. Three options, cheapest first:
+
+1. **Leave it.** The evidence mispairing is the only functional defect; the prose
+   reads acceptably without its pointers.
+2. **Trim the two pointer lines and the count sentence** from the `systems /
+   what-ive-actually-built` section in Notion, and re-sync. Removes the dangling
+   pointers and the unverified count in one edit, both locales, no code.
+3. **Make the evidence pairing explicit** rather than index-zipped, so a dropped
+   card leaves a hole instead of shifting. This is the only one that needs code,
+   and it is the one that prevents a recurrence when the next case file changes
+   status.
+
+The mispairing (option 3) is the one I would not leave, because it is silent and it
+will happen again the next time anything is unpublished.
+
+---
+
+## 2026-08-16 (evening) — All 12 entry handles have Arabic. The UAE "fourth line" was a sibling note
+
+Not committed. `scripts/sync-notion.ts`, `lib/sync/handles.ts`. Sync run for real,
+`failed 0`.
+
+### Result
+
+**`entry_handles` with Arabic: 3 → 12.** Not 9 — **12.** UAE came along as well,
+because the cause of its failure turned out to be the same fix.
+
+| Case file | Handles | Arabic before | Arabic now |
+|---|---|---|---|
+| cervello | 3 | 3 | **3** *(untouched)* |
+| egypt-acquisition | 3 | 0 | **3** |
+| neobiz-mobile | 3 | 0 | **3** |
+| uae-acquisition | 3 | 0 | **3** |
+
+Cervello's three are byte-identical to before — same rows, same text, not
+rewritten.
+
+### The UAE discrepancy — answered, and it was neither option
+
+The brief offered two possibilities: the fourth handle is on the chapter page, or
+the earlier count was wrong. **Both are wrong.** The content session was right that
+the UAE cover has exactly three handles, all using `←`.
+
+The diagnostic was extended to print the line rather than just count it, and it
+said:
+
+```
+unparsed 1: "ملف شقيق: الاستحواذ في الخدمات المصرفية للشركات — مصر، ونيوبيزنس
+             موبايل — مصر — نفس المتطلب، في سوق بلا البنية التحتية."
+```
+
+`ملف شقيق` — **"sibling file"**. The fourth line is a **sibling note**, sitting
+under the `ثلاثة مداخل` heading alongside the three handles. It was never a
+handle and never failed to be one.
+
+**Why it counted as a failure.** The English loop has always skipped sibling lines
+before attempting a handle (`if (parseSiblingLine(line)) continue`). **The Arabic
+loop had no such exclusion at all** — nobody had noticed, because until this week
+no Arabic handle had ever parsed, so nothing downstream of that line had ever run.
+
+There is a second reason it slipped through: `parseSiblingLine` requires
+`[Bracketed]` titles and returns null without them, and the Arabic sibling line
+names its siblings in prose. So the line parsed as neither a sibling nor a handle
+— it simply fell through and was counted as a handle that failed.
+
+Fixed with `looksLikeSiblingLine`, a **prefix-only** test now used by **both**
+loops. A line that opens `ملف شقيق:` is not an entry handle, whatever else is
+malformed about it, and the two paths can no longer drift.
+
+The completeness guard was also corrected to measure **candidate** lines rather
+than raw lines — otherwise a correctly-skipped sibling would read as a dropped
+handle forever, and UAE would have stayed blocked by the very guard that saved it.
+
+### What the guard reported, and why it was right to refuse
+
+Before the fix, on the real content:
+
+```
+Case File Cover — UAE Acquisition: 4 Arabic handle line(s) but only 3 parsed.
+Arabic skipped — pairing by position from an incomplete list would attach the
+wrong text to the wrong handle.
+```
+
+This is the exact scenario the brief flagged. Three parsed against English's
+three — **the counts matched** — so the older guard would have accepted it and
+paired by position. Had the sibling line sat anywhere but last, Arabic handle 3
+would have landed under English handle 2, silently, on a published cover. The
+newer guard refused it on the grounds that a count matching *after* a drop is
+more dangerous than one that does not, and that judgement is now vindicated on
+live content rather than in the abstract.
+
+Pairing verified after the write, semantically rather than by count:
+
+| | English | Arabic |
+|---|---|---|
+| egypt 0 | Show me the hardest decision. | إن كنت تبحث عن أصعب قرار |
+| egypt 1 | Show me what broke. | إن كنت تبحث عمّا انكسر |
+| egypt 2 | Show me the systems. | إن كنت تبحث عن الأنظمة |
+| neobiz 0 | Show me a platform decision. | إن كنت تبحث عن قرار متعلق بالمنصة |
+| neobiz 1 | Show me complexity handled. | إن كنت تبحث عن تعقيد جرى ترويضه |
+| neobiz 2 | Show me a lesson carried forward. | إن كنت تبحث عن درس انتقل من منتج إلى آخر |
+| uae 0 | …the decision I'm proudest of | إن كنت تبحث عن القرار الذي أعتز به أكثر |
+| uae 1 | …a common misreading corrected | إن كنت تبحث عن سوء فهم شائع يستحق التصحيح |
+| uae 2 | …judgement under constraint | إن كنت تبحث عن حُكم تحت قيد |
+
+All nine align on meaning, not merely on position.
+
+### The three renamed Arabic pages — all still found
+
+Nothing was skipped because of a title change. The matcher keys on the
+`النسخة العربية` prefix and the parent, so a new suffix is invisible to it — which
+is exactly what the rewritten Step 4 promises.
+
+Proof by content rather than by absence of an error: **`النسخة العربية — النتائج
+(نيوبيزنس)`** is the page carrying Neobiz's targets, and all **5 targets have
+Arabic**. Had the rename broken the match, that would be 0.
+
+### `نيوبيزنس` — and a caching trap worth recording
+
+Three translation rows carry `نيوبيزنس`; **zero carry the old short form.** The
+other six of the nine renamed places live in content the sync still skips (the
+Arabic sibling notes, the two comparison pages, the accessibility page), so they
+cannot reach the database yet.
+
+> ⚠️ **The gallery rendered the OLD name after a successful sync.** `/ar/work`
+> showed `نيوبيز موبايل` while the database contained only `نيوبيزنس` — a stale
+> route cache, not stale data. A cache-busting query string returned the new name
+> immediately. **A sync is not visible until the route revalidates**, and
+> `/api/revalidate` exists for precisely this. Worth knowing before concluding a
+> future sync did not work.
+>
+> Also corrected: an earlier check in this session used `~ 'نيوبيز(?!نس)'`.
+> Postgres uses POSIX regex, which has **no lookahead** — that query's "0 legacy
+> occurrences" was meaningless. Re-run with a plain `LIKE`, the answer happened to
+> be the same, but the first result was not evidence.
+
+### Verified by looking, on `localhost:3000`
+
+| URL | Result |
+|---|---|
+| `/ar/work/egypt-acquisition` | ✅ three handles as three items — أصعب قرار · عمّا انكسر · الأنظمة, each split into invitation and payoff |
+| `/ar/work/neobiz-mobile` | ✅ a 3-item list, each `إن كنت تبحث عن …` + its payoff — **not one unsplit line** |
+| `/ar/work` | ✅ `نيوبيزنس` in both cards, once the stale cache was bypassed |
+
+### Where the five figures stand
+
+| Entity | Total | With Arabic | Missing |
+|---|---|---|---|
+| `page_sections` | 46 | **22** | 24 |
+| `entry_handles` | 12 | **12** ✅ | **0** |
+| `case_file_siblings` | 4 | 0 | 4 |
+| `case_files` | 8 | 4 | 4 |
+| `decisions` | 20 | 19 | 1 |
+| `chapters` | 13 | 13 ✅ | 0 |
+
+**Entry handles are complete.** Chapters were already complete.
+
+### Still missing — parse problem vs nobody wrote it
+
+**⚙️ A parse or structure problem, not missing content:**
+
+- **`neobiz-mobile.thesis`** — and this is now pinned to a single word. Across all
+  four real case files, this is the **only** field lacking Arabic: every other
+  title, role, thesis and reflection has it. Neobiz's Arabic cover heads its
+  thesis `الفكرة الأساسية` ("the core idea") where the map knows `الأطروحة`.
+  Cervello's cover uses bespoke headings too (`ما هو`, `الحالة، بصراحة`). **I did
+  not add aliases** — `الفكرة الأساسية` → `thesis` is a plausible guess and
+  `ما هو` → ? is not, and writing the wrong Arabic into a thesis field is worse
+  than leaving it English. Your call: rename the heading in Notion, or tell me the
+  mapping.
+- **Both comparison pages (10 sections)** — Arabic still opens with an extra
+  heading pair against English's single title line. Unchanged from the last entry.
+- **4 `case_file_siblings`** — the Arabic sibling notes exist (the UAE one is
+  quoted above) but name their siblings in prose rather than `[Brackets]`, so no
+  sibling can be identified from them. UAE also has 1 Arabic note against 2
+  English siblings, so position-pairing would be wrong even if they parsed.
+
+**🔴 Genuinely unwritten — your work:**
+
+- **Accessibility page (14 sections)** — Arabic has 8 headings to English's 13;
+  the five numbered principles and "The design system contribution" have no Arabic
+  at all.
+- **4 case files** — the mini drafts (EAST, PideTaxi, Kshemam, AAM), which have no
+  content in either language.
+- **1 decision** — Egypt / Application Workflow, 1 English against 3 Arabic.
+  Long-standing, unchanged.
+
+`npx tsc --noEmit` clean · `npm run test:sync` all pass · sync `failed 0`.
+
+---
+
+## 2026-08-16 (later still) — Arabic reaches Supabase. THREE separate matcher bugs, not one
+
+Not committed. `scripts/sync-notion.ts`, `lib/sync/static-pages.ts`,
+`lib/sync/handles.ts`, `docs/sync-contract.md`. Sync run for real, 0 failures.
+
+### The hypothesis was wrong, and saying so first because it matters
+
+The brief proposed that the child-page title pattern was the cause — that the
+script matched `العربية` exactly while Notion uses `النسخة العربية — …`. **It was
+not the cause.** `findArabicChild` already matched by containment, and had done
+since an earlier session fixed exactly that. Every Arabic child page was being
+found, opened and parsed.
+
+The `النسخة العربية` prefix *was* implicated — but one layer further in, and in a
+way no amount of looking at the matcher would have shown.
+
+### Cause 1 — the title-echo rule could not fire on Arabic pages
+
+`parsePageSections` drops a page's first heading when it merely repeats the page
+name, and keeps its paragraphs as an unheaded lede. Pass 5 passed the **raw**
+child title:
+
+```ts
+parsePageSections(arBlocks, arabicChild.title)   //  "النسخة العربية — نبذة عني"
+```
+
+The heading inside that page is `نبذة عني`. `norm("نبذة عني")` never equals
+`norm("النسخة العربية — نبذة عني")`, so the echo never fired, the opener stayed a
+section, and **every Arabic static page came out with exactly one more section
+than its English counterpart.** That off-by-one hit the count guard, which skipped
+the Arabic and emitted a notice.
+
+`+1` on About, Philosophy, Systems, Contact and both comparisons — the
+suspiciously uniform shape that gave it away. Fixed inside `echoesPageName`, which
+now strips the scaffolding from the page name before comparing, so both call sites
+are normalised in one place rather than each remembering.
+
+### Cause 2 — the entry-handle heading was a literal translation nobody used
+
+Handles were read from `arBody.get("ثلاث طرق للدخول")` — "three ways in", a
+literal rendering of the English heading. Notion actually uses **`ثلاثة مداخل`**
+("three entries"), and on Neobiz `ثلاثة مداخل لقراءة هذا الملف`. Neither matched.
+**All twelve Arabic entry handles were written, sat in Notion, and never synced.**
+
+Now prefix-matched across all three spellings, for the same reason the child page
+is: the tail is a human label.
+
+### Cause 3 — `←` is the forward arrow in RTL, and the parser only knew `→`
+
+A handle is `<invitation> → <payoff>`. In Arabic it is written
+`<invitation> ← <payoff>`, because **in RTL the forward arrow is `←`** — the
+project's own `rtl-guard` says so, and the Arabic copy relies on it. `ARROW`
+listed `→ ➔ => ->` and no `←`, so every Arabic handle line failed to parse.
+
+Fixed with a **separate** RTL arrow set, scoped by locale rather than added to the
+shared one — `←` appears in the English copy as hierarchy notation
+(`Instance ← Organisation ← Team ← Project`), and splitting an English payoff on
+it would cut a sentence in half at its first hierarchy mark.
+
+**All three are the same class of bug:** a matcher encoding a guess about how the
+Arabic would be written, against copy that was written differently and correctly.
+And all three were invisible for the same reason — decision 013 makes a missing
+Arabic translation the *normal* state, so a systematic sync failure and "not
+written yet" produce identical output.
+
+### A fourth thing, caught by the new diagnostics rather than by looking
+
+UAE has **4** Arabic handle lines to English's 3, and only 3 of the 4 parsed. The
+parsed count then equalled English's, so the existing guard would have **accepted
+it and paired by position** — silently attaching Arabic handle 3 under English
+handle 2 if the unparsed line sat anywhere but last.
+
+That is worse than not syncing, and nothing would have reported it. A guard now
+refuses any list where some lines parsed and some did not, on the principle that a
+count which matches *after* a drop is more dangerous than one that does not.
+
+### Diagnostics, because the counts were unactionable
+
+Every skip notice now prints **both heading lists**, not just the counts. "Arabic
+has 7 to English's 6" cannot distinguish *"one section is not translated"* —
+Moataz's work — from *"the parser split it differently"* — a bug. Those need
+opposite responses and looked identical for months. The handles path also now
+reports an Arabic page found with no handle list (naming the headings it did see)
+and a list found but unparsed (showing the offending line). Cause 2 and cause 3
+were both diagnosed by reading these notices rather than by opening Notion.
+
+### What the sync fixed, and what is still unwritten
+
+The survey's five figures, reconciled against the database after the run:
+
+| Entity | Total | Had Arabic before | **Now** | Fixed by this | Still missing |
+|---|---|---|---|---|---|
+| `page_sections` | 46 | 0 | **22** | **22** | 24 |
+| `entry_handles` | 12 | 0 | **3** | **3** | 9 |
+| `case_file_siblings` | 4 | 0 | 0 | 0 | 4 |
+| `case_files` | 8 | 4 | 4 | 0 | 4 |
+| `decisions` | 20 | 19 | 19 | 0 | 1 |
+| `chapters` | 13 | 13 | 13 | — | 0 |
+
+**✅ Fixed — was a bug, is now synced:**
+
+- **About (7), Philosophy (5), Systems (5), Contact (5)** — all four pages named in
+  the brief, complete in Arabic, verified on screen.
+- **Cervello's 3 entry handles.**
+
+**⚠️ Still missing because of a content-shape question — NOT written off:**
+
+- **Egypt and Neobiz entry handles (6).** Their Arabic handles use a **colon**
+  rather than an arrow: `إن كنت تبحث عن أصعب قرار: معركة اللغة…`. I did not add
+  `:` as a separator — colons occur inside Arabic prose constantly, and splitting
+  on the first one would mangle handles rather than parse them. **Your call:**
+  either those two pages change to `←` in Notion, or we accept a narrower rule.
+  I am not guessing at this one.
+- **UAE's 3 handles.** The 4-line/3-parsed problem above. One line needs a
+  separator, then it syncs.
+- **Both comparison pages (10 sections).** Arabic opens with an extra heading pair
+  where English has one title line, so the counts still differ by one. Same family
+  as cause 1 but a different shape, and forcing it would risk mispairing.
+
+**🔴 Genuinely unwritten — your work, not a bug:**
+
+- **Accessibility page (14 sections).** Arabic has 8 headings to English's 13; the
+  five numbered principles and "The design system contribution" have no Arabic at
+  all. This one really is untranslated.
+- **4 case files** — the mini drafts (EAST, PideTaxi, Kshemam, AAM), which have no
+  content in either language.
+- **4 case_file_siblings** — sibling notes, no Arabic written.
+- **1 decision** — Egypt / Application Workflow, 1 English against 3 Arabic. Long-
+  standing, previously reported, unchanged.
+
+### Verified — by opening the pages on `localhost:3000` and reading them
+
+| URL | Result |
+|---|---|
+| `/ar/about` | ✅ Arabic throughout — نبذة عني, الآن, قبل ذلك, كتاب الفنان, and the deaf-school year in full |
+| `/ar/about/philosophy` | ✅ Arabic — *أن تصنع أو أن تبني، ليس مجرد رسم* |
+| `/ar/systems` | ✅ Arabic — الأنظمة, ما بنيته فعلاً |
+| `/ar/contact` | ✅ Arabic — *إن كنت قد وصلت إلى هنا…*, الوصول إليّ, روابط أخرى |
+| CV panel on `/ar/contact` | ✅ still opens after the sync, unchanged |
+
+`npx tsc --noEmit` clean · `npm run test:sync` all pass · sync `failed 0`.
+
+### Contract updated
+
+`docs/sync-contract.md` Step 4 rewritten to describe what the script does: prefix
+and parent, never the full title; the Arabic heading aliases; direction-aware
+separators; pairing by position only on matching counts; and a note that the
+previous text described a convention no page has ever followed. **A contract that
+describes a convention nobody follows is how this happened**, so where the two
+disagree the script is now stated to be authoritative.
+
+---
+
+## 2026-08-16 (later) — "The CV panel isn't on the page." It was. The dev server refused to hydrate it on `127.0.0.1`
+
+Not committed. One line of product code changed: `allowedDevOrigins` in
+`next.config.mjs`. **No change to the panel, the contact page, the footer or any
+string** — none was needed.
+
+### The answer to the question as asked
+
+**The panel was wired to the page.** Not "wired now" — it was already there, in
+both places, and the report of it being rendered twice was accurate. Verified in
+the working tree before changing anything:
+
+| Check | Result |
+|---|---|
+| Imported and rendered on the contact page | ✅ `app/[locale]/(site)/contact/page.tsx:4` and `:223`, `variant` default (button) |
+| Imported and rendered in the footer | ✅ `components/layout/SiteFooter.tsx:2` and `:78`, `variant="link"` |
+| An older download link still present | ❌ **none** — no `Download CV`, no `cv_url` gate, no `.pdf` href anywhere in the rendered HTML |
+| All 13 strings resolve, both locales | ✅ every one, including `request_cv` → `Request CV` / `اطلب السيرة الذاتية` |
+| Trigger present in server-rendered HTML | ✅ `curl` finds it without a browser involved |
+| Console errors on the page | ❌ **none** |
+
+So every one of the five hypotheses in the brief came back negative. The component
+was fine, the wiring was fine, the strings were fine, nothing was covering it, and
+nothing threw.
+
+### What it actually was
+
+**Next's dev server refuses to serve dev resources to `127.0.0.1` when it was
+started on `localhost`,** and the refusal is silent in the browser.
+
+Reproduced deliberately, same page, same click, one variable changed:
+
+| Host | Trigger in DOM | Console output | Click opens panel |
+|---|---|---|---|
+| `http://localhost:3000/en/contact` | yes | React DevTools notice, `[HMR] connected` | ✅ **yes**, live ~1s after load |
+| `http://127.0.0.1:3000/en/contact` | yes | **absolutely nothing** | ❌ **no — dead, indefinitely** |
+
+The page renders perfectly either way, because the HTML is server-rendered and
+unaffected by the block. What never arrives is the client runtime, so **every**
+interactive component is inert. Not just the CV panel — the theme toggle and the
+consent banner are equally dead on that host. A button you can see, focus, and
+click, that does nothing, with no error anywhere in the browser. The only signal
+is one line in the dev server's own terminal:
+
+```
+⚠ Blocked cross-origin request to Next.js dev resource /_next/hmr from "127.0.0.1".
+```
+
+### This is the third time, and that is why the fix is a config change
+
+This exact failure was diagnosed two sessions ago and written into this file, and
+the conclusion recorded then was **"use `localhost`, not the loopback address"** —
+with an explicit note that `allowedDevOrigins` "was deliberately not done" because
+it "widens what dev serves, to solve a problem that spelling the host correctly
+already solves".
+
+**That call was wrong, and this session is the evidence.** A control that depends
+on remembering something every single time, whose failure mode is silent and
+indistinguishable from a broken feature, is not a control. It has now produced a
+bug report against working code and consumed a session diagnosing something that
+was already diagnosed. The line goes in:
+
+```js
+allowedDevOrigins: ["127.0.0.1"],
+```
+
+Dev only. No effect on production. It widens nothing beyond two spellings of this
+machine talking to itself. The reasoning is written into `next.config.mjs` beside
+it, at length, because the next person to find it will otherwise delete it for
+exactly the reason it was omitted the first time.
+
+**A config change needs a dev server restart** — Next reads `next.config.mjs` once
+at startup, same class of trap as `.env.local` in the entry below.
+
+### One real behaviour worth knowing, separate from the bug
+
+**There is a ~1 second window after load where the button is visible and dead.**
+Measured on a warm dev server: `msUntilTriggerLive: 994`, against
+`loadEventEnd: 1097`. That is ordinary hydration latency, not a defect, and it
+will be shorter in production — but it is not zero, and the button gives focus
+feedback the instant it is clicked, so a click inside that window *looks* like it
+did something. It caught me twice during this very session: two of my own
+verification clicks fell inside it and returned nothing.
+
+If a report of "clicking does nothing" ever survives the origin fix, this is the
+next thing to suspect, and the test is simply to click again.
+
+**Also worth knowing:** clicking the trigger twice in quick succession opens the
+panel and then closes it. That is correct — the second click lands on the scrim,
+which is click-to-dismiss — but two fast clicks look like one click that failed.
+
+### Verified — by opening the pages and clicking, not by reading files
+
+On `:3000`, after the config change and a restart, with real mouse clicks:
+
+| URL | Result |
+|---|---|
+| `http://localhost:3000/en/contact` | ✅ panel opens — To / Subject / greeting / body / optional line / email / Send |
+| `http://localhost:3000/ar/contact` | ✅ panel opens, RTL correct, Arabic throughout, email field `dir="ltr"` |
+| `http://127.0.0.1:3000/en/contact` | ✅ **now hydrates and opens** — was permanently dead before the change |
+
+Screenshots taken of each. The `/ar` panel reads اطلب السيرة الذاتية / إغلاق /
+إلى: / الموضوع: / مرحباً معتز، / اطّلعت على أعمالك… / إرسال.
+
+### What I got wrong in the previous entries
+
+The previous entries' claim that the panel was rendered in both places was
+**correct** and holds up. What was wrong is older and worse: the decision, two
+sessions ago, to record the `127.0.0.1` problem as a note-to-self instead of
+fixing it. The note was accurate and useless — it lived in a status file rather
+than in the tool, so it could not act. That is the actual lesson, and it is not
+about the CV panel at all.
+
+---
+
+## 2026-08-16 — `Reply-To` added to the notification, behind a strict guard
+
+Not committed. One file changed: `lib/notify/contact-notification.ts`. No
+dependency, no migration, no schema change.
+
+### What changed
+
+The visitor's address now becomes a `Reply-To` header **if and only if** it
+survives `safeReplyTo()`. It stays in the body either way — the header is a
+convenience, the body is the record.
+
+The previous refusal was right for the reason given: an unvalidated,
+visitor-controlled string in a mail header is a header-injection surface. That
+reasoning is not withdrawn. What changed is that the value now has to prove it
+cannot carry anything but an address before it is allowed near the header.
+
+### The guard
+
+Two validators now exist and they answer **different questions**, which is why
+neither replaces the other:
+
+| | `looksLikeEmail()` (route) | `safeReplyTo()` (notifier) |
+|---|---|---|
+| Asks | "Is this plausibly real — should I accept this message?" | "Can this string go into a mail header?" |
+| Errs toward | Accepting; a rejected message is a lost visitor | Refusing; a wrong yes is header injection |
+| On failure | 400, nothing stored | Header omitted, **mail still sends** |
+
+Order of checks, and the order matters:
+
+1. **Control characters first, before anything else and before any trimming.**
+   CR/LF is the injection vector — a header ends at CRLF, so an address holding
+   one can close `Reply-To` and open `Bcc`. The check runs on the **raw** value
+   because trimming would quietly repair a trailing newline and turn a hostile
+   value into an accepted one. The whole C0 and C1 ranges go, plus `DEL`,
+   `U+2028` and `U+2029` — enumerating only the two characters known to be
+   dangerous is how the third one gets through.
+2. Length caps — 254 total, 64 local part, 255 domain — before any regex runs.
+3. No surrounding whitespace. Not trimmed and accepted: **not repaired at all.**
+   Silently fixing input is how a validator and the thing it validates drift.
+4. Named refusals for angle brackets, commas, semicolons, whitespace, quotes and
+   grouping characters, so the reason is useful rather than "malformed".
+5. Exactly one `@`.
+6. A strict single-address pattern. No display names, no angle brackets, no
+   quoted local parts, no groups, no comments — all legal RFC 5322 address
+   syntax, none of it needed for a string typed into one form field.
+
+`buildNotificationPayload()` was split out from the sending so the outgoing JSON
+can be **inspected** rather than inferred from a 200. On refusal the `reply_to`
+key is spread away entirely, not set to `undefined` — that would serialise away
+too, but relying on a serialiser detail for a security property is the wrong
+kind of correct.
+
+### The footer now states which case it is
+
+The old line — *"Replying to this notification does NOT reach them"* — was
+unconditional and would now be true only sometimes. An unconditional line that is
+sometimes wrong is worse than none: it trains the habit of ignoring it, and the
+one time it matters is the time a reply goes nowhere.
+
+Header set:
+
+```
+Reply to this message and it goes to jane@acme.com.
+```
+
+Header refused — and it names the reason, because "your reply will not arrive" is
+an instruction to do something else, and the reason is what says what:
+
+```
+Reply-To is NOT set on this message — replying reaches nobody.
+Their address did not pass strict validation (not a single bare address), so it was
+kept out of the header. Copy it from the From: line above instead.
+```
+
+### Verification — 24 values against the payload builder
+
+Tested against the built payload, inspecting the actual JSON. **Every hostile
+value was refused; every submitted value still appears in the body.**
+
+| Value | `reply_to` | Rejected because |
+|---|---|---|
+| `jane@acme.com` | **PRESENT** | — accepted |
+| `jane.doe+cv@mail.acme.co.uk` | **PRESENT** | — accepted |
+| `victim@example.com\r\nBcc: everyone@example.com` | absent | control character |
+| `victim@example.com\nBcc: everyone@example.com` | absent | control character |
+| `victim@example.com\rBcc: everyone@example.com` | absent | control character |
+| `Jane Okafor <jane@acme.com>` | absent | angle brackets |
+| `jane@acme.com,attacker@evil.com` | absent | comma or semicolon |
+| `jane@acme.com;attacker@evil.com` | absent | comma or semicolon |
+| `<jane@acme.com>` | absent | angle brackets |
+| `jane@acme.com\tBcc: x@y.com` | absent | control character |
+| `jane@acme.com` + NUL | absent | control character |
+| `jane@acme.com` + `U+2028` + `Bcc:…` | absent | control character |
+| `"jane doe"@acme.com` | absent | whitespace |
+| `jane(comment)@acme.com` | absent | quoting/grouping characters |
+| ` jane@acme.com` | absent | leading/trailing whitespace |
+| `jane@acme.com\n` | absent | control character |
+| 65-char local part | absent | local part > 64 |
+| >254 characters | absent | longer than 254 |
+| `jane@acme` · `jane@acme.c` | absent | not a single bare address |
+| `jane..doe@acme.com` · `.jane@acme.com` | absent | not a single bare address |
+| `jane@-acme.com` | absent | not a single bare address |
+| `` (empty) | absent | empty |
+
+**No value produced a header that should not have had one.** Stated plainly
+because it was asked plainly: nothing leaked, in any case, including the three
+named in the task.
+
+### Verification — end to end on `:3000`
+
+**The three hostile values never reach the notifier.** The route's own check
+rejects them first:
+
+| Sent to `/api/contact` | Result |
+|---|---|
+| `victim@example.com\r\nBcc: everyone@example.com` | **HTTP 400**, no row, no mail |
+| `Jane Okafor <jane@acme.com>` | **HTTP 400**, no row, no mail |
+| `jane@acme.com,attacker@evil.com` | **HTTP 400**, no row, no mail |
+
+> ⚠️ **This means one part of the brief could not be verified as written.** The
+> ask was to confirm that for each hostile value "the mail still sends, the
+> header is absent, and the body still carries what was submitted". For these
+> three the mail does **not** send, because `looksLikeEmail()` refuses them at
+> the boundary before a row exists. That is defence in depth working as intended
+> — but it is not what was asked for, and reporting it as a pass would be false.
+> The guard's own behaviour on those exact values is proven in the table above,
+> at the layer where it actually runs.
+
+To exercise the header guard end to end, three values were needed that **pass**
+the route and **fail** strict validation. All three sent, all three stored, all
+three with no header:
+
+| Sent | HTTP | Row | `reply_to` in payload | Address in body |
+|---|---|---|---|---|
+| `replyto-normal@example.com` | 200 | stored, `notified_at` set | **`reply_to=replyto-normal@example.com`** | yes |
+| `jane@acme.c` | 200 | stored, `notified_at` set | **no `reply_to` key** | yes |
+| `jane..doe@acme.com` | 200 | stored, `notified_at` set | **no `reply_to` key** | yes |
+| `jane@-acme.com` | 200 | stored, `notified_at` set | **no `reply_to` key** | yes |
+
+Payload keys confirmed directly: `from, to, subject, text, reply_to` for the
+first, `from, to, subject, text` for the other three.
+
+`npx tsc --noEmit` clean · `eslint` clean · `package.json` untouched. All four
+test rows deleted; `contact_messages` is empty. The two throwaway test scripts
+were removed after reading.
+
+### Not verified
+
+- **That a reply actually lands with the visitor.** The header is proven present
+  in the outgoing JSON and Resend accepted the send; whether the receiving mail
+  client honours `Reply-To` is visible only in the inbox. Hit Reply on the
+  `replyto-normal@example.com` message and check the To: field before trusting
+  this in front of a real recruiter.
+- **Inbox arrival**, for the same reasons as the entry below — no mailbox
+  access, and a send-only key cannot query delivery status. 4 more test messages
+  will have arrived, 11 in total across both sessions.
+
+---
+
+## 2026-08-15 (latest) — Notification built and sending. 8 sends verified; inbox arrival is yours to confirm
+
+Not committed. **No dependency added** — `package.json` and `package-lock.json` are
+byte-identical.
+
+### Where this stands
+
+| | Status |
+|---|---|
+| Storage, response, failure handling, failure recording | ✅ **proven, end to end** |
+| Resend **accepting** the send — 200, `notified_at` set | ✅ **proven, 7 times** |
+| Failure path with a genuinely invalid key | ✅ **proven** — 200 to the visitor, row stored, `notify_error` populated |
+| Recovery after restoring the key | ✅ **proven** |
+| **Arrival in the moataz.mustapha@outlook.com inbox** | ⚠️ **Only Moataz can confirm this** — see below |
+
+**Why arrival is not something this session can assert.** I have no access to the
+mailbox, and the Resend key is a **send-only restricted key**, so
+`GET /emails` returns `401 restricted_api_key` and delivery status cannot be
+queried either. What is proven is that Resend returned 200 and accepted the
+recipient — which, under the sandbox rules, is itself meaningful: an unverified
+account sending to any address other than its own signup address is refused, so a
+200 means the recipient matched the account. That is acceptance, not arrival.
+**Check the inbox — there should be 7 messages waiting.** If they are not there,
+the next place to look is Outlook's junk folder, because `onboarding@resend.dev` is
+a shared sandbox domain with no alignment to any domain of Moataz's.
+
+**Rule 5 confirmed before touching anything:** `.env.local` matches `.gitignore:8`
+(`.env*`), `git check-ignore` agrees, the file is untracked, and the only env file
+ever committed is `.env.example`, which carries names and no values. The key is not
+written to, printed by, or quoted in any file, this entry included. Where the key
+had to be broken and restored, it was mutated in place and reversed by exact
+inverse — never copied, never echoed.
+
+### What was built
+
+**`lib/notify/contact-notification.ts`** — one POST to `https://api.resend.com/emails`
+with a bearer token and a JSON body. No SDK; that is all the `resend` package wraps.
+10s timeout so a hung provider cannot hold a visitor's request open. **The function
+never throws** — a missing key, a DNS failure, a timeout and a provider 4xx all
+return `{ ok: false, error }`.
+
+**`app/api/contact/route.ts`** — two steps, in this order and no other:
+
+```ts
+const { data: row, error } = await supabaseServer
+  .from("contact_messages").insert({ name, email, subject, message })
+  .select("id, created_at").single();
+if (error || !row) return NextResponse.json({ error: "failed" }, { status: 500 });
+
+try { await notifyAndRecord({ ... }); }        // cannot change the line below
+catch (unexpected) { console.error(...); }
+return NextResponse.json({ ok: true });
+```
+
+The `try` wraps a function already documented never to throw, because *"documented
+not to throw"* and *"cannot throw"* are different claims and the cost of being wrong
+is a stored message reported to the visitor as an error.
+
+**Awaited, not deferred.** `after()` would return ~300ms sooner and would do it by
+moving the send into a phase where a failure cannot be written back to the row —
+losing the one thing that makes a silent outage findable. The latency buys the
+evidence.
+
+**`supabase/migrations/0029_contact_notification_state.sql`** — `notified_at` and
+`notify_error`, plus a partial index on the unnotified rows, which is empty in the
+healthy case. Three distinguishable states, deliberately:
+
+| `notified_at` | `notify_error` | Means |
+|---|---|---|
+| set | null | Sent |
+| null | set | Tried and failed; the text says how |
+| null | null | Never attempted — every pre-0029 row, and any row where the process died mid-flight |
+
+Old rows were **not** backfilled. Marking them "notified" would be a lie about mail
+never sent; marking them "failed" would be a lie about an attempt never made.
+
+Also updated: `lib/supabase/database.types.ts` (the two columns — `tsc` caught their
+absence, which is the type layer doing its job), `.env.example` (names only).
+
+### What the notification looks like
+
+Subject line carries the kind first, because that is what decides the reaction:
+
+```
+CV request — jane@acme.com
+Contact (Hiring) — jane@acme.com
+```
+
+Body carries everything needed to act without opening the dashboard — visitor
+email, kind, subject label, message or optional line, timestamp in **Dubai time
+with the ISO value beside it**, and the row id. A CV request with no optional line
+says so explicitly rather than showing an empty gap; the CV panel collects no name,
+so that line is omitted rather than rendered blank.
+
+**No `Reply-To`.** Not an oversight — an address the visitor controls, echoed into a
+header, is both a header-injection surface and a way to make mail from the sandbox
+domain claim to be from someone else. The address is body content. The mail says in
+as many words that replying to it does **not** reach the visitor, because "reply" is
+the obvious instinct and it would fail silently.
+
+### The hardcoded copy in the notification is not a rule 1 breach
+
+Recorded here explicitly so the next reader does not file it as one.
+
+**Rule 1 governs what a *visitor* reads.** This mail is addressed to Moataz. Its
+labels — `From:`, `Kind:`, `Received:` — are operational, closer to a column name or
+a log line than to page copy, and they live in code. Moataz confirmed this reading;
+it is decision 051, not an assumption made here.
+
+**The one exception, resolved from the database:** the subject **label**. The visitor
+picked "Hiring" from a `ui_strings` list, so the notification says what they picked
+rather than the raw key `hiring` — otherwise the mail and the site describe the same
+choice in different words. English only: there is no case for an Arabic translation
+of a mail with one bilingual reader. If `ui_strings` cannot be reached the mail still
+goes out without the label, because a missing word must not cost the whole message.
+
+Everything a visitor sees still comes from the database, unchanged.
+
+### Verified on `:3000`, with the real key
+
+Eight submissions, every one returning `{"ok":true}` **HTTP 200** to the visitor and
+storing a row. Response times 0.8–1.2s, which is the awaited send.
+
+| # | Case | `notified_at` | `notify_error` |
+|---|---|---|---|
+| 1 | CV request, optional line filled | ✅ set | — |
+| 2 | CV request, optional line empty (`message = ''`) | ✅ set | — |
+| 3 | General enquiry, `subject = hiring`, with a name | ✅ set | — |
+| 4–6 | Three intended-failure attempts that **sent instead** — see below | ✅ set | — |
+| 7 | **Genuinely invalid key** | ❌ null | `resend 401: {"statusCode":401,"name":"validation_error","message":"API key is invalid"}` |
+| 8 | Key restored | ✅ set | — |
+
+Row 7 is the one that matters: **the visitor still saw `{"ok":true}` HTTP 200, the
+row was still inserted, and the provider's own wording was preserved verbatim** —
+which is what will one day distinguish a wrong key from a wrong recipient. Row 8
+proves recovery is automatic; nothing needed clearing.
+
+All eight test rows were deleted. `contact_messages` is empty.
+
+`npx tsc --noEmit` clean · `eslint` clean · `check:seed-drift` **no drift, 91/91** ·
+`git diff package.json package-lock.json` empty.
+
+### Three sends happened that were meant to be failures. Both causes, plainly
+
+**7 test emails reached the inbox, not 3.** Rows 4–6 were attempts to break the key
+that did not break it. Two distinct causes, and neither is a fault in the
+notification code:
+
+**1 · Resend ignores the `re_` prefix.** The first attempt invalidated the key by
+rewriting `re_…` to `rx_…`. Resend authenticates on the token portion, so the
+mutated value was *the same valid key* and the send succeeded. Confirmed directly
+rather than inferred — both spellings were put to `GET /emails`, and both answered
+`401 restricted_api_key`, which is the "valid key, wrong scope" error, not the
+"invalid key" one. The real break appended a character to the token, and that
+answered `validation_error` before the server was ever restarted.
+
+**2 · `next dev` does not re-read `.env.local` while running.** The file was changed
+and the server kept serving with the environment it started with — two submissions
+sailed through on a key the file no longer contained. **A `.env.local` change needs
+a dev server restart to take effect.** This is worth remembering beyond this task:
+it is the same class of mistake as the `127.0.0.1` host problem in the entry below —
+a local environment quietly disagreeing with what the files say, and no error
+anywhere to signal it.
+
+Neither could be diagnosed by reading the code, because the code was correct
+throughout. The tell was `notified_at` being set on a row that was supposed to fail,
+and the only way that surfaced is that the row records the outcome. **The
+instrumentation this task added is what caught the test being wrong.**
+
+### Not verified, and not claimed
+
+- **Inbox arrival.** Resend accepted 7 sends; that they landed is unconfirmed here.
+  No mailbox access, and a send-only key cannot query delivery status.
+- **The rendered subject line and body have never been read in an inbox** — only in
+  source. Whether the Dubai timestamp, the omitted name line and the "replying does
+  not reach them" note read well is a judgement only the recipient can make.
+- Nothing was tested through the browser UI this session; all eight submissions went
+  in over `curl`. The panel itself was verified through the browser in the entry
+  below and is unchanged.
+- The dev server on `:3000` was **restarted three times** during this work and is
+  currently running with the restored key.
+
+### Consequences carried forward
+
+**A third-party processor now exists.** Message contents transit Resend. Decision
+044 chose option A partly *because* it added none, and migration `0024`'s header
+said so in as many words — that sentence has been corrected in place rather than
+left to be discovered. `/how-this-site-works` is still unbuilt and the four
+`privacy_*` strings still render nowhere, so there is no page to fix today. It is
+recorded in decision 051 so the page inherits a correct processor list.
+
+**The rate limit and the free tier still disagree** — 20/hour (480/day) against a
+100/day free tier. Under sustained spam, notifications would fail while rows stored
+fine. `where notified_at is null` is what surfaces it. Unchanged and unaddressed;
+flagged, not fixed.
+
+**A separate pre-existing error, noticed and left alone:** `0024`'s header also
+claims the no-IP promise "is published on /how-this-site-works in both languages".
+It is not — decisions.md already carries that correction and is the tie-breaker.
+Out of scope for this task; noted so it is not lost.
+
+---
+
+## 2026-08-15 (later still) — RECOMMENDATION: notification on submission. Nothing built
+
+Not committed. **No code written, nothing installed.** This entry is the options
+paper requested before implementation, and it waits on a choice.
+
+### The problem, restated so the fix is aimed correctly
+
+`/api/contact` inserts and returns `ok: true`. Storage *is* delivery (decision 044,
+option A), and the only reader is Moataz opening the Supabase dashboard. For a
+contact form that is a defensible trade. For a CV request it is not: the panel tells
+a recruiter *"Thanks — I'll reply soon"*, and nothing anywhere tells Moataz they
+asked. The promise is made by the site and kept only by chance.
+
+### The domain question decides this, so it goes first
+
+Nothing is deployed, `NEXT_PUBLIC_SITE_URL` is unset, and **no domain is owned.**
+That single fact eliminates most of the field, because transactional mail providers
+verify a *domain*, not a person.
+
+| Provider | Works with no domain? |
+|---|---|
+| **Resend** | ✅ **Yes** — sandbox sends from `onboarding@resend.dev`, but **only to the address the account was created with** |
+| **Postmark** | ❌ No — sender signatures must be on a private domain; `gmail.com` / `outlook.com` are refused as spoofing |
+| **SendGrid / Mailgun / SES** | ❌ Effectively no — single-sender verification is deprecated, throttled, or needs a domain for any real deliverability |
+
+Resend's sandbox restriction is normally the thing that makes it useless in
+production. **Here it is an exact fit**, because the only intended recipient in the
+entire design is Moataz. The constraint and the requirement are the same shape.
+
+### The options
+
+**A — Provider called from the route.** Insert, then `fetch` Resend's REST API.
+One env var, one code path, failure contained in a `try`.
+
+**B — Supabase database webhook or trigger on `contact_messages`.** Attractive
+because it sounds dependency-free. **It is not.** Supabase sends transactional mail
+only for its own auth flows; a webhook is an HTTP POST that still needs something at
+the other end that can send email — which means a Resend account *plus* an edge
+function *plus* a webhook config, all living outside the repo and outside code
+review. It buys decoupling this project does not need and costs a moving part that
+cannot be read in a diff. The one real advantage — mail fires even if the route
+crashes after insert — does not apply, because the insert *is* the last thing the
+route does.
+
+**C — Cheaper things, considered and rejected:**
+
+| Idea | Why not |
+|---|---|
+| Push instead of email (`ntfy.sh`, Pushover) | Genuinely free, no signup, no domain — but a push is a transient buzz, not a durable record with the message in it. Good *additional* channel, bad *only* channel |
+| Gmail SMTP + `nodemailer` + app password | A dependency, a personal mailbox password in env, Google restricting app passwords, and SMTP from serverless is slow and frequently blocked. Worse on every axis |
+| Vercel Cron digest polling the table | Still needs a provider, and adds hours of latency to the exact case — a recruiter — that motivated the change |
+| Do nothing; check the dashboard | The status quo, and the thing being fixed |
+
+**The cheaper thing that *is* worth taking:** call Resend's REST API with `fetch`
+instead of installing `resend`. It is one POST to `https://api.resend.com/emails`
+with a bearer token and a JSON body. **Zero new dependencies**, nothing in
+`package.json`, nothing to keep patched. The SDK is a convenience wrapper over
+exactly that call.
+
+### RECOMMENDATION — A, Resend, called with `fetch`, no SDK
+
+**What you sign up for.** A free Resend account at `resend.com`. Nothing else. No
+domain, no card, no DNS.
+
+> ⚠️ **Sign up with the address you want the notifications to arrive at.** The
+> sandbox can send *only* to the account's own address. Creating the account with
+> Gmail and expecting mail at Outlook will fail, and it will fail as a silent
+> 403 on every send, not at signup. This is the one irreversible-ish choice in the
+> whole setup, and it takes ten seconds to get wrong.
+
+**What the free tier actually covers:** 3,000 emails/month, **100/day**, 1 domain,
+**30-day log retention** in their dashboard. This form will do single digits a month.
+
+**What goes in `.env.local`** — none of them `NEXT_PUBLIC_`, per rule 5:
+
+```
+RESEND_API_KEY=re_...                      # server-side only, secret
+CONTACT_NOTIFY_TO=<your Resend signup address>
+CONTACT_NOTIFY_FROM=onboarding@resend.dev  # swaps to your domain later
+```
+
+**On Vercel:** the same three, set for Production, Preview and Development, with
+`RESEND_API_KEY` marked **Sensitive** so it cannot be read back in the dashboard.
+
+**Does it work without a domain, undeployed?** Yes — today, on `localhost`, with
+`NEXT_PUBLIC_SITE_URL` still unset. Nothing in the send path touches the site URL.
+When the domain is bought and verified, `CONTACT_NOTIFY_FROM` changes to
+`contact@moatazmustapha.com` and **no code changes at all.**
+
+**A security property worth naming:** while the account is unverified, the API key
+is only capable of emailing Moataz. If it leaked, it could not be used to send mail
+to anyone else. That is a better failure mode than most secrets in this project.
+
+### How the requirements would be met
+
+**Insert first, then send; mail failure never fails the request.** The send sits
+after the insert has already succeeded, inside a `try` whose `catch` cannot
+propagate. The visitor's response is decided by the insert alone.
+
+**Where the failure is findable — two new columns, not a log line.** Vercel's
+runtime logs are ephemeral and only exist once deployed, so `console.error` alone
+would mean a silent outage is discoverable only while someone is watching:
+
+```sql
+alter table contact_messages
+  add column notified_at  timestamptz,
+  add column notify_error text;
+```
+
+Then *"did a recruiter get missed?"* is one query — `where notified_at is null` —
+and the evidence sits in the same row as the message it failed to announce.
+`console.error` stays as well, for the deployed case.
+
+**Telling the two kinds apart, at a glance in a phone notification** — the
+distinction goes in the subject line, where it is visible without opening anything:
+
+```
+CV request — jane@acme.com
+Contact (Hiring) — jane@acme.com
+```
+
+**Body carries everything needed to act without the dashboard:** kind, visitor
+email, subject label, the message or optional line, and the timestamp.
+
+**No `Reply-To` from unvalidated input** — agreed, and worth recording *why*: an
+address the visitor controls, echoed into a header, is both a header-injection
+surface and a way to make mail from a sandbox domain claim to be from someone else.
+The address goes in the body, where it is data. Replying is a copy-paste; that is
+the correct amount of friction for one message a week.
+
+### Where the "no hardcoded strings" line sits — my reading, for you to confirm
+
+**Rule 1 governs what a visitor reads.** A notification to the operator is an
+operational artifact, closer to a log line or a column name than to page copy. Its
+scaffolding — `From:`, `Kind:`, `Received:` — should be plain English in the route.
+Putting it in `ui_strings` would mean maintaining an Arabic translation of a mail
+only ever read by one bilingual person, and would make the notification depend on a
+second database round-trip that can itself fail.
+
+**One exception, and I think it is a real one:** the *subject label*. The visitor
+picked "Hiring" / "توظيف" from a list that lives in `ui_strings`. The notification
+should say the label they chose, resolved in English, not the raw key `hiring` —
+otherwise the notification and the site describe the same choice differently. So:
+scaffolding hardcoded, **the visitor's own choice resolved from the database.**
+
+### Two consequences that are the actual price of this change
+
+**1 · A third-party processor now exists, and decision 044 argued against exactly
+that.** 0024's header comment says option A was *"chosen over an email service
+because it adds no third-party processor, so `/how-this-site-works` needs no new
+disclosure"*. After this, that sentence is false. Message contents will transit
+Resend. `/how-this-site-works` is still unbuilt (Layer 2) and the four `privacy_*`
+strings still render nowhere — so there is no page to correct today, which is
+precisely how a disclosure gets forgotten. **It needs writing down now**, in the
+decision and in the migration comment, so the unbuilt page inherits a correct list.
+
+**2 · The rate limit and the free tier disagree.** The route's global ceiling is
+20/hour = **480/day**; the free tier is **100/day**. A sustained spam burst would
+exhaust the mail quota while rows continue to store fine — notifications drop
+silently. The `notified_at is null` query above is what surfaces it. Worth knowing
+rather than discovering.
+
+### Status
+
+**WAITING ON A CHOICE.** Nothing installed, no integration written, `package.json`
+untouched. On approval the work is: two columns, the send helper, the route change,
+the 044 amendment, and the correction to 0024's header comment.
+
+---
+
+## 2026-08-15 (later) — CV download replaced by a CV request flow
+
+Not committed. Nine `ui_strings` added, two retired, one route extended, one component added.
+
+### What it is
+
+The CV is no longer offered as a file. `Request CV` opens a panel styled as a mail
+compose window — `To`, `Subject`, greeting and body are fixed and inert, and the
+visitor edits exactly two things: an optional line about themselves, and their email
+address. It reads as a message they are sending, because that is what it is.
+
+`components/contact/CvRequestPanel.tsx`, rendered twice: `variant="button"` in the
+contact page's *Also here* row, `variant="link"` in the footer, where a bordered
+control among text links would shout.
+
+### It reuses the contact path — it does not add a second one
+
+`/api/contact` gained a `kind` discriminator, nothing more:
+
+```ts
+type Kind = "contact" | "cv";
+const valid = kind === "cv" ? looksLikeEmail(email)
+                            : Boolean(name && message) && looksLikeEmail(email);
+const subject = kind === "cv" ? "cv" : SUBJECTS.has(rawSubject) ? rawSubject : null;
+```
+
+Honeypot, the three-second/two-hour timing window and the global in-memory ceiling
+all apply unchanged, because they run **before** the discriminator is read. A CV
+request stores `name = ''` and, when the optional line is blank, `message = ''` —
+both columns are `NOT NULL`, and an empty string is an honest absence where an
+invented name would not be. `subject = 'cv'` is what identifies the row.
+
+### ⚠️ NOTHING SENDS AN EMAIL. THIS IS NOT A BUG IN THE PANEL
+
+The task asked me to confirm the email arrives. **It does not, and it never has,
+for the contact form either.** This is not a misconfiguration — there is no email
+mechanism anywhere in this project to misconfigure:
+
+| Checked | Result |
+|---|---|
+| `package.json` dependencies | No `resend`, `nodemailer`, `postmark`, `sendgrid`, `@aws-sdk/client-ses` |
+| `.env.local` | No SMTP host, no API key for any mail provider |
+| `supabase/` | No edge function, no `pg_net` call, no database trigger on `contact_messages` |
+| `app/api/contact/route.ts` | One `insert`, then `NextResponse.json({ ok: true })` |
+
+This is decision 044 **option A** working exactly as specified: delivery means *a
+row in `contact_messages`*, which Moataz reads in the Supabase dashboard. What the
+visitor is told — *"Thanks — I'll reply soon"* / *"شكراً — سأردّ قريباً."* — is
+true only because a human then reads the table. **Nothing notifies that human.**
+
+A form that validates but does not deliver is worse than no form. It validates and
+it *stores*; whether that counts as delivery is a decision, and it is already
+recorded as one. If it should send mail, that is a separate task and a new
+dependency, and it needs an explicit decision. Flagging it, not fixing it.
+
+### Key renames — what changed and what broke
+
+Two keys were consolidated into one, because two keys for one absent thing is worse
+than one key for a present thing:
+
+| Old key | Fate |
+|---|---|
+| `cv` (0005) | **retired** — labelled a file that no longer exists |
+| `download_cv` (0023) | **retired** — the verb is now wrong; nothing downloads |
+| `request_cv` | **new** — the single trigger label, both variants, both locales |
+
+Nine strings in total, all in `0003_seed_site_chrome.sql`: `request_cv`, `cv_to`,
+`cv_subject_label`, `cv_subject_value`, `cv_greeting`, `cv_body`,
+`cv_optional_placeholder`, `cv_email_placeholder`, `cv_close`. Existing keys carry
+the rest — `form_send`, `form_sending`, `form_success`, `form_error` are shared
+with the contact form rather than duplicated.
+
+**What breaking a key name costs, stated plainly:** a `ui_strings` key is referenced
+by name in exactly one place in the code and one place in a migration, so a rename
+is a two-file change with no runtime fallback — a missed reference renders
+`undefined`, not a stale label, and that is loud rather than silent. There is no
+cache, no CDN copy and no external consumer keyed on these names. `llms.txt` and the
+sitemap read content rows, not chrome strings. The rename was safe; the two retired
+keys were removed rather than left dangling, and `check:seed-drift` proves it.
+
+### The Arabic
+
+Approved as written, not translated literally, and deliberately not "corrected":
+
+> اطّلعت على أعمالك وأودّ الحصول على سيرتك الذاتية.
+
+`اطّلعت` ("I have looked over / studied") stays. It is not `صادفت` ("came across"),
+which is the literal rendering of the English and is weaker in Arabic — the English
+line is casual, the Arabic line is considered, and both are right for their reader.
+
+### Verified
+
+**On `:3000`, in `next dev`** — both locales, after the host problem below was
+found and fixed.
+
+| Check | Result |
+|---|---|
+| Panel opens, `role="dialog"` + `aria-modal` + `aria-labelledby` | ✅ both locales |
+| Heading resolves from `ui_strings` | ✅ `Request CV` / `اطلب السيرة الذاتية` |
+| Focus moves to the email input on open | ✅ |
+| Focus does **not** move on page load | ✅ (`wasOpen` guard) |
+| Escape closes and returns focus to the trigger | ✅ |
+| Tab cycles inside the panel | ✅ |
+| Email input `dir="ltr"` while `<html dir="rtl">` | ✅ |
+| Panel centred in RTL | ✅ **after a fix — see below** |
+| Light and dark, both | ✅ |
+| 320px | ✅ **measured structurally, not at a real 320px viewport** |
+| POST with the optional line | ✅ 200, row stored, Arabic intact |
+| POST without it | ✅ 200, `message = ''` |
+| POST with an invalid address | ✅ 400, nothing stored |
+| POST with the honeypot filled | ✅ 200 and **not** stored |
+| `npx tsc --noEmit` · `eslint` · `check:seed-drift` | ✅ clean · clean · no drift |
+
+The three test rows (`with-line@`, `no-line@`, `ar-ui-test@example.com`) were
+deleted. `contact_messages` is empty — those were the only rows it had ever held.
+
+**320px is the weak one.** The automation viewport is pinned at 700px and would not
+resize, so instead of claiming a check I did not run, I cloned the panel into a
+320px box with the `sm:` classes stripped and measured every descendant:
+`scrollWidth === clientWidth` throughout, no element overflows. That tests the
+content, not the media query. **A real phone still needs a real look.**
+
+### Two bugs found by looking, both mine
+
+**1 · The panel rendered off-screen in Arabic.** It centred with
+`sm:left-1/2` plus `sm:-ms-[min(22rem,45vw)]`. `left` is physical and `ms` is
+logical, so under `dir="rtl"` the two pull in opposite directions and the panel
+left the viewport. English was perfect throughout — which is the exact failure mode
+`rtl-guard` exists to catch, and it still shipped past me. Positioning now lives on
+a wrapper that centres with flex and has no sides at all:
+
+```
+fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4
+```
+
+**2 · Three sessions of "hydration is broken in `next dev`" were wrong.** The dev
+server was fine. I was browsing `http://127.0.0.1:3000` while Next's dev-origin
+allowlist contains `localhost`, so it blocked `/_next/hmr` and the client never
+finished hydrating — server HTML rendered, nothing was interactive, and **no error
+appeared in the console.** The dev server said so plainly in its own log, which I
+had not read:
+
+```
+⚠ Blocked cross-origin request to Next.js dev resource /_next/hmr from "127.0.0.1".
+```
+
+`http://localhost:3000` works. This also retires the standing claim in earlier
+entries that dev-mode hydration is broken on this machine — it never was, and the
+production control build on `:3403` was never needed. **Use `localhost`, not the
+loopback address.** Adding `allowedDevOrigins: ['127.0.0.1']` to `next.config.mjs`
+would also fix it and was deliberately not done — it widens what dev serves, to
+solve a problem that spelling the host correctly already solves.
+
+I said mid-session that the cause was `next dev` and `next build` sharing `.next`.
+That was wrong; the log above is the cause.
+
+### Files
+
+| File | Change |
+|---|---|
+| `components/contact/CvRequestPanel.tsx` | new |
+| `app/api/contact/route.ts` | `kind` discriminator, per-kind validation |
+| `app/[locale]/(site)/contact/page.tsx` | CV button replaces the download link; resolves the nine strings |
+| `components/layout/SiteFooter.tsx` | link variant; resolves the same nine strings |
+| `supabase/migrations/0003_seed_site_chrome.sql` | nine strings, `request_cv` |
+| `supabase/migrations/0005_*.sql` · `0023_*.sql` | `cv` and `download_cv` retired |
+
+---
+
+## 2026-08-15 — SURVEY: what is actually left, read from the code and the database
+
+Not committed. Nothing changed. Read from `docs/manifesto.md`, the source, and the live database — **not** from this file, which is a narrative and is behind in places.
+
+### 1 · The launch gate, item by item
+
+| # | Gate item | Verdict |
+|---|---|---|
+| 1 | All four case files complete, every declared target closed | 🔴 **FAILS** |
+| 2 | Metric truth table applied everywhere | 🟡 **UNVERIFIABLE from here** |
+| 3 | No unredacted NDA material on the site or in the repo | 🔴 **FAILS** |
+| 4 | Mobile tested end to end, both languages | 🔴 **FAILS — never done** |
+| 5 | RTL verified on every page type | 🔴 **FAILS** |
+| 6 | LLM summary test passes | 🟡 **Passed once, on stale content** |
+| 7 | Zero heading-level typos, both languages | 🟡 **UNVERIFIABLE — needs a reader** |
+| 8 | Lighthouse: performance + accessibility acceptable | 🔴 **FAILS — never run** |
+| 9 | Analytics confirmed writing to Supabase | 🟢 **PASSES** |
+| 10 | Old Webflow site stays live until every box is ticked | 🟢 Holds trivially — nothing is deployed |
+
+**1 — case files.** Published chapter counts: Egypt 7, Cervello 3, Neobiz 2, **UAE 1**. Targets: Egypt 6, Neobiz 5, **UAE 0, Cervello 0**. No target or outcome anywhere has a null status, so the integrity rule is intact on what exists — but UAE is one chapter and no targets, which is not a complete case file. *Effort: content, not code.*
+
+**2 — metric truth table.** Every `outcomes.status` and `targets.status` is non-null (7 outcomes, 11 targets). What I cannot check from here is whether each *marker is the right one*, whether the ~30% is framed as an Egypt recovery rate, or what the CV says — the CV does not exist yet. That is a reading task against `docs/decisions.md` 007, not a query.
+
+**3 — NDA.** Fails on a specific, known item: the two Cloudinary assets `uae-acquisition` and `uae-acquisition-card` are **publicly fetchable, unauthenticated**, and contain three product screens — a documents checklist naming Emirates ID and Passport, a liveliness check, and a financial-details screen with filled name and company fields. Assessed as promotional/dummy and approved, and `media.redacted = false` reflects that decision. **The gate item is about material being unredacted, not about whether it is approved**, so it needs an explicit call recorded, not an assumption. Also open: `designs/uae-acquisition.svg` and `-card.svg` sit untracked in the repo — committing them puts that artwork in permanent git history.
+
+**4, 5, 8 — never done.** No real device, no throttled network, no Lighthouse, no axe, no keyboard-only pass, no screen-reader pass. RTL has been verified ad hoc on the pages I happened to touch; it has never been walked across every page type. *Effort: a session with a browser and a device, mostly mine, but the mobile pass wants your eyes.*
+
+**6 — LLM read test.** Ran once, before the covers and before the header and theme work. The content it read has since changed. Also still impossible in its literal form: nothing is deployed, so no crawler can reach the site.
+
+**9 — analytics. Genuinely passing:** 252 rows in `events`, 26 in `sessions`. This is the one gate item I can confirm green from here.
+
+### 2 · What only you can do
+
+| Item | State |
+|---|---|
+| **Three remaining covers** | Egypt is a component; UAE is now Cloudinary. **Neobiz and Cervello have no cover at all** — `cover_kind='media'`, `cover_media_id` NULL |
+| **`settings.og_image`** | NULL. Every shared link previews with no image |
+| **`settings.cv_url`** | NULL. The `download_cv` string exists and renders nothing |
+| **Chapter evidence images** | **0 of 13 published chapters have a `hero_media_id`.** `media` holds exactly 2 rows, both UAE covers |
+| **`features` table** | **0 rows.** FeatureStrip has nothing to render — building it is pointless until content exists |
+| **Employment dates, employers, titles** | Still absent. The About design has had a career-timeline component since before the site existed; the LLM read test named this gap first |
+| **Arabic for 46 `page_sections`** | **0 of 46 have Arabic.** About, Philosophy, Systems, Contact, both comparisons, accessibility — English-only for an Arabic visitor. This is the largest single content gap on the site |
+| **Arabic for 12 `entry_handles`** | 0 of 12 |
+| **Arabic for 4 `case_file_sibling`** | 0 of 4 |
+| **Arabic for 4 case files** | 4 of 8 have Arabic; the 4 drafts do not |
+| **1 `decision` missing Arabic** | 19 of 20 have it |
+| **UAE entry handles** | 3 handles, **all 3 with no target chapter** — they render as text, not links, because UAE has only one published chapter |
+| **Mini case files** | `east`, `pidetaxi`, `kshemam`, `aam-advisor` — still drafts with no content. Open question B: in or cut |
+| **Domain + hosting account** | No `vercel.json`, no `.vercel`, `NEXT_PUBLIC_SITE_URL` unset. Nothing has ever deployed |
+| **NDA call on the UAE assets** | Approved verbally; not recorded as a decision |
+
+### 3 · What I can do without you, ordered by what it unblocks
+
+1. **Commit and secure the local-only work** — see §5. Two commits and four uncommitted changes exist on this laptop only. Highest value per minute, and it is currently the largest risk on the project.
+2. **Error boundary.** `error_title` and `error_cta` are seeded in both locales and **no `error.tsx` or `global-error.tsx` exists anywhere in `app/`.** An unhandled error currently falls to Next's default shell. Small, self-contained, and it closes two of the twelve unwired strings.
+3. **Wire `back_to_work`, `view_all`, `filter_domain`, `status_label`.** Four seeded strings with no call site (§4). Each is either a small wiring fix or a deletion; both are cheap.
+4. **`RedactedEvidence`** — the component file exists and **is referenced by nothing**. It also owns `redacted_notice`. Cannot be finished without evidence images, but can be wired and left dormant.
+5. **The `covers/` prefix tidy.** `uae-acquisition` and `uae-acquisition-card` sit at Cloudinary's root rather than under `covers/`. Worth settling before the remaining covers upload — a rename changes the delivery URL, so it means re-uploading.
+6. **A derivative-warming script.** Every new asset costs 6.7–12.4s on its first request, paid by a real visitor. Two covers still to upload at 8 derivatives each.
+7. **Lighthouse / axe / keyboard pass.** I can run and report these; fixing what they find is separate.
+
+**Not on this list, deliberately:** `FeatureStrip` (0 rows in `features`), chapter heroes (0 media), the career timeline (no content). Those are blocked on you, not on me.
+
+**Cervello route collision: appears resolved.** Cervello has exactly 3 clean published chapters, all 3 entry handles resolve to targets, no orphans. Decision 040 called the parked row out of scope. I would treat this as closed unless you know otherwise.
+
+### 4 · Seeded and wired to nothing — the full list, 12 of 84
+
+Audited by checking every `ui_strings` key against `app/`, `components/` and `lib/`:
+
+| Key | Missing component, or delete? |
+|---|---|
+| `error_title` | **Missing component** — no error boundary exists |
+| `error_cta` | **Missing component** — same |
+| `redacted_notice` | **Missing wiring** — `RedactedEvidence.tsx` exists but nothing imports it |
+| `privacy_no_ip` | **Missing page** — `/how-this-site-works` is Layer 2 |
+| `privacy_no_tracking` | Same |
+| `privacy_location` | Same |
+| `privacy_ga` | Same |
+| `privacy_title` | Same |
+| `status_label` | **Probably delete.** The results table renders الهدف / الحصيلة / الدليل — there is no Status column, so its stated collision risk was moot |
+| `back_to_work` | **Probably wiring.** The chapter page uses `page_work` for that link |
+| `view_all` | **Probably delete** — the gallery link uses `read_linear` / `linear_view` |
+| `filter_domain` | **Probably delete** — the filter bar uses `all` and `filter_by` |
+
+Five privacy strings, not four — I have twice said four. They are the site's honesty statement and the most consequential of the twelve: they promise something no visitor can currently read.
+
+### 5 · True only on this laptop — what dies with the machine
+
+**Two commits, unpushed:**
+```
+0eec0f5  status: write up the UAE artwork replacement
+f087c89  feat(covers): replace the UAE cover with Moataz's own artwork
+```
+**Remote state, observed 2026-08-19 via the GitHub API:** `moatazmustaphaweb/portfolio` exists, is **private**, default branch `main`, last pushed **2026-08-14**. Remote `main` is **`8845b4e`** — 57 commits, all authored `244900353+dabblersport@users.noreply.github.com`. The earlier `Repository not found` was purely an auth failure: `gh` was authenticated as an account without access. The cached ref was correct after all.
+
+On 2026-08-19 all 59 commits were rewritten onto `315330096+moatazmustaphaweb@users.noreply.github.com` (author and committer), and a repo-local `user.email` now pins that identity. **Every commit hash changed.** The pre-rewrite history is preserved at `refs/backup/pre-identity-rewrite` (`db77bd3`).
+
+**Uncommitted source changes — the entire Cloudinary cover path:**
+```
+M  app/[locale]/(site)/work/[caseFile]/page.tsx     the media branch (this page never had one)
+M  components/gallery/ProjectCard.tsx               the -card variant selection
+M  lib/content/case-files.ts                        resolveCoverCard
+M  lib/content/types.ts                             CaseFile.coverCard
+M  lib/content/chapters.ts                          type conformance
+?? supabase/migrations/0028_uae_cover_media.sql     media rows + the cover switch
+D  designs/OBJECTS.svg                              unstaged deletion (recoverable from 10c6515)
+```
+
+**Uncommitted documentation:** four `status.md` entries — the Cloudinary FINDING, the DIAGNOSTIC, the wiring entry, the performance entry, and this survey. All exist only in the working tree.
+
+**Untracked files:** `designs/uae-acquisition-pointcloud.backup.tsx` (the only copy outside git history), `uae-acquisition.svg`, `uae-acquisition-card.svg`, `uae-acquisition.png`, `uae-acquisition-card.png`, `.vscode/`.
+
+**Database changes with a migration but no commit:** the two `media` rows, their four `alt` translations, and the UAE cover switch. These are safe in Supabase, but `0028` — the file that would reproduce them — is untracked. **The database and the repo would disagree if this machine were lost.**
+
+**Not at risk:** the Cloudinary assets and the warmed derivatives, which live on Cloudinary; and everything in Supabase.
+
+### Confidence
+
+Verified from the machine: gate items 1, 3, 9, 10; every count in §2; the full §4 audit; all of §5. **Not verifiable from here:** gate items 2 and 7, which need a human reader; 4, 5 and 8, which need a device and a browser session; and the true remote git state, which needs a working GitHub account.
+
+---
+
+## 2026-08-15 — The five seconds was the transformation, not the transfer or the decode
+
+Not committed. No asset re-exported, no artwork touched, `e_grayscale` untouched. **No code changed either** — the diagnosis did not call for any, and the section on the 2× variant explains why.
+
+### The answer, measured
+
+Every derivative, timed first request against second:
+
+| derivative | Accept | 1st | 2nd | bytes |
+|---|---|---|---|---|
+| `c_limit,w_1200` (cover 1×) | `*/*` → png | **10.98s** | 0.09s | 89 KB |
+| `c_limit,w_2400` (cover 2×) | `*/*` → png | **12.42s** | 0.10s | 256 KB |
+| `c_fill,w_640,h_400` (card 1×) | `*/*` → png | **7.38s** | 0.12s | 25 KB |
+| `c_fill,w_1280,h_800` (card 2×) | `*/*` → png | **7.23s** | 0.08s | 72 KB |
+| …and the webp variants of each | avif/webp | 6.7–8.3s cold | 0.08–0.13s | 19–173 KB |
+
+**Cold: 6.7–12.4 seconds. Warm: 0.08–0.13 seconds.** A 100× difference, and it lands entirely on whoever asks first.
+
+That is the five seconds. Cloudinary was rasterising a 1.49 MB SVG with 9 embedded PNGs, applying `e_grayscale`, resizing and re-encoding — on demand, synchronously, per distinct derivative URL. Every subsequent request is a CDN hit.
+
+### 1 · Cache warmed — all eight derivatives
+
+Two assets × two presets × 1× and 2× × two Accept outcomes. Worth knowing: **`avif` is not actually served** — an `Accept: image/avif,…` header returns `image/webp`, identical bytes to the plain webp request. So there are only two real encodings per size, not three, and the matrix is 8 derivatives rather than 12.
+
+All eight confirmed warm on re-request: **0.28–0.60s including full download** of up to 256 KB, against 6.7–12.4s cold.
+
+### 3 · Where the time actually went — broken down
+
+Measured in the browser with the CDN warm and the **browser cache bypassed** (`cache: 'reload'`) — the true first-visitor experience now:
+
+| | bytes | network | decode | **total** |
+|---|---|---|---|---|
+| cover 2× (w_2400) | 250 KB | 180 ms | 10 ms | **190 ms** |
+| cover 1× (w_1200) | 87 KB | 66 ms | 2 ms | **68 ms** |
+| card 1× (w_640) | 24 KB | 45 ms | 1 ms | **46 ms** |
+
+And with the browser cache warm too, resource timing on `:3000` reports the image at **TTFB 1 ms, download 2 ms, total 114 ms**.
+
+**So: transformation ~11,000 ms → transfer ~180 ms → decode ~10 ms.** It was the transformation, by two orders of magnitude over everything else. Not the transfer, not the decode.
+
+> ⚠️ **I over-called the decode last session.** A first `createImageBitmap` on the 2400px asset measured **112 ms**, and I flagged it as a risk. Re-measured after the codec was warm it is **10 ms** — the 112 was one-time WebP decoder start-up, not the image. The 22 MB memory figure is real; the decode cost is not.
+
+### 2 · The 2× variant — measured, and it should stay
+
+| | 1× (w_1200) | 2× (w_2400) |
+|---|---|---|
+| bytes | 87 KB | 250 KB |
+| network | 66 ms | 180 ms |
+| decode | 2 ms | 10 ms |
+| resident bitmap | 5 MB | **22 MB** |
+
+The 2× costs **+163 KB and +122 ms**. Against that: the rendered box is **1152 CSS px**, and on a DPR-2 display that is **2304 device pixels**. The 1× at 1200 px would be served at *half* the resolution the screen can show — visibly soft, on the largest image on the page.
+
+**And phones do not receive it.** `sizes` is `(max-width: 1200px) 100vw, 1200px`, so a 390 px phone at DPR 3 asks for ~1170 px and gets the **1200 px variant**. The 2400 px derivative goes only to wide retina desktops, which have the memory headroom. The 22 MB never lands on the constrained device.
+
+**Recommendation: keep it, change nothing.** Dropping the 2× would soften the hero on every retina desktop to save 122 ms on a warm CDN, and would not help phones at all because they never fetch it.
+
+**On whether that is a shared-preset question:** `hero` currently has **exactly one consumer** — `grep -rn 'preset="hero"'` returns the one call site added yesterday. So a change would have been safe today. But the preset is named for *"case file cover and chapter hero"*, and `chapters.hero_media_id` exists and will use it once chapter media lands. Changing it would have been a decision about every future chapter hero, not about this cover — which is exactly why it is flagged rather than made.
+
+### The real fix, and it is procedural
+
+The cache is warm, so the problem is solved for these two assets. **It will recur for every new one.** Each distinct derivative URL — new asset, new preset, new width, new Accept outcome — pays 7–12 seconds once, and on the live site that cost lands on a real visitor, most likely the first recruiter to open the page.
+
+Two remaining covers are still to upload, at 8 derivatives each. **Warming should become a step in the upload routine**, not something remembered. A short script that walks `media` × `PRESETS` × 1×/2× × both Accept headers and fetches each URL would close it permanently. Not written — that is a new file and this task was a diagnosis.
+
+### Measured on `:3000`, after the fix
+
+Navigation timing on the server being watched, image served from cache: **DOMContentLoaded 2056 ms, load 2089 ms**, image contributing **0 ms** (cache hit).
+
+> ⚠️ **Read that number carefully — it is not a page-speed claim.** `:3000` is `next dev`, which compiles routes on demand; the control page `cervello`, which has no cover image at all, loads in **1371 ms / 1450 ms** on the same server. The ~600 ms difference between them is route compilation, not the image. Dev-server timings say nothing about production, and the Paint/LCP APIs return no entries in this automation context, so there is no LCP figure to report. **What is honestly measured is the image itself: 190 ms cold-browser/warm-CDN, down from 6.7–12.4 seconds.**
+
+### Ruled out, as instructed
+
+Serving the SVG from the codebase was not considered — it would ship the full 1.49 MB to every visitor with no resize and no format negotiation, trading a one-time cost for a permanent one.
+
+---
+
+## 2026-08-15 — UAE cover on the Cloudinary path. Wired, with one thing I could not confirm by looking
+
+Not committed, per instruction. The 2 unpushed commits and the earlier uncommitted entries are untouched.
+
+### The measurement, finally taken
+
+Both assets are SVG, so the question that was documented-but-unmeasured for two sessions is now closed:
+
+```
+f_auto,q_auto,w_1200,c_limit   Accept: avif,webp   ->  image/webp     79,490 B
+f_auto,q_auto,w_1200,c_limit   Accept: */*         ->  image/png      95,463 B
+f_auto,q_auto,w_640,h_400,c_fill,g_auto (card)     ->  image/webp     22,736 B
+untransformed original                              ->  image/svg+xml
+```
+
+**They rasterise.** SVG survives only with no transformation at all; the moment a width or crop is requested, Cloudinary rasterises and `f_auto` negotiates webp/png per Accept header. Every preset sends a width and a crop, so at both render sites **these assets are rasters, not vector**. Crispness at arbitrary zoom is gone — a real cost of this path, alongside the theme binding already knowingly traded away. Source SVGs are 1.49 MB each with 9 embedded PNGs; Cloudinary delivers 79 KB and 23 KB, which is the path doing its job.
+
+### 4 · How the two assets are selected — no schema change
+
+`case_files` carries exactly one `cover_media_id`, so a second column (`cover_card_media_id`) was the obvious answer and would have been a schema change. It was not needed.
+
+`resolveCoverCard` in `lib/content/case-files.ts` looks for the media row whose `cloudinary_public_id` is the cover's **plus `-card`**. Present → the card uses it; absent → null, and the card falls back to the cover asset exactly as before.
+
+The lookup is against **our `media` table, not Cloudinary**, which is what makes it safe: a missing variant is a null in the query layer, never a 404 in the browser. No existing case file changes behaviour, nothing is required to exist, and rule 3 holds — still only a `public_id` stored, still a named preset building the URL. An explicit column remains the more orthodox design if it is ever wanted; this avoids the migration.
+
+### What shipped
+
+| | |
+|---|---|
+| **Cover page media branch** | Built. `hero` preset, `priority`, alt from `translations`. The page rendered a component cover and *nothing else* — no `else`, no import — so any case file on the media path showed no cover at all, silently. That gap is closed |
+| **Two media rows** | `uae-acquisition` 2400×2400 svg, `uae-acquisition-card` 2560×1600 svg, both `redacted = false`, both with `alt` in **en and ar** |
+| **The switch** | One `UPDATE` moving `cover_kind`, `cover_component` and `cover_media_id` together — the CHECK rejects either ordering if split |
+| **Migration** | `0028_uae_cover_media.sql`. `check:seed-drift`: **84 parsed, 84 in database, no drift** |
+| **Point-cloud backup** | Recovered from `f809303` to **`designs/uae-acquisition-pointcloud.backup.tsx`** — unreferenced, 17 KB, the 1,465-point version with its seeded PRNG intact. Asked for twice before and never actually done; both earlier sessions overwrote the path instead |
+
+### Verified at the markup level — all four surfaces
+
+```
+/en/work                  uae-acquisition-card   e_grayscale/c_fill,w_640,h_400,g_auto   alt: Three screens…
+/ar/work                  uae-acquisition-card   e_grayscale/c_fill,w_640,h_400,g_auto   alt: ٣ شاشات…
+/en/work/uae-acquisition  uae-acquisition        e_grayscale/c_limit,w_1200              alt: Three screens…
+/ar/work/uae-acquisition  uae-acquisition        e_grayscale/c_limit,w_1200              alt: ٣ شاشات…
+```
+
+The card takes the hand-made 1.6:1 crop, the cover page takes the square master, and Arabic alt resolves in `/ar`. A case file with neither cover kind (`cervello`) returns 200 with zero image elements — no gap, no empty frame.
+
+**Verified on `:3000`, the server being watched** — same pid throughout, hot-reloaded through every edit. No throwaway port was used, and none of this is reported from one.
+
+### 🔴 What I could NOT confirm by looking, stated plainly
+
+**The Cloudinary images do not appear in my screenshots of the page.** The slot is reserved at the right size and is blank, on both the cover page and the gallery card, in dark and in light.
+
+Everything measurable says they are fine:
+
+- network request returns **200**
+- `complete: true`, `naturalWidth/Height` **1200×1200**
+- computed style: `opacity 1`, `visibility visible`, `display block`, no `filter`, no `transform`, rendered box **1152×1152**
+- **no console errors** of any kind — no CSP, no blocked resource
+- the **exact same URL renders perfectly** when opened directly in a tab in the same browser
+- the Egypt inline-SVG cover renders normally *in the same screenshot* where the Cloudinary image is blank
+
+So the evidence points to a **screenshot-capture limitation for cross-origin images in this automation context**, not a page fault — but I cannot prove that from here, and one JS evaluation did time out with *"renderer may be frozen"*, which I am not going to wave away.
+
+**Given three sessions of reporting success on things that were not on screen, I am not calling this verified.** Please look at `/en/work/uae-acquisition` and `/en/work` on `:3000` yourself and confirm the artwork is visible. If it is blank for you too, the fault is real and I will chase it; the first thing I would try is dropping the 2× `srcSet` variant, since the browser was fetching a 2400×2400 derivative that decodes to ~23 MB in memory.
+
+### ⚠️ `e_grayscale` is applied, as predicted
+
+`case_files.nda` is still `true`, so `CloudinaryImage` adds `e_grayscale` unconditionally — visible in all four URLs above. Decision 050 had scoped grayscale out of component covers only because the transform could not reach an inline SVG; moving to the media path moves this cover back under amendment 036. **The artwork renders desaturated.** Confirmed by fetching the delivered derivative and viewing it: the three phone screens are correct and legible in grey. If colour is wanted, that is a decision — either export already-grey, change `NDA_TRANSFORM` globally, or scope 036 by asset rather than by case file.
+
+### Also noted
+
+- **The public_ids sit at the root**, not under `covers/` as proposed. Used exactly as uploaded, per instruction. Worth tidying before the remaining two covers upload, so the four are consistent — renaming these two later means re-uploading, since a Cloudinary rename changes the delivery URL.
+- `designs/OBJECTS.svg` still shows as an **unstaged deletion** in the tree, and two untracked `.svg` files sit alongside it. Not mine, not touched.
+
+---
+
+## 2026-08-15 — DIAGNOSTIC: why three sessions of UAE cover work did not reach the screen
+
+**Nothing was changed by this investigation.** No commit, no push, no branch, no revert, no reset, no stash. Every answer below is read from the machine.
+
+### The headline
+
+**The media task never ran.** And the two earlier cover changes *did* happen — they are in the tree and on the running server right now — but they reached a server that was never restarted, which is why they were never seen.
+
+### 1 · Where this repo actually is
+
+```
+path      /Users/moatazmustapha/Desktop/Moataz_Next   (real directory, not a symlink)
+git dir   /Users/moatazmustapha/Desktop/Moataz_Next/.git
+branch    main   (tracking origin/main)
+remote    origin  https://github.com/moatazmustaphaweb/portfolio.git
+```
+
+One repo, no worktree, no symlink indirection. Work is landing in the folder being read.
+
+### 2 · What is committed, uncommitted, and unpushed
+
+**Committed and unpushed — 2 commits.** `HEAD` is `0eec0f5`; there is no `origin/main`.
+
+```
+0eec0f5  2026-08-15 17:17  status: write up the UAE artwork replacement
+f087c89  2026-08-15 17:17  feat(covers): replace the UAE cover with Moataz's own artwork
+```
+
+⚠️ Hashes changed on 2026-08-19 — the full 59-commit history was rewritten onto the `moatazmustaphaweb` identity. **The remote has NOT been rewritten.** Remote `main` is still `8845b4e` (57 commits, all on the old identity), confirmed against the GitHub API on 2026-08-19. Local and remote now share **no commit hashes**; reconciling them requires a force-push. Pushing is still disabled by instruction.
+
+**Uncommitted — 5 items:**
+
+| | Path | Note |
+|---|---|---|
+| **D** | `designs/OBJECTS.svg` | Deletion, **unstaged**. Committed in `10c6515`, so recoverable — but committing the tree as-is would remove it |
+| **M** | `docs/status.md` | +157 lines: the `FINDING` entry. Written to disk, never committed |
+| **??** | `designs/uae-acquisition.svg` | Untracked |
+| **??** | `designs/uae-acquisition-card.svg` | Untracked |
+| **??** | `.vscode/` | Local editor state |
+
+### 3 · The newest entry on disk vs in git — they differ, and disk is ahead
+
+| | Newest entry |
+|---|---|
+| **On disk** (mtime 2026-08-15 18:14) | `2026-08-15 — FINDING: what the Cloudinary path needs…` |
+| **At `HEAD`** | `2026-08-15 — UAE cover: Moataz's own artwork, verbatim` |
+
+**Disk is one entry ahead of git**, not behind. The `FINDING` entry exists only as an uncommitted working-tree change. Reading the file gets the newest content; reading git does not.
+
+And the observation that it *"has not changed in several sessions"* is **correct**: the two sessions after `FINDING` both ended at a stop — one on the embedded-raster condition, one on rule 6 — so neither produced an entry. The file was accurate about there being nothing to report.
+
+### 4 · Did the media task run? **No. None of it.**
+
+| Expected | Actual |
+|---|---|
+| Media branch on the cover page | **`grep -c "CloudinaryImage"` = 0.** No import, no `else`. Line 125 is still `cover_kind === "component" ? … : null` |
+| Two media rows | **`select count(*) from media` = 0.** The table has never had a row |
+| Switch to `cover_kind = 'media'` | **Not switched** (see §5) |
+| A migration for it | Latest is `0027_uae_cover_component.sql` — the *component* backfill, from before |
+| A commit | Latest is `db77bd3`, from the prior session |
+
+For contrast, `ProjectCard` **does** have both branches (`resolveCover` and `CloudinaryImage`). The gap is the cover page only.
+
+### 5 · What `uae-acquisition` resolves to right now
+
+Read live:
+
+```
+slug             uae-acquisition
+nda              true
+status           published
+cover_kind       component
+cover_component  uae-acquisition
+cover_media_id   NULL
+```
+
+→ `designs/registry.tsx` → `UaeAcquisitionCover` → `designs/uae-acquisition-cover.tsx`, which is currently **`viewBox="0 0 500 500"`, 101 `<path>` elements** — the wireframe converted from `OBJECTS.svg`.
+
+### 6 · What happened to the two earlier claimed changes: **overwritten, not reverted**
+
+Same file path, rewritten three times. Tracing `designs/uae-acquisition-cover.tsx` at each commit:
+
+| Commit | Date | viewBox | `h.01` dots | `<path>` |
+|---|---|---|---|---|
+| `7dbd409` | 08-14 00:35 | template literal (1600×883) | 2 | 5 |
+| `f809303` | 08-14 01:02 | template literal (900×1200) | 2 | 10 |
+| `10c6515` | 08-15 17:17 | `0 0 500 500` | 0 | 101 |
+| **HEAD / tree** | — | **`0 0 500 500`** | **0** | **101** |
+
+**No revert commits exist.** Each session replaced the previous artwork in place. Both point-cloud versions are recoverable from git history and **exist nowhere as files**: `grep -rl "mulberry32"` across the tree returns nothing.
+
+> ⚠️ **An instruction was missed, twice.** Two briefs said to keep the point-cloud cover *"in the repo as a backup, unreferenced."* Neither session moved it aside — each simply overwrote `designs/uae-acquisition-cover.tsx`. The code survives only in commits `7dbd409` and `f809303`. Nothing is lost, but the backup that was asked for was never actually created.
+
+### 7 · 🔴 The delivery failure: verification never touched the server being watched
+
+This is the mechanism behind *"the cover I see has never changed."*
+
+```
+:3000   next-server (v16.3.0)   started Sat Aug 15 17:19:32
+.next/BUILD_ID                  built    Aug 15 17:16
+```
+
+That is **`next start` — a production server, not `next dev`.** It serves a compiled build and **does not pick up source changes**. New work becomes visible only after a rebuild *and* a restart.
+
+Every verification pass across these sessions ran on a **temporary port started and then killed** — 3311, 3327, 3335, 3341, 3345, 3351, 3361, 3371, 3381. Each one was correct about the code at that moment, and **none of them was the server being looked at.** Between a change landing and this long-running server being rebuilt, the screen showed the previous build no matter what had been committed.
+
+**What :3000 serves right now, verified two ways:** `curl` returns `viewBox="0 0 500 500"`, zero `res.cloudinary.com` references, zero point-cloud markers; and a screenshot shows the low-poly wireframe head with the two blue scan-beam markers. **The cover on that server is currently the `OBJECTS.svg` wireframe** — so the change did land, and this server has since been restarted past it.
+
+**The fix for the future is procedural, not code:** verification has to run against `:3000`, or `:3000` has to be a `next dev` server that hot-reloads. Reporting "verified in a production build" on an ephemeral port says nothing about what is on screen.
+
+### Summary
+
+1. **The media task did not run** — 0 media rows, no `CloudinaryImage` on the cover page, no switch, no migration, no commit.
+2. **`uae-acquisition` resolves to** `cover_kind='component'` / `cover_component='uae-acquisition'` / `cover_media_id=NULL` → the 500×500 wireframe.
+3. **The two earlier changes were overwritten, never reverted** — both are in git history, neither is a file, and the requested unreferenced backup was never made.
+4. **The delivery gap was a stale production server**, plus 2 unpushed commits and an uncommitted `status.md` entry.
+
+No repair attempted — the diagnosis is the deliverable.
+
+---
+
+## 2026-08-15 — FINDING: what the Cloudinary path needs before the UAE cover moves onto it
+
+**Nothing was changed.** Five questions answered from the code, the live schema and — where possible — from Cloudinary itself. One of them turns up a blocker that has to be fixed before an upload will show anything.
+
+### 🔴 The blocker: the cover page has no media branch
+
+`app/[locale]/(site)/work/[caseFile]/page.tsx` renders the cover like this, and only like this:
+
+```tsx
+{detail.cover_kind === "component" && detail.cover_component ? (
+  <div className="mt-8">{resolveCover(detail.cover_component, "cover")}</div>
+) : null}
+```
+
+There is no `else`. **The file does not import `CloudinaryImage` at all** — `grep -c` returns 0. The media path on this page was never built, because the only two covers that have ever existed were both components.
+
+So switching UAE to `cover_kind = 'media'` today produces: a working gallery card, and **a cover page with no image on it**. Silently — no error, nothing in the console, just an absent cover. `ProjectCard` is fine; it has both branches already.
+
+This is a small addition (import, plus an `else` rendering `<CloudinaryImage preset="hero" priority />`), but it is code, and none was written. It has to land before or with the upload.
+
+### 1 · SVG through `CloudinaryImage`, and what `f_auto` does to it
+
+**`f_auto` is verified, empirically.** Against Cloudinary with a raster source and our own preset shape:
+
+```
+Accept: image/avif,image/webp,*/*   ->  200  image/avif
+Accept: */*                          ->  200  image/jpeg
+```
+
+It negotiates a **raster** format per request. Every preset sends `format:"auto"` and `quality:"auto"` from `CloudinaryImage`, and every preset also sends a width and a crop.
+
+**That combination rasterises an SVG.** Cloudinary serves SVG unchanged only when no raster transformation is requested; `w_`/`c_` forces a rasterise, and `f_auto` then picks webp/avif/jpeg. Since `card` sends `w_640,h_400,c_fill,g_auto` and `hero` sends `w_1200,c_limit`, **an uploaded SVG will be delivered as a raster at both render sites.**
+
+> ⚠️ **Confidence, stated honestly.** The `f_auto` negotiation above is measured. The SVG-specific half is *documented behaviour I could not measure here*: our cloud has no SVG yet, Cloudinary's demo cloud exposes no public SVG I could find, and `image/fetch` is disabled on our cloud (`400` on every fetch URL, transform or not). **Verify it in one command after upload:**
+> ```
+> curl -sI "https://res.cloudinary.com/vewhrkzj/image/upload/f_auto,q_auto,w_1200,c_limit/<public_id>" | grep -i content-type
+> ```
+> `image/webp` or `image/avif` confirms rasterisation. `image/svg+xml` would mean it passed through, and the export-size advice below can be ignored.
+
+**The practical consequence:** because it rasterises, export at a fixed pixel size and stop thinking of it as vector. Crispness at 4K is lost the moment it becomes a webp — which is a real cost of this trade, on top of the theme binding already knowingly given up.
+
+### 2 · Presets each render site requests, and export sizes
+
+| Render site | Preset | Cloudinary sends | Delivered box |
+|---|---|---|---|
+| Gallery card — `ProjectCard` | **`card`** | `w_640, h_400, c_fill, g_auto` | **640×400** (1.6:1) |
+| Cover page — *once the branch exists* | **`hero`** | `w_1200, c_limit` | **1200 wide**, height from source aspect |
+
+Both are also requested at **2×** via `srcSet` — so Cloudinary derives **1280×800** and **2400 wide** as well.
+
+**Export at 2400px on the long edge, minimum.** That covers the largest derivation without upscaling. Two things about `card` worth knowing before exporting:
+
+- `c_fill` **crops** to 1.6:1. The artwork is 1:1 (500×500), so **the card will crop the top and bottom off the face.**
+- `g_auto` picks the crop centre by content analysis — on a symmetric wireframe face it will most likely centre reasonably, but it is not guaranteed and it is not deterministic across re-uploads.
+
+If the full head must survive on the card, that is a preset change (`card` → `c_limit`, letterboxed) or a separately-cropped 1.6:1 export. **Flagging, not deciding.**
+
+### 3 · `public_id` naming — there is no convention yet
+
+`media` has **0 rows**. Nothing has ever been uploaded, so there is no established scheme to match — only rule 3 (store the id, never a URL) and the general snake_case rule in `docs/conventions.md`.
+
+**Proposed, for confirmation rather than assumed:**
+
+```
+covers/uae-acquisition
+```
+
+A `covers/` folder scoping the four case file covers, then the case file's own `slug` verbatim — so the id is derivable from the row and cannot drift from it. `cloudinary_public_id` is `unique`, so slug-matching also makes a duplicate upload fail loudly instead of quietly creating a second asset. Do **not** include an extension or a version.
+
+### 4 · What to hand back after upload
+
+```
+public_id   covers/uae-acquisition      (or whatever you actually used)
+width       <intrinsic px of the uploaded asset>
+height      <intrinsic px>
+format      svg  |  png  |  webp        (what you uploaded, not what is served)
+alt (en)    <one sentence describing the artwork>
+alt (ar)    <the same, in Arabic>
+```
+
+`media.width`/`height` are nullable but **should be supplied**: `CloudinaryImage` uses them to compute the height for `limit` crops, which is what reserves the box and prevents layout shift as the cover loads. Without them the `hero` render falls back to a square box and the page jumps.
+
+`alt` is **not** a column — it is a `translations` row (`entity_type='media'`, `field='alt'`), one per locale. And it is load-bearing here: `CloudinaryImage` **omits the image entirely** when `alt` is undefined and `decorative` is false. An upload with no alt translation renders nothing at all, which would look exactly like the blocker above and be diagnosed as the wrong thing.
+
+### 5 · The CHECK — confirmed, and it is one statement
+
+Read from the live schema, not from memory:
+
+```sql
+CHECK (
+  (cover_kind = 'media'     AND cover_component IS NULL)
+  OR
+  (cover_kind = 'component' AND cover_component IS NOT NULL AND cover_media_id IS NULL)
+)
+```
+
+**Confirmed: one `UPDATE`, not two.** Setting the media id while `cover_component` still holds `'uae-acquisition'` violates the constraint on the first statement, and clearing the component first leaves `cover_kind='component'` with a NULL component — which violates it too. Both orderings fail. All three columns move together:
+
+```sql
+update case_files
+   set cover_kind = 'media',
+       cover_component = null,
+       cover_media_id = (select id from media where cloudinary_public_id = 'covers/uae-acquisition')
+ where slug = 'uae-acquisition';
+```
+
+That is exactly what the constraint is for, and it behaved correctly when both orderings were tested against it earlier in this project.
+
+### 6 · The redaction triggers accept this
+
+Three guards from migration 0007. Against `media.redacted = false`:
+
+| Trigger | Fires on | Verdict |
+|---|---|---|
+| `assert_cover_not_redacted` | `case_files.cover_media_id` insert/update | **Passes.** It raises only when the referenced row has `redacted = true` |
+| `assert_redacted_not_in_use` | `media.redacted` flipped to true | **Not triggered** — nothing flips it |
+| `assert_og_image_not_redacted` | `settings.og_image` | **Not involved** |
+
+Nothing in the trigger logic disagrees. They key on `media.redacted`, **never on `case_files.nda`** — which is the distinction that makes this work: UAE is under NDA, but this specific asset contains no client material, so `redacted` is false and it is a legal cover.
+
+There is also an application-side twin, `assertNotRedacted` in `lib/content/case-files.ts`, which throws on the same condition. It agrees.
+
+> One thing to keep true rather than assume: `redacted = false` is a claim that the asset carries no client material. For this artwork it holds — it is Moataz's own, verified as a facial-recognition mesh with no screen geometry, no field layouts and no interface fragments. That is what makes the flag honest, not the fact that it is convenient.
+
+### 7 · Yes — `nda = true` applies `e_grayscale`, and it will visibly change the artwork
+
+**It does apply.** The chain is unconditional and has no opt-out:
+
+- `fetchMedia(..., row.nda)` stamps `nda` from the **case file** onto every media row it resolves
+- `CloudinaryImage` then does `media.nda ? { rawTransformations: ["e_grayscale"] } : {}`
+
+It rides on the row precisely so no call site can forget it (amendment 036). UAE is `nda = true`, so **`e_grayscale` will be in the URL.**
+
+**What actually renders is not "no change", despite the artwork being near-monochrome.** The mesh is `#ffffff` and `rgb(0,255,255)` — cyan is *not* grey. Grayscale maps cyan by luminance, so:
+
+- the **white** lines stay white
+- the **cyan** lines become a **light grey** (cyan's luminance is high, ~78%, so they lighten rather than darken)
+
+The visible result is that the two line weights, currently distinguishable as white-vs-cyan, **collapse toward each other** and the drawing flattens into a single near-white mesh. The scan-beam endpoint markers — the only filled cyan, and the piece's focal accent — **lose their distinction entirely** and read as plain light dots.
+
+Decision 050 scoped grayscale *out* of component covers because the transform could not reach them. Moving to the media path **moves this cover back under it**. That is a real, visible consequence of the trade, separate from the theme-binding one already accepted, and it is worth deciding on deliberately rather than discovering after upload.
+
+**Three ways out, if the flattening is unacceptable:** export the artwork already-grey so nothing is lost in translation; set `NDA_TRANSFORM` to something else globally (it is one line in `lib/media/presets.ts`, but it changes every NDA image on the site); or amend 036 to scope grayscale by asset rather than by case file. All three are decisions, none is a workaround.
+
+### Summary of what has to happen, in order
+
+1. **Add the media branch to the cover page.** Without it the upload renders nothing there.
+2. Decide the **`card` crop** question — `c_fill` will cut the top and bottom off a 1:1 face.
+3. Decide the **grayscale** question — it applies, and it flattens the two line weights together.
+4. Upload; hand back `public_id`, `width`, `height`, `format`, and `alt` in **both** locales.
+5. One `UPDATE` moving all three columns together.
+6. Verify the served `Content-Type` to close the SVG-rasterisation question.
+
+The generated point-cloud component stays on disk, unreferenced.
 
 ---
 

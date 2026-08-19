@@ -6,6 +6,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 import { resolveMany, withFields } from "./translate";
 import type {
+  CoverSection,
   CaseFile,
   CaseFileDetail,
   Locale,
@@ -72,6 +73,46 @@ async function fetchMedia(
   return resolveMedia(data ?? [], locale, nda);
 }
 
+/**
+ * The card-shaped variant of a cover, by convention: `<public_id>-card`.
+ *
+ * WHY A CONVENTION AND NOT A COLUMN. `case_files` carries exactly one
+ * `cover_media_id`, and the two render sites want different crops of the same
+ * artwork — the cover page a full-bleed master, the gallery card a 1.6:1 that
+ * `c_fill` will not mangle. A second column (`cover_card_media_id`) would say
+ * this explicitly and is the more orthodox answer; it is also a schema change,
+ * and this does the same job without one.
+ *
+ * It fails safe in the direction that matters. The lookup is against our own
+ * `media` table, not against Cloudinary, so a missing variant is a null here
+ * rather than a 404 in the browser: no row, no variant, card falls back to the
+ * cover asset and behaves exactly as it always has. Nothing is required to
+ * exist, and no existing case file changes behaviour.
+ *
+ * Rule 3 is intact — still only a `public_id` in the database, still a named
+ * preset building the URL.
+ */
+async function resolveCoverCard(
+  cover: Media | null,
+  locale: Locale,
+  nda: boolean,
+): Promise<Media | null> {
+  if (!cover) return null;
+
+  const { data, error } = await supabaseServer
+    .from("media")
+    .select("*")
+    .eq("cloudinary_public_id", `${cover.cloudinary_public_id}-card`)
+    .maybeSingle();
+
+  // A failed lookup must not take the page down: the card simply uses the
+  // cover asset, which is the pre-existing behaviour.
+  if (error || !data) return null;
+
+  const resolved = await resolveMedia([data], locale, nda);
+  return resolved.get(data.id) ?? null;
+}
+
 /** The Classic Gallery: every published case file, with cover and copy. */
 export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> => {
   const { data, error } = await supabaseServer
@@ -108,6 +149,56 @@ export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> =
   );
 
   /*
+   * The summary per case file, for llms.txt and the gallery.
+   *
+   * The opening slot's FIRST paragraph — `thesis` where a cover has one,
+   * `what-it-is` where it does not. Two queries for every card rather than
+   * reading the legacy `thesis` field, because that field is being removed and
+   * llms.txt would otherwise lose every description silently at cleanup.
+   *
+   * It also fixes a gap that predates the slot model: Cervello has no thesis
+   * field, so llms.txt has been listing it with no description at all.
+   */
+  const summaryByCaseFile = new Map<string, string>();
+  {
+    const { data: openingRows } = await supabaseServer
+      .from("cover_sections")
+      .select("id, case_file_id, slot")
+      .in("case_file_id", rows.map((r) => r.id))
+      .in("slot", ["thesis", "what-it-is"]);
+
+    // thesis wins where a cover has both; Neobiz carries both slots.
+    const opening = new Map<string, string>();
+    for (const s of openingRows ?? []) {
+      if (s.slot === "thesis" || !opening.has(s.case_file_id)) {
+        opening.set(s.case_file_id, s.id);
+      }
+    }
+
+    const sectionIds = [...opening.values()];
+    if (sectionIds.length > 0) {
+      const { data: firstParas } = await supabaseServer
+        .from("cover_paragraphs")
+        .select("id, cover_section_id, sort_order")
+        .in("cover_section_id", sectionIds)
+        .eq("sort_order", 0);
+
+      const paraFields = await resolveMany(
+        "cover_paragraph",
+        (firstParas ?? []).map((p) => p.id),
+        locale,
+      );
+      const paraBySection = new Map(
+        (firstParas ?? []).map((p) => [p.cover_section_id, paraFields.get(p.id)?.body]),
+      );
+      for (const [caseFileId, sectionId] of opening) {
+        const body = paraBySection.get(sectionId);
+        if (body) summaryByCaseFile.set(caseFileId, body);
+      }
+    }
+  }
+
+  /*
    * Covers are fetched per case file rather than in one batch, because each
    * one carries its owner's `nda` flag. One extra query per card is worth it
    * to make the treatment impossible to forget.
@@ -123,11 +214,14 @@ export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> =
           }
         : null;
 
-      if (!row.cover_media_id) return { ...row, cover: null, headline };
+      if (!row.cover_media_id)
+        return { ...row, cover: null, coverCard: null, headline, summary: summaryByCaseFile.get(row.id) };
       const media = await fetchMedia([row.cover_media_id], locale, row.nda);
       const cover = media.get(row.cover_media_id) ?? null;
       assertNotRedacted(cover, row.slug);
-      return { ...row, cover, headline };
+      const coverCard = await resolveCoverCard(cover, locale, row.nda);
+      assertNotRedacted(coverCard, row.slug);
+      return { ...row, cover, coverCard, headline, summary: summaryByCaseFile.get(row.id) };
     }),
   );
 });
@@ -241,6 +335,8 @@ export const getCaseFile = cache(
       ? (media.get(row.cover_media_id) ?? null)
       : null;
     assertNotRedacted(cover, row.slug);
+    const coverCard = await resolveCoverCard(cover, locale, row.nda);
+    assertNotRedacted(coverCard, row.slug);
 
     /*
      * Entry handles. The target chapter is resolved HERE rather than in the
@@ -302,11 +398,73 @@ export const getCaseFile = cache(
       });
     }
 
+    /*
+     * Cover slots (0031). Ordered by `sort_order`, which is per case file — a
+     * future cover may want role first, then why-it-matters. Nothing here
+     * encodes today's order as a rule.
+     */
+    const { data: sectionRows, error: sectionError } = await supabaseServer
+      .from("cover_sections")
+      .select("id, slot, sort_order")
+      .eq("case_file_id", row.id)
+      .order("sort_order");
+    if (sectionError) {
+      throw new Error(`Failed to load cover sections for ${slug}: ${sectionError.message}`);
+    }
+
+    const sections: CoverSection[] = [];
+    if ((sectionRows ?? []).length > 0) {
+      const sectionIds = (sectionRows ?? []).map((s) => s.id);
+      const { data: paraRows, error: paraError } = await supabaseServer
+        .from("cover_paragraphs")
+        .select("id, cover_section_id, sort_order")
+        .in("cover_section_id", sectionIds)
+        .order("sort_order");
+      if (paraError) {
+        throw new Error(`Failed to load cover paragraphs for ${slug}: ${paraError.message}`);
+      }
+
+      const [headingFields, paragraphFields] = await Promise.all([
+        resolveMany("cover_section", sectionIds, locale),
+        resolveMany("cover_paragraph", (paraRows ?? []).map((p) => p.id), locale),
+      ]);
+
+      for (const s of sectionRows ?? []) {
+        sections.push({
+          id: s.id,
+          slot: s.slot,
+          heading: headingFields.get(s.id)?.heading,
+          /*
+           * A paragraph with no text in THIS locale is omitted, not rendered
+           * blank. Decision 013 makes a partial translation normal, and an
+           * empty <p> would read as a mistake in the writing.
+           */
+          paragraphs: (paraRows ?? [])
+            .filter((p) => p.cover_section_id === s.id)
+            .map((p) => paragraphFields.get(p.id)?.body)
+            .filter((b): b is string => Boolean(b && b.trim())),
+        });
+      }
+    }
+
+    /*
+     * The summary. Explicit, not positional — `thesis` if the cover has one,
+     * otherwise `what-it-is`. Cervello opens with a description rather than an
+     * argument, and under the old model had no summary at all: `llms.txt` and
+     * its three metadata sites have been describing it with nothing.
+     */
+    const summary =
+      sections.find((s) => s.slot === "thesis")?.paragraphs[0] ??
+      sections.find((s) => s.slot === "what-it-is")?.paragraphs[0];
+
     return {
       ...row,
       fields: caseFields.get(row.id) ?? {},
       cover,
+      coverCard,
       headline: null,
+      sections,
+      summary,
       // Split by kind: the numbered narrative, and the standalone pages that
       // sit under this case file without being part of its sequence.
       chapters: chapters

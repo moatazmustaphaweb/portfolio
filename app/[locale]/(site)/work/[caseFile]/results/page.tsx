@@ -65,7 +65,7 @@ export async function generateMetadata({
     locale: l,
     path: `/work/${caseFile}/results`,
     title: name && ui.t("results_table") ? `${ui.t("results_table")} — ${name}` : name,
-    description: detail?.fields.thesis,
+    description: detail?.summary,
   });
 }
 
