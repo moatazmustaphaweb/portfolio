@@ -125,7 +125,7 @@
 - [x] Redacted media blocked from cover / `og_image` — 3 database triggers + query-layer guard, all verified including the retroactive-redaction bypass
 - [ ] 🔴 Redaction *treatment* — awaiting the design and token values (open question H). Blocks are solid fills, per-image, badge bottom-left
 - [ ] Verify redaction block legibility at 200px once the treatment lands (no simplified variant by decision)
-- [ ] 🔴 **Moataz:** `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` — in `.env.local` AND in the Vercel project. No image can render without it. Unset in production on 2026-08-19, which 500'd `/work` as soon as the first cover row existed; `CloudinaryImage` now omits instead of throwing, so the page renders coverless until this is set
+- [x] `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` — committed as a default in `lib/media/cloud.ts` (decision 052). It was unset in Vercel on 2026-08-19 and 500'd `/work` as soon as the first cover row existed. Setting it in the Vercel dashboard is now an override, not a prerequisite
 - [x] `CloudinaryImage` omits the image when Cloudinary is unconfigured, rather than throwing — matches the behaviour `docs/status.md` already documented
 - [ ] Upload the first real assets and confirm they render
 

@@ -638,6 +638,45 @@ to announce. `where notified_at is null` answers "who did I never hear about?".
 
 ---
 
+## 052 — The Cloudinary cloud name is committed. It is configuration, not a secret
+
+**2026-08-19.**
+
+`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` was unset in the Vercel project. It cost nothing
+while `media` had no rows. The moment the first cover row existed, `getCldImageUrl`
+threw during server rendering and `/work` returned 500 to a real visitor — the first
+page this site has ever served broken in production.
+
+**The value is now committed** in `lib/media/cloud.ts` as a default. It is public by
+construction: `vewhrkzj` is the first path segment of every image URL the site serves,
+visible in the page source of any page carrying an image. Rule 5 governs secrets — a
+key that grants access — and this grants none.
+
+**A module constant, not a `next.config.mjs` `env` entry.** `next-cloudinary` reads
+`process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` inside its own bundled code, and
+whether that reference gets substituted at build time is a property of the bundler
+rather than of this repo. `CloudinaryImage` now passes the cloud name explicitly as
+`config.cloud.cloudName`, which the library prefers over its own environment read, so
+the URL builder depends on nothing but an import.
+
+**Not a committed `.env` file**, which would be the more idiomatic Next mechanism.
+`.gitignore` ignores `.env*` with a single exception for `.env.example`, and adding a
+second exception would turn a pattern that cannot be got wrong into one that can. The
+service-role key sits behind that pattern. Configuration convenience does not outrank
+it.
+
+**A real environment variable still wins** — the config reads `process.env` first and
+falls back. Setting the variable in Vercel remains the correct move; it is now an
+override rather than a prerequisite.
+
+**Related, same session:** `CloudinaryImage` now omits an image when the cloud name is
+absent instead of throwing, which is what `docs/status.md` always claimed it did. A
+misconfiguration should cost the image, not the page.
+
+**Status:** ACTIVE.
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

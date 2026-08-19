@@ -75,7 +75,7 @@ docs/                       documentation
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY        # server-only, never NEXT_PUBLIC_
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME  # has a committed default in lib/media/cloud.ts (052)
 NOTION_API_KEY                   # sync script only
 REVALIDATE_SECRET
 NEXT_PUBLIC_GA_ID

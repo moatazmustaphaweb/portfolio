@@ -1,5 +1,6 @@
 import { getCldImageUrl } from "next-cloudinary";
 
+import { CLOUDINARY_CLOUD_NAME } from "@/lib/media/cloud";
 import { NDA_TRANSFORM, PRESETS, type PresetName } from "@/lib/media/presets";
 import type { Media } from "@/lib/content/types";
 
@@ -49,10 +50,11 @@ export function CloudinaryImage({
    * intended behaviour -- "every image is omitted until it exists" -- so this
    * is the code catching up to the documented contract, not a new policy.
    *
-   * Read inline rather than through a variable: NEXT_PUBLIC_ values are
-   * substituted textually at build time and a destructured read would not be.
+   * Unreachable while the default in `lib/media/cloud.ts` stands. It is kept
+   * because the thing it guards is a 500 on the site's main page, and the cost
+   * of keeping it is one comparison.
    */
-  if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) return null;
+  if (!CLOUDINARY_CLOUD_NAME) return null;
 
   const alt = decorative ? "" : media.fields.alt;
   if (alt === undefined) return null;
@@ -87,19 +89,29 @@ export function CloudinaryImage({
   const ndaTreatment = media.nda ? { rawTransformations: [NDA_TRANSFORM] } : {};
 
   const urlFor = (width: number) =>
-    getCldImageUrl({
-      ...ndaTreatment,
-      src: media.cloudinary_public_id,
-      width,
-      height: config.height
-        ? Math.round((width * config.height) / config.width)
-        : undefined,
-      crop: config.crop,
-      gravity: config.gravity,
-      // Format and quality negotiation — pure wins, applied to every preset.
-      format: "auto",
-      quality: "auto",
-    });
+    getCldImageUrl(
+      {
+        ...ndaTreatment,
+        src: media.cloudinary_public_id,
+        width,
+        height: config.height
+          ? Math.round((width * config.height) / config.width)
+          : undefined,
+        crop: config.crop,
+        gravity: config.gravity,
+        // Format and quality negotiation — pure wins, applied to every preset.
+        format: "auto",
+        quality: "auto",
+      },
+      /*
+       * The cloud name is passed, not left to the library's own
+       * `process.env` read: `next-cloudinary` takes `config.cloud.cloudName`
+       * first and only falls back to the environment. Passing it makes this
+       * call independent of whether the bundler substitutes a NEXT_PUBLIC_
+       * reference inside node_modules.
+       */
+      { cloud: { cloudName: CLOUDINARY_CLOUD_NAME } },
+    );
 
   return (
     /*
