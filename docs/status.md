@@ -37,6 +37,95 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 — The Egypt cover's lead image. The dormant container wakes up
+
+### The asset resolves — verified before a row was written
+
+```
+HTTP/2 200 · content-type: image/jpeg
+fl_getinfo → {"input":{"width":848,"height":1264,"bytes":774570}}
+```
+
+**848 × 1264, JPEG — portrait**, aspect 0.671. Dimensions read from Cloudinary's own `fl_getinfo`, not guessed. `CloudinaryImage` derives the reserved box from them, so a wrong pair here would shift the column as the image loads.
+
+The public ID `EIDVSNID_9jby0x9jby0x9jby` is not a descriptive path like every other asset on this site — it is Cloudinary's auto-generated name from an upload that set none. Recorded in migration `0039` so the next reader does not think it is a typo.
+
+### ⚠️ GRAYSCALE — what actually renders, before you look
+
+Egypt carries `nda = true`, so `e_grayscale` applies. The served URL is
+`.../e_grayscale/c_limit,w_600/f_auto/q_auto/...`.
+
+**In colour** the comparison reads instantly: the Egyptian card is warm cream with a gold eagle and the red-white-black flag; the Emirates card is mint-teal with a gold chip and the UAE flag. Two states, two palettes.
+
+**In grey both collapse to near-identical pale cards.** What still separates them is the **barcode block** down the Egyptian card and the printed *"United Arab Emirates / Identity Card"* on the other — texture and text, not colour.
+
+The comparison still parses. The contrast the photograph was composed around does not survive. **This is a judgement for Moataz**, and it is why the caption renders (below).
+
+### The render path
+
+`lead_media_id` has had a column, a foreign key and two triggers since `0033`, and nothing read it. The two-column container has been dormant since 2026-08-19 waiting for exactly this. Both are now wired: `sideImage` is `detail.lead` when one exists and `null` otherwise, so the other three covers never learn the container exists.
+
+**Preset: `lead` — a NEW one, because none of the four fitted.** `lib/media/presets.ts` states its own rule — a layout that needs something else gets a preset, not ad-hoc numbers at a call site:
+
+| Existing preset | Why it fails here |
+|---|---|
+| `card` | 640×400 **`fill`** — a landscape crop. Would cut the top and bottom off a portrait whose subject is two upright cards |
+| `gallery` | 1000 wide, and `sizes` telling the browser to expect 1000px, for a column that is **357px**. Roughly seven times the pixels anyone can see |
+| `hero` | 1200 wide — worse, same reason |
+
+`lead` is `width: 600, crop: "limit"`, with `sizes: "(max-width: 1024px) 100vw, 400px"`. `limit` never crops and never upscales, so the portrait keeps its full height. `sizes` is a fixed 400px above `lg` rather than `33vw` because the container is capped — the column stops growing while the viewport does not, and `33vw` would over-fetch on a wide screen.
+
+### The measurement holds
+
+Measured at 1440px by pixel extent of the rendered text:
+
+| | |
+|---|---|
+| Container content | **1152px** |
+| Text column — `(1152 − 80) / 3 × 2 + 40` | **755px** |
+| Thesis prose, as rendered | **718px** |
+| Image column | **357px** |
+
+**755px > 718px, so the prose is capped by the measure, not by the column.** The paragraphs wrap exactly where they did before the image existed; only the whitespace beside them fills. Confirmed rather than assumed.
+
+### The caption renders — a judgement, stated rather than made silently
+
+The container spec never said whether a lead image carries a caption. **It renders**, and the reason is specific to this image: under `e_grayscale` the two cards lose the colour contrast that makes the comparison legible at a glance. Without the caption the picture is two grey cards; with it, it is the comparison the cover is making. **A figure whose subject is a difference needs the difference named.**
+
+Had this been a screenshot rather than a comparison, the argument would go the other way.
+
+### Arabic — and what 053 does and does not reach here
+
+Alt and caption are **English only**, as supplied, so both fall back on `/ar` per decision 013.
+
+**The caption is NOT affected**, because it is rendered in the cover page rather than inside `CoverSections`, and decision 053 was applied to it directly. Verified on `/ar`:
+
+```
+<figcaption lang="en" dir="ltr" ...>The difference of the Egyptian national ID and Emirates ID.
+```
+
+It renders left-aligned with the full stop at the end.
+
+**The alt is structurally unaffected** — `alt` is an HTML attribute and cannot carry `dir`. There is no bidi rendering to get wrong. A screen reader will announce English alt in an Arabic document context, which is a separate and much smaller concern than the visual defect.
+
+**`CoverSections` is still unfixed**, and this task did not touch it. It renders the thesis and role prose, which is where the UAE Arabic cover shows the defect. **What it would take:** the same change already made twice — take `fieldLocales` through `CoverSection`, add a `lang`/`headingLang` field, and mark the paragraph and heading with `dirForLocale()`. Roughly the size of the `ChapterSections` change. Three call sites, one fixed; `ProseSections` and `CoverSections` remain.
+
+### Verified on localhost:3000
+
+| | |
+|---|---|
+| Container active | **Egypt only** — `grid items-start gap-x-10 lg:grid-cols-3` present on `egypt-acquisition`, **absent** on `uae-acquisition`, `neobiz-mobile` and `cervello` |
+| `/en` 1440 | image in the third column, right of the thesis |
+| `/ar` 1440 | **mirrored** — image column left, Arabic thesis right, with no direction check in the code. Grid places along the inline axis |
+| `/en` and `/ar` 390 | grid collapses to one column; content full width (366px), image stacked above the role card |
+| Theme | **dark verified in every combination above. LIGHT NOT VERIFIED** — see below |
+
+⚠️ **The light theme was not visually verified.** `--force-prefers-color-scheme` is unsupported in this Chrome build, and the theme is read from `localStorage` by a pre-paint script that cannot be set headless without CDP. What can be said: `app/globals.css` states "Only colour tokens differ between themes; type, space and form are shared", and the lead figure uses only tokens (`border-DEFAULT`, `text-fg-muted`), so there is no theme-specific layout to break. That is an argument, not an observation, and it is recorded as one.
+
+`check:seed-drift` reports **zero drift** — 91 strings parsed from migrations, 91 in the database. `tsc` clean · `eslint` 0/0 · `test:sync` pass · `verify:content` pass · `next build` 63/63 static pages.
+
+---
+
 ## 2026-08-20 (sync) — UAE synced on this machine. The Arabic thesis was skipped, and two chapters gained a table
 
 ### One premise corrected before running
