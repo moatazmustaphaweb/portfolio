@@ -37,6 +37,86 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-20 (sync) — UAE synced on this machine. The Arabic thesis was skipped, and two chapters gained a table
+
+### One premise corrected before running
+
+**A page-scoping flag does exist** — `--only=`, added in `9b77d24` — but it gates **only the chapter-section pass**. Covers, outcomes, targets, entry handles, siblings, decisions and `page_sections` sweep all of MVP-1 regardless. So the conclusion held: a real run touches everything. `NOTION_API_KEY` is present here.
+
+### Dry run, and what it could not tell us
+
+`--dry-run` read 67 rows, 39 in scope, and previewed the UAE cover as `thesis(2¶+ar) · role(2¶+ar) · map(2¶+ar)` — the thesis down from the 3¶ in the database.
+
+**It showed no pairing notice, and that was misleading.** `writeCoverSections` returns its shape under `DRY_RUN` *before* reaching the paragraph-pairing loop, so a dry run is structurally incapable of reporting a pairing skip. Reported here as "Arabic pairs cleanly" on the strength of the dry run, then contradicted by the real run twenty minutes later. **A dry run previews structure, not pairing.**
+
+### The Arabic cover WAS skipped, exactly as anticipated
+
+> `Case File Cover — UAE Acquisition: slot "thesis" has 2 paragraph(s) in English and 3 in Arabic. Arabic paragraphs skipped for this slot — pairing by position across different counts would attach the wrong paragraph to the wrong place. The heading still synced.`
+
+The English thesis went 3¶ → 2¶ in Notion; the Arabic still has 3. The guard refused rather than pairing 2 against 3. **Reported, not worked around.** `role` and `map` keep their Arabic; only `thesis` fell back.
+
+Confirmed in the database: both UAE thesis paragraphs now have **no Arabic row at all**.
+
+### ⚠️ The visible consequence — the UAE Arabic cover now reads broken
+
+`/ar/work/uae-acquisition` renders the Arabic heading `الأطروحة` and then the **English** thesis beneath it, right-aligned with the full stop at the start of the line:
+
+> `.anywhere, and without a bank employee ever meeting anyone`
+
+This is decision 053, unfixed on this path. 053 was implemented in `ChapterSections`; **`CoverSections` never received it**, the same gap `ProseSections` has. The `دوري` card directly below renders correct Arabic, so the two sit side by side on one page.
+
+This is new on this page today — the fallback did not exist there before the thesis lost its pairing.
+
+### What the run touched beyond the two UAE pages
+
+Snapshot taken before and after. **Row counts moved in exactly three places:**
+
+| Table | Before | After | |
+|---|---|---|---|
+| `cover_paragraphs` | 42 | **41** | −1 — the UAE thesis paragraph |
+| `chapter_paragraphs` | 250 | **252** | +2 — two new table paragraphs |
+| `chapter_table_cells` | 72 | **88** | +16 |
+
+Everything else is unchanged in count: case files, chapters, chapter_sections, cover_sections, outcomes, targets, decisions, entry_handles, siblings, page_sections, media. `media`, `nav_item`, `setting` and `ui_string` translations are **byte-identical** by hash.
+
+**TWO CHAPTERS GAINED A TABLE, and only one is UAE:**
+
+| Page | Slot | Cells | |
+|---|---|---|---|
+| `uae-acquisition/onboarding` | `result` | 6 | **new** |
+| **`egypt-acquisition/onboarding`** | **`evidence`** | **10** | **new — not a UAE page** |
+
+Chapter One's Evidence table ("what the testing found, in participants rather than percentages") has never rendered before. It was last synced before migration 0038 gave a paragraph a `table` kind, so its table was dropped; re-syncing picked it up. An improvement, and a change outside the two UAE pages — flagged because it was not asked for.
+
+Other entity hashes changed without changing content: `cover_sections`, `chapter_sections` and their paragraphs are **replaced wholesale** on every sync, so rows get new UUIDs and the hash moves even where the text is identical. Not evidence of a content change.
+
+### Two failures — one new, one known
+
+**NEW — the Neobiz cover is refused.** Its Arabic heading was reworded in Notion since the alias was seeded:
+
+| | |
+|---|---|
+| Seeded (`0032`) | `ولماذا يهم رغم أنه لم يُبنَ` |
+| Now in Notion | `ولماذا يهم رغم أنه لم يتم تطبيقه حتى الآن` |
+
+The guard refuses the whole cover and writes nothing; the existing rows survive untouched, because the refusal returns before the delete. **Not fixed here** — the sanctioned remedy is one row in `cover_slot_aliases`, which is a content decision and outside "nothing else should have changed". The Neobiz cover is therefore **stale, not broken**: it renders its previous content and will not update until the alias is added or the heading restored.
+
+**KNOWN — the accessibility page is still refused** on the Arabic image tag sharing a paragraph with prose. Unchanged from the previous session.
+
+### Verified on localhost:3000
+
+| Route | | |
+|---|---|---|
+| `en` + `ar` `/work/uae-acquisition` | 200 | thesis 2¶; Arabic missing on both |
+| `en` + `ar` `/work/uae-acquisition/onboarding` | 200 | **`<table>` 1 — new** |
+| `en/work/egypt-acquisition/onboarding` | 200 | **`<table>` 1 — new** |
+| `en/work/neobiz-mobile` | 200 | unchanged, stale |
+
+Sync totals: **updated 26 · skipped 8 · notices 27 · failed 2**.
+
+### Open, and now with a third instance
+
+Decision 053 is implemented in `ChapterSections` only. It is missing from **`ProseSections`** (accessibility page) and now demonstrably from **`CoverSections`** (UAE Arabic cover). Both render English fallback as though it were Arabic. One fix pattern, three call sites, two still to do.
 ## 2026-08-20 (evening) — UAE sync requested. The script cannot run in this container; the pending edits were read anyway
 
 **Nothing was synced. Nothing was written to Supabase.** Two Notion pages were
