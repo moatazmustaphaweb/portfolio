@@ -50,6 +50,20 @@ import {
   unknownHeadingMessage,
   type Slot,
 } from "@/lib/sync/cover-slots";
+import {
+  isDecisionHeading,
+  isProseSlot as isChapterProseSlot,
+  resolveSlot as resolveChapterSlot,
+  unknownHeadingMessage as unknownChapterHeadingMessage,
+  type Slot as ChapterSlot,
+} from "@/lib/sync/chapter-slots";
+import {
+  invalidTagMessage,
+  parseImageTag,
+  type ImageTag,
+  type NotionRun,
+} from "@/lib/sync/image-tags";
+import { formatImageRef } from "@/lib/content/image-refs";
 import { describeDrops, sift, type Sifted } from "@/lib/sync/sift";
 import {
   parsePageSections,
@@ -92,6 +106,21 @@ const CELL_SEP = "\u001f";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const ALL_LAYERS = process.argv.includes("--all");
+
+/*
+ * `--only=<substring>` restricts the CHAPTER SECTION pass to matching chapters.
+ *
+ * The slot model is being rolled out one chapter at a time: nine of the ten
+ * chapters carry section headings that are not yet in `chapter_slot_aliases`,
+ * and each would fail loudly by design. That is the correct behaviour and it is
+ * also a wall of output nobody reads, so the rollout is gated rather than the
+ * guard weakened.
+ *
+ * It gates ONLY the section pass. Everything else about every row syncs exactly
+ * as before, so this is never a way to sync "half a site".
+ */
+const ONLY_ARG = process.argv.find((a) => a.startsWith("--only="));
+const ONLY = ONLY_ARG ? ONLY_ARG.slice("--only=".length).toLowerCase() : null;
 
 const notionKey = process.env.NOTION_API_KEY;
 if (!notionKey) {
@@ -344,6 +373,17 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
         b.numbered_list_item?.rich_text;
       if (!text) continue;
 
+      /*
+       * An image tag is NOT prose.
+       *
+       * Its joined `plain_text` is the literal source — "[cld] … [alt] … [caption] …"
+       * — and until now that string was pushed into the section like any other
+       * paragraph, so it was being written into `context`, `evidence_note` and
+       * `result` as body copy. Tags are read by the chapter section pass, from
+       * `readOrderedBlocks().items`, where they keep their structure.
+       */
+      if (parseImageTag(text as unknown as NotionRun[]).kind !== "prose") continue;
+
       const line = text.map((t) => t.plain_text).join("").trim();
       if (!line) continue;
 
@@ -559,7 +599,34 @@ function fieldsFromBody(
 
 /* ------------------------------------------------------- cover slot model */
 
-type OrderedBlock = { heading: string; level: 0 | 1 | 2 | 3; lines: string[]; tables: string[][][] };
+/**
+ * One block of a page: a heading and everything under it until the next.
+ *
+ * `lines` is PROSE ONLY and is what every existing consumer reads — the cover
+ * slot pass and `parsePageSections`. `items` is the same content in document
+ * order WITH image tags kept in place, which is what the chapter section pass
+ * needs: a figure has to render between the two paragraphs it was written
+ * between, and a prose-only list has already thrown that position away.
+ */
+type BodyItem =
+  | { kind: "prose"; text: string }
+  | { kind: "image"; tag: ImageTag }
+  /*
+   * A table, in its DOCUMENT POSITION. `tables` below keeps collecting them in
+   * a separate bucket for the existing consumers, but that bucket has no idea
+   * where the table sat relative to the prose — and on the comparison pages the
+   * table is the page, so putting it back in the wrong place is not a detail.
+   */
+  | { kind: "table"; grid: string[][] }
+  | { kind: "invalid"; problems: string[]; cld: string | null };
+
+type OrderedBlock = {
+  heading: string;
+  level: 0 | 1 | 2 | 3;
+  lines: string[];
+  items: BodyItem[];
+  tables: string[][][];
+};
 
 /**
  * The sections of one cover, resolved to slots.
@@ -776,6 +843,407 @@ async function writeCoverSections(opts: {
   return shape;
 }
 
+/* ----------------------------------------------------- chapter slot model */
+
+type ChapterParagraph =
+  | { kind: "prose"; text: string }
+  | { kind: "image"; tag: ImageTag }
+  | { kind: "table"; grid: string[][] };
+
+type ChapterSection = {
+  slot: ChapterSlot;
+  heading: string;
+  paragraphs: ChapterParagraph[];
+};
+
+/**
+ * The sections of one chapter, resolved to slots.
+ *
+ * Level 1 is the page's own H1 — the document title, with authoring notes
+ * beneath it ("Status: Draft v1 — written from interview, 6 Aug 2026."). Those
+ * are notes to Moataz and must never publish, so the block is skipped rather
+ * than becoming a slot. Level 0 is anything before the first heading.
+ */
+function resolveChapterSections(
+  chapterTitle: string,
+  blocks: readonly OrderedBlock[],
+  aliases: ReadonlyMap<string, string>,
+): { sections: ChapterSection[]; failures: string[] } {
+  const sections: ChapterSection[] = [];
+  const failures: string[] = [];
+  const seen = new Map<string, string>();
+
+  for (const block of blocks) {
+    if (block.level < 2 || !block.heading) continue;
+
+    /*
+     * GUARD 0 — decision headings are not sections.
+     *
+     * `Decision · The language fight`, `القرار الأول · …` are parsed into the
+     * `decisions` table by their own pass. A chapter carries several, so
+     * resolving them to a slot would hit unique (chapter_id, slot) on the
+     * second one and fail a chapter that is written correctly.
+     *
+     * Their image tags are collected all the same — a decision is prose in the
+     * decisions table, and the figures written beneath it still belong to the
+     * chapter. They attach to the section that precedes them.
+     */
+    if (isDecisionHeading(block.heading)) {
+      const images = block.items.filter((i) => i.kind === "image");
+      const last = sections[sections.length - 1];
+      if (last) {
+        for (const item of images) {
+          if (item.kind === "image") last.paragraphs.push({ kind: "image", tag: item.tag });
+        }
+      }
+      for (const item of block.items) {
+        if (item.kind === "invalid") {
+          failures.push(
+            invalidTagMessage(chapterTitle, {
+              kind: "invalid",
+              cld: item.cld,
+              problems: item.problems,
+            }),
+          );
+        }
+      }
+      continue;
+    }
+
+    const r = resolveChapterSlot(block.heading, aliases);
+    if (!r.ok) {
+      // GUARD 1 — unrecognised heading. Never discarded, never guessed.
+      failures.push(unknownChapterHeadingMessage(chapterTitle, r));
+      continue;
+    }
+
+    // GUARD 2 — duplicate slot. The database enforces this too, via
+    // unique (chapter_id, slot); caught here so the message names both
+    // headings rather than surfacing as a Postgres constraint error.
+    const already = seen.get(r.slot);
+    if (already !== undefined) {
+      failures.push(
+        `${chapterTitle}: two sections both resolve to slot "${r.slot}" — ` +
+          `${JSON.stringify(already)} and ${JSON.stringify(block.heading)}. ` +
+          `Neither was written.`,
+      );
+      continue;
+    }
+    seen.set(r.slot, block.heading);
+
+    const paragraphs: ChapterParagraph[] = [];
+    for (const item of block.items) {
+      if (item.kind === "prose") {
+        const text = item.text.trim();
+        if (text) paragraphs.push({ kind: "prose", text });
+      } else if (item.kind === "image") {
+        paragraphs.push({ kind: "image", tag: item.tag });
+      } else if (item.kind === "table") {
+        paragraphs.push({ kind: "table", grid: item.grid });
+      } else {
+        // GUARD 3 — an unusable tag fails the chapter. See invalidTagMessage:
+        // a media row with no alt renders as nothing at all, silently.
+        failures.push(
+          invalidTagMessage(chapterTitle, {
+            kind: "invalid",
+            cld: item.cld,
+            problems: item.problems,
+          }),
+        );
+      }
+    }
+
+    sections.push({ slot: r.slot, heading: block.heading, paragraphs });
+  }
+
+  return { sections, failures };
+}
+
+/**
+ * Upsert one media row and its alt + caption, for ONE locale.
+ *
+ * Keyed on `cloudinary_public_id`, which is unique, so re-running matches the
+ * existing row and never duplicates. The public ID is used verbatim: spaces,
+ * dots, parentheses and apostrophes all resolve at Cloudinary and slugifying
+ * here would break every one of them.
+ *
+ * `redacted` is written false, always. Amendment 036 supersedes 027 — these are
+ * design files carrying dummy data, the NDA treatment is a grayscale signal
+ * driven by `case_files.nda`, and `redacted = true` would additionally force
+ * the non-cropping `redacted` preset (decision 028) for no reason.
+ */
+async function upsertMedia(tag: ImageTag, locale: "en" | "ar"): Promise<string | null> {
+  const { data, error } = await (await db())
+    .from("media")
+    .upsert(
+      { cloudinary_public_id: tag.cld, redacted: false },
+      { onConflict: "cloudinary_public_id" },
+    )
+    .select("id")
+    .single();
+
+  if (error || !data) return null;
+
+  await upsertTranslations("media", data.id, locale, {
+    alt: tag.alt,
+    caption: tag.caption,
+  });
+
+  return data.id;
+}
+
+/**
+ * Write one chapter's slots, its paragraphs, and the media they reference.
+ *
+ * Arabic resolves through the SAME alias table, independently — `ما صمّمته`
+ * resolves to `what-i-designed` on its own merits — so a chapter whose Arabic
+ * has six sections to English's seven is not a refusal. The six attach to their
+ * own slots and the seventh simply has no Arabic. Decision 013's fallback
+ * applies per slot rather than all-or-nothing.
+ *
+ * ⚠️ English and Arabic reference DIFFERENT SCREENS, and that is the point of
+ * pairing paragraphs by position rather than by image. Chapter One shares only
+ * 4 of 16 public IDs between locales: an Arabic reader sees the Arabic
+ * screenshot in the same place the English reader sees the English one. One
+ * `chapter_paragraphs` row therefore holds `[image:A]` for `en` and
+ * `[image:B]` for `ar`, which is correct and not a mismatch.
+ */
+async function writeChapterSections(opts: {
+  rowTitle: string;
+  chapterId: string;
+  enBlocks: readonly OrderedBlock[];
+  arBlocks: readonly OrderedBlock[] | null;
+  aliases: ReadonlyMap<string, string>;
+}): Promise<string | null> {
+  const { rowTitle, chapterId, enBlocks, arBlocks, aliases } = opts;
+
+  const en = resolveChapterSections(rowTitle, enBlocks, aliases);
+  const ar = arBlocks
+    ? resolveChapterSections(`${rowTitle} (ar)`, arBlocks, aliases)
+    : { sections: [], failures: [] };
+
+  for (const f of [...en.failures, ...ar.failures]) fail(rowTitle, f);
+  if (en.failures.length > 0 || ar.failures.length > 0) return null;
+
+  const prose = en.sections.filter((s) => isChapterProseSlot(s.slot));
+
+  // A page that offered no sections is an unwritten draft and says so by
+  // saying nothing. The same distinction the cover pass draws, for the same
+  // reason: a guard that fires on every placeholder gets ignored.
+  const offered = enBlocks.filter((b) => b.level >= 2 && b.heading && !isDecisionHeading(b.heading)).length;
+  if (offered === 0 || prose.length === 0) return null;
+
+  const countImages = (ss: readonly ChapterSection[]) =>
+    ss.reduce((n, s) => n + s.paragraphs.filter((p) => p.kind === "image").length, 0);
+
+  const shape =
+    `slots [${prose
+      .map((s) => {
+        const imgs = s.paragraphs.filter((p) => p.kind === "image").length;
+        const tbl = s.paragraphs.filter((p) => p.kind === "table").length;
+        return `${s.slot}(${s.paragraphs.length}¶${imgs ? `/${imgs}img` : ""}${tbl ? `/${tbl}tbl` : ""})`;
+      })
+      .join(" · ")}] images en:${countImages(en.sections)} ar:${countImages(ar.sections)}`;
+
+  if (DRY_RUN) return shape;
+
+  /*
+   * Replace wholesale, translations first — the polymorphic-orphan trap every
+   * other pass documents. `translations` has no foreign key to cascade, so
+   * deleting the rows alone would orphan their text and every re-sync would
+   * accumulate another dead set.
+   *
+   * `media` rows are NOT deleted. They are keyed on the public ID, shared
+   * between locales and potentially between chapters, and deleting them here
+   * would break another chapter's reference to the same screen.
+   */
+  const { data: oldSections } = await (await db())
+    .from("chapter_sections").select("id").eq("chapter_id", chapterId);
+
+  if (oldSections && oldSections.length > 0) {
+    const sectionIds = oldSections.map((x) => x.id);
+    const { data: oldParas } = await (await db())
+      .from("chapter_paragraphs").select("id").in("chapter_section_id", sectionIds);
+    if (oldParas && oldParas.length > 0) {
+      const paraIds = oldParas.map((x) => x.id);
+      /*
+       * Cell translations first. `chapter_table_cells` cascades from the
+       * paragraph, but `translations` has no foreign key to cascade — the same
+       * polymorphic-orphan trap every other pass documents. Deleting the cells
+       * alone would strand their text and every re-sync would leave another
+       * dead set behind.
+       */
+      const { data: oldCells } = await (await db())
+        .from("chapter_table_cells").select("id").in("chapter_paragraph_id", paraIds);
+      if (oldCells && oldCells.length > 0) {
+        await (await db()).from("translations").delete()
+          .eq("entity_type", "chapter_table_cell").in("entity_id", oldCells.map((x) => x.id));
+      }
+      await (await db()).from("translations").delete()
+        .eq("entity_type", "chapter_paragraph").in("entity_id", paraIds);
+    }
+    await (await db()).from("translations").delete()
+      .eq("entity_type", "chapter_section").in("entity_id", sectionIds);
+    await (await db()).from("chapter_sections").delete().eq("chapter_id", chapterId);
+  }
+
+  const arBySlot = new Map(ar.sections.map((x) => [x.slot, x]));
+
+  /**
+   * Render one paragraph to the text stored for a locale.
+   *
+   * Tables never reach here — they own cells rather than a body, and the caller
+   * handles them before this point. Returning null rather than throwing keeps a
+   * future third kind from taking a page down.
+   */
+  const bodyFor = async (para: ChapterParagraph, locale: "en" | "ar"): Promise<string | null> => {
+    if (para.kind === "prose") return para.text;
+    if (para.kind !== "image") return null;
+    const mediaId = await upsertMedia(para.tag, locale);
+    if (!mediaId) {
+      fail(rowTitle, `${rowTitle}: could not write media row for ${JSON.stringify(para.tag.cld)}`);
+      return null;
+    }
+    return formatImageRef(mediaId);
+  };
+
+  for (const [i, section] of prose.entries()) {
+    const { data: sectionRow, error } = await (await db())
+      .from("chapter_sections")
+      .insert({ chapter_id: chapterId, slot: section.slot, sort_order: i })
+      .select("id").single();
+
+    if (error || !sectionRow) {
+      fail(rowTitle, `${rowTitle}: slot "${section.slot}" — ${error?.message ?? "insert returned no row"}`);
+      continue;
+    }
+
+    const arSection = arBySlot.get(section.slot);
+
+    await upsertTranslations("chapter_section", sectionRow.id, "en", { heading: section.heading });
+    if (arSection) {
+      await upsertTranslations("chapter_section", sectionRow.id, "ar", { heading: arSection.heading });
+    }
+
+    /*
+     * Paragraphs pair by position within the slot, and only when the counts
+     * match. Where they differ the Arabic is skipped and reported rather than
+     * attached one row off — which, with images in the sequence, would put an
+     * Arabic screenshot under an English paragraph about a different screen.
+     */
+    const pair =
+      arSection !== undefined &&
+      arSection.paragraphs.length > 0 &&
+      arSection.paragraphs.length === section.paragraphs.length;
+
+    if (arSection && arSection.paragraphs.length > 0 && !pair) {
+      notice(rowTitle,
+        `${rowTitle}: slot "${section.slot}" has ${section.paragraphs.length} paragraph(s) ` +
+          `in English and ${arSection.paragraphs.length} in Arabic. Arabic skipped for ` +
+          "this slot — pairing by position across different counts would attach the " +
+          "wrong paragraph, and with figures in the sequence it would also show the " +
+          "wrong screenshot. The heading still synced.",
+      );
+    }
+
+    for (const [j, para] of section.paragraphs.entries()) {
+      const { data: paraRow, error: paraError } = await (await db())
+        .from("chapter_paragraphs")
+        .insert({
+          chapter_section_id: sectionRow.id,
+          sort_order: j,
+          kind: para.kind === "table" ? "table" : "prose",
+        })
+        .select("id").single();
+
+      if (paraError || !paraRow) {
+        fail(rowTitle, `${rowTitle}: slot "${section.slot}" paragraph ${j + 1} — ${paraError?.message ?? "no row"}`);
+        continue;
+      }
+
+      /*
+       * A TABLE is cells, not a body.
+       *
+       * The Arabic counterpart is written only when this position pairs AND the
+       * Arabic paragraph is also a table. A table paired against a paragraph is
+       * a structural mismatch, not a translation, and writing it would put
+       * Arabic prose into a grid cell.
+       */
+      if (para.kind === "table") {
+        const arPara = pair && arSection ? arSection.paragraphs[j] : undefined;
+        const arGrid = arPara?.kind === "table" ? arPara.grid : null;
+
+        if (arPara && arPara.kind !== "table") {
+          notice(rowTitle,
+            `${rowTitle}: slot "${section.slot}" position ${j + 1} is a table in English and ` +
+              `${arPara.kind} in Arabic. Arabic not written for this position — the shapes ` +
+              "do not correspond and pairing them would put prose into a grid cell.",
+          );
+        }
+        if (arGrid && (arGrid.length !== para.grid.length ||
+            arGrid[0]?.length !== para.grid[0]?.length)) {
+          notice(rowTitle,
+            `${rowTitle}: slot "${section.slot}" table is ${para.grid.length}x${para.grid[0]?.length} ` +
+              `in English and ${arGrid.length}x${arGrid[0]?.length} in Arabic. Arabic cells not ` +
+              "written — a different grid is a different table, and pairing by index would " +
+              "scatter its text across the wrong columns.",
+          );
+        }
+        const useAr =
+          arGrid &&
+          arGrid.length === para.grid.length &&
+          arGrid[0]?.length === para.grid[0]?.length;
+
+        for (const [r, cells] of para.grid.entries()) {
+          for (const [c, text] of cells.entries()) {
+            const { data: cellRow, error: cellError } = await (await db())
+              .from("chapter_table_cells")
+              .insert({
+                chapter_paragraph_id: paraRow.id,
+                row_idx: r,
+                col_idx: c,
+                // Row 0 is the header row, matching what SectionTable renders.
+                is_header: r === 0,
+              })
+              .select("id").single();
+
+            if (cellError || !cellRow) {
+              fail(rowTitle, `${rowTitle}: slot "${section.slot}" table cell ${r},${c} — ${cellError?.message ?? "no row"}`);
+              continue;
+            }
+
+            await upsertTranslations("chapter_table_cell", cellRow.id, "en", { text });
+            if (useAr) {
+              await upsertTranslations("chapter_table_cell", cellRow.id, "ar", {
+                text: arGrid[r][c] ?? "",
+              });
+            }
+          }
+        }
+        continue;
+      }
+
+      const enBody = await bodyFor(para, "en");
+      if (enBody !== null) {
+        await upsertTranslations("chapter_paragraph", paraRow.id, "en", { body: enBody });
+      }
+
+      if (pair && arSection) {
+        const arPara = arSection.paragraphs[j];
+        // A prose position must not take an Arabic table.
+        if (arPara.kind !== "table") {
+          const arBody = await bodyFor(arPara, "ar");
+          if (arBody !== null) {
+            await upsertTranslations("chapter_paragraph", paraRow.id, "ar", { body: arBody });
+          }
+        }
+      }
+    }
+  }
+
+  return shape;
+}
+
 /* ------------------------------------------------------------------ writes */
 
 async function upsertTranslations(
@@ -811,9 +1279,7 @@ async function upsertTranslations(
  * "What that year actually taught me" is a sentence to render. This keeps the
  * words and the order.
  */
-async function readOrderedBlocks(
-  pageId: string,
-): Promise<{ heading: string; level: 0 | 1 | 2 | 3; lines: string[]; tables: string[][][] }[]> {
+async function readOrderedBlocks(pageId: string): Promise<OrderedBlock[]> {
   /*
    * `level` records which heading tag introduced the block, and the cover pass
    * depends on it. A cover opens with an H1 carrying the page title and, beneath
@@ -822,8 +1288,8 @@ async function readOrderedBlocks(
    * the document title; H2 and H3 introduce sections. Level 0 is the synthetic
    * block holding anything before the first heading.
    */
-  const blocks: { heading: string; level: 0 | 1 | 2 | 3; lines: string[]; tables: string[][][] }[] = [
-    { heading: "", level: 0, lines: [], tables: [] },
+  const blocks: OrderedBlock[] = [
+    { heading: "", level: 0, lines: [], items: [], tables: [] },
   ];
   let cursor: string | undefined;
 
@@ -853,6 +1319,7 @@ async function readOrderedBlocks(
           heading: headingText.map((t) => t.plain_text).join("").trim(),
           level: b.heading_1 ? 1 : b.heading_2 ? 2 : 3,
           lines: [],
+          items: [],
           tables: [],
         });
         continue;
@@ -865,7 +1332,10 @@ async function readOrderedBlocks(
        */
       if (b.type === "table") {
         const grid = await readTable((block as unknown as { id: string }).id);
-        if (grid.length > 0) blocks[blocks.length - 1].tables.push(grid);
+        if (grid.length > 0) {
+          blocks[blocks.length - 1].tables.push(grid);
+          blocks[blocks.length - 1].items.push({ kind: "table", grid });
+        }
         continue;
       }
 
@@ -876,14 +1346,35 @@ async function readOrderedBlocks(
         b.quote?.rich_text;
       if (!prose) continue;
 
+      /*
+       * An image tag paragraph is recorded as an `image` item and is kept OUT
+       * of `lines`. Existing callers therefore see exactly what they saw
+       * before, minus the raw "[cld] …" source that was previously reaching
+       * them as prose.
+       */
+      const parsed = parseImageTag(prose as unknown as NotionRun[]);
+      const target = blocks[blocks.length - 1];
+
+      if (parsed.kind === "tag") {
+        target.items.push({ kind: "image", tag: parsed.tag });
+        continue;
+      }
+      if (parsed.kind === "invalid") {
+        target.items.push({ kind: "invalid", problems: parsed.problems, cld: parsed.cld });
+        continue;
+      }
+
       const text = prose.map((t) => t.plain_text).join("").trim();
-      if (text) blocks[blocks.length - 1].lines.push(text);
+      if (text) {
+        target.lines.push(text);
+        target.items.push({ kind: "prose", text });
+      }
     }
 
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
   } while (cursor);
 
-  return blocks.filter((b) => b.heading || b.lines.length > 0);
+  return blocks.filter((b) => b.heading || b.lines.length > 0 || b.items.length > 0);
 }
 
 /**
@@ -965,6 +1456,17 @@ async function main() {
       process.exit(1);
     }
     for (const row of data ?? []) coverAliases.set(row.heading_norm, row.slot);
+  }
+
+  /* Chapter slots use their own alias table and their own vocabulary. */
+  const chapterAliases = new Map<string, string>();
+  {
+    const { data, error } = await (await db()).from("chapter_slot_aliases").select("heading_norm, slot");
+    if (error) {
+      console.error(`Could not load chapter_slot_aliases: ${error.message}`);
+      process.exit(1);
+    }
+    for (const row of data ?? []) chapterAliases.set(row.heading_norm, row.slot);
   }
 
   /* ---- Pass 1: case files ---------------------------------------------- */
@@ -1193,6 +1695,43 @@ async function main() {
         fieldsFromBody(arBody, CHAPTER_FIELDS, arabicTitleFrom(arBody, arabic.title)),
       );
       arDecisions = decisionsFromBody(arBody);
+    }
+
+    /*
+     * Chapter sections — the slot model (migration 0035), and the images with it.
+     *
+     * This runs IN ADDITION to the `CHAPTER_FIELDS` writes above rather than
+     * replacing them. The old fields still feed everything that reads them
+     * today; the sections carry the passages those fields have no key for, and
+     * every image tag on the page. Removing the fields is a separate change
+     * with its own blast radius, and doing both at once would make a rendering
+     * regression impossible to attribute.
+     */
+    /*
+     * Sections apply to EVERY chapter-like row, document pages included.
+     *
+     * They were gated to `kind = 'chapter'` while `chapter_paragraphs` could
+     * only hold text or an image marker: all three document pages carry a
+     * table, and migrating them would have dropped it silently. Migration 0038
+     * gave a paragraph a `table` kind, so the reason is gone and so is the gate.
+     *
+     * That unblocked the accessibility page's 18 image tags per locale — 36,
+     * the largest image payload on the site.
+     */
+    const sectionsApply =
+      !ONLY || `${caseFile}/${slug}`.toLowerCase().includes(ONLY) || row.title.toLowerCase().includes(ONLY);
+
+    if (sectionsApply) {
+      const enBlocks = await readOrderedBlocks(row.id);
+      const arBlocks = arabic ? await readOrderedBlocks(arabic.id) : null;
+      const sectionShape = await writeChapterSections({
+        rowTitle: row.title,
+        chapterId: data.id,
+        enBlocks,
+        arBlocks,
+        aliases: chapterAliases,
+      });
+      if (sectionShape) console.log(`      sections ${sectionShape}`);
     }
 
     /*
@@ -1841,8 +2380,32 @@ async function main() {
   /* ---- Pass 5: static pages → page_sections (0021) ---------------------- */
 
   for (const row of rows) {
-    const isProsePage =
-      row.kind === "static" || row.kind === "comparison" || row.kind === "accessibility";
+    /*
+     * ⚠️ COMPARISON AND ACCESSIBILITY PAGES NO LONGER WRITE HERE.
+     *
+     * They moved onto the slot model (migrations 0035 and 0038), which carries
+     * their prose, their table and — on the accessibility page — 18 image tags
+     * per locale that `page_sections` had no way to hold.
+     *
+     * Their rows are RETIRED rather than left in place. Two representations of
+     * one page's prose diverge the moment either is edited, and the stale one
+     * has no reader to notice: `getPageSections` is called from five places and
+     * only the chapter route ever asked for these three keys. Leaving them
+     * would be leaving a second, silently ageing copy of the same page.
+     */
+    /*
+     * ⚠️ ACCESSIBILITY IS STILL HERE ON PURPOSE, AND SHOULD LEAVE.
+     *
+     * The comparison pages have migrated, so writing them here too would leave
+     * a second copy of their prose ageing quietly beside the live one.
+     *
+     * The accessibility page has NOT migrated: its Arabic page has one image
+     * tag sharing a paragraph with prose, and the tag guard refuses the whole
+     * page rather than drop that sentence. Retiring its rows while it is
+     * refused would blank the page. It keeps writing here until the Notion
+     * paragraph is split, and then this clause goes.
+     */
+    const isProsePage = row.kind === "static" || row.kind === "accessibility";
     if (!isProsePage || !row.route) continue;
     const pageKey = routeToPageKey(row.route);
     if (!pageKey) continue;

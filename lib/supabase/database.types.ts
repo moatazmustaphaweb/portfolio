@@ -200,6 +200,80 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["cover_slot_aliases"]["Insert"]>;
         Relationships: [];
       };
+      /* --- chapter slot model (migrations 0034 + 0035) --- */
+      chapter_sections: {
+        Row: {
+          id: string;
+          chapter_id: string;
+          /** One of lib/sync/chapter-slots.ts ALL_SLOTS. Text, not an enum. */
+          slot: string;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          chapter_id: string;
+          slot: string;
+          sort_order: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["chapter_sections"]["Insert"]>;
+        Relationships: [];
+      };
+      /**
+       * One row per paragraph, ordered. Never a joined string.
+       *
+       * A paragraph whose body is `[image:<uuid>]` renders as a <figure>. That
+       * is why these are rows: <figure> is invalid inside <p>, so the figure
+       * has to be a SIBLING of the paragraphs, not spliced into one.
+       */
+      chapter_paragraphs: {
+        Row: {
+          id: string;
+          chapter_section_id: string;
+          sort_order: number;
+          /** 'prose' | 'table' — a table row has no body and owns cells. */
+          kind: string;
+        };
+        Insert: {
+          id?: string;
+          chapter_section_id: string;
+          sort_order: number;
+          kind?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["chapter_paragraphs"]["Insert"]>;
+        Relationships: [];
+      };
+      chapter_table_cells: {
+        Row: {
+          id: string;
+          chapter_paragraph_id: string;
+          row_idx: number;
+          col_idx: number;
+          is_header: boolean;
+        };
+        Insert: {
+          id?: string;
+          chapter_paragraph_id: string;
+          row_idx: number;
+          col_idx: number;
+          is_header?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["chapter_table_cells"]["Insert"]>;
+        Relationships: [];
+      };
+      chapter_slot_aliases: {
+        Row: {
+          heading_norm: string;
+          slot: string;
+          observed_on: string | null;
+        };
+        Insert: {
+          heading_norm: string;
+          slot: string;
+          observed_on?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["chapter_slot_aliases"]["Insert"]>;
+        Relationships: [];
+      };
       page_sections: {
         Row: {
           id: string;
@@ -522,7 +596,10 @@ export type Database = {
         | "decision"
         /* Added by migration 0030 for the cover slot model. */
         | "cover_section"
-        | "cover_paragraph";
+        | "cover_paragraph"
+        | "chapter_section"
+        | "chapter_paragraph"
+        | "chapter_table_cell";
       grammar_type: "country-culture" | "ecosystem" | "design-system";
       locale_code: "en" | "ar";
       nav_location: "header" | "footer";

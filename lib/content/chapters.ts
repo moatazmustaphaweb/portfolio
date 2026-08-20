@@ -4,8 +4,17 @@ import { cache } from "react";
 
 import { supabaseServer } from "@/lib/supabase/server";
 
-import { resolveMany, withFields } from "./translate";
-import type { ChapterDetail, ChapterWithDecisions, Locale } from "./types";
+import { referencedMediaIds, splitBody } from "./image-refs";
+import { resolveMany, resolveManyDetailed, withFields } from "./translate";
+import { DEFAULT_LOCALE } from "./types";
+import type {
+  ChapterBlock,
+  ChapterDetail,
+  ChapterSection,
+  ChapterWithDecisions,
+  Locale,
+  Media,
+} from "./types";
 
 /**
  * Chapters — the chapter route, and the params for static generation.
@@ -106,6 +115,164 @@ export const listChapterBodies = cache(
 );
 
 /**
+ * The slots of one chapter, with their prose and their figures resolved.
+ *
+ * ⚠️ THE ORDER OF WORK MATTERS. Bodies are read first, the media ids they
+ * reference are collected across the WHOLE chapter, and every media row is then
+ * fetched in ONE query. Resolving each figure as it is met would issue one
+ * round trip per image — sixteen on Chapter One, per locale, on every render —
+ * which is exactly the per-request cost `docs/design/perf-budget` exists to
+ * prevent.
+ *
+ * NDA is stamped from the owning case file here, the same way the hero already
+ * does it, so no component prop carries it and no call site can omit it
+ * (amendment 036).
+ */
+async function loadChapterSections(
+  chapterId: string,
+  locale: Locale,
+  nda: boolean,
+): Promise<ChapterSection[]> {
+  const { data: sectionRows, error } = await supabaseServer
+    .from("chapter_sections")
+    .select("id, slot, sort_order")
+    .eq("chapter_id", chapterId)
+    .order("sort_order");
+
+  if (error) throw new Error(`Failed to load chapter sections: ${error.message}`);
+  if (!sectionRows || sectionRows.length === 0) return [];
+
+  const { data: paraRows, error: paraError } = await supabaseServer
+    .from("chapter_paragraphs")
+    .select("id, chapter_section_id, sort_order, kind")
+    .in("chapter_section_id", sectionRows.map((s) => s.id))
+    .order("sort_order");
+
+  if (paraError) throw new Error(`Failed to load chapter paragraphs: ${paraError.message}`);
+
+  /*
+   * Table cells for every table paragraph on this chapter, in ONE query.
+   *
+   * Same reasoning as the media fetch below: a query per table would be one
+   * round trip per grid, and the accessibility page has one with 42 cells.
+   */
+  const tableParaIds = (paraRows ?? []).filter((p) => p.kind === "table").map((p) => p.id);
+  const cellsByPara = new Map<string, { row: number; col: number; id: string }[]>();
+  if (tableParaIds.length > 0) {
+    const { data: cellRows, error: cellError } = await supabaseServer
+      .from("chapter_table_cells")
+      .select("id, chapter_paragraph_id, row_idx, col_idx")
+      .in("chapter_paragraph_id", tableParaIds)
+      .order("row_idx")
+      .order("col_idx");
+    if (cellError) throw new Error(`Failed to load table cells: ${cellError.message}`);
+    for (const c of cellRows ?? []) {
+      const list = cellsByPara.get(c.chapter_paragraph_id) ?? [];
+      list.push({ row: c.row_idx, col: c.col_idx, id: c.id });
+      cellsByPara.set(c.chapter_paragraph_id, list);
+    }
+  }
+
+  /*
+   * Detailed resolution: the body text AND the locale that supplied it. A
+   * paragraph that fell back is English inside an Arabic document and has to be
+   * marked as such — see decision 053 and `FieldLocales`.
+   */
+  const cellIds = [...cellsByPara.values()].flat().map((c) => c.id);
+  const [sectionFields, paraFields, cellFields] = await Promise.all([
+    resolveManyDetailed("chapter_section", sectionRows.map((s) => s.id), locale),
+    resolveManyDetailed("chapter_paragraph", (paraRows ?? []).map((p) => p.id), locale),
+    resolveManyDetailed("chapter_table_cell", cellIds, locale),
+  ]);
+
+  /**
+   * Reassemble one table into the string `SectionTable` expects.
+   *
+   * ⚠️ This is the guarantee that the migrated table renders IDENTICALLY. There
+   * is no second table renderer: the cells go back into the same
+   * tab-and-newline shape `page_sections` produced, and the same component
+   * draws it. The markup cannot drift because there is nothing to drift from.
+   */
+  const tableBody = (paraId: string): { body: string; lang: Locale } => {
+    const cells = cellsByPara.get(paraId) ?? [];
+    const grid: string[][] = [];
+    let sawFallback = false;
+    for (const c of cells) {
+      const entry = cellFields.get(c.id);
+      (grid[c.row] ??= [])[c.col] = entry?.fields.text ?? "";
+      if ((entry?.fieldLocales.text ?? locale) !== locale) sawFallback = true;
+    }
+    return {
+      body: grid.map((row) => [...row].map((x) => x ?? "").join("\t")).join("\n"),
+      // One language for the whole grid: a table half-served by the fallback is
+      // not a mixed-language table, it is an untranslated one.
+      lang: sawFallback ? DEFAULT_LOCALE : locale,
+    };
+  };
+
+  /* Every media id this chapter references, in one pass, then one query. */
+  const bodies = (paraRows ?? [])
+    .filter((p) => p.kind !== "table")
+    .map((p) => paraFields.get(p.id)?.fields.body)
+    .filter((b): b is string => Boolean(b));
+
+  const mediaIds = referencedMediaIds(bodies);
+  const mediaById = new Map<string, Media>();
+
+  if (mediaIds.length > 0) {
+    const { data: mediaRows } = await supabaseServer
+      .from("media")
+      .select("*")
+      .in("id", mediaIds);
+
+    const resolved = await withFields("media", mediaRows ?? [], locale);
+    for (const m of resolved) mediaById.set(m.id, { ...m, nda });
+  }
+
+  const bySection = new Map<string, ChapterBlock[]>();
+  for (const para of paraRows ?? []) {
+    if (para.kind === "table") {
+      const t = tableBody(para.id);
+      if (t.body.trim()) {
+        const blocks = bySection.get(para.chapter_section_id) ?? [];
+        blocks.push({ kind: "table", body: t.body, lang: t.lang });
+        bySection.set(para.chapter_section_id, blocks);
+      }
+      continue;
+    }
+
+    const entry = paraFields.get(para.id);
+    const body = entry?.fields.body;
+    if (!body) continue;
+
+    // The language of THIS paragraph, which is the page's locale unless the
+    // fallback supplied it.
+    const lang: Locale = entry?.fieldLocales.body ?? locale;
+
+    const blocks = bySection.get(para.chapter_section_id) ?? [];
+    for (const part of splitBody(body)) {
+      blocks.push(
+        part.kind === "text"
+          ? { kind: "prose", text: part.text, lang }
+          : { kind: "image", media: mediaById.get(part.mediaId) ?? null },
+      );
+    }
+    bySection.set(para.chapter_section_id, blocks);
+  }
+
+  return sectionRows.map((row) => {
+    const entry = sectionFields.get(row.id);
+    return {
+      id: row.id,
+      slot: row.slot,
+      heading: entry?.fields.heading,
+      headingLang: entry?.fieldLocales.heading ?? locale,
+      blocks: bySection.get(row.id) ?? [],
+    };
+  });
+}
+
+/**
  * One chapter with its parent and features.
  *
  * Returns null when either the chapter or its case file is missing or
@@ -176,7 +343,7 @@ export const getChapter = cache(
       throw new Error(`Failed to load decisions: ${decisionError.message}`);
     }
 
-    const [chapterFields, caseFileFields, features, decisions, media] = await Promise.all([
+    const [chapterFields, caseFileFields, features, decisions, media, sections] = await Promise.all([
       resolveMany("chapter", [chapterRow.id], locale),
       resolveMany("case_file", [caseFileRow.id], locale),
       withFields("feature", featureRows ?? [], locale),
@@ -193,6 +360,7 @@ export const getChapter = cache(
         // NDA travels from the owning case file, not the image.
         return { ...resolved, nda: caseFileRow.nda };
       })(),
+      loadChapterSections(chapterRow.id, locale, caseFileRow.nda),
     ]);
 
     const siblings = siblingRows ?? [];
@@ -213,6 +381,7 @@ export const getChapter = cache(
       // 1-based for display; index is -1 for a comparison or accessibility
       // page, which is not part of the sequence and shows no indicator.
       position: { current: index + 1, total: siblings.length },
+      sections,
       prev: prevRow
         ? { slug: prevRow.slug, title: neighbourTitles.get(prevRow.id)?.title }
         : null,
