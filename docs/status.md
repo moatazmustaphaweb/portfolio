@@ -37,6 +37,73 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-23 — An image belongs to a cover SECTION. `lead_media_id` retired, `cover_sections` upserted
+
+### The sync now upserts, and why that was the right call over preserve-by-slot
+
+`cover_sections` was deleted and re-inserted for a case file on every sync. A column on such a table silently loses its data, which is why a naive `media_id` would have been wiped by the next `npm run sync:notion`.
+
+Preserve-across-the-replace was rejected on the grounds that it leaves a read and a restore free to disagree — the same shape as the grid that kept both tracks after losing a child. **Upserting on the existing `unique (case_file_id, slot)` means the row is never deleted, so there is nothing to preserve and nothing to forget.** The failure is unrepresentable rather than handled.
+
+**The cost, stated before building and paid in the same function:** delete-all removed a departed slot for free; upsert does not. The pass now deletes the slots **not in the set it just wrote**, from `writtenSlots` — the same array that drove the upsert. One list, used twice. A removal is reported by name, including that any image attached to it goes with it.
+
+Two consequences worth recording:
+- **`cover_paragraphs` are still replaced**, per section, translations first. They carry nothing that is not re-derived from Notion each run.
+- **Section ids are now stable.** Every sync used to mint fresh UUIDs and rewrite every heading translation; they now update in place.
+
+### The schema
+
+`cover_sections.media_id`, nullable, `on delete set null`. **One migration — no enum split.** Nothing adds an `entity_type` label; alt and caption stay on the media row as `entity_type='media'`.
+
+### `lead_media_id` retired, and only half the trigger work transferred
+
+- **Forward guard: rewritten.** `assert_cover_not_redacted` is bound to `case_files` and read `new.lead_media_id`. A column on another table needed its own function and its own trigger — `assert_cover_section_not_redacted`, `before insert or update of media_id on cover_sections` — carrying 0033's lesson that a column list means the trigger does not fire for writes touching other columns.
+- **Reverse guard: transferred.** `assert_redacted_not_in_use` gained one `EXISTS` against `cover_sections` and was **not** recreated, its column list being `update of redacted` and unchanged.
+- `case_files_cover_not_redacted` was dropped, narrowed to `cover_media_id`, and recreated **after** the column was dropped.
+
+Both directions cover the new column, on 0033's argument applied harder: the same page, the most-shared URL of the four, and now any section can carry an image rather than one.
+
+### The container moved into the component
+
+It used to live on the page and activate once, on the leading run — which is precisely why the `map` section had unaddressable space beside it. `CoverSections` now decides per section: media present renders text at two thirds and the image at one third, media absent renders full width. The page makes **one** call and no longer splits sections to express a layout.
+
+**The role branch ignores `media_id`,** having no image column, **and the sync reports it** rather than dropping it silently — a hand-attached image that simply never appears, with nothing saying why, is the worse half.
+
+### Verified on localhost:3000
+
+| | |
+|---|---|
+| Egypt | **2 sections with images** — `thesis` (portrait cut-out) and `map` (landscape diagram); `role` full width |
+| **UAE, Neobiz, Cervello** | **0 grid sections, 0 figures** |
+| **All 12 screenshots of those three** | **BYTE-IDENTICAL** to the `c280789` baseline — en/ar × 1440/390 |
+| Egypt thesis | **718px** — unchanged |
+| Arabic 1440 | mirrored: image column left, Arabic text right, no direction check in the code |
+| 390, both locales | grid collapses, content 366px of 390, images stacked |
+| Arabic alt on the map image | **`صورة توضيحية لمكونات الرحلة`** — real Arabic, not the English fallback. The first section image to ship with one |
+
+The three covers were compared against real screenshots taken before the change, not asserted unchanged. That check was added because the same prediction was made twice before and was wrong both times.
+
+### ⚠️ THE DIAGRAM IS TOO SMALL TO BE WORTH HAVING AS A DIAGRAM
+
+Asked for directly, so answered directly.
+
+`Slide_4_3_-_1` is 1024×768 and renders **357×268** in a one-third column. It is **84.5% transparent**, so the five labelled boxes occupy roughly 250×160 of that. The container names — the actual content — render at about **7px**. Technically legible, not readable at a glance.
+
+It also **restates its own neighbours**. The `map` section's text is a numbered list naming the same five journeys in full sentences, directly beside it. The diagram adds no information that is not already there in a more readable form.
+
+It works as **texture** — a visual marker that this section is about structure. It does not work as a diagram anyone reads.
+
+Three ways forward, none taken:
+1. **Keep it as texture.** Honest about what it is doing; the labels are decoration at this size.
+2. **Give landscape images a full-width treatment below the text** rather than beside it. A 4:3 at 1152px is 1152×864 and every label is readable. This is a second layout rule keyed on aspect, which is a real addition.
+3. **Drop it**, and leave `map` full width as it was.
+
+`e_grayscale` is applied and is a **visual no-op** — the diagram is already monochrome. Recorded so nobody looks for a treatment that is not there.
+
+`check:seed-drift` **zero** · `tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+---
+
 ## 2026-08-22 (evening) — SHAPE PROPOSED, NOT BUILT: an image per cover section
 
 **No code changed, no migration written.** The shape was asked for and waited on.
