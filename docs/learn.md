@@ -247,6 +247,8 @@ Each of these cost at least one session.
 | **Notion `plain_text`** | A backtick regex matches nothing | Backticks are stripped. Read `annotations.code` |
 | **`<figure>` in `<p>`** | Renders *almost* right | Browser closes the paragraph early and reparents. Make paragraphs rows |
 | **SVG in `<img>`** | No token resolves, no theme | An SVG in an `<img>` is an isolated document. Inline it |
+| **`<span>` inside an Arabic heading** | Two Arabic faces in one sentence — body face under heading face, and a real bold where the heading is 400 | `:lang(ar)` matches the span DIRECTLY, and a direct match beats an inherited value from the `h1`. `font-synthesis-weight: none` stops a *faked* bold; it cannot stop a real weight in a family that ships one, and Meral does. Scope the heading rules to descendants |
+| **`--window-size` on headless Chrome** | A 390px shot that is really a desktop layout with its right side cut off — indistinguishable from a broken responsive rule | The flag sizes the CAPTURE, not the layout viewport. Set it over CDP (`Emulation.setDeviceMetricsOverride`). `scripts/screenshot.mjs` |
 
 ---
 
@@ -258,6 +260,8 @@ The Arabic type scale is the standing example. Measured, not inferred:
 - The scale has **no step between 16px body and 26px statement** in English. The gap is real; a section-heading token had to be added.
 - Arabic headings force `font-weight: 400` with `font-synthesis-weight: none`, so **there is no weight axis** and hierarchy is size alone. A 9% size increase is not a heading.
 - At the same pixel width the Arabic line holds **fewer** characters, not more — so the longest line on the cover is the English one, the opposite of the expectation it was measured under.
+
+A later instance, from the two-size h1 trial. The expectation was that Arabic carries more punctuation than English for the same meaning, so a rule that cuts a sentence at its first mark would cut **earlier** in Arabic. Measured across ten chapter objectives it is the opposite on six of them: Arabic strings clauses with `و` where English uses commas, so `submitted, verified, machine-readable` is `مُقدَّم ومُتحقَّق منه ومقروء آليًا` — three adjectives and no mark at all. On one chapter the two languages swap places entirely, the Arabic giving the best cut of the ten and the English the worst.
 
 The generalisation: **in a bilingual system, the intuition formed in one language is often inverted in the other.** Measure.
 

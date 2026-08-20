@@ -37,6 +37,144 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-24 (night) — TRIAL: the two-size chapter h1. It works typographically and the rule cuts three of eight objectives in the wrong place
+
+**This is a trial, awaiting a ruling.** It is built, it renders, and it is committed so it can be looked at. Nothing about it is settled.
+
+Screenshots, 36 of them, before and after, both locales, 390 and 1440:
+**`~/Desktop/two-size-h1-trial/`** — `before|after`-`en|ar`-`<chapter>`-`390|1440.png`.
+Deliberately **not** in the repo: 3.9MB of PNG in permanent git history is the thing rule 6 is careful about, and these are read once and thrown away.
+
+### What was built
+
+A chapter's h1 is its objective, and an objective is a sentence. `splitHeading()` in `lib/utils/splitHeading.ts` cuts it at its first internal punctuation mark. The part before keeps `text-title`; the part after renders in a `<span>` at `text-h2`.
+
+**One `<h1>`.** The tail is a span inside it, so the heading is still one sentence to a screen reader and one entry in the document outline.
+
+**Chapter pages only.** The `isDocument` branch — the two comparison pages and the accessibility page — is untouched, and their h1s are titles rather than objectives. Covers and the landing page were not opened.
+
+**What counts as a mark:** `,` `;` `:` `،` `؛` `—` `–`, and a hyphen with a space on both sides.
+**What does not, and why it matters:** a hyphen *inside* a word. `machine-readable` and `twenty-four-hours-to-three-days` are both in these objectives, and a bare `-` in the set would cut the Egypt onboarding objective at `machine-`. Also excluded: the full stop, `؟`, `!` — they end a sentence rather than divide one — and brackets and quotes, which enclose rather than divide.
+**No mark means no change.** The caller renders one string at one size, as before.
+
+### Why `text-h2` for the tail
+
+The near-in-size reading tokens, `lead` (28px) and `statement` (26px), are the obvious choice and are wrong here.
+
+They take `--type-scale`, which is **1.15 in Arabic**. `text-title` takes `--type-scale-display`, which is **1.00**. So an Arabic tail set in `statement` would sit 15% larger against its head than the English tail does, and the treatment would mean something different in each language.
+
+`text-h2` is on the display ramp with `text-title`, so head and tail hold **the same ratio in both scripts at every viewport**: 38/28 at the floor, 60/44 at the ceiling, 6vw/4.4vw between — 0.73 throughout.
+
+It is a **size** change and not a weight one, and that is forced rather than chosen: `:lang(ar) h1` runs weight 400 with `font-synthesis-weight: none` because LANTX ships one weight. Arabic has no weight axis. A two-weight treatment would be invisible on half the site.
+
+### Where the cut actually falls — all ten chapters, both locales
+
+`HEAD %` is how much of the sentence stays at title size.
+
+| Chapter | EN cut | HEAD % | AR cut | HEAD % |
+|---|---|---|---|---|
+| egypt/onboarding | after `to a submitted,` | 35% | at the `—` | 53% |
+| **egypt/workflow** | after `one place to review,` | **23%** | after `يراجعون فيه الطلب،` | 22% |
+| egypt/portal | at the `—` | 44% | after `أثناء انتظاره،` | 42% |
+| egypt/fulfilment | after `the original documents,` | 24% | at the `:` | 12% |
+| **uae/onboarding** | after `about ten minutes,` | **70%** | at the `—` | 44% |
+| cervello/method | at the `—` | 25% | at the `—` | 31% |
+| cervello/permission-architecture | after `manage many clients,` | 27% | at the `—` | 55% |
+| cervello/on-premises-to-cloud | after `make it a shared,` | 41% | at the `—` | 62% |
+| neobiz/onboarding | at the `—` | 17% | at the `—` | 19% |
+| neobiz/portal | at the `—` | 48% | after `بما يجري،` | 26% |
+
+### Where it lands badly, plainly
+
+Three of the eight in the requested set, and all three failures are English.
+
+**1. `egypt-acquisition/workflow` — the chapter this was built for.**
+> Give the people inside the bank one place to review, **screen, question, and decide on an application — so that…**
+
+The cut falls after the first of four verbs. `review` gets the title size and `screen, question, and decide` do not, so the sentence reads as though reviewing were the objective and the other three were an afterthought. They are one set. The head, *"Give the people inside the bank one place to review,"* is also grammatically unfinished on its own.
+
+**2. `egypt-acquisition/onboarding` — the same failure, on an adjective stack.**
+> Take a business account application from a first-time visitor to a submitted, **verified, machine-readable file — without…**
+
+`submitted, verified, machine-readable` describes one file. The cut takes the first adjective and leaves the other two, so the head ends *"to a submitted,"* — a dangling article and adjective at 38px.
+
+**3. `uae-acquisition/onboarding` — the treatment barely fires.**
+> Take a business account application that already worked on the web and make it work on mobile. A company should be able to complete onboarding in about ten minutes, **with owners anywhere, and without a bank employee ever meeting anyone.**
+
+70% of the sentence stays at title size — nine full lines at 390px before anything changes — because the first mark in the set is a comma near the end. The sentence's real hinge is the full stop after `mobile.`, and the full stop is deliberately not a mark. The head therefore contains **two complete sentences** and the drop, when it finally comes, reads as a trailing mumble rather than a continuation.
+
+Cervello's `method` is the case **for** the treatment: the cut lands on the em dash, the head is a complete clause, and the tail is exactly the list it introduces.
+
+The pattern is legible. **The cut is right every time it lands on a dash or a colon, and wrong every time it lands on the first comma of a list.** Every good cut in the table above is a dash or a colon. Nine of the ten English objectives contain a dash, and on **five** of them a comma reaches the reader first and takes the cut: egypt/onboarding, egypt/workflow, egypt/fulfilment, cervello/permission-architecture, cervello/on-premises-to-cloud. The tenth, uae/onboarding, has no dash at all.
+
+### The Arabic cuts LATER than the English, not earlier
+
+The expectation going in was that Arabic carries more marks for the same meaning, so the cut would land sooner. **Measured, it is the opposite on six of ten.**
+
+Arabic prose here strings clauses with `و` where English uses commas: `submitted, verified, machine-readable` is `مُقدَّم ومُتحقَّق منه ومقروء آليًا` — three adjectives, no commas at all. So the Arabic reaches the dash intact where the English is already cut. On `uae/onboarding` the two languages swap places entirely: the English has a full stop where the Arabic has a dash, and the Arabic gives the best cut of the ten while the English gives the worst.
+
+Another instance of the standing rule in `learn.md` Part 7: **the intuition formed in one language inverts in the other. Measure.**
+
+### The two parts do sit as one paragraph
+
+Checked, because two sizes in one block usually will not.
+
+The block's **strut** — the line box the h1's own font establishes — is taller than anything the tail needs, so it sets the leading for every line in the heading, head and tail alike. Measured line tops on `egypt/workflow`: **39.14px apart throughout in English** (h1 `1.03`, span's own `1.08` never reached), **55.1px apart throughout in Arabic** (`:lang(ar) h1` `1.45`). No seam at the transition and no drift after it. The size steps down mid-line and the leading does not change, which is exactly what makes it read as a continuation.
+
+Tracking is em-based, so it scales with the size on its own: `-1.52px` on the head, `-0.98px` on the tail, both `-0.04em`/`-0.035em`.
+
+**The cost of that:** the block shrinks less than the type does, because the leading does not shrink with it.
+
+| | 390 | 1440 |
+|---|---|---|
+| egypt/workflow EN | 508 → **430px** (−15%) | 432 → 370px (−14%) |
+| egypt/workflow AR | 606 → **495px** (−18%) | 522 → 435px (−16%) |
+| egypt/onboarding EN | 508 → 430px (−15%) | 432 → 370px (−14%) |
+| uae/onboarding EN | 547 → **508px** (−7%) | 494 → 432px (−12%) |
+| cervello/method EN | 391 → 313px (−19%) | 370 → 308px (−16%) |
+| cervello/method AR | 330 → 275px (−16%) | 348 → 261px (−25%) |
+
+At 390px the worst h1 goes from **60% of an 844px screen to 51%**. The page feels considerably lighter — the ink is roughly halved on the tail — but it is not a large reclamation of space. Letting the tail lines close up would buy the rest and would cost the single-paragraph reading; that is a choice, not a bug, and it has been left where it reads best.
+
+### A real bug, found by looking at `/ar`
+
+The first Arabic build rendered the tail in **Meral Sans SemiBold under a LANTX Regular head** — two different Arabic faces inside one sentence.
+
+`:lang(ar) h1` matches the heading *element*. `:lang(ar)` further up matches every element, **including the span inside that heading**, and a direct match beats an inherited value: the span took the body face. It also picked up `text-h2`'s `font-weight: 600`, and Meral Sans really ships a SemiBold at 600 (`app/layout.tsx`), so the browser had a real face to serve.
+
+**`font-synthesis-weight: none` does not protect against this.** It stops a *faked* bold. It cannot stop a real weight in a family that has one.
+
+Fixed in `app/globals.css` with `:lang(ar) :is(h1,h2,h3,h4) *:not([class*="font-"])` — an inline inside a heading is part of that heading, in any language. The `:not` leaves alone any inline that names its own face: the mono labels inside the cover's section headings still compute Meral / 500 / `letter-spacing: normal` / 20.7px, verified after the change.
+
+This is not specific to the trial. Any `<span>`, `<em>` or `<a>` inside an Arabic heading has had the wrong face for the life of the site.
+
+### Verified
+
+Against `npm run dev` on **localhost:3000**, which is this working tree — proven rather than assumed: `git stash` dropped the span from the served HTML and `git stash pop` brought it back. (The note at the foot of this file about port 3000 serving something older is stale.)
+
+| | |
+|---|---|
+| Both control pages, `web-vs-mobile-onboarding` en + ar | **BYTE-IDENTICAL** before and after. Its h1 is `Onboarding` — no punctuation, and the document branch besides. Either fact alone leaves it alone |
+| Computed styles, EN | head 38px/600/−1.52px Geist · tail 28px/600/−0.98px Geist |
+| Computed styles, AR | head 38px/400/LANTX · tail 28px/**400**/**LANTX** — same face, after the fix |
+| All 16 chapter shots | taken at real 390 and 1440 layout viewports over CDP, both locales |
+| `tsc` | clean |
+| `eslint .` | 0 errors, 0 warnings |
+| `next build` | exit 0 |
+
+### Not verified
+
+- **No light theme.** Every shot is the dark default.
+- **No screen reader.** The claim that one `<h1>` with a span reads as one sentence is a claim about markup, tested by reading the markup. It has not been heard.
+- **Between 390 and 1440.** Both sizes are fluid and the ratio holds by arithmetic, but no intermediate width was photographed. The seam falls at a different word at every width.
+- **The other six chapters** have their cut points computed and in the table above; only the four requested were photographed.
+
+### Also added
+
+`scripts/screenshot.mjs` — the tool the screenshots were taken with. Sets the layout viewport over CDP, waits for `document.fonts.ready`, clips to a selector, and can print a computed style instead of an image. It exists because `--window-size` on a headless Chrome command line sizes the capture and **not** the layout viewport, so a 390px shot taken that way is a desktop layout with its right side cut off. Two shots were lost to that. Delete it if it is not wanted; nothing depends on it.
+
+---
+
 ## 2026-08-24 (later) — The aspect rule is removed. A layout computed from pixels cannot know what an image is for
 
 ### What changed

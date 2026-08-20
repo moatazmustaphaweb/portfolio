@@ -10,6 +10,7 @@ import { getPageSections } from "@/lib/content/pages";
 import { dirForLocale } from "@/lib/content/types";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { splitHeading } from "@/lib/utils/splitHeading";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -101,6 +102,13 @@ export default async function Chapter({
    * 10 of 13 have one, and a headingless page is not an option.
    */
   const headline = detail.fields.objective ?? title;
+
+  /*
+   * TRIAL, 2026-08-21 — the two-size h1. See the h1 below for the token
+   * choice. `tail` is null for a heading with no internal punctuation, and
+   * that heading renders exactly as it did before this existed.
+   */
+  const { head, tail } = splitHeading(headline);
 
   /*
    * Sections are rendered in two runs so the decision cards keep their place in
@@ -314,7 +322,40 @@ export default async function Chapter({
             ) : null}
           </div>
 
-          <h1 className="mt-5 max-w-measure text-title text-fg">{headline}</h1>
+          {/*
+            TWO SIZES IN ONE HEADING — a trial. The objective is a full
+            sentence; the clause before its first punctuation mark keeps the
+            title size and the rest of it drops one step.
+
+            WHY `text-h2` FOR THE TAIL. It is the next step DOWN the DISPLAY
+            ramp, so the tail is the same voice one step quieter rather than a
+            second, smaller thing. The near-in-size reading tokens — `lead`,
+            `statement` — were the obvious alternative and are wrong here:
+            they take `--type-scale` (1.15 in Arabic) where `text-title` takes
+            `--type-scale-display` (1.00), so the Arabic tail would sit 15%
+            larger against its head than the English tail does and the
+            treatment would mean something different in each language. On the
+            display ramp head and tail hold the same ratio, ~0.73, at every
+            viewport and in both scripts.
+
+            It is a SIZE change and not a weight one, and that is forced:
+            `:lang(ar) h1` runs weight 400 with `font-synthesis-weight: none`
+            because LANTX ships a single weight. Arabic has no weight axis, so
+            a treatment built on weight would be invisible on half the site.
+
+            ONE <h1>, with the tail in a <span>. The heading stays one sentence
+            to a screen reader and one entry in the document outline.
+          */}
+          <h1 className="mt-5 max-w-measure text-title text-fg">
+            {tail ? (
+              <>
+                {head}{" "}
+                <span className="text-h2">{tail}</span>
+              </>
+            ) : (
+              headline
+            )}
+          </h1>
 
           {/*
             THE SLOT MODEL, WHERE IT EXISTS (migration 0035).
