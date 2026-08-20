@@ -60,6 +60,7 @@ docs/                 all project documentation
 
 | If you are… | Read |
 |---|---|
+| **Starting any session — read this first** | **`docs/learn.md`** — what has been learned across sessions: the working agreement, writing conventions in both languages, content-integrity rules, the bug classes that keep recurring, the environment traps, and where a previous session was wrong and was corrected. It records **why**, in a form that generalises. `decisions.md` records what was decided; `status.md` what happened; this is the one that stops the same mistake twice |
 | Starting any session | `TASKS.md` |
 | Writing SQL, migrations, or queries | `docs/schema.md` |
 | Building the sync script | `docs/sync-contract.md` |
@@ -86,6 +87,10 @@ docs/                 all project documentation
   - If a task ends with no entry, **say so explicitly in the reply** so the silence is legible as a decision rather than a failure.
   - This applies hardest to **diagnoses, refusals and questions answered** — the ones most likely to be skipped, and the ones most needed. A refusal with its reasoning is a result; an empty file is not.
   - "Do only what was asked" does not override this. Scoping instructions bound **which code to touch**; they do not suspend the log.
+- **`docs/learn.md` is appended to as part of the task, the same way `status.md` is.** When something is learned that would change how the next task is approached — a bug class, a preference discovered by being corrected, an environment trap that cost a session, a rule that turned out to have an exception — add it to the **right section** of that file, in that task.
+  - Not individual decisions: those go to `docs/decisions.md`. Not session outcomes: those go to `docs/status.md`. Not anything true of only one file.
+  - **The test: would reading it beforehand have saved time?** If no, it does not belong there.
+  - Do not restructure the file or rewrite its sections. Append to the section it belongs in. It is written the way Moataz wants to read it.
 - **Definition of done, per page:** renders from the database with zero hardcoded strings · works in `en` and `ar` with correct RTL · responsive from 320px · real content, no placeholders · images via `CloudinaryImage` · no dead ends · committed and deployed to preview.
 
 ---
