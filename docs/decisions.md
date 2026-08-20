@@ -700,6 +700,43 @@ Detecting the language by looking for Latin characters was rejected outright. Ar
 
 ---
 
+## 054 — `--text-section`, and the Arabic scale trap that made it necessary
+
+**Decision:** a new type step, `--text-section`, for a heading sitting directly above prose:
+
+```css
+--text-section: calc(clamp(18px, 1.6vw, 20px) * var(--type-scale));
+```
+
+Measured at a 1440px viewport: **20px in English, 23px in Arabic** — a constant **1.25× the body it introduces** in both languages. Applied to the case file cover's section headings, which were `--text-label` (11px / 14.3px) and therefore *smaller than the prose beneath them*.
+
+**Why a new token rather than an existing one.** The scale had no step that worked, and this was measured rather than argued. Above `--text-body` (16 / 18.4) there is exactly one rung before the display sizes — `--text-statement` — and everything else (`body-sm`, `ui`, `meta`, `label`, `micro`) is smaller than the prose. The gap **16px → 26px in English is empty**.
+
+**⚠️ THE TRAP, WRITTEN DOWN SO IT IS NOT REDISCOVERED.**
+
+`--text-statement` renders at **29.9px in Arabic — LARGER than `--text-h3`'s 28px.**
+
+It happens because `--text-statement` scales by `--type-scale` (1.15 in Arabic) while every display size takes `--type-scale-display` (1.0). So the two ladders cross: in English `statement` (26) sits below `h3` (28); in Arabic it sits above it. **Reasoning from the English relationship gives the wrong answer in Arabic every time.** Anything that looks like a step down from `h3` must be measured in both languages before it is believed.
+
+This is why "make the heading smaller than h3" resolved to a token that is *larger* than h3 in one of the two languages, and why the request "not back to 28px" could not be satisfied by `--text-statement` at all: 26px English is within 2px of it, and 29.9px Arabic exceeds it.
+
+**Why the BODY factor and not the display factor.** Both were measured:
+
+| | EN | AR | × Arabic body |
+|---|---|---|---|
+| `--type-scale-display` | 20px | 20px | **1.09×** |
+| `--type-scale` | 20px | **23px** | **1.25×** |
+
+`:lang(ar) h2` forces `font-weight: 400` with `font-synthesis-weight: none`, because LANTX ships one weight and a synthesised 600 smears Arabic joins closed (decision 045). **Arabic therefore has no weight axis and hierarchy is size alone** — nine per cent above the surrounding body is not a heading when nothing else can carry the distinction. The body factor holds the ratio constant across both languages.
+
+It is also the rule `globals.css` already states for `--text-lead` and `--text-statement`: *"reading sizes despite being large — they take the body factor."* A heading sitting in the reading flow belongs in that group; a display size sitting above the flow does not.
+
+**Consequence:** `--text-section` in `globals.css`, a `section` entry in the Tailwind `fontSize` map with **no `letterSpacing`** (the label sizes carry 0.12em because 11px mono needs it; the same tracking at 20px sets the words far too wide), and `docs/design/tokens.md` documents both. The heading level is unchanged — still `<h2>` with the size on a span inside it, because size is a token and heading level is document structure.
+
+**Status:** ACTIVE
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

@@ -37,6 +37,65 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 (evening) — BUILT: `--text-section` and the full-width role card. Two predictions of mine were wrong
+
+### 1 · Section headings — before and after, measured
+
+| | EN | AR |
+|---|---|---|
+| **Before** (`--text-label`) | 11.0px | 14.3px |
+| **After** (`--text-section`) | **20.0px** | **23.0px** |
+| The prose beneath | 16.0px | 18.4px |
+| `--text-h3`, for reference | 28.0px | 28.0px |
+
+A constant **1.25× the body it introduces** in both languages, where before it was **0.69× in English and 0.78× in Arabic** — smaller than the prose it was labelling.
+
+**Looked at, not inferred.** In English `THESIS` now sits clearly above its paragraph; in Arabic `الأطروحة` does the same, which was the case that mattered because `:lang(ar) h2` has no weight axis and only size can carry it. Both verified on screen at 1440 and 390.
+
+The token, the factor choice and the trap that made it necessary are logged as **decision 054** and documented in `docs/design/tokens.md`. The short version: `--text-statement` measures **29.9px in Arabic, larger than `--text-h3`'s 28px**, because the reading ladder scales by `--type-scale` while the display ladder takes `--type-scale-display`. The two cross, and the English relationship does not predict the Arabic one.
+
+### 2 · The role card is full width
+
+`splitCoverSections` now ends the leading run **before** `role` rather than after it, so the card falls into `rest` and renders beneath the container. The box spans the container; the text inside keeps `max-w-measure`, because a statement at `--text-statement` set across 1152px is not a line anyone reads.
+
+### ⚠️ TWO THINGS I PREDICTED WRONG
+
+**1. "UAE, Neobiz and Cervello will be pixel-unchanged" — false, and I flagged it before building rather than at verification.** That prediction was scoped to the `splitCoverSections` change alone. The heading size applies to **every** cover, so **all 16 screenshots changed** (4 covers × 2 locales × 2 widths). Expected and correct; the prediction was simply narrower than the work.
+
+**2. A second reason I had not considered at all: removing `max-w-measure-lead` widens the role card on EVERY cover that has one, not only Egypt.** Measured before and after at 1440:
+
+| Cover | Before | After | |
+|---|---|---|---|
+| neobiz-mobile | x144..831 | x144..831 | **SAME** — no `role` slot, so nothing to widen |
+| uae-acquisition | x144..1225 | x144..1295 | changed — role card now full width |
+| cervello | x144..589 | x144..1295 | changed — role card now full width |
+
+The `splitCoverSections` half is provably inert on those three: the cover grid is present on **egypt-acquisition only** (`grid items-start gap-x-10 lg:grid-cols-3`, count 2) and **absent on the other three** (count 0). What moved them is the card width, which follows from "the role card should take the full width" being a statement about a component.
+
+**And it does not look right on Cervello.** Its role card is now a 1152px band with text capped at ~600px, sitting directly above `STATUS, HONESTLY` and `WHY THIS ONE STILL MATTERS`, which are **still 446px** (`max-w-measure-lead` on `CARD_SLOTS`). A wide box with an empty right half beside two narrow ones. On Egypt the full width works, because it echoes the two-column container above it. On a cover with no lead image there is nothing for it to echo.
+
+**Three ways out, none taken without a ruling:**
+1. Leave it — one rule, applied everywhere, and Cervello reads slightly loose.
+2. Full width only when a lead image exists, so the card echoes a container that is actually there.
+3. Widen `status` and `why-it-matters` to match, making the whole lower stack full width.
+
+### Verified on localhost:3000
+
+| | |
+|---|---|
+| Egypt thesis wrap at 1440 | **718px — unchanged.** The container geometry did not move |
+| Cover grid | `egypt-acquisition` only; absent on the other three |
+| Cervello order | `What it is` → `My role` → `Status, honestly` → `Why this one still matters` — leads with `what-it-is`, nothing missing |
+| Neobiz order | `Thesis` → `What it is` → `Status, honestly` → `Why it matters anyway` — no `role` slot, nothing missing |
+| Arabic | headings visibly larger; role card mirrored with the accent spine on the right; image column left |
+| 390px | grid collapses, card full width of the narrow viewport, headings scale by the same clamp |
+
+⚠️ **The light theme is still not visually verified**, for the same reason as the previous entry: `--force-prefers-color-scheme` is unsupported in this Chrome build and the theme comes from `localStorage` via a pre-paint script that cannot be set headless. Only colour tokens differ between themes and nothing in this change touches colour — but that remains an argument, not an observation.
+
+`tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+---
+
 ## 2026-08-21 (later) — MEASURED, NOT BUILT: the scale has no section-heading step. Two recommendations awaiting a ruling
 
 **No code changed. Nothing committed but this entry.** Both requests resolve to a decision that is not mine to make.

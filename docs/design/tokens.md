@@ -116,6 +116,7 @@ Display sizes are fluid and negatively tracked; body sizes are fixed and loose. 
 | `--text-statement` | `clamp(20px, 2.6vw, 26px)` | 500 | 1.4 | `-0.02em` |
 | `--text-metric` | `clamp(28px, 4vw, 38px)` | 600 | 1.0 | `-0.03em` |
 | `--text-body` | `16px` | 400 | 1.7 | `0` |
+| `--text-section` | **20px / 23px** | A heading directly above prose — the cover's section headings. Takes the **body** factor, so it stays a constant 1.25× the text it introduces in both languages (decision 054). ⚠️ Do not reach for `--text-statement` here: it measures **29.9px in Arabic, larger than `--text-h3`'s 28px**, because it scales by `--type-scale` while display sizes take `--type-scale-display`. The two ladders cross, and the English relationship is not a guide to the Arabic one. Measure both. |
 | `--text-body-sm` | `15px` | 400 | 1.6 | `0` |
 | `--text-ui` | `14px` | 500 | 1.4 | `0` |
 | `--text-meta` | `13px` | 400 | 1.5 | `0` |
