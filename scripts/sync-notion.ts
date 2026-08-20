@@ -760,36 +760,69 @@ async function writeCoverSections(opts: {
   if (DRY_RUN) return shape;
 
   /*
-   * Replace wholesale, translations first — the same polymorphic-orphan trap
-   * every other pass documents. `translations` has no foreign key to cascade,
-   * so deleting the rows alone would orphan their text and every re-sync would
-   * accumulate another dead set.
+   * ⚠️ UPSERT, NOT REPLACE — and the reason is `cover_sections.media_id`.
+   *
+   * This pass used to delete every section for the case file and re-insert.
+   * That is fine for content re-derived from Notion on each run, and fatal for
+   * a column that is NOT: an image chosen by hand would have been silently
+   * dropped by the next sync. A column on a table that is deleted and
+   * re-inserted every run is a column that loses its data.
+   *
+   * Preserving `media_id` across the delete was rejected. That leaves a read
+   * and a restore as two things free to disagree, and whoever next edits the
+   * write path forgets the second half — the same shape as a grid that kept
+   * both tracks after losing a child. Upserting on the existing
+   * `unique (case_file_id, slot)` means the row is never deleted, so there is
+   * nothing to preserve and nothing to forget. The failure is unrepresentable.
+   *
+   * THE COST, PAID BELOW: delete-all removed a slot that left Notion for free.
+   * Upsert does not, so a departed slot would linger with stale text and render.
+   * The delete that follows the upsert is derived from the SAME array that
+   * drove it — one list, used twice, in one function.
    */
-  const { data: oldSections } = await (await db())
-    .from("cover_sections").select("id").eq("case_file_id", caseFileId);
-
-  if (oldSections && oldSections.length > 0) {
-    const sectionIds = oldSections.map((s) => s.id);
-    const { data: oldParas } = await (await db())
-      .from("cover_paragraphs").select("id").in("cover_section_id", sectionIds);
-    if (oldParas && oldParas.length > 0) {
-      await (await db()).from("translations").delete()
-        .eq("entity_type", "cover_paragraph").in("entity_id", oldParas.map((p) => p.id));
-    }
-    await (await db()).from("translations").delete()
-      .eq("entity_type", "cover_section").in("entity_id", sectionIds);
-    await (await db()).from("cover_sections").delete().eq("case_file_id", caseFileId);
-  }
+  const writtenSlots = prose.map((s) => s.slot);
 
   for (const [i, section] of prose.entries()) {
     const { data: sectionRow, error } = await (await db())
       .from("cover_sections")
-      .insert({ case_file_id: caseFileId, slot: section.slot, sort_order: i })
-      .select("id").single();
+      .upsert(
+        { case_file_id: caseFileId, slot: section.slot, sort_order: i },
+        { onConflict: "case_file_id,slot" },
+      )
+      .select("id, media_id").single();
 
     if (error || !sectionRow) {
-      fail(rowTitle, `${rowTitle}: slot "${section.slot}" — ${error?.message ?? "insert returned no row"}`);
+      fail(rowTitle, `${rowTitle}: slot "${section.slot}" — ${error?.message ?? "upsert returned no row"}`);
       continue;
+    }
+
+    /*
+     * The role card takes the FULL WIDTH of the cover and has no two-thirds
+     * column to put an image beside, so `CoverSections` ignores `media_id` on
+     * this slot. Ignoring it silently would be the worse half: an image
+     * attached by hand would simply never appear, and nothing would say why.
+     */
+    if (section.slot === "role" && sectionRow.media_id) {
+      notice(rowTitle,
+        `${rowTitle}: the "role" slot has an image attached (media_id set), and ` +
+          "the role card renders full width with no image column — so it is NOT " +
+          "rendered. Attach it to another slot, or say the role card should take " +
+          "an image inside its own box.",
+      );
+    }
+
+    /*
+     * Paragraphs ARE replaced, per section. They carry nothing that is not
+     * re-derived from Notion, so there is nothing to preserve — and their
+     * translations go first, the polymorphic-orphan trap every other pass
+     * documents, because `translations` has no foreign key to cascade.
+     */
+    const { data: oldParas } = await (await db())
+      .from("cover_paragraphs").select("id").eq("cover_section_id", sectionRow.id);
+    if (oldParas && oldParas.length > 0) {
+      await (await db()).from("translations").delete()
+        .eq("entity_type", "cover_paragraph").in("entity_id", oldParas.map((x) => x.id));
+      await (await db()).from("cover_paragraphs").delete().eq("cover_section_id", sectionRow.id);
     }
 
     const arSection = arBySlot.get(section.slot);
@@ -838,6 +871,40 @@ async function writeCoverSections(opts: {
         });
       }
     }
+  }
+
+  /*
+   * THE COST OF UPSERTING, PAID. A slot removed from Notion is no longer
+   * overwritten by anything, so without this it lingers with stale text and
+   * renders. `writtenSlots` is the same array the upsert loop iterated — one
+   * list, used twice, so the set kept and the set written cannot disagree.
+   *
+   * Cascades take the paragraphs; their translations and the section's own go
+   * first, because `translations` has no foreign key to follow.
+   */
+  const { data: staleSections } = await (await db())
+    .from("cover_sections")
+    .select("id, slot")
+    .eq("case_file_id", caseFileId)
+    .not("slot", "in", `(${writtenSlots.join(",")})`);
+
+  if (staleSections && staleSections.length > 0) {
+    const staleIds = staleSections.map((x) => x.id);
+    const { data: staleParas } = await (await db())
+      .from("cover_paragraphs").select("id").in("cover_section_id", staleIds);
+    if (staleParas && staleParas.length > 0) {
+      await (await db()).from("translations").delete()
+        .eq("entity_type", "cover_paragraph").in("entity_id", staleParas.map((x) => x.id));
+    }
+    await (await db()).from("translations").delete()
+      .eq("entity_type", "cover_section").in("entity_id", staleIds);
+    await (await db()).from("cover_sections").delete().in("id", staleIds);
+
+    notice(rowTitle,
+      `${rowTitle}: removed ${staleSections.length} section(s) no longer in Notion — ` +
+        staleSections.map((x) => x.slot).join(" · ") +
+        ". Any image attached to them is detached with them.",
+    );
   }
 
   return shape;
