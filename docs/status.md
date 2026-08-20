@@ -37,6 +37,71 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-23 (later) — MEASURED AND AUDITED, NOT BUILT: the aspect rule, and every heading of that role
+
+**No code changed.** Both halves were asked for before building.
+
+### 1 · The aspect rule proposed
+
+**A section image renders full width below the text when its intrinsic aspect is ≥ 1.2; otherwise it sits beside the text at one third.**
+
+- Read from `media.width / media.height`, already stored and already used to reserve the box. No new column and no per-section flag — the data decides.
+- **The boundary:** 1.2 sits between square (1.0) and 4:3 (1.333). A square stays in the column, because the problem is width squeezed rather than area. Exactly 1.2 goes wide.
+- **A portrait never wants it, and the reason is height.** The cut-out at 0.671 rendered at 1152px is 1152×1717 — taller than the viewport, pushing the rest of the cover off screen. Portrait's advantage is fitting a narrow column at a readable height.
+- **Preset:** full width takes the existing `hero` (1200 / `limit`), an exact fit for a 1152px column. Column images keep `lead`. No new preset.
+
+### 2 · Heading candidates, measured in both languages
+
+| Candidate | EN | × body | AR | × body |
+|---|---|---|---|---|
+| `--text-label` (before this work) | 11.0px | 0.69× | 14.3px | 0.78× |
+| 17px | 17.0px | 1.06× | 19.6px | 1.06× |
+| **18px — recommended** | **18.0px** | **1.12×** | **20.7px** | **1.12×** |
+| 19px | 19.0px | 1.19× | 21.9px | 1.19× |
+| 20px (current) | 20.0px | 1.25× | 23.0px | 1.25× |
+| body | 16.0px | 1.00× | 18.4px | 1.00× |
+
+**18px recommended** — the smallest step that still clears the 1.09× that failed, and a real reduction from 20.
+
+⚠️ **One caveat stated rather than buried: 1.09× was a reasoned judgement, not an observed one.** 1.12 sits 0.03 above it. In Arabic size is the only axis — English also gets uppercase and mono tracking. If 18 does not hold visually, 19 is the fallback, and that is a thing to look at rather than compute.
+
+### 3 · Every heading of that role, and what it takes today
+
+**Same role — mono uppercase dim, directly above body prose:**
+
+| Site | Today |
+|---|---|
+| `CoverSections:230` — thesis · what-it-is · map | `text-section` ✓ |
+| `CoverSections:160` — status · why-it-matters | `text-section` ✓ |
+| **`ChapterSections:87`** — every chapter section heading | **`text-label`** |
+| **`contact:133`** — contact methods | **`text-label`** |
+
+**⚠️ One to revert.** `CoverSections:137` is the **`MY ROLE`** label (`section.heading ?? roleLabel`). It was given `text-section` last session; it is now named as a different role and goes back to `text-label`.
+
+**A label above a STATEMENT, not above prose — different role, left alone:**
+
+| Site | Above |
+|---|---|
+| `ProseSections:89` — governing rule card | `text-h3` |
+| `ProseSections:105` — closing line | `text-statement` |
+| `systems:236` — closing section | `text-statement` |
+| `contact:172` — form intro panel | `text-body-sm` |
+| `contact:213` — "also here" | a row of links — **borderline, flagged** |
+
+**⚠️ DELIBERATELY DIFFERENT — the split worth seeing rather than flattening.**
+
+Five surfaces use a **large sans** heading for the same structural role, a section heading above body prose, at `text-h3` (28px in both languages):
+
+`ProseSections:119` (document pages) · `ProseSections:69` (accessibility numbered sections) · `about:126` · `philosophy:135` · `systems:195`
+
+The site therefore carries **two conventions**: covers and chapters use a small mono-uppercase label; About, Philosophy, Systems and the document pages use a 28px sans heading. Applying the token to "every section heading of that kind" either leaves that split intact — the reading taken here, that the mono family is "that kind" — or collapses five surfaces from 28px sans to 18px mono, which is a far larger visual change than this task describes. **Not decided unilaterally.**
+
+**Untouched per the stated exclusions:** h1s and page titles, `MY ROLE`, every `text-micro` metadata label (SiblingLinks, OutcomeStrip, ProjectCard pills, table headers, ContactForm, LivingMap), and the eyebrows — `about:107`, `philosophy:90`, `chapter:251`, `chapter:293`, the case-file and landing pills, `not-found:80`, `SiteFooter:112`.
+
+Nothing was built, so there is nothing to verify on :3000. The site is as it was at `874d50a`.
+
+---
+
 ## 2026-08-23 — An image belongs to a cover SECTION. `lead_media_id` retired, `cover_sections` upserted
 
 ### The sync now upserts, and why that was the right call over preserve-by-slot
