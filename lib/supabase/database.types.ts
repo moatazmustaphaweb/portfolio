@@ -59,7 +59,6 @@ export type Database = {
            * The image beside the cover's leading run of sections (0033).
            * NOT the cover image — a case file may carry both.
            */
-          lead_media_id: string | null;
           cover_kind: "media" | "component";
           cover_component: string | null;
           published_at: string | null;
@@ -75,7 +74,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["content_status"];
           nda?: boolean;
           cover_media_id?: string | null;
-          lead_media_id?: string | null;
           cover_kind?: "media" | "component";
           cover_component?: string | null;
           published_at?: string | null;
@@ -160,12 +158,15 @@ export type Database = {
           /** One of lib/sync/cover-slots.ts ALL_SLOTS. Text, not an enum. */
           slot: string;
           sort_order: number;
+          /** Optional image beside this section (0041). Not the cover image. */
+          media_id: string | null;
         };
         Insert: {
           id?: string;
           case_file_id: string;
           slot: string;
           sort_order: number;
+          media_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["cover_sections"]["Insert"]>;
         Relationships: [];
