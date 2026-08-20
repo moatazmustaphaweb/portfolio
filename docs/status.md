@@ -37,6 +37,85 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 (later) — MEASURED, NOT BUILT: the scale has no section-heading step. Two recommendations awaiting a ruling
+
+**No code changed. Nothing committed but this entry.** Both requests resolve to a decision that is not mine to make.
+
+### 1 · Section headings — the measurement
+
+Measured, not reasoned: the token declarations were copied verbatim out of `globals.css` into two probe documents, one `<html lang="en">` and one `<html lang="ar">`, and Chrome reported `getComputedStyle().fontSize` at a 1440px viewport.
+
+*(The first probe was wrong and the measurement caught it: `lang="ar"` was set on a `<div>`, but the selector is `:root:lang(ar)` and matches `<html>` only. Every Arabic figure came back identical to English. Recorded because the same mistake will look like "Arabic doesn't scale".)*
+
+| Token | EN | AR | × body (en) | × body (ar) |
+|---|---|---|---|---|
+| `--text-h3` | 28.0 | 28.0 | 1.75 | 1.52 |
+| `--text-lead` | 28.0 | **32.2** | 1.75 | 1.75 |
+| `--text-statement` | 26.0 | **29.9** | 1.62 | 1.62 |
+| **`--text-body`** (the prose) | **16.0** | **18.4** | 1.00 | 1.00 |
+| `--text-body-sm` | 15.0 | 17.2 | 0.94 | 0.94 |
+| `--text-ui` | 14.0 | 16.1 | 0.88 | 0.88 |
+| `--text-meta` | 13.0 | 14.9 | 0.81 | 0.81 |
+| **`--text-label`** (today) | **11.0** | **14.3** | 0.69 | 0.78 |
+| `--text-micro` | 10.0 | 13.0 | 0.62 | 0.71 |
+
+**The trap is real and still there.** `--text-statement` measures **29.9px in Arabic — larger than `--text-h3`'s 28px** — because it scales by `--type-scale` (1.15) while the display sizes take `--type-scale-display` (1.0).
+
+### There is no step that works
+
+Above `--text-body` the scale offers exactly one rung before the display sizes: `--text-statement`. Everything else — `body-sm`, `ui`, `meta`, `label`, `micro` — is **smaller than the prose**, which is the defect being fixed.
+
+And `--text-statement` fails on the stated constraint. 26px in English is within 2px of the 28px that was rejected; **in Arabic it is 29.9px, larger than the 28px that was rejected.** Asking for "not back to 28" and getting 29.9 in one language is not a step down.
+
+**The gap is 16px → 26px in English.** Nothing lives in it.
+
+### What I would add — not added
+
+```css
+--text-section: calc(clamp(18px, 1.6vw, 20px) * var(--type-scale));
+```
+
+Measured, both factor choices, rather than assumed:
+
+| Candidate | EN | AR | × body (ar) |
+|---|---|---|---|
+| with `--type-scale-display` | 20.0 | 20.0 | **1.09** |
+| with `--type-scale` | 20.0 | **23.0** | **1.25** |
+
+**The body factor, and the measurement is the whole argument.** With the display factor Arabic lands at 1.09× its own body — nine per cent, in a language where `:lang(ar) h2` forces weight 400 with `font-synthesis-weight: none`, so there is no weight axis and hierarchy is size alone. Nine per cent of size, with no weight to help, is not a heading. The body factor holds the ratio at a constant 1.25× in both languages.
+
+This is also the rule the file already follows: *"Lead and statement are reading sizes despite being large — they take the body factor."* A section heading sitting directly above prose belongs in that group.
+
+**20px / 23px** — larger than the prose it introduces, well short of `--text-h3` at 28 and `--text-title` at 60. Say the word and it is a one-line token plus a class change.
+
+### 2 · The role card at full width — recommended shape
+
+**Recommendation: role leaves the leading run.** One line in `splitCoverSections`:
+
+```
+end = roleAt >= 0 ? roleAt : (sections.length > 0 ? 1 : 0)
+```
+
+— the lead becomes the run **before** role rather than up to and including it. Role then falls into `rest` and renders full width below the container. Document order is untouched in every case.
+
+**Your three questions:**
+
+**Does the image column then hold the thesis alone?** Yes. Egypt's container becomes `thesis (2/3) | lead image (1/3)`, with the role card full width beneath. Measured today: the thesis block is ~470px tall and the image with its caption ~520px, so the image would finish slightly below the thesis and the role card would start under the taller of the two. A small band of space under the thesis, which the image is already creating.
+
+**The three covers with no lead image?** **Completely unchanged.** The container only activates when `sideImage` is non-null, and it is null on UAE, Neobiz and Cervello. Everything there is already full width, and moving role from `lead` to `rest` preserves document order exactly — the two arrays render one after the other. No visual difference at all.
+
+**Cervello and Neobiz specifically?** The split still holds.
+- **Cervello** leads with `what-it-is`, then `role`. Lead becomes `[what-it-is]`, rest starts at `role`. Order preserved, and with no lead image nothing moves on screen.
+- **Neobiz** has **no role slot**, so `roleAt` is `-1` and the fallback `end = 1` is unchanged — lead stays `[thesis]`. This change cannot affect it.
+
+**One decision inside the recommendation.** The role card carries `max-w-measure-lead` (42ch ≈ 446px) on the card box itself. "Full width" removes that cap, and the statement at `--text-statement` would then set lines across the full 1152px container — far past a readable measure. **I would keep a measure cap on the text inside while the card box spans full width**, so the card reads as a full-width band without a 1152px line. Say if you want the text to run the full width instead.
+
+### Verification
+
+Nothing was built, so there is nothing to verify on :3000. Egypt's prose still wraps at **718px** because no code changed. The four covers are as they were at `3d3ce07`.
+
+---
+
 ## 2026-08-21 — The Egypt cover's lead image. The dormant container wakes up
 
 ### The asset resolves — verified before a row was written
