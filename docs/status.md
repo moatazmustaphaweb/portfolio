@@ -37,6 +37,79 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-23 (night) — 18px shipped, the aspect rule shipped, the diagram now readable
+
+### Before and after, per surface, both languages
+
+The token moved **20px → 18px** (`--text-section`, clamp(16px, 1.4vw, 18px) × `--type-scale`).
+
+| Surface | Before EN / AR | After EN / AR | × body |
+|---|---|---|---|
+| Cover prose sections — thesis · what-it-is · map | 20 / 23 | **18 / 20.7** | 1.12× |
+| Cover cards — status · why-it-matters | 20 / 23 | **18 / 20.7** | 1.12× |
+| **Chapter section headings** | **11 / 14.3** | **18 / 20.7** | 1.12× |
+| **Contact — methods, also-here** | **11 / 14.3** | **18 / 20.7** | 1.12× |
+| **`MY ROLE` — REVERTED** | 20 / 23 | **11 / 14.3** | 0.69× / 0.78× |
+| Body prose, for reference | 16 / 18.4 | unchanged | 1.00× |
+
+**18px holds in Arabic, checked by looking.** `السياق` sits clearly above its paragraph on the chapter page. The caveat carried into this task — that 1.12× clears the failed 1.09× by only 0.03, and that 1.09× was reasoned rather than observed — was the thing to verify, and it verified. **19px was not needed.**
+
+### `contact:213` — what was done with the borderline case
+
+**It took the token, and `contact:172` did not.** Both are mono `<h2>`s on the contact page, and the split is by role rather than by class: `133` (methods) and `213` (also here) are **page-level section headings**, siblings in the page flow. `172` sits **inside the bordered form panel**, introducing the form — the same role as `MY ROLE`, a label inside a card. Leaving `133` and `213` at different sizes would have put two identical-looking headings on one page at two sizes for no visible reason.
+
+### The aspect rule
+
+**Aspect ≥ 1.2 → full width below the text. Otherwise beside it at one third.** Derived from `media.width / media.height`, so the data decides and no call site passes a layout flag.
+
+Confirmed in the delivered URLs: the portrait cut-out takes **`lead`** (`w_600` / `w_1200`), the landscape diagram takes **`hero`** (`w_1200` / `w_2400`).
+
+**The labels are readable, which was the whole point.** At 357×268 the five container names rendered at about 7px. At 1152×864 — `ONBOARDING JOURNEY`, `DOCUMENT CAPTURE & OCR`, `CUSTOMER PORTAL & NOTIFICATIONS`, `APPLICATION WORKFLOW`, `FULFILMENT & AOF` — every one reads without leaning in.
+
+One observation, not a defect: the source is 84.5% transparent, so the bordered figure frames noticeable empty ground above and below the diagram at this size.
+
+### ⚠️ The comparison pages changed, and it is not what it looks like
+
+`web-vs-mobile-onboarding` came back **CHANGED** against its baseline while `accessibility` came back identical, even though `ProseSections` was never touched.
+
+The reason is that **the comparison pages moved onto the chapter path** in the slot migration two sessions ago. Measured:
+
+| Page | `data-slot` | `text-section` | `text-h3` |
+|---|---|---|---|
+| web-vs-mobile-onboarding | 3 | 6 | **0** |
+| accessibility | 0 | 0 | **24** |
+
+So the comparisons are **mono family** now and inherited the chapter change; the accessibility page is still `ProseSections` — because the sync refuses it — and is untouched. "Leave the document pages at `text-h3` sans" therefore holds for the only document page still on that path. Flagged because the instruction named "the document pages" as one group and they are now two.
+
+### The five sans surfaces — compared, not asserted
+
+Screenshots taken **before** the change and diffed after, en/ar × 1440/390:
+
+| Surface | Result |
+|---|---|
+| `about` | **IDENTICAL** ×4 |
+| `about/philosophy` | **IDENTICAL** ×4 |
+| `systems` | **IDENTICAL** ×4 |
+| `accessibility` | **IDENTICAL** ×4 |
+| `web-vs-mobile-onboarding` | CHANGED ×4 — for the reason above |
+
+Sweep across 24 route-locale combinations: all **200**. `about`, `philosophy`, `systems` and `accessibility` show **0 occurrences of `text-section`**.
+
+### Verified on localhost:3000
+
+| | |
+|---|---|
+| **Egypt thesis at 1440** | **718px — unchanged** |
+| Light theme | verified in a browser by pinning `data-theme` and reverting; `git diff` on `layout.tsx` is empty |
+| Arabic | headings visibly larger than prose; cards mirrored, spine right |
+| 390 | both locales, grid collapses, images stack |
+
+⚠️ **A false positive caught during verification, recorded because it nearly shipped.** The first light-theme run produced files of **756×469** — Chrome had errored and the filenames came out mangled — and the background-colour check *passed*, because a blank error page is also white. A colour probe is not proof a page rendered. The run was redone with explicit paths and the dimensions checked before the colour.
+
+`tsc` clean · `eslint` 0/0 · `check:seed-drift` zero · `next build` 63/63.
+
+---
+
 ## 2026-08-23 (later) — MEASURED AND AUDITED, NOT BUILT: the aspect rule, and every heading of that role
 
 **No code changed.** Both halves were asked for before building.
