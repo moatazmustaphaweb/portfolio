@@ -2,7 +2,13 @@ import "server-only";
 
 import { supabaseServer } from "@/lib/supabase/server";
 
-import { DEFAULT_LOCALE, type EntityType, type Fields, type Locale } from "./types";
+import {
+  DEFAULT_LOCALE,
+  type EntityType,
+  type FieldLocales,
+  type Fields,
+  type Locale,
+} from "./types";
 
 /**
  * Translation resolution — the single place a `translations` row is ever read.
@@ -28,7 +34,34 @@ export async function resolveMany(
   entityIds: readonly string[],
   locale: Locale,
 ): Promise<Map<string, Fields>> {
-  const resolved = new Map<string, Fields>();
+  const detailed = await resolveManyDetailed(entityType, entityIds, locale);
+  return new Map([...detailed].map(([id, v]) => [id, v.fields]));
+}
+
+/**
+ * The same resolution, keeping WHICH LOCALE each field actually came from.
+ *
+ * ⚠️ This is not bookkeeping for its own sake. A field that fell back is English
+ * text about to be placed inside an Arabic document, and it has to be marked as
+ * English or the browser lays it out as Arabic: trailing punctuation resolves to
+ * the wrong visual side, so a sentence renders as ".This is where it ends" and
+ * the paragraph aligns right. See decision 053.
+ *
+ * The fact was always here — the two passes below know precisely which fields
+ * English supplied and which the requested locale overwrote — it was simply
+ * discarded on the way out. Carrying it costs one extra map and no extra query.
+ *
+ * The alternative, sniffing the rendered string for Latin characters, is wrong
+ * on the content this site actually has: Arabic prose here deliberately keeps
+ * `Governance`, `OTP`, `KYC`, `RTL` and `LinkedIn` in Latin, and a heuristic
+ * would mark those paragraphs English and flip them.
+ */
+export async function resolveManyDetailed(
+  entityType: EntityType,
+  entityIds: readonly string[],
+  locale: Locale,
+): Promise<Map<string, { fields: Fields; fieldLocales: FieldLocales }>> {
+  const resolved = new Map<string, { fields: Fields; fieldLocales: FieldLocales }>();
   if (entityIds.length === 0) return resolved;
 
   // Fetch the requested locale and English together, then let English lose on
@@ -53,24 +86,28 @@ export async function resolveMany(
   // English first as the floor, then the requested locale overwrites it.
   for (const row of data ?? []) {
     if (row.locale !== DEFAULT_LOCALE) continue;
-    const fields = resolved.get(row.entity_id) ?? {};
-    fields[row.field] = row.value;
-    resolved.set(row.entity_id, fields);
+    const entry = resolved.get(row.entity_id) ?? { fields: {}, fieldLocales: {} };
+    entry.fields[row.field] = row.value;
+    entry.fieldLocales[row.field] = DEFAULT_LOCALE;
+    resolved.set(row.entity_id, entry);
   }
 
   if (locale !== DEFAULT_LOCALE) {
     for (const row of data ?? []) {
       if (row.locale !== locale) continue;
-      const fields = resolved.get(row.entity_id) ?? {};
-      fields[row.field] = row.value;
-      resolved.set(row.entity_id, fields);
+      const entry = resolved.get(row.entity_id) ?? { fields: {}, fieldLocales: {} };
+      entry.fields[row.field] = row.value;
+      // Overwrites the English marker set above — which is the whole point:
+      // what remains marked `en` after this pass IS the fallback set.
+      entry.fieldLocales[row.field] = locale;
+      resolved.set(row.entity_id, entry);
     }
   }
 
   // Every requested entity gets an entry, so callers can index without a
   // null check. An entity with no translations at all resolves to {}.
   for (const id of entityIds) {
-    if (!resolved.has(id)) resolved.set(id, {});
+    if (!resolved.has(id)) resolved.set(id, { fields: {}, fieldLocales: {} });
   }
 
   return resolved;
@@ -96,11 +133,21 @@ export async function withFields<T extends { id: string }>(
   entityType: EntityType,
   rows: readonly T[],
   locale: Locale,
-): Promise<(T & { fields: Fields })[]> {
-  const map = await resolveMany(
+): Promise<(T & { fields: Fields; fieldLocales: FieldLocales })[]> {
+  const map = await resolveManyDetailed(
     entityType,
     rows.map((r) => r.id),
     locale,
   );
-  return rows.map((row) => ({ ...row, fields: map.get(row.id) ?? {} }));
+  /*
+   * `fieldLocales` is ADDITIVE. Every existing caller reads `fields` and is
+   * untouched; the ones that render text into a page of a different language
+   * read `fieldLocales` to mark it. Making it always present rather than
+   * optional means a caller cannot forget to ask for it — the same reasoning
+   * that puts `nda` on the media row instead of in a component prop.
+   */
+  return rows.map((row) => {
+    const entry = map.get(row.id);
+    return { ...row, fields: entry?.fields ?? {}, fieldLocales: entry?.fieldLocales ?? {} };
+  });
 }

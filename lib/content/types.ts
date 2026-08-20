@@ -24,6 +24,20 @@ export type NavLocation = Enums<"nav_location">;
 export const LOCALES = ["en", "ar"] as const;
 export const DEFAULT_LOCALE: Locale = "en";
 
+/**
+ * The writing direction of a LANGUAGE — not of a page.
+ *
+ * The distinction is decision 053 and it is the whole point of this helper
+ * existing separately from the locale segment. `app/layout.tsx` derives the
+ * document's direction from the URL's locale; this derives a run of text's
+ * direction from the language that text is actually written in. They agree
+ * everywhere except where decision 013's fallback put English inside an Arabic
+ * page, which is precisely the case that renders wrong without it.
+ */
+export function dirForLocale(locale: Locale): "ltr" | "rtl" {
+  return locale === "ar" ? "rtl" : "ltr";
+}
+
 export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);
 }
@@ -31,11 +45,23 @@ export function isLocale(value: string): value is Locale {
 /** A resolved set of translated fields for one entity: field name → value. */
 export type Fields = Record<string, string>;
 
+/**
+ * Which locale each resolved field actually came from.
+ *
+ * A field whose value here is `en` on an Arabic page is decision 013's fallback:
+ * correct content, wrong language for the surrounding document. It must be
+ * marked `dir="ltr" lang="en"` when rendered, or the browser lays English out as
+ * Arabic and puts the full stop at the start of the line (decision 053).
+ */
+export type FieldLocales = Record<string, Locale>;
+
 export type MediaRow = Tables<"media">;
 
 export type Media = MediaRow & {
   /** From translations: `alt`, `caption`. */
   fields: Fields;
+  /** Which locale supplied each of those fields — see `FieldLocales`. */
+  fieldLocales: FieldLocales;
   /**
    * Whether this image belongs to a case file under NDA — stamped by the
    * content layer from `case_files.nda`, never by the caller.
@@ -157,6 +183,55 @@ export type CoverSection = {
   paragraphs: string[];
 };
 
+/**
+ * One paragraph of a chapter section: prose, or a figure.
+ *
+ * Resolved from the stored body, which is either text or the marker
+ * `[image:<uuid>]` written by the sync. The media row is attached here rather
+ * than left as an id, so the renderer never queries and rule 2 holds.
+ *
+ * `media: null` on an image part means the row was referenced and could not be
+ * loaded — a deleted row, or a locale with no alt. The renderer skips it; it is
+ * never a thrown error, because one missing screenshot must not take down a
+ * case file.
+ */
+export type ChapterBlock =
+  | {
+      kind: "prose";
+      text: string;
+      /**
+       * The locale this text is actually written in — not the page's locale.
+       * They differ whenever decision 013's fallback served English into an
+       * Arabic page, and the renderer marks the element accordingly.
+       */
+      lang: Locale;
+    }
+  | { kind: "image"; media: Media | null }
+  | {
+      kind: "table";
+      /**
+       * TAB-separated cells, NEWLINE-separated rows, first row the header —
+       * byte-for-byte the shape `page_sections` has always produced, because it
+       * is handed to the very same `SectionTable` component. Reassembled from
+       * `chapter_table_cells` rather than stored as a blob, so each cell still
+       * translates independently.
+       */
+      body: string;
+      /** The language the cells are actually in (decision 053). */
+      lang: Locale;
+    };
+
+export type ChapterSection = {
+  id: string;
+  slot: string;
+  /** The heading as written, or undefined when this locale has no translation. */
+  heading?: string;
+  /** The language the heading is actually in. A heading falls back too. */
+  headingLang?: Locale;
+  /** Prose and figures, in the order they were written. */
+  blocks: ChapterBlock[];
+};
+
 export type CaseFileDetail = CaseFile & {
   /**
    * The cover's slots, in the order the database says — not a fixed order and
@@ -226,6 +301,15 @@ export type ChapterDetail = Chapter & {
    * inflate the denominator of a sequence it is not part of.
    */
   position: { current: number; total: number };
+  /**
+   * The chapter's slots, in the order the database says (migration 0035).
+   *
+   * Runs ALONGSIDE the flat `fields` for now. `fields` still carries objective,
+   * context, evidence_note and result for everything that reads them today;
+   * `sections` carries those plus the passages no field had a key for — and
+   * every figure on the page.
+   */
+  sections: ChapterSection[];
   features: Feature[];
   /** Ordered. A chapter has as many decisions as it has (amendment 032). */
   decisions: Decision[];
