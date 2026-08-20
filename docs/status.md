@@ -37,6 +37,74 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 (night) — The role card's text fills the band. The Arabic line is not the longest one
+
+### The measure cap is gone
+
+`max-w-measure` removed from the role card's inner column. The card was a full-width box around a 718px text column, which read as a wide box with an empty right half — the exact thing the full-width change was made to fix.
+
+### Line length at 1440, measured
+
+The card interior is **~1080px** in every case (container 1152 − the 4px accent spine − card padding). Expressed in `ch`, measured per language rather than estimated:
+
+| | px | **ch** |
+|---|---|---|
+| EN statement (`--text-statement`, 26px) | 1080 | **83ch** |
+| EN supporting paragraphs (`--text-body`, 16px) | 1080 | **135ch** |
+| AR statement (29.9px) | 1080 | **72ch** |
+| AR supporting paragraphs (18.4px) | 1080 | **117ch** |
+| `--measure-prose`, for reference | 544 / 626 | 68ch |
+
+Per cover, measured from the accent spine: Egypt **1080px**, UAE **1079px** (en) / **1077px** (ar), Cervello **1071px** (en) / **1074px** (ar). Neobiz has no accent spine at all — no `role` slot, so no role card, and it is untouched by this change.
+
+### ⚠️ The Arabic line is NOT the longest on the site — the English one is
+
+The expectation was that Arabic would be worst, because `--type-scale` is 1.15 and the statement size is larger. **Measured, it is the opposite.**
+
+At the same 1080px, the Arabic statement holds **72ch** and the English statement holds **83ch** — Arabic type is 15% larger, so the same pixel width carries *fewer* characters. The longest line on the cover is the **English supporting paragraph at 135ch**, against a site measure of 68ch. Arabic's equivalent is 117ch.
+
+Looked at rather than inferred: the statement carries its line well at both sizes — large type tolerates a long measure. It is the two supporting paragraphs at body size that run long, and they run longest in **English**.
+
+Not re-argued. Reported because the number was asked for and because the premise it was asked under turned out to be inverted.
+
+### The card still reads as a card
+
+Confirmed on screen in both languages. The accent spine, the border, `bg-surface` against the page black and the rounded corners all survive the text reaching both edges — it reads as a full-width band, not as loose prose. In Arabic the spine mirrors to the right correctly.
+
+### Verified on localhost:3000
+
+| | |
+|---|---|
+| **Egypt thesis at 1440** | **718px — unchanged.** The container above did not move |
+| Egypt at 390 | content 366px of a 390px viewport, card full width of the narrow column, both locales |
+| Cervello | `What it is` → `My role` → `Status, honestly` → `Why this one still matters` |
+| Neobiz | no role card — no accent spine found in either locale |
+| Arabic | spine right, text fills the band, statement 72ch |
+
+⚠️ **Light theme still not visually verified** — same cause as the last two entries: `--force-prefers-color-scheme` unsupported in this Chrome build, theme set from `localStorage` by a pre-paint script. Nothing here touches colour.
+
+`tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+### The other card slots — described, NOT changed
+
+`status` and `why-it-matters` still carry `max-w-measure-lead` (42ch — **336px** in English, **387px** in Arabic, measured). On Cervello the role band is now 1071px of filled text sitting directly above two 336px cards. The mismatch is worse than last session, exactly as predicted, because the text fills the band as well as the box.
+
+**What I would do, and what each costs on the three covers with no lead image:**
+
+**1 · Widen `CARD_SLOTS` to match — my recommendation.** One class change: drop `max-w-measure-lead` from the `CARD_SLOTS` branch. The whole lower stack becomes full-width bands, and the cover reads as one column of bands rather than one wide box and two narrow ones.
+- *Cervello* — the biggest change of the three: `status` and `why-it-matters` go 336px → ~1080px. Its lower half becomes three consistent bands.
+- *Neobiz* — same two slots widen. It has no role card, so this is the only thing that would move on it; it would go from two narrow cards to two full-width ones.
+- *UAE* — has neither `status` nor `why-it-matters`, so **nothing changes at all**.
+- Cost: the same long-line trade already accepted on the role card, applied to two more slots. It buys consistency; it does not buy readability.
+
+**2 · Leave them.** One rule for the role card, another for the rest. Cervello and Neobiz keep the mismatch. Costs nothing, changes nothing, and the covers stay visually uneven where a lead image is absent.
+
+**3 · Make full width conditional on a lead image.** The role card spans only when there is a container above it to echo; without one it keeps the 42ch cap. Egypt gets the band, Cervello and UAE revert to today's narrow card, Neobiz is unaffected. This is the most defensible *design* answer — the band exists to answer the two-column container — but it makes width depend on the presence of an image, which is a rule that has to be remembered rather than seen.
+
+I would take **1**. It is the smallest change, it needs no conditional, and it makes the covers internally consistent. It also makes the long-line trade explicit and uniform rather than applying it to one slot and not its neighbours.
+
+---
+
 ## 2026-08-21 (evening) — BUILT: `--text-section` and the full-width role card. Two predictions of mine were wrong
 
 ### 1 · Section headings — before and after, measured
