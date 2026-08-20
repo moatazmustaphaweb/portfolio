@@ -1,5 +1,4 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
-import type { PresetName } from "@/lib/media/presets";
 import { dirForLocale } from "@/lib/content/types";
 import type { CoverSection, Locale } from "@/lib/content/types";
 
@@ -264,48 +263,33 @@ export function CoverSections({
         }
 
         /*
-         * ── WHERE THE IMAGE GOES, DECIDED BY ITS OWN ASPECT ────────────────
+         * ── EVERY SECTION IMAGE SITS BESIDE ITS TEXT ───────────────────────
          *
-         * A LANDSCAPE image goes FULL WIDTH BELOW the text. A portrait or a
-         * square sits BESIDE it at one third.
+         * Text at two thirds, image at one third, whatever the image is.
          *
-         * Measured, which is why the rule exists: the journey diagram is 4:3
-         * and rendered 357x268 in a one-third column, putting its five labels
-         * at about 7px — legible if you lean in, not readable. At 1152px the
-         * same 4:3 is 1152x864 and every label reads. A wide image squeezed
-         * into a third loses the thing it is for.
+         * ⚠️ AN ASPECT RULE WAS BUILT HERE AND REMOVED. DO NOT REBUILD IT
+         * FROM width/height.
          *
-         * THE THRESHOLD IS 1.2, and it sits between square (1.0) and 4:3
-         * (1.333) on purpose. A square keeps the column: the problem is width
-         * squeezed, not area, and a square at 357px loses nothing.
+         * It sent images with aspect >= 1.2 full width below the text, added
+         * for one image — the journey diagram, whose labels rendered at about
+         * 7px in the column and were not readable. The measurement was right
+         * and the conclusion was wrong: that diagram is TEXTURE rather than a
+         * reference, so it never needed to be readable, and full width cost
+         * more in alignment than the labels were worth.
          *
-         * A PORTRAIT NEVER WIDENS, and the reason is height rather than
-         * taste. The cover's cut-out is 0.671; at 1152px wide it renders
-         * 1152x1717 — taller than the viewport, pushing the rest of the cover
-         * off screen. Fitting a narrow column at a readable height is the
-         * whole advantage of a portrait.
+         * The deeper reason: aspect ratio does not tell you what an image is
+         * FOR. The same diagram is a reference on one page and a texture on
+         * another, and that is an editorial decision, not a property of the
+         * file. A layout computed from the pixels will keep getting it wrong
+         * in both directions.
          *
-         * Derived from the media row's own dimensions, so the data decides and
-         * no call site passes a layout flag. If an override is ever needed it
-         * is a column, not a prop.
+         * If an image ever genuinely needs full width, that is a STORED
+         * decision — a column or a flag — not a measurement.
          */
-        const { width, height } = section.media;
-        const isLandscape = width !== null && height !== null && width / height >= 1.2;
-
-        if (isLandscape) {
-          return (
-            <section key={section.id} className="mt-10">
-              {body}
-              {/* `hero` — 1200 at `limit`, an exact fit for the container. */}
-              <SectionImage media={section.media} preset="hero" className="mt-8" />
-            </section>
-          );
-        }
-
         return (
           <section key={section.id} className="mt-10 grid items-start gap-x-10 lg:grid-cols-3">
             <div className="lg:col-span-2">{body}</div>
-            <SectionImage media={section.media} preset="lead" />
+            <SectionImage media={section.media} />
           </section>
         );
       })}
@@ -316,32 +300,25 @@ export function CoverSections({
 /**
  * One section's image: the third column.
  *
- * `preset="lead"` — 600 at `limit`, `sizes` fixed at 400px above `lg`. It never
- * crops, so a portrait keeps its height and a landscape keeps its width, and
- * the two images on the Egypt cover are deliberately different shapes.
+ * `lead` is the ONLY preset here — 600 at `limit`, `sizes` fixed at 400px above
+ * `lg`. It never crops, so a portrait keeps its height and a landscape keeps
+ * its width; the two images on the Egypt cover are deliberately different
+ * shapes and both sit in the same column.
  *
  * A caption is optional and most section images will not have one. It is marked
  * from its OWN language (decision 053): alt and caption fall back to English on
  * `/ar`, and unmarked English inside a `dir="rtl"` document puts its full stop
  * at the start of the line.
  */
-function SectionImage({
-  media,
-  preset,
-  className = "mt-10 lg:mt-0",
-}: {
-  media: NonNullable<CoverSection["media"]>;
-  preset: PresetName;
-  className?: string;
-}) {
+function SectionImage({ media }: { media: NonNullable<CoverSection["media"]> }) {
   const caption = media.fields.caption;
   const captionLang: Locale | undefined = media.fieldLocales.caption;
 
   return (
-    <figure className={className}>
+    <figure className="mt-10 lg:mt-0">
       <CloudinaryImage
         media={media}
-        preset={preset}
+        preset="lead"
         className="h-auto w-full rounded-panel border border-DEFAULT"
       />
       {caption ? (

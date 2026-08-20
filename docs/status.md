@@ -37,6 +37,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-24 (later) — The aspect rule is removed. A layout computed from pixels cannot know what an image is for
+
+### What changed
+
+Every section image sits beside its text — two thirds prose, one third image — whatever its aspect. A section without an image renders full width, unchanged. The `>= 1.2` threshold built the session before is gone.
+
+The journey diagram stays on the `map` section, in the column, where it reads as texture.
+
+### Why, recorded in the component so it is not rebuilt
+
+The rule was added for one image on a correct measurement and a wrong conclusion. The diagram's labels really did render at about 7px in a one-third column. But that diagram is **texture rather than a reference** — it never needed to be readable, and full width cost more in alignment than the labels were worth.
+
+The deeper reason is the one worth keeping: **aspect ratio does not tell you what an image is for.** The same diagram is a reference on one page and a texture on another, and that is an editorial decision, not a property of the file. A layout computed from width and height will keep getting it wrong in both directions — sending a texture full width, and leaving a reference too small.
+
+If an image ever genuinely needs full width that will be a **stored decision** — a column or a flag — not a measurement. The comment in `CoverSections` says so at the point where someone would reach for the aspect again.
+
+### What fell out with it, and what did not
+
+Removed: the `isLandscape` calculation and its read of `width`/`height`, the second `<section>` branch, `SectionImage`'s `preset` and `className` props (one preset and one class again), and the `PresetName` import.
+
+**The `hero` preset itself does NOT fall out.** It is still used by the case file's own cover image at `work/[caseFile]/page.tsx:168`. Only the section-image branch that reached for it is gone; the preset table is unchanged.
+
+Confirmed in the delivered URLs — both Egypt images now serve `w_600` / `w_1200`, the `lead` pair. The `w_2400` hero variant no longer appears on the page.
+
+### Verified on localhost:3000
+
+**Both Egypt sections align identically**, which was the point:
+
+| | Image column, x range |
+|---|---|
+| thesis (portrait cut-out) | **939..1295** |
+| map (landscape diagram) | **939..1295** |
+
+Same on the light theme (939..1295 for both), and mirrored in Arabic — both columns at **144..500**, the RTL start.
+
+| | |
+|---|---|
+| **Egypt thesis at 1440** | **718px — unchanged** |
+| **The three covers with no images** | **BYTE-IDENTICAL** across all 12 — en/ar × 1440/390, diffed against screenshots taken before the change |
+| 390, both locales | content 366px of 390 — both images stacked under their text |
+| Light theme | verified in a browser by pinning `data-theme` and reverting; `git diff` on `layout.tsx` empty |
+
+All eight cover route-locale combinations **200**. `tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+---
+
 ## 2026-08-24 — `MY ROLE` joins the set. The distinction it rested on did not survive being looked at
 
 ### Before and after
