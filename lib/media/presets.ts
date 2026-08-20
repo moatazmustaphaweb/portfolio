@@ -37,7 +37,7 @@ export const NDA_TRANSFORM = "e_grayscale";
  * preset" guarantee decays into arbitrary numbers scattered through components.
  */
 
-export type PresetName = "thumb" | "card" | "hero" | "gallery" | "redacted";
+export type PresetName = "thumb" | "card" | "hero" | "gallery" | "lead" | "redacted";
 
 export type Preset = {
   /** Intended rendered width in CSS pixels at the largest breakpoint. */
@@ -95,6 +95,39 @@ export const PRESETS: Record<PresetName, Preset> = {
     width: 1000,
     crop: "limit",
     sizes: "(max-width: 1000px) 100vw, 1000px",
+  },
+
+  /**
+   * The image beside a cover's leading run — the third column of the
+   * two-column container (migration 0033).
+   *
+   * A NEW preset rather than reusing one, because none of the four above fits
+   * and this file's own rule says a layout that needs something else gets a
+   * preset, not ad-hoc numbers at the call site:
+   *
+   *   card    640x400 `fill` — a LANDSCAPE crop. The first lead image is
+   *           848x1264 portrait; `fill` would cut the top and bottom off a
+   *           picture whose whole subject is two cards standing upright.
+   *   gallery 1000 wide, and `sizes` telling the browser to expect 1000px.
+   *           The column is ~373px at a 1200px container, so every visitor
+   *           would download roughly seven times the pixels they can see.
+   *   hero    1200 wide — worse, for the same reason.
+   *
+   * `limit` never crops and never upscales, so a portrait keeps its full
+   * height and `CloudinaryImage` derives the box from the row's intrinsic
+   * width and height. The reserved box is therefore correct before the bytes
+   * arrive and the column does not shift as it loads.
+   *
+   * `sizes` is a fixed 400px above the `lg` breakpoint rather than `33vw`:
+   * the container is capped at `--max-w-container`, so the column stops
+   * growing while the viewport does not, and `33vw` would over-fetch on a
+   * wide screen. Below `lg` the grid collapses to one column and the image
+   * takes the full width.
+   */
+  lead: {
+    width: 600,
+    crop: "limit",
+    sizes: "(max-width: 1024px) 100vw, 400px",
   },
 
   /**

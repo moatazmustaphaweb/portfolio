@@ -325,7 +325,7 @@ export const getCaseFile = cache(
       withFields("outcome", outcomeRes.data ?? [], locale),
       withFields("target", targetRes.data ?? [], locale),
       fetchMedia(
-        [row.cover_media_id, ...chapterRows.map((c) => c.hero_media_id)],
+        [row.cover_media_id, row.lead_media_id, ...chapterRows.map((c) => c.hero_media_id)],
         locale,
         row.nda,
       ),
@@ -335,6 +335,21 @@ export const getCaseFile = cache(
       ? (media.get(row.cover_media_id) ?? null)
       : null;
     assertNotRedacted(cover, row.slug);
+
+    /*
+     * The lead image. Fetched in the SAME `fetchMedia` call as the cover and
+     * the chapter heroes — one query, not a second round trip for one row.
+     *
+     * `nda` is stamped by fetchMedia from the case file, so the grayscale
+     * treatment rides on the row and no call site can forget it (amendment
+     * 036). `assertNotRedacted` applies for the same reason it applies to the
+     * cover: migration 0033 extended both redaction triggers to this column,
+     * and this is the render-side half of the same guarantee.
+     */
+    const lead = row.lead_media_id
+      ? (media.get(row.lead_media_id) ?? null)
+      : null;
+    assertNotRedacted(lead, row.slug);
     const coverCard = await resolveCoverCard(cover, locale, row.nda);
     assertNotRedacted(coverCard, row.slug);
 
@@ -462,6 +477,7 @@ export const getCaseFile = cache(
       fields: caseFields.get(row.id) ?? {},
       cover,
       coverCard,
+      lead,
       headline: null,
       sections,
       summary,

@@ -9,6 +9,7 @@ import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { CoverSections, splitCoverSections } from "@/components/case-file/CoverSections";
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { dirForLocale } from "@/lib/content/types";
 import { resolveCover } from "@/designs/registry";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
@@ -113,7 +114,58 @@ export default async function CaseFileCover({
    * where UAE's square image would suit it. Whether that existing artwork is
    * what the reserved column is FOR is a content decision — see docs/status.md.
    */
-  const sideImage: React.ReactNode = null;
+  /*
+   * THE LEAD IMAGE — the third column, and what wakes the container up.
+   *
+   * `lead_media_id` had a column, a foreign key and two triggers since 0033
+   * and nothing read it; the container has been dormant since 2026-08-19
+   * waiting for exactly this. Null for every case file without one, so the
+   * other three covers keep full-width prose and never learn the container
+   * exists.
+   *
+   * ── PRESET: `lead` ────────────────────────────────────────────────────────
+   * `card` is a 640x400 `fill` and would crop a portrait; `gallery` and `hero`
+   * declare 1000/1200px for a column that is ~373px wide. `lead` is 600 at
+   * `limit` — never cropped, never upscaled — with `sizes` fixed at 400px above
+   * `lg` because the container is capped and the column stops growing.
+   *
+   * ── CAPTION: RENDERED, and this was a judgement ───────────────────────────
+   * The container spec never said. It renders, for a reason specific to this
+   * image: Egypt carries `nda = true`, so `e_grayscale` applies, and in grey
+   * the Egyptian card and the Emirates card lose the warm-cream against
+   * mint-teal contrast that makes the comparison read at a glance. What
+   * survives is the barcode block and the printed "United Arab Emirates".
+   * Without the caption the picture is two grey cards; with it, it is the
+   * comparison the cover is making. A figure whose subject is a DIFFERENCE
+   * needs the difference named.
+   */
+  const sideImage: React.ReactNode = detail.lead ? (
+    <figure>
+      <CloudinaryImage
+        media={detail.lead}
+        preset="lead"
+        className="h-auto w-full rounded-panel border border-DEFAULT"
+      />
+      {detail.lead.fields.caption ? (
+        <figcaption
+          /*
+           * Marked from the caption's OWN language (decision 053). English-only
+           * alt and caption fall back on /ar, and unmarked English inside a
+           * dir="rtl" document puts its full stop at the start of the line.
+           */
+          lang={detail.lead.fieldLocales.caption}
+          dir={
+            detail.lead.fieldLocales.caption
+              ? dirForLocale(detail.lead.fieldLocales.caption)
+              : undefined
+          }
+          className="mt-3 text-meta text-fg-muted"
+        >
+          {detail.lead.fields.caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  ) : null;
   const firstChapter = detail.chapters[0];
 
   return (
