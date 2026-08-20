@@ -37,6 +37,62 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-22 (later) — `docs/learn.md` read and wired in. One rule in it contradicts the content
+
+### Wired in
+
+- **`CLAUDE.md` → WHICH DOC TO READ WHEN**: a row **above** `TASKS.md`, marked read-this-first, naming what the file is for and how it differs from `decisions.md` and `status.md`.
+- **`CLAUDE.md` → WORKING AGREEMENT**: a standing rule beside the `status.md` one — `learn.md` is appended to *as part of the task*, into the right section, with the test stated (*would reading it beforehand have saved time?*) and the exclusions (decisions → `decisions.md`, outcomes → `status.md`, single-file facts → nowhere). Includes: do not restructure it.
+
+Nothing in the file itself was edited.
+
+### Checked against the codebase
+
+Verified rather than taken on trust, since it was written from the session record:
+
+| Claim | Result |
+|---|---|
+| Three markers: outcomes `projected/achieved/not-measurable`, targets `achieved/missed/not-measurable` | ✅ exact, `lib/sync/classify.ts:149-150` |
+| Cervello has no thesis, opens with `What it is` | ✅ renders `What it is → My role → Status, honestly → Why this one still matters` |
+| Neobiz has no role section | ✅ renders `Thesis → What it is → Status, honestly → Why it matters anyway` |
+| Neobiz and Cervello have no outcomes | ✅ **0 rows each**; Egypt 3, UAE 4 |
+| `why-it-matters` carries two different English headings | ✅ *"Why this one still matters"* vs *"Why it matters anyway"* |
+| `allowedDevOrigins` in `next.config.mjs` | ✅ present, `["127.0.0.1"]` |
+| Service role: the published filter is explicit in `lib/content/*` | ✅ 6 occurrences in `case-files.ts`, 7 in `chapters.ts` |
+| `:root:lang(ar)` matches `<html>` only | ✅ hit exactly this trap while measuring the type scale two sessions ago |
+| Notion `plain_text` strips backticks | ✅ the image-tag parser reads `annotations.code` for this reason |
+| Postgres enum needs its own migration | ✅ 0030/0031, 0034/0035, 0037/0038 all split for it |
+| `<figure>` invalid in `<p>` | ✅ why `chapter_paragraphs` is one row per paragraph |
+| Every PART 7 measurement | ✅ all four reproduce exactly — 29.9px Arabic statement, empty 16→26 gap, no weight axis, Arabic holds fewer characters |
+
+### ⚠️ ONE CONTRADICTION, and it is editorial
+
+> **PART 2:** *"`exception` → `الاستفسار`, not `الاستثناء`. In this system an exception is a directed query, not an anomaly."*
+
+**The live Arabic content uses `الاستثناء` for exactly that concept, in at least five places** — 10 translation rows contain it:
+
+- `الاستثناء (Exception) يُرفع داخل نظام مراجعة الطلبات بيد موظف البنك` — Egypt portal context, glossed with the English word
+- `الاستثناء سؤال مُهيكل قابل للإجابة، لا رسالة رفض` — Neobiz portal, which is the *exact* sense the rule describes
+- `المتابعة والاستثناءات` — a **section heading** on the UAE chapter (`tracking-and-exceptions`)
+- `الميل الأخير من حلقة الاستثناء` — a comparison table cell
+
+`الاستفسار` is also in use (10 rows), including `الاستفسار محادثة، لا رفض`. So **both terms are live**, and the file states a unified rule the content does not follow.
+
+**Not resolved here.** Arabic terminology is editorial and Moataz's. Three possibilities and only he can say which: the rule is newer than the content and the content needs updating; the rule is wrong and both terms are correct for different senses (`الاستثناء` the case, `الاستفسار` the query raised about it); or the rule applies to one surface and not others.
+
+### Two things that are true but not yet implemented
+
+Not contradictions — the file prescribes them and nothing does them yet:
+
+- **"Warm every derivative after upload."** There is no warming script and no warming code anywhere in `scripts/` or `lib/`. The first visitor still pays the 7–12 seconds.
+- **"Cervello's opening passage never reached the database for the life of the project."** True as history, and **fixed** — the cover slot model landed it. It now renders `what-it-is(3¶+ar)`. Reads as present-tense if skimmed.
+
+### Everything else reproduces
+
+No other claim contradicts what is in the code. The bug classes in PART 5 and the traps in PART 6 all match incidents from these sessions, and PART 8's corrections match what actually happened.
+
+---
+
 ## 2026-08-22 — The Egypt lead image becomes a cut-out. Alpha survives every transform in the path
 
 ### Verified before anything was written
