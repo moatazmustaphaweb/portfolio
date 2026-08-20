@@ -17,7 +17,7 @@ A bilingual (English/Arabic, full RTL) portfolio for a senior product designer w
 3. **Image URLs are never stored.** Cloudinary `public_id` + a named transform preset. `CloudinaryImage` is the only component that builds URLs.
 4. **Build in order.** Schema → seed → query layer → tokens → shell → pages. Pages last.
 5. **Secrets never enter the repo.** `.env.local` is gitignored. Service-role key is server-side only.
-6. **NDA discipline.** No Mashreq screens, files, or unredacted assets in this repo, ever. Git history is permanent. **Unredacted assets never reach Cloudinary either** — redaction is baked into the pixels before upload, because a live transform leaves the original fetchable at its base URL (decision 027).
+6. **NDA discipline.** No client screens or files in this repo, ever — assets live in Cloudinary, and git history is permanent. **The NDA treatment is a signal, not concealment** (amendment 036, which supersedes 027): the Mashreq screens are design files carrying dummy data Moataz wrote himself, so there is nothing to hide. NDA work renders full grayscale via a live Cloudinary transform, driven by `case_files.nda` — never by baking the treatment into the pixels, and never by a per-image flag a call site can forget. `media.redacted` stays `false`.
 7. **No fabricated content.** Never invent metrics, outcomes, project details, or copy. If content is missing, stop and ask.
 
 ---
@@ -81,6 +81,11 @@ docs/                 all project documentation
 - **`TASKS.md` is yours to manage.** Read it at session start. Update status as you work. Add discovered sub-tasks. Commit changes to it with the work they describe.
 - **When documents disagree, `docs/decisions.md` wins** — the most recent dated decision is authoritative. Correct the conflicting document in the same session and log the correction.
 - **When something is genuinely undecided, stop and ask.** Do not invent a decision to keep moving.
+- **`docs/status.md` is written as part of the task, never offered afterwards.** It is the only channel Moataz reads — he reads the file, not the terminal. **An unchanged `status.md` is indistinguishable from work that never ran**, and that confusion has already cost three exchanges establishing whether a completed fix had happened at all.
+  - No task is finished until its entry is saved. A change too small to log gets **two lines**, not silence.
+  - If a task ends with no entry, **say so explicitly in the reply** so the silence is legible as a decision rather than a failure.
+  - This applies hardest to **diagnoses, refusals and questions answered** — the ones most likely to be skipped, and the ones most needed. A refusal with its reasoning is a result; an empty file is not.
+  - "Do only what was asked" does not override this. Scoping instructions bound **which code to touch**; they do not suspend the log.
 - **Definition of done, per page:** renders from the database with zero hardcoded strings · works in `en` and `ar` with correct RTL · responsive from 320px · real content, no placeholders · images via `CloudinaryImage` · no dead ends · committed and deployed to preview.
 
 ---

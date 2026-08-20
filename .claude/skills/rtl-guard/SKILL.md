@@ -23,7 +23,16 @@ Reference: `docs/design/tokens.md` (RTL section, Arabic scale) and `docs/convent
 
 `text-center`, `mx-*`, `px-*`, and `inset-x-*` are symmetric and safe.
 
-`dir` is set once on `<html>` from the locale segment. No component reads it, sets it, or branches on it.
+**Layout direction comes from the locale. Text direction comes from the language of the text** (decision 053).
+
+- **Layout** — margins, arrows, rails, which side anything sits on. `dir` is set once on `<html>` from the locale segment. **No component reads it, sets it, or branches on it.** This has not changed and does not bend.
+- **Text** — which way a run of characters reads. Set `dir` and `lang` on the element carrying the text, derived from the language that text is written in. `dirForLocale()` in `lib/content/types.ts` is the only place a language maps to a direction.
+
+**The test:** if the answer depends on *which page you are on*, it is layout — take it from the locale. If it depends on *what the words are*, it is text — take it from the language.
+
+**Why text needs marking at all.** Decision 013 serves English when a locale has no translation, and that fallback is correct. But English inside a `dir="rtl"` document lays out as Arabic: the trailing full stop resolves to the wrong visual side, so a sentence renders `.This is where the whole design meets its limit` and the paragraph aligns right. 73 paragraphs and 31 captions did exactly that across nine Arabic pages, and every structural check passed on all of them.
+
+⚠️ **Never infer the language by looking for Latin characters.** Arabic copy here deliberately keeps `Governance`, `OTP`, `KYC`, `RTL`, `NDA` and `LinkedIn` in Latin — that is why Geist is load-bearing behind both Arabic faces — so a sniffing heuristic marks most Arabic prose as English and flips it. The content layer already knows which locale supplied each field: `withFields` attaches `fieldLocales`.
 
 ## Directional glyphs are content
 

@@ -677,6 +677,29 @@ misconfiguration should cost the image, not the page.
 
 ---
 
+## 053 — Layout direction comes from the locale. Text direction comes from the language of the text
+
+**Decision:** two different things were being called "direction", and they now have separate sources.
+
+- **Layout direction** — which side a margin sits on, which way an arrow points, where a rail lives — comes from the **locale segment**, is set once as `dir` on `<html>` in `app/layout.tsx`, and **no component may read it, set it, or branch on it.** That rule is unchanged and absolute.
+- **Text direction** — which way a run of characters reads — comes from **the language that text is written in**, and is set as `dir` + `lang` on the element carrying it.
+
+**Why:** decision 013's fallback serves English when a locale has no translation, which is correct and stays. But the fallback text was being rendered as though it were Arabic. Latin prose inside a `dir="rtl"` container resolves its trailing punctuation to the wrong visual side, so a sentence rendered as `.This is where the whole design meets its limit` and the paragraph aligned right. Counted on 2026-08-19: **73 paragraphs and 31 captions** across nine Arabic chapter pages. Every structural check passed on all of them — the DOM was correct, the counts were correct, and it only read wrong.
+
+**Why this does not weaken the rtl-guard rule.** That rule exists so no component hardcodes a screen side; it is about layout. This is about content language, which is what the HTML `dir` attribute is for and what it has always been for. The codebase already did this once, correctly, before the rule was written down: `app/[locale]/(site)/contact/page.tsx` sets `dir="ltr"` on an email address so it does not mangle in Arabic.
+
+**The test that separates them:** if the answer depends on *which page you are on*, it is layout and comes from the locale. If it depends on *what the words are*, it is text and comes from the language.
+
+**How the language is known — not by sniffing.** `lib/content/translate.ts` already resolved English as a floor and let the requested locale overwrite it; a field is a fallback exactly when the first pass set it and the second did not. That fact was computed and discarded. `resolveManyDetailed` now returns it as `fieldLocales`, and `withFields` attaches it to every row. **One extra map, no extra query.**
+
+Detecting the language by looking for Latin characters was rejected outright. Arabic prose on this site deliberately keeps `Governance`, `OTP`, `KYC`, `RTL`, `NDA` and `LinkedIn` in Latin — decision 045 makes Geist load-bearing behind both Arabic faces for exactly that reason — so a heuristic would flip most Arabic paragraphs on the site.
+
+**Consequence:** `Media` carries `fieldLocales`; `ChapterBlock` carries `lang`; `ChapterSection` carries `headingLang`. `dirForLocale()` in `lib/content/types.ts` is the one place a language maps to a direction. `docs/design/tokens.md` and `.claude/skills/rtl-guard/SKILL.md` both state the boundary. Elements are marked from their own language unconditionally, so an English page emits `dir="ltr" lang="en"` too — redundant and honest, rather than a branch on the page's locale.
+
+**Status:** ACTIVE — refines the rtl-guard rule rather than overriding it
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |

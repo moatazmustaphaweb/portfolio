@@ -266,7 +266,12 @@ Every token above is direction-neutral. No token encodes left or right.
 
 - **Logical properties only.** `margin-inline-start`, `padding-inline`, `border-inline-start`, `text-align: start`. In Tailwind: `ms-*`/`me-*`, `ps-*`/`pe-*`, `border-s`/`border-e`, `text-start`/`text-end`. Never `ml-*`, `pl-*`, `text-left`.
 - **Directional glyphs flip.** Forward arrow is `→` in LTR and `←` in RTL; "back" reverses correspondingly. This is content-adjacent, so it belongs in `ui_strings`, not hardcoded in a component.
-- `dir` is set once on `<html>` from the locale segment. No component reads or sets direction.
+- **Layout direction comes from the LOCALE. Text direction comes from the LANGUAGE OF THE TEXT** (decision 053). Two different things were being called "direction":
+  - **Layout** — which side a margin sits on, which way an arrow points, where a rail lives. Set once as `dir` on `<html>` from the locale segment. **No component reads it, sets it, or branches on it.** Unchanged and absolute.
+  - **Text** — which way a run of characters reads. Set as `dir` + `lang` on the element carrying it, from the language that text is actually in.
+- **Why text needs its own source.** Decision 013 serves English when a locale has no translation. Latin prose inside a `dir="rtl"` container resolves its trailing punctuation to the wrong side — `.This is where the whole design meets its limit` — and aligns right. 73 paragraphs and 31 captions rendered that way before this was separated out.
+- **The test:** if the answer depends on *which page you are on*, it is layout and comes from the locale. If it depends on *what the words are*, it is text and comes from the language.
+- **Never detect the language by sniffing for Latin characters.** Arabic copy here deliberately keeps `Governance`, `OTP`, `KYC`, `RTL`, `NDA` and `LinkedIn` in Latin — see the Geist note above — so a heuristic flips most Arabic on the site. The content layer already knows: `withFields` attaches `fieldLocales`, and `dirForLocale()` maps a language to a direction.
 - Numerals stay Western (`1,500+`) unless a specific string in `translations` says otherwise — that is a content decision per locale, not a token.
 
 ---

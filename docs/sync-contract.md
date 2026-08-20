@@ -221,15 +221,53 @@ A legacy prose form (`label [status] — note` on one line) is still parsed if n
 
 ## STEP 6 — MEDIA
 
-Images are **not** synced from Notion. Upload to Cloudinary manually, then reference by `public_id` in the Notion body:
+*Rewritten 2026-08-19 against the actual Notion body. The format below was specified and never implemented, and the specification did not match what was written: it had no slot for a caption, and every tag in Notion carries one.*
+
+Images are **not** synced from Notion. The binary is uploaded to Cloudinary by hand; Notion carries only the reference.
+
+### The tag, as it is actually written
+
+A tag is **one paragraph block containing three inline code spans and nothing else**:
 
 ```
-![alt text](cloudinary:egypt/onboarding-redacted-01){redacted}
+`[cld] <public id>`  `[alt] <alt text>`  `[caption] <caption>`
 ```
 
-- Creates/updates a `media` row keyed on `cloudinary_public_id`
-- `{redacted}` → `media.redacted = true`
-- Alt text → `translations` with `entity_type='media'`, `field='alt'`
+Read from `annotations.code`, **not** by matching backticks. Notion's `plain_text`
+strips the backticks, so a regex over joined text is matching punctuation that is
+not there. A paragraph is a tag when its first code span opens with `[cld]`.
+
+- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below).
+- Public IDs contain spaces, dots, parentheses and apostrophes. They are used verbatim — never slugified, never URL-encoded at this layer. Cloudinary resolves them as-is.
+- The tag paragraph is a **sibling** of the prose paragraphs, never inline within one. This is what lets a `<figure>` render between paragraphs rather than inside one.
+
+### What the sync does with it
+
+1. Upsert a `media` row keyed on `cloudinary_public_id`, which is unique. Re-running matches the existing row and never duplicates.
+2. Write `alt` and `caption` into `translations` with `entity_type='media'`, `entity_id = media.id`, for **the locale of the page the tag was read from**.
+3. Replace the tag, in the body text stored in `translations`, with `[image:<media.id>]`.
+
+**Notion is never rewritten.** The public ID, alt and caption stay in the Notion body exactly as authored; the UUID substitution exists only in the copy stored in Supabase.
+
+### `redacted` is false, always
+
+`media.redacted = false` on every row this step writes. Amendment 036 supersedes 027: these are design files carrying dummy data, the NDA treatment is a grayscale *signal* driven by `case_files.nda`, and `redacted = true` would additionally force the non-cropping `redacted` preset (decision 028) for no reason.
+
+### A locale references its own screens
+
+English and Arabic pages do **not** reference the same public IDs. Chapter One shares only 4 of 16: the two paper AOF pages, and the two Arabic screens the English prose discusses. The other 24 appear in one locale only — an Arabic page shows Arabic screenshots.
+
+**Consequence:** a `media` row carries alt and caption for the locales that reference it, which is often one, not both. This is not a missing translation and must not be reported as one. Positional pairing (Step 4) does **not** apply to image tags: each locale's body carries its own sequence, and there is nothing to pair.
+
+### Images uploaded into Notion are ignored
+
+A Notion `image` block is **not** content. Those are the author's own working previews, and their URLs are signed and expire in 300 seconds — storing one would produce a dead link within five minutes. `readBody` reads only headings, paragraphs, list items and tables, so `image` blocks are already skipped structurally. Chapter One's `The interface` section holds 5 of them and syncs none.
+
+### A missing alt fails loudly
+
+`CloudinaryImage` **omits** an image whose `alt` translation is absent — deliberately, so an unlabelled image cannot ship. On a page that is an invisible gap: nothing renders and nothing complains.
+
+The sync therefore refuses to be the quiet half of that pair. A tag whose `[alt]` is missing or empty **fails its chapter** through the existing failure policy — reported by name, nothing written for that entity, the rest of the sync continuing. The rule is the same one Step 4 states: candidates found is compared against candidates kept, and a difference is a refusal, not a silent drop.
 
 ---
 

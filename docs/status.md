@@ -14,7 +14,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 | `/[locale]` | 🟢 **REAL** | Name, tagline, intro, description, one CTA. Minimal footer. Both locales | — |
 | `/[locale]/work` | 🟢 **REAL** | 4 published case files, domain filter, NDA markers, outcome line where one exists | Cover images · 3 outcome lines · intro copy |
 | `/[locale]/work/[caseFile]` | 🟢 **REAL** | Title, thesis, prominent role statement, **entry handles**, OutcomeStrip with statuses, LivingMap branching on grammar (`<ol>`/`<ul>`), **sibling links**, links to comparison/accessibility pages | Cover images · Cervello's handles (blocked by the route collision) |
-| `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | Objective, context, **decision blocks**, result, prev/next, back to cover and to /work. **Comparison and accessibility pages render their documents and tables** | FeatureStrip · RedactedEvidence |
+| `/[locale]/work/[caseFile]/[chapter]` | 🟢 **REAL** | **All 9 `kind='chapter'` pages render named section slots**, both locales — 41 slots seeded, 57 inline figures across the four Egypt chapters with captions and NDA grayscale. Decision blocks, prev/next, back to cover and to /work. **Comparison and accessibility pages render their documents and tables** (unchanged — deliberately not on the slot model) | FeatureStrip · **accessibility's 36 image tags undeliverable** until `chapter_paragraphs` learns a table kind · English fallback prose mis-renders inside RTL pages (73 ¶, 31 captions) · 16 unequal-paragraph slots blocked on Notion |
 | `/[locale]/work/[caseFile]/all` | 🟢 **REAL** | Thesis, role statement, every chapter with objective/context/decisions/result inline, deep link per chapter, one `h1` | — |
 | `/[locale]/work/[caseFile]/results` | 🟢 **REAL** | Every declared target with status and evidence, as a real `<table>`. Egypt 6 rows · Neobiz 5 · Cervello and UAE 404 (no targets) | — |
 | `/[locale]/systems` | 🟢 **REAL** | Intro, 4 sections, three evidence chapters resolved through the query layer, open-source pointer with no placeholder | — |
@@ -34,6 +34,438 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 > ✅ **The three `[caseFile]` routes are LIVE** as of the first sync. Clickable now:
 > `/en|ar/work/egypt-acquisition` · `/neobiz-mobile` · `/cervello` · `/uae-acquisition`, each with `/[chapter]` and `/all`.
 > The four mini case files (`east`, `pidetaxi`, `kshemam`, `aam-advisor`) are drafts with no content and correctly 404.
+
+---
+
+## 2026-08-20 (deploy) — Committed and pushed. What Vercel needs, and what will look wrong on purpose
+
+Six commits on `main`, pushed. The chapter slot model, the image pipeline, the table work, decision 053, the layout fix and the docs — separate units, per `docs/conventions.md`.
+
+### Rules 5 and 6, verified before staging
+
+Checked across all 21 files, by pattern and by exit code — not asserted:
+
+| Check | Result |
+|---|---|
+| `.env` file in the changeset | none · `.gitignore:8` still covers `.env*` |
+| JWT-shaped strings (`eyJ…`) | clean |
+| `ghp_` / `gho_` / `sk-` / `re_` tokens | clean |
+| `SERVICE_ROLE_KEY` assigned a literal | clean — only `process.env` in `lib/supabase/server.ts` |
+| Binary or image assets | none — every file `.ts` / `.tsx` / `.sql` / `.md` |
+| `dabblersport` | **0 commits on `HEAD` and `main`** |
+
+`dabblersport` survives only in the two deliberate backups — `refs/backup/pre-identity-rewrite` (59, local) and `origin/backup/main-old` (57). `supabase/.temp/` was gitignored rather than committed.
+
+### ⚠️ THE ONE THAT WILL LOOK LIKE A CATASTROPHE — `SUPABASE_SERVICE_ROLE_KEY`
+
+**Without it the deployment renders a site with no words in it.** Decision 025 denies the anon key all access to `translations`, and every human-readable string on this site comes from that table (rule 1). The build succeeds, the routes return 200, the layout draws — and every heading, paragraph, label and button is empty.
+
+`lib/supabase/server.ts:29` throws `SUPABASE_SERVICE_ROLE_KEY is not set`, so in practice the pages error rather than render blank — but the symptom to recognise is **a site that looks structurally fine and says nothing**, or a 500 on every content route. It is not a data loss and not a sync failure. Set the variable and it returns.
+
+### Every environment variable this build needs
+
+| Variable | Needed | If missing |
+|---|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes, required** | Above. The whole site. |
+| `NEXT_PUBLIC_SUPABASE_URL` | **yes, required** | No database at all — build-time data fetching fails outright |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | **no longer required** | Decision 052 committed the default `vewhrkzj` in `lib/media/cloud.ts`. Setting it in Vercel is now an override, not a prerequisite. Unset is fine and images still render |
+| `NEXT_PUBLIC_SITE_URL` | not required to render | Absolute URLs fall back to `localhost:3000` — visible in `sitemap.xml`, `robots.txt`, `llms.txt` and Open Graph tags. Pages look correct; **link previews and the sitemap are wrong**. A production build warns loudly |
+| `NOTION_API_KEY` | **not needed by the build** | Sync-script only, run locally. Absent from Vercel is correct |
+| `RESEND_API_KEY` | no | Contact form still **stores** the message — decision 051 makes storage the record, the notification a courtesy. Nothing on screen changes; no email arrives |
+| `CONTACT_NOTIFY_TO` / `CONTACT_NOTIFY_FROM` | no | Same: submission succeeds, success state renders, no email sent |
+
+The contact form's visible behaviour does not depend on any Resend variable. A submission that shows success and produces no email is the **designed** outcome, not a fault.
+
+### Known-wrong on this deployment — do not report these back as new
+
+1. **The accessibility page's 36 image tags are not delivered.** The sync refuses that page: its Arabic has one image tag sharing a paragraph with prose, and the guard refuses the whole page rather than drop the sentence. The page renders its text from `page_sections` and shows **no figures**. One Notion fix — split the tag onto its own paragraph.
+2. **Table header rows are missing on all three document pages.** `readTable` skips row 0, so `SectionTable` promotes the first *data* row into `<thead>`. The comparisons never say which column is Web and which is Mobile; the conformance table has lost `Practice in the journey · WCAG criterion · Verification`. Pre-existing, open ruling.
+3. **The comparison pages lost one intro line each** — *"Egypt Acquisition — one regulated journey, two platforms"*. No `intro` slot was added, because the same block also carries an authoring note. Open ruling.
+4. **`Status: Draft v1 — written from interview, 6 Aug 2026` ships on the accessibility page**, as its lead paragraph. Pre-existing, open ruling.
+5. **Arabic `result` sections end one paragraph early on eight chapters** — every English `Result` closes with an onward-navigation line ("Next chapter: …") that no Arabic page has. Positional pairing refuses, so those slots fall back to English entirely.
+6. **The accessibility page's Arabic fallback still mis-renders.** Decision 053 was implemented in `ChapterSections`; that page still renders through `ProseSections`, which never received it. English prose there is right-aligned with leading punctuation.
+7. **Arabic falls back to English across much of the site** — decision 013, working as designed, and now marked `dir="ltr" lang="en"` everywhere the chapter path renders.
+
+### Still true, and not fixed by deploying
+
+ISR has never been observed in production and `/api/revalidate` has never been called against a production build. No accessibility audit has been run. This deployment is the first time any of this has executed on Vercel's runtime.
+
+---
+
+## 2026-08-20 (night) — The accessibility page rendered its prose in a 248px column. Cause: a grid that kept both tracks after losing a child
+
+**Nothing committed, nothing pushed.** `HEAD` is still `e1b4b3a`.
+
+*Logged late. The fix was made in the previous exchange and this entry was offered rather than written, which cost three exchanges establishing whether the work had run at all. `docs/status.md` is the channel; an unchanged file is indistinguishable from work that never happened. See the standing rule now recorded in `CLAUDE.md`.*
+
+### The symptom
+
+`/en/work/egypt-acquisition/accessibility` rendered its body text in a column roughly a sixth of the viewport, headings full width above it, the rest of the width empty. At 1440px `Status: Draft v1 — written from interview, 6 Aug 2026…` wrapped after three or four words a line.
+
+### The cause — not either of the obvious candidates
+
+Not the two-column cover container, and not a prose measure applied twice. **The two-column grid lost its first child and kept both of its tracks.**
+
+The `isDocument` shell applies `lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]` whenever `kind === 'accessibility'`. The contents rail had a **separate** condition. In the previous session that condition moved from `page.sections.length > 3` to `body.length > 3` — and `body` derives from `detail.sections`, which is **empty on this page because the sync refuses it** (its Arabic page has an image tag sharing a paragraph with prose).
+
+So the rail stopped rendering and the grid did not. `<div class="min-w-0">` became the only child, and a lone child of a two-track grid lands in the **first** track — `16rem`. Nothing errored; the page simply squeezed itself into 256px.
+
+Visible in the rendered HTML: the grid classes present, `contents-heading` count **0**.
+
+This was self-inflicted, in the session immediately before, by a change that looked like a straight substitution of one list for another.
+
+### The fix
+
+The grid and the rail were two decisions free to disagree. They are now one:
+
+- `railItems` — a single list built from whichever content path is actually rendering: `detail.sections` when the page has migrated, `page_sections` when it has not.
+- `showRail` — `kind === 'accessibility' && railItems.length > 3`, and it drives **both** the grid class and the rail.
+
+The disagreement is now unrepresentable rather than merely corrected, and it keeps working when this page migrates onto the slot model.
+
+### Measured at 1440px, by pixel extent of the rendered text
+
+| Page | Before | After |
+|---|---|---|
+| **en/accessibility** — prose column | **248px** | **836px** |
+| ar/accessibility — prose column | 248px | 824px |
+| en/web-vs-mobile-onboarding | 1152px | 1152px — unchanged |
+| en/web-vs-mobile-portal | 1152px | 1152px — unchanged |
+| en chapter page (control) | 952px | 952px — unchanged |
+
+**The two comparison pages did NOT have the defect.** The grid is applied only when `kind === 'accessibility'`, so both rendered with an `undefined` container class at the full `max-w-container` width throughout. Measured before and after to confirm rather than assumed.
+
+836px is the designed width for this layout: container 1152 − rail 256 − gap 56 = 840. It deliberately does **not** match a chapter page's 952px (`max-w-prose`, no rail) — those are two different layouts and both are correct. What was wrong was 248px, not the gap between 836 and 952.
+
+Rail confirmed present with its 13 items in both locales — on the left in English, the right in Arabic, mirroring correctly.
+
+### Still broken on this page, and out of scope for a layout fix
+
+**Decision 053 never reached it.** Its Arabic renders English fallback right-aligned with the full stop at the start — `.claims and open claims are separated below`. `dir="ltr"` paragraph count is **0** on both accessibility URLs against 5 and 9 on the migrated comparisons.
+
+053 was implemented in `ChapterSections`; this page still renders through `ProseSections`, which never received the `fieldLocales` treatment. It resolves on its own when the page migrates (one Notion fix — split that image tag onto its own paragraph), or `ProseSections` needs the same change. Not decided here.
+
+Chapter pages verified unaffected: `ar/onboarding` 16 figures / 14 `ltr`, `ar/fulfilment` 16 / 9, no stray grid on either.
+
+Checks: `tsc --noEmit` clean · `npm run test:sync` all pass · `eslint .` 0 errors, 0 warnings.
+
+---
+
+## 2026-08-20 (later) — Tables land. Two comparison pages migrate. The accessibility page REFUSES, by name
+
+**Nothing committed, nothing pushed.** `HEAD` is still `e1b4b3a`.
+
+### Both confirmations, made before building
+
+**1 · Who else reads `page_sections`.** `getPageSections` is called from exactly five places, each with a fixed key: `contact`, `about`, `about/philosophy`, `systems`, and `work/${caseFile}/${chapter}`. The three document keys are read by **the chapter route alone**. `llms.txt`, `sitemap` and `robots` do not touch the table. Retiring those keys reaches nothing else.
+
+**2 · The table renders identically.** Guaranteed by construction, not by inspection: the cells are reassembled into the same tab-and-newline string `page_sections` produced and handed to **the same `SectionTable` component**. There is no second table renderer to drift.
+
+Proven by capturing the rendered `<table>` markup before the migration and diffing after:
+
+| | baseline | after | |
+|---|---|---|---|
+| en/web-vs-mobile-onboarding | 7996 B | 7996 B | **IDENTICAL** |
+| en/web-vs-mobile-portal | 3354 B | 3354 B | **IDENTICAL** |
+| ar/web-vs-mobile-onboarding | 7996 B | 9853 B | changed — now the **Arabic** table |
+| ar/web-vs-mobile-portal | 3354 B | 4326 B | changed — now the **Arabic** table |
+
+The Arabic change is the improvement: Arabic previously rendered the *English* table because `parsePageSections` refused Arabic wholesale. Row counts are unchanged (13 and 5), so it is the same table in the other language.
+
+### Per page
+
+| Page | Sections | Tags found | Media written | Refused |
+|---|---|---|---|---|
+| web-vs-mobile-onboarding | 3 — `the-rule` · `the-differences`(1 table) · `what-this-is-evidence-of` | 0 | 0 | — |
+| web-vs-mobile-portal | 3 — `what-never-changes` · `what-mobile-changes`(1 table) · `the-one-line-version` | 0 | 0 | — |
+| **accessibility** | **0 — REFUSED** | 18 en / 18 ar | **0** | see below |
+
+52 and 20 table cells written respectively — 13×4 and 5×4, matching the row counts `readTable` has always produced.
+
+### The accessibility page refused, and the guard is right
+
+One image tag on the **Arabic** page shares its paragraph with prose:
+
+> *وقد طرحت دعم RTL بوصفه متطلبًا على مستوى النظام لا التفافًا…*
+
+A tag paragraph becomes a `<figure>`, so that sentence would have been dropped silently. The whole page was refused by name and **nothing was written — 0 sections, 0 cells, 0 media**, confirmed in the database. Partial media is worse than none, because a missing image looks identical to one that was never authored.
+
+**The fix is one line of content in Notion: split the tag onto its own paragraph.** Then re-run; the sync is idempotent.
+
+⚠️ **`page_sections` for the accessibility page is deliberately NOT retired.** Retiring it while the page is refused would blank a live page. The static pass still writes `kind = 'accessibility'` and that clause is marked to be removed once the Notion paragraph is split. The two comparison pages' rows are deleted; the accessibility page's 15 rows remain and still render.
+
+### THE THING THAT ONLY LOOKING FINDS — the tables have no header row
+
+`readTable` contains `if (i === 0) continue; // header row`. Correct for outcomes and targets tables, where the header is column labels the parser does not want. Wrong for a table that renders as an actual `<table>`: `SectionTable` then promotes the first **data** row into `<thead>`.
+
+What is being dropped, on all three document pages:
+
+| Page | The real header, dropped | Rendered as the header instead |
+|---|---|---|
+| Both comparisons | `The same need · Web · Mobile · Why it changed` | *"Overall structure / Linear five-stage stepper / …"* |
+| Accessibility | `Practice in the journey · WCAG criterion · Verification` | *"Text colours … / 1.4.3 Contrast (Minimum) / …"* |
+
+So the comparison tables never say which column is Web and which is Mobile, and the conformance table has lost the three labels that make it a conformance record. A reader sees a sentence styled as a heading and three unlabelled columns.
+
+**This is PRE-EXISTING, not caused by this work** — the baseline markup is byte-identical, so it has been shipping. It is not fixed here for two reasons: fixing it would break the byte-identical guarantee explicitly asked for, and it changes `readTable`, which outcomes and targets also depend on. **The contained fix is to read the table with its header on the chapter-section path only**, leaving the outcomes path untouched. Needs a ruling.
+
+### No `intro` slot, and one line lost
+
+The prose above the first heading is mostly authoring notes — accessibility carries only *"Status: Draft v1 — written from interview, 6 Aug 2026"*, and the comparisons carry a subtitle plus *"Status: Draft v1 — 9 Aug 2026. Companion page…"*. **That note is currently shipping on all three live pages**, which is its own pre-existing bug.
+
+No `intro` slot was added, so on the two migrated pages the note stops shipping — and so does the subtitle line *"Egypt Acquisition — one regulated journey, two platforms"*. One line of real content lost per comparison page, reported rather than papered over with a filter that guesses which opening lines are notes.
+
+### A false alarm worth recording
+
+The Arabic accessibility page has a sibling child page titled `مرجع الـ Accessibility — اللي عملته واسمه إيه`: Moataz's **private interview crib sheet**, in colloquial Egyptian, addressed to himself — *"مرجع شخصي للإنترفيو"*, *"دول بالذات احفظهم"*. It carries three tables of its own.
+
+It is **not** at risk of publishing. `findArabicChild` matches on the `النسخة العربية` prefix, so it is ignored — exactly the case its own comment describes: *"containment would also claim a child called `ملاحظات العربية` … and silently translating a page from a notes page is worse than not finding one."* Verified absent from the rendered page in both locales. The alarm came from probing children blindly; the sync never reads it. Recorded because the next person to probe that page will find it too.
+
+### Verified on localhost:3000, both locales
+
+All six route-locale combinations **200**. `<figure>` inside `<p>`: **0**. Notion-uploaded image blocks: still never synced (6 sit on the English accessibility page). English fallback prose carries `dir="ltr" lang="en"` — `ar/web-vs-mobile-onboarding` shows exactly 5, the 2+3 from its two unpaired slots; `ar/web-vs-mobile-portal` shows 0, being fully translated.
+
+Positional pairing refused twice and reported rather than pairing wrong:
+
+| Page | Slot | en / ar |
+|---|---|---|
+| web-vs-mobile-onboarding | the-rule | 2 / 4 |
+| web-vs-mobile-onboarding | what-this-is-evidence-of | 3 / 4 |
+
+Checks: `tsc --noEmit` clean · `npm run test:sync` all pass · `eslint .` **0 errors, 0 warnings**.
+
+---
+
+## 2026-08-20 — The bidi bug is fixed. Decision 053 written down. The `result` omission is ONE, not eight
+
+**Nothing committed, nothing pushed.** `HEAD` is still `e1b4b3a`.
+
+### 1 · English prose on Arabic pages — FIXED
+
+73 paragraphs and 31 captions rendered with their punctuation on the wrong side and aligned right as if Arabic. Decision 013's fallback is correct and unchanged; what was wrong is that fallback text was rendered *as though it were Arabic*.
+
+**The fact was already there.** `translate.ts` resolved English as a floor and let the requested locale overwrite it — so a field is a fallback exactly when the first pass set it and the second did not. That was computed and thrown away. `resolveManyDetailed()` now returns it as `fieldLocales` and `withFields` attaches it to every row: **one extra map, no extra query, no new round trip.**
+
+Sniffing the string for Latin characters was rejected outright, and the portal page shows why — its Arabic prose carries `(Exception)`, `الـ Governance`, `push notifications` and `OTP` inline. A heuristic would have flipped most of the Arabic on this site.
+
+**Direction is derived from the text's own language, never from the page's locale.** `dirForLocale()` is the single place a language maps to a direction, and elements are marked unconditionally — an English page emits `dir="ltr" lang="en"` too. Redundant and honest, rather than a branch on the locale.
+
+Verified on `/ar/work/egypt-acquisition/fulfilment`: the full stop is at the **end**, the paragraph reads left-to-right, and the Arabic `h1` and `السياق` heading around it are untouched.
+
+| ar route | p ltr | p rtl | cap ltr | cap rtl |
+|---|---|---|---|---|
+| egypt/onboarding | 14 | 15 | 10 | 6 |
+| egypt/workflow | 26 | 3 | 10 | 1 |
+| egypt/portal | 4 | 11 | 1 | 13 |
+| egypt/fulfilment | 9 | 7 | 10 | 6 |
+| neobiz/onboarding | 5 | 0 | — | — |
+| neobiz/portal | 7 | 0 | — | — |
+| uae/onboarding | **0** | 20 | — | — |
+| cervello/on-prem | 4 | 10 | — | — |
+| cervello/permission | 4 | 4 | — | — |
+| cervello/method | **0** | 24 | — | — |
+
+**73 paragraphs and 31 captions marked `ltr` — exactly the census taken before the fix**, which is the check that matters: not over-applied, not under-applied. `uae/onboarding` and `cervello/method` are 0, being fully translated. English pages: all `ltr`, zero `rtl`. `<html dir="rtl">` unchanged.
+
+### Decision 053, and where the boundary now lives
+
+**Layout direction comes from the locale. Text direction comes from the language of the text.**
+
+- Layout — margins, arrows, rails, which side anything sits on — is set once as `dir` on `<html>`, and **no component reads it, sets it, or branches on it.** Unchanged and absolute.
+- Text — which way a run of characters reads — is set as `dir` + `lang` on the element carrying it.
+
+The test: *if the answer depends on which page you are on, it is layout. If it depends on what the words are, it is text.*
+
+This does not weaken `rtl-guard`; it names a distinction the rule never addressed. The codebase already did it correctly once before the rule was written — `contact/page.tsx` sets `dir="ltr"` on an email address. Logged as decision 053; `docs/design/tokens.md` and `.claude/skills/rtl-guard/SKILL.md` both amended.
+
+### 3 · The `result` omission is ONE systematic thing
+
+Not seven — **eight** chapters. And in every one the missing Arabic paragraph is the **last English one**, always the onward-navigation line:
+
+| Chapter | The English paragraph with no Arabic counterpart |
+|---|---|
+| egypt/onboarding | *Next chapter: Application Workflow — the same application, seen from inside the bank.* |
+| egypt/workflow | *Next chapter: Customer Portal & Notifications — the same application, seen by the person waiting.* |
+| egypt/portal | *Next chapter: Fulfilment & AOF — the officer travels to the customer, and the account finally opens.* |
+| egypt/fulfilment | *This completes the Egypt Acquisition (Web) case file. See also: [Accessibility…], and the sibling case file…* |
+| neobiz/onboarding | *Next chapter: Mobile Customer Portal — the waiting relationship, in the pocket.* |
+| neobiz/portal | *This completes the Neobiz Mobile case file. See: [Results Table — Neobiz Mobile]…* |
+| cervello/on-premises-to-cloud | *Next chapter: The Permission Architecture — four nested layers, and the question of who may see whom.* |
+| cervello/permission-architecture | *Next chapter: Method — the principles, the design system, and the Feature Catalogue.* |
+
+**The Arabic pages were written without the closing onward-navigation line. All eight, no exceptions.** One editorial habit, not eight slips. Nothing was written to Notion.
+
+Worth Moataz's attention either way: the chapter route already renders prev/next as navigation UI, so this sentence is prose duplicating a control. Translating it and deleting it are both defensible; leaving English-only is the one option that reads as an oversight.
+
+### 2 · The three document pages — SHAPE PROPOSED, NOT BUILT
+
+Awaiting a ruling on the table representation before any migration is written. See the proposal in the session notes: `chapter_paragraphs.kind` plus `chapter_table_cells`, the three pages moving onto the chapter branch while keeping the `isDocument` layout, and `page_sections` for those three retired rather than left to drift.
+
+Checks: `tsc --noEmit` clean · `npm run test:sync` all pass · `eslint .` **0 errors, 0 warnings** · no `<figure>` inside a `<p>` on any page · Notion image blocks still never sync.
+
+---
+
+## 2026-08-19 (late) — All chapters on the slot model. 57 figures. One bug that only looking finds
+
+**Nothing committed, nothing pushed.** `HEAD` is still `e1b4b3a`.
+
+### The set is TWELVE, not nine
+
+The route map undercounts. The database is the authority: nine `kind = 'chapter'` rows plus three document pages (accessibility, two comparisons). All twelve were run **one sync per chapter**, so no failure could hide behind another.
+
+### Per chapter
+
+| Chapter | Slots resolved | Tags en/ar | Refused |
+|---|---|---|---|
+| egypt/onboarding | 7 | 16 / 16 | — |
+| egypt/workflow | 7 | 11 / 11 | — |
+| egypt/portal | 5 | 14 / 14 | — |
+| egypt/fulfilment | 5 | 16 / 16 | — |
+| neobiz/onboarding | 3 | 0 / 0 | — |
+| neobiz/portal | 4 | 0 / 0 | — |
+| uae/onboarding | 6 | 0 / 0 | — |
+| cervello/on-premises-to-cloud | 4 | 0 / 0 | — |
+| cervello/permission-architecture | 3 | 0 / 0 | — |
+| cervello/method | 7 | 0 / 0 | — |
+| egypt/accessibility | **not migrated** | 18 / 18 **undelivered** | see below |
+| egypt/web-vs-mobile-onboarding | **not migrated** | 0 / 0 | see below |
+| egypt/web-vs-mobile-portal | **not migrated** | 0 / 0 | see below |
+
+**0 failures · 0 refused headings · 0 unusable tags** across all twelve runs. Migration `0036` seeds 73 alias rows; the table now holds 86. `chapter-slots.ts` grew from 8 prose slots to 41.
+
+**57 figures now render** — all four Egypt chapters. Neobiz, UAE and Cervello carry **no image tags in Notion at all**, so the pipeline had nothing to place there. That is content, not a defect.
+
+**Cervello/method is the clearest unlock.** It has no `context` and no `result`, so under the field model the page was an `h1` and almost nothing else. It now renders six sections — *Why this chapter exists · Four principles, written down · Ideas before screens · The design system and handoff · The feature catalogue · What this became* — in both languages, for the first time.
+
+### Why the three document pages are NOT migrated
+
+Not an oversight and not laziness. **All three carry a table, and `chapter_paragraphs` has no representation for one** — a paragraph is text or an image reference, nothing else. Migrating them would drop that table silently, which is the failure `docs/sync-contract.md` warns about hardest: *"On the comparison pages the table is the page… dropping it would have synced two pages of preamble around a hole."*
+
+They also render through a different branch — `isDocument` → `ProseSections`, fed by `page_sections` — so sections written for them would not render even if the table survived. The section pass is now gated to `row.kind === 'chapter'`, and the database confirms zero rows for all three.
+
+⚠️ **The cost is real and needs your ruling.** The accessibility page carries **18 image tags per locale — 36, the largest image payload on the site** — and none of them can be delivered until either `chapter_paragraphs` learns a `table` kind, or the image pipeline is extended to `page_sections`. Both are design decisions, not implementation details.
+
+### Verified on localhost:3000, both locales, in a browser
+
+24 route-locale combinations, all **200**. Figure counts match the sync exactly. **`<figure>` inside `<p>`: 0 everywhere.** No raw `[image:…]` or `[cld]` markers leaked into any page. The three document pages render unchanged — no regression.
+
+A duplicate-text sweep across all 20 chapter pages (h1 repeated as prose, adjacent identical paragraphs, repeated captions, duplicated headings) came back clean — the Chapter One `OBJECTIVE` bug has not recurred anywhere.
+
+### THE BUG THAT ONLY LOOKING FINDS
+
+**English fallback text inside an Arabic page is not just untranslated — it is mis-rendered.**
+
+On `/ar/work/egypt-acquisition/fulfilment`, the CONTEXT section reads:
+
+> `.This is where the whole design meets its limit`
+
+The full stop is at the **start** of the line. Latin prose sitting in a `dir="rtl"` container resolves its trailing punctuation to the wrong visual side, and the paragraph is right-aligned as if it were Arabic. Captions do the same.
+
+Counted across the nine Arabic chapter pages: **73 English paragraphs and 31 English captions**. `neobiz/onboarding` and `neobiz/portal` are 100% fallback (5/5 and 7/7 paragraphs). `uae/onboarding` and `cervello/method` are 0 — fully Arabic.
+
+Every structural check passes on these pages. The DOM is correct, the counts are correct, the fallback is decision 013 behaving exactly as designed. It only reads wrong.
+
+**This is pre-existing, not introduced tonight** — decision 013's fallback has always put English prose on Arabic pages, and `status.md` has recorded that 46 `page_sections` and 12 `entry_handles` have no Arabic. What changed is exposure: more sections render, so more of it is visible. The 31 captions ARE new.
+
+**The fix needs a ruling, which is why it is not applied.** The correct HTML is `dir="ltr" lang="en"` on a paragraph known to be English — standard bidi practice for mixed-language content. But `rtl-guard` states plainly: *"`dir` is set once on `<html>` from the locale segment. No component reads it, sets it, or branches on it."* That rule is about layout direction; this is content language. The two need reconciling before any component sets `dir`, and inventing that call is exactly what the working agreement forbids.
+
+### Unequal paragraph counts — content gaps, reported not fixed
+
+Positional pairing refused and reported in every case rather than pairing wrong. Each is a missing (or extra) Arabic paragraph in Notion:
+
+| Chapter | Slot | en / ar |
+|---|---|---|
+| egypt/workflow | context | 11 / 13 |
+| egypt/workflow | what-v1-got-wrong | 10 / 7 |
+| egypt/workflow | how-problems-were-found | 6 / 7 |
+| egypt/workflow | result | 4 / 3 |
+| egypt/portal | result | 5 / 4 |
+| egypt/fulfilment | context | 15 / 16 |
+| egypt/fulfilment | result | 4 / 3 |
+| egypt/onboarding | what-i-designed | 14 / 13 |
+| egypt/onboarding | result | 5 / 4 |
+| neobiz/onboarding | context | 2 / 3 |
+| neobiz/onboarding | result | 3 / 2 |
+| neobiz/portal | context | 2 / 5 |
+| neobiz/portal | what-carries-over | 2 / 3 |
+| neobiz/portal | result | 3 / 2 |
+| cervello/on-premises-to-cloud | result | 4 / 3 |
+| cervello/permission-architecture | result | 4 / 3 |
+
+`result` differs on **seven** chapters, always by one. Worth checking whether the Arabic `النتيجة` sections are systematically missing a closing paragraph rather than each being an independent slip.
+
+Checks: `tsc --noEmit` clean · `npm run test:sync` all pass · `eslint .` **0 errors, 0 warnings**.
+
+---
+
+## 2026-08-19 (night) — BUILT: the image pipeline. Chapter One renders 16 figures in both locales
+
+**Scope: Chapter One only** (`Chapter — Egypt / Onboarding Journey`). The other nine chapters are untouched and gated behind `--only`. Nothing committed, nothing pushed.
+
+### What forced a bigger change than the four pieces
+
+The four scoped pieces assumed image tags live in sections that reach the database. Measured against Notion, nine of Chapter One's sixteen tags per locale did not:
+
+| Section | Tags (en) | Destination before tonight |
+|---|---|---|
+| Objective | 0 | `objective` |
+| Context | 2 | `context` |
+| Decision · The language fight | 2 | `decisions` table |
+| Evidence | 1 | `evidence_note` |
+| **What I designed** | **8** | **discarded** |
+| **The interface** | 0 (+5 Notion images) | **discarded** |
+| **The fight I lost** | **1** | **discarded** |
+| Result | 2 | `result` |
+
+`CHAPTER_FIELDS` is a six-name vocabulary and `if (!field) continue` took the rest. **This is the identical defect migration 0031 fixed for covers**, still standing for chapters — in 0031's words, *"the contract pointing the wrong way: the writing had to match the parser."* Arabic was worse: the page is headed `الأدلة` and `HEADING_SYNONYMS` carried only `الدليل`, so Arabic Evidence never synced either.
+
+Building onto the existing fields would have delivered 14 of 32 tags and silently dropped 18. Approved and taken: mirror 0031.
+
+### What was built
+
+- **Migrations `0034` + `0035`** — `chapter_sections`, `chapter_paragraphs`, `chapter_slot_aliases`, seeded with Chapter One's headings in both languages. Split in two for the Postgres reason 0030 documents: `alter type … add value` cannot be used in the same transaction.
+- **`lib/sync/chapter-slots.ts`** — mirrors `cover-slots.ts`, re-exports its `normaliseHeading` rather than copying it. One addition covers had no need for: **decision headings are excluded from slot resolution**. A chapter carries several, and `unique (chapter_id, slot)` would reject the second — failing a chapter for being written correctly.
+- **`lib/sync/image-tags.ts`** — reads tags from `annotations.code`, never from backticks.
+- **`lib/content/image-refs.ts`** — `[image:<uuid>]`, written by the sync and read by the site, both halves in one file.
+- **`components/case-file/ChapterSections.tsx`** + query-layer resolver, stamping `nda` from the case file the way the hero already does.
+
+### The backtick trap
+
+`Image mapping/cloudinary-tags-inventory.md` documents the regex ``` `\[cld\]\s*([^`]+)` ``` — built around literal backticks. **Notion's `plain_text` strips them**, so that regex matches nothing on real input. It is looking for punctuation that exists only in Markdown's rendering of the page. Reading `annotations.code` reads what Notion stores. Had this been built from the inventory it would have found zero tags and looked like empty content.
+
+### The figure/paragraph problem, solved structurally
+
+Each paragraph is a **row**. A tag is alone in its paragraph in Notion, so it becomes its own row whose body is exactly `[image:<uuid>]`, and the renderer emits a `<figure>` for that row and a `<p>` for the others — as siblings. `<figure>` is flow content and invalid inside `<p>`; a browser meeting one closes the paragraph early and reparents the rest, which renders *almost* right. There is now no `<p>` to nest inside. **Verified: 0 occurrences of a `<figure>` inside a `<p>`, both locales.**
+
+### Both checks you asked for
+
+**Notion-uploaded images never sync and never render.** `readBody` and `readOrderedBlocks` read only blocks carrying `rich_text` — headings, paragraphs, list items — plus tables. An `image` block has none, so it is skipped structurally, not by a filter someone can remove. Chapter One's `The interface` holds **5** of them, with signed URLs expiring in 300 seconds. None reached the database.
+
+**A missing alt now fails loudly.** `CloudinaryImage:59-60` returns `null` when `alt` is absent — deliberately, so an unlabelled image cannot ship, but on the page that is an invisible gap. The sync refuses to be the quiet half: a tag with a missing or empty `[alt]` **fails its chapter** by name and writes nothing for it. `ChapterFigure` withholds the whole figure rather than leaving a caption under nothing.
+
+### Verified on localhost:3000, both locales, in a browser
+
+| | `/en` | `/ar` |
+|---|---|---|
+| HTTP | 200 | 200 |
+| `<figure>` · `<img>` · `<figcaption>` | 16 · 16 · 16 | 16 · 16 · 16 |
+| `e_grayscale` applied | yes | yes |
+| `<figure>` inside `<p>` | **0** | **0** |
+| `<html>` | `lang="en" dir="ltr"` | `lang="ar" dir="rtl"` |
+
+Screenshots taken through headless Chrome — the browser extension is still not connected, so this is the first actual visual pass on this project. Arabic mirrors completely: nav, breadcrumb and prose right-aligned, chapter indicator flipped. The NDA grayscale is visible on the artwork (the Mashreq logo renders grey, not brand teal). Captions render verbatim from Notion.
+
+Checks: `tsc --noEmit` clean · `npm run test:sync` all pass · `eslint .` **0 errors, 0 warnings** · sync run **0 failures**.
+
+**One bug found by looking, invisible to the DOM checks:** `OBJECTIVE` rendered twice — once as the `h1` (which is `fields.objective`) and again as the `objective` slot directly beneath, word for word under two identical labels. Both copies were correct in isolation, which is why no structural check caught it. The slot is now dropped from the render.
+
+### Open — content, not code
+
+**Ten of the sixteen Arabic figures are the English screenshots.** Two slots have unequal paragraph counts between languages — `what-i-designed` 14 en / 13 ar, `result` 5 en / 4 ar — so positional pairing refused, and decision 013's fallback served the English body. The Arabic page is missing **one paragraph in `ما صمّمته` and one in `النتيجة`**. Add them in Notion and the remaining 10 Arabic screens attach on the next sync. This is reported by the sync, not silent.
+
+**The other nine chapters are not migrated.** Their headings are not in `chapter_slot_aliases` and they will fail loudly, by name, with the fix in the message — `--only` gates the section pass so that wall of output waits for you. Adding a slot is a row, not a deploy.
+
+**`redacted` is false on all 20 media rows**, per amendment 036. `CLAUDE.md` rule 6 corrected — it still cited the superseded 027. `docs/sync-contract.md` Step 6 rewritten: it specified `![alt](cloudinary:id){redacted}`, which is not what is written in Notion and has no slot for a caption.
 
 ---
 

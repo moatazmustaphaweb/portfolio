@@ -11,3 +11,6 @@ next-env.d.ts
 # Local tooling state
 /.claude/settings.local.json
 /.claude-flow
+
+# Supabase CLI scratch (version cache) — not project state
+supabase/.temp/
