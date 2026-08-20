@@ -136,12 +136,18 @@ export function CoverSections({
                 */}
                 {section.heading || roleLabel ? (
                   /*
-                   * `text-label`, NOT `text-section`. This is the MY ROLE
-                   * label introducing a statement inside a card — a different
-                   * role from a section heading above prose, and it keeps the
-                   * smaller size deliberately.
+                   * `text-section`, the same as every other cover section
+                   * heading.
+                   *
+                   * This was `text-label` on the reasoning that MY ROLE
+                   * introduces a statement inside a card rather than prose
+                   * under a heading, and is therefore a different role. That
+                   * distinction is real in the markup and DOES NOT HOLD ON
+                   * SCREEN: beside THESIS and THE MAP it read as an
+                   * inconsistency, not as a different kind of thing. The
+                   * cover's headings are one set and they are sized as one.
                    */
-                  <span className="font-mono text-label uppercase text-fg-dim">
+                  <span className="font-mono text-section uppercase text-fg-dim">
                     {section.heading ?? roleLabel}
                   </span>
                 ) : null}

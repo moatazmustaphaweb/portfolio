@@ -37,6 +37,62 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-24 — `MY ROLE` joins the set. The distinction it rested on did not survive being looked at
+
+### Before and after
+
+| | EN | AR |
+|---|---|---|
+| **Before** (`--text-label`) | 11.0px | 14.3px |
+| **After** (`--text-section`) | **18.0px** | **20.7px** |
+| The other cover headings | 18.0px | 20.7px |
+| Body prose, for reference | 16.0px | 18.4px |
+
+This reverses the revert made two sessions ago. `MY ROLE` was put back to `text-label` on the reasoning that it is a **label introducing a statement inside a card**, not a section heading above prose — a distinction that is real in the markup and, looked at on screen beside `THESIS` and `THE MAP`, **read as an inconsistency rather than as a different kind of thing**.
+
+Worth keeping as a pattern: the classification was defensible from the code and wrong from the page. Two sessions were spent moving one heading in both directions on structural reasoning, and the thing that settled it was looking.
+
+### What else rested on that distinction — named, not changed
+
+Four other headings were left at `text-label` on the same "label above a statement" argument. They are not equivalent:
+
+**1 · `contact:172` — "Or write here". SAME PROBLEM, and it is now visible.** The contact page renders three mono `<h2>`s in one flow:
+
+```
+text-section  →  Reach me
+text-label    →  Or write here      ← 11px between two 18px siblings
+text-section  →  Also here
+```
+
+Same family, same page, one of them a different size for a distinction that exists only in the markup. This is `MY ROLE` exactly, one page over. It sits inside the form panel, which is what the original argument rested on — and that is the argument that just failed.
+
+**2 · `systems:236` — "Coming". Same reasoning, different situation.** Its neighbours on `/systems` are three `text-h3` sans headings, so it does not read as *the same thing at two sizes*; it reads as a mono label against sans headings, which is a contrast the page already makes elsewhere. Weaker case. A judgement rather than an inconsistency.
+
+**3 and 4 · `ProseSections:89` and `ProseSections:105` — the reasoning was applied there too, and both branches are now UNREACHABLE.** Both require `variant === "comparison"`, and no page passes that any more: the comparison pages moved onto the chapter path in the slot migration and render through `ChapterSections`. Confirmed — the accessibility page, the only page still using `ProseSections`, renders **0 `text-statement`**. Dead branches carrying a dead distinction.
+
+### Verified on localhost:3000
+
+Heading order and size class, extracted from the rendered HTML, all four covers in both locales:
+
+| Cover | Rendered |
+|---|---|
+| **Egypt** | `Thesis` · `My role` · `The map` — all `section` |
+| **UAE** | `Thesis` · `My role` · `What's in it` — all `section` |
+| **Cervello** | **`What it is`** · `My role` · `Status, honestly` · `Why this one still matters` — leads with `what-it-is`, all `section` |
+| **Neobiz** | `Thesis` · `What it is` · `Status, honestly` · `Why it matters anyway` — **no role slot**, all `section` |
+
+Arabic identical in structure: `ما هو` leads Cervello, `دوري` present on the three covers that have a role, absent from Neobiz.
+
+The only `text-label` left on a cover is the eyebrow pill (`Case file · Banking`) and the footer name — both correctly untouched.
+
+**Arabic spine, checked because the size change could have disturbed it:** the accent bar sits at **x≈1286 of 1440** — the right, the RTL start — and `دوري` sits at the top-right beside it. Mirroring undisturbed.
+
+**Light theme** verified in a browser by pinning `data-theme` and reverting; `git diff` on `layout.tsx` is empty. **390** renders both locales with the card full width of the narrow column.
+
+24 route-locale combinations all **200**. `tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+---
+
 ## 2026-08-23 (night) — 18px shipped, the aspect rule shipped, the diagram now readable
 
 ### Before and after, per surface, both languages
