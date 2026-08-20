@@ -37,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-22 — The Egypt lead image becomes a cut-out. Alpha survives every transform in the path
+
+### Verified before anything was written
+
+```
+HTTP/2 200 · content-type: image/png
+fl_getinfo → {"input":{"width":848,"height":1264,"bytes":1323035}}
+```
+
+**848 × 1264 — identical to the asset it replaces.** Same portrait aspect (0.671), so the box `CloudinaryImage` reserves is unchanged and the column geometry does not move. Confirmed on screen: Egypt's thesis still wraps at **718px**, on both themes.
+
+### It is a real cut-out, and both transforms preserve it
+
+Measured rather than inferred from the `-Photoroom` suffix: mode **RGBA**, alpha extrema **0..255**, **44.7% of sampled pixels fully transparent**, all four corners at alpha 0.
+
+Both risks were checked:
+
+| Risk | Result |
+|---|---|
+| `f_auto` negotiating to a format that flattens alpha | **Safe.** Measured per Accept header: `avif,webp` → **webp**, `webp` → **webp**, `*/*` → **png**. Every candidate carries alpha. Nothing in the negotiation flattens it |
+| `e_grayscale` over transparency | **Safe.** Alpha extrema on the delivered file are still **0..255**. The transform desaturates the colour channels and leaves alpha alone |
+
+The URL actually served is
+`.../e_grayscale/c_limit,w_600/f_auto/q_auto/v1/Gemini_Generated_Image_9jby0x9jby0x9jby-Photoroom`.
+**No preset change was needed** — `lead` (600 / `limit`) is correct for the same dimensions, and `limit` never crops, so the transparent margins are preserved rather than trimmed.
+
+### What renders on each theme — looked at, on both
+
+⚠️ **The light theme was verified in a browser this time**, not argued. `--force-prefers-color-scheme` is unsupported in this Chrome build and the theme comes from `localStorage`, so `data-theme="light"` was pinned in `app/layout.tsx` temporarily, screenshotted, and **reverted** — `git diff` on that file is empty and it is not in this commit.
+
+**Dark (#000):** the cut-out reads strongly. Pale cards against black inside the figure's bordered box; the silhouette is crisp and it looks deliberate.
+
+**Light (#fff):** legible, and better than a raw composite suggested. **The correction matters:** compositing the PNG straight onto white made the silhouette look like it dissolved, but that test omitted the figure's own `border border-DEFAULT` and `rounded-panel`. In the real page the border holds the cut-out in a defined box, so on light it reads as cards photographed on a white surface — softer than dark, not broken.
+
+**The change only looking catches: the image no longer fills its box.** The old asset was a full-bleed photograph edge to edge. The cut-out has transparent margins, so the bordered figure now frames empty ground above and below the cards — they occupy roughly the middle 60% of the box vertically. On dark that is black inside a bordered rectangle; on light, white. It reads as a product shot rather than a photograph, which may be what was wanted, but it is a different composition and not just a different picture. **Not changed — flagged.** If the framing is unwanted the answer is to drop the border and let the cut-out sit on the page, which is a component change, not a preset one.
+
+### Alt and caption still describe this picture
+
+Unchanged, and checked rather than assumed: the same two cards in the same arrangement, only the ground removed. *"National ID versus Emirates ID"* and *"The difference of the Egyptian national ID and Emirates ID."* are as accurate as they were.
+
+### The old row is kept
+
+`EIDVSNID_9jby0x9jby0x9jby` remains in `media` with its two translations intact, now referenced by nothing — `referenced_by_lead = 0`, against `1` for the new row. Nothing was deleted.
+
+`check:seed-drift` reports **zero drift**. `EIDVSNID` appears **0 times** in the rendered page.
+
+### Verified on localhost:3000
+
+| | |
+|---|---|
+| Egypt thesis, dark, 1440 | **718px** |
+| Egypt thesis, light, 1440 | **718px** — geometry is theme-independent, confirmed rather than assumed |
+| Arabic thesis, 1440 | 643px, its own measure; mirrored, image column left |
+| 390, both locales | grid collapses, image stacked above the role card |
+
+`tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+### Unrelated, and not committed
+
+`docs/learn.md` appeared in the working tree during this session — 283 lines, written 22:06, not by this task. It is left untracked and uncommitted rather than swept into this changeset. It looks like it belongs in the repo; say the word and it gets its own commit.
+
+---
+
 ## 2026-08-21 (night) — The role card's text fills the band. The Arabic line is not the longest one
 
 ### The measure cap is gone
