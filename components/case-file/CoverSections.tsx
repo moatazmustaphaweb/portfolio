@@ -112,19 +112,20 @@ export function CoverSections({
             <section
               key={section.id}
               /*
-               * FULL WIDTH BOX, CAPPED TEXT. The card was `max-w-measure-lead`
+               * FULL WIDTH, BOX AND TEXT. The card was `max-w-measure-lead`
                * (42ch) and sat inside the two-thirds column with the lead image
                * beside it, leaving a band of dead space to its side.
                *
-               * The box now spans the container so the card reads as a
-               * full-width band. The text does NOT: a statement at
-               * `--text-statement` set across 1152px is not a line anyone
-               * reads, so the inner column keeps a measure.
+               * The measure cap on the inner column was tried and removed:
+               * a full-width box around a 718px column read as a wide box with
+               * an empty right half, which is the thing the change was made to
+               * fix. Seen on screen and called; the readability trade is
+               * accepted deliberately, not overlooked.
                */
               className="mt-10 flex items-stretch overflow-hidden rounded-panel border border-strong bg-surface"
             >
               <div aria-hidden="true" className="w-1 shrink-0 bg-accent" />
-              <div className="flex max-w-measure flex-col gap-3 p-card-p">
+              <div className="flex flex-col gap-3 p-card-p">
                 {/*
                   The mono label is the section's own heading when it has one —
                   "My role", "دوري" — falling back to the ui_strings label. The
