@@ -37,6 +37,121 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-20 (evening) — UAE sync requested. The script cannot run in this container; the pending edits were read anyway
+
+**Nothing was synced. Nothing was written to Supabase.** Two Notion pages were
+edited (English only) — the UAE cover and the UAE onboarding chapter — and a dry
+run was asked for first.
+
+> ⚠️ **This session's checkout was cut before the image pipeline landed.** An
+> earlier draft of this entry reported findings against `e1b4b3a` that the seven
+> commits pushed to `main` this morning have already answered. The corrections
+> are marked below rather than deleted, because the wrong version was committed
+> to a branch first and someone reading back will want to know which is which.
+
+### The script refuses before it starts
+
+```
+$ npm run sync:notion -- --dry-run
+NOTION_API_KEY is not set.
+```
+
+That is the script's own guard, working. A dry run deliberately does **not**
+need the service-role key — Supabase is imported lazily so a preview never
+demands write credentials — but it does need Notion. A real run needs both, and
+this container has neither.
+
+**There is no page-scoping flag.** `--dry-run` and `--all` are the only
+arguments, so a real run would have swept all of MVP-1 rather than two pages.
+
+### The guards that can run without credentials were run, for real
+
+`classify.ts` and `cover-slots.ts` are pure, so they were exercised against the
+two pages' current content, read through the Notion MCP connection rather than
+the script's own reader. Alias rows came from `cover_slot_aliases`.
+
+| Check | Input | Result |
+|---|---|---|
+| `classifyTitle` | `Case File Cover — UAE Acquisition` | `{kind: case_file, name: "UAE Acquisition"}` |
+| `classifyTitle` | `Chapter — UAE / Mobile Onboarding Journey` | `{kind: chapter, parent: "UAE", name: "Mobile Onboarding Journey"}` |
+| `resolveSlot` ×5 | Thesis · My role · What's in it · Results · Three ways in | all resolve — `thesis · role · map · outcomes · entry-handles` |
+| `parseDecisionHeading` ×3 | the three `Decision · …` headings | all parse |
+| `parseStatusItem` ×4 | the four Results rows | all `[achieved]`, none defaulted |
+
+**Neither page refuses by name on any check available here.**
+
+### The pending edits, field by field
+
+Notion as it stands now, against the live rows. This is a comparison, **not the
+script's dry run** — it does not exercise positional pairing.
+
+**`case_files.thesis` — REWRITTEN, three paragraphs became two.** The
+Egypt-sibling paragraph is replaced:
+
+> *live:* "This is the sibling case to Egypt, and the pair is the argument…
+> Egypt produced six systems and a field team travelling with a tablet. The UAE
+> has the infrastructure, so it produced a link in an inbox."
+> *now:* "**The hard part was never the form.** Regulation requires that every
+> qualifying owner is verified and signs, and owners are rarely in the same room
+> at the same time…"
+
+⚠️ The removed paragraph is the explicit Egypt/UAE pairing the LLM read test
+named as one of the site's strongest properties. It still exists in
+`chapter.result`, so it is not lost — but the cover no longer makes it.
+
+**`chapter.objective` — REWRITTEN**, one sentence became two. Contains a
+**double space** in "on  mobile", which survives into the database and renders,
+because the field is emitted with `whitespace-pre-line`.
+
+**`chapter.context` — one substantive cut.** "Sighting an original document —
+**the entire fourth chapter of the Egypt case file** — does not exist here as a
+problem." becomes "Sighting an original document in person is simply not a
+problem this journey has to solve." The cross-reference to Egypt is gone.
+Elsewhere, em-dash pairs become commas and a sentence splits.
+
+**`chapter.result` — punctuation only.**
+
+**Unchanged:** both titles, `case_files.role`, all four Results rows.
+
+### Three findings, two of them now corrected by `main`
+
+**1. The four new screenshots will still not sync — but not for the reason first
+recorded.** ~~`readOrderedBlocks` has no image handling at all.~~ It does now:
+`lib/sync/image-tags.ts` parses `` `[cld]` `[alt]` `[caption]` `` spans and the
+chapter pass keeps them in block order. **The problem is that these four are
+Notion *uploads*, not tags** — `![](…s3.amazonaws.com…)` image blocks. The
+reader takes `paragraph`, `bulleted_list_item` and `numbered_list_item`
+rich_text and does `if (!text) continue`, and an image block has none. So they
+are skipped in silence: not written, not reported as drops. To publish them they
+have to go to Cloudinary and come back as tags.
+
+**2. "A missing alt fails the page" is real, and it is a sync guard.** ~~It
+exists only at render.~~ `parseImageTag` refuses a tag whose `[alt]` is missing
+or empty, in as many words: *"the sync refuses to be the quiet half. A missing
+alt fails the chapter by name rather than producing a row that will render as
+nothing."* The first version of this entry said the opposite and was wrong — it
+was read against a tree cut before that code existed.
+
+**3. The positional pairing guard is the one most likely to fire, and that
+stands.** The edits are English only. `thesis` went from three paragraphs to
+two, so the Arabic side will likely be skipped with a named drop — correct
+behaviour, but the Arabic cover falls back to English on those fields until the
+Arabic page is edited to match.
+
+### Not verified
+
+`:3000` was not exercised, because there is no change to look at: nothing was
+written. The dev server in this container reaches `127.0.0.1:3000` and answers,
+but returns `500 — SUPABASE_SERVICE_ROLE_KEY is not set` until that key exists.
+
+### Status
+
+Blocked on `NOTION_API_KEY` for the dry run, and on that plus
+`SUPABASE_SERVICE_ROLE_KEY` for the real run. The edits above are read and
+understood; none of them is in the database.
+
+---
+
 ## 2026-08-20 (deploy) — Committed and pushed. What Vercel needs, and what will look wrong on purpose
 
 Six commits on `main`, pushed. The chapter slot model, the image pipeline, the table work, decision 053, the layout fix and the docs — separate units, per `docs/conventions.md`.
