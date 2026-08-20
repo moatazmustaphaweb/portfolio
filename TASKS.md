@@ -21,7 +21,6 @@
 | ~~Analytics retention~~ | **Resolved** — 180 days + indefinite monthly aggregates, `pg_cron` enabled (decision 031) | — |
 | Arabic review — 8 new strings | Consent banner + the four privacy claims. `npm run export:ui-strings` regenerates the review doc | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
-| **Two-size chapter h1 — TRIAL, awaiting a ruling** | Built and live on chapter pages, no flag. Typographically it holds in both scripts; **three of the eight rendered objectives cut in the wrong place**, because the rule takes the first comma and the sentence's real hinge is a dash further on. Keep as built · change the rule (prefer a dash over a comma) · revert. Screenshots in `~/Desktop/two-size-h1-trial/`, full account in `docs/status.md` 2026-08-24 (night) | Moataz |
 
 *Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
 
@@ -221,6 +220,7 @@
 
 ## ✅ DONE
 
+- **2026-08-24** — Two-size chapter h1: **tried, ruled against, reverted.** The split logic, the punctuation matching and `lib/utils/splitHeading.ts` are out; `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx` is byte-identical to its pre-trial state. Verified by re-shooting all 18 pre-trial screenshots and diffing: identical in dark, and identical in light against a reconstructed pre-trial build. Account in `docs/status.md` 2026-08-25.
 - **2026-08-11** — Read the full doc set; connected Claude Design (`DesignSync` project `f6113c80`) and added the Supabase MCP server to `.mcp.json`. Surfaced the two-visual-languages conflict and the decision-007 metric violations.
 - **2026-08-11** — Step 1: `git init` + clean foundation baseline. Deleted `content/caseFiles/*.ts`, `app/work/`, and `components/` before the first commit so client names and disputed metrics never entered history. Pre-rebuild tree backed up outside the repo at `~/Moataz_Next_pre_rebuild_backup_2026-08-10`.
 - **2026-08-11** — Step 2: moved all documentation into `/docs/` (`tokens.md` → `docs/design/tokens.md`); fixed every cross-reference so paths resolve.

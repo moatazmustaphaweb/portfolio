@@ -37,6 +37,68 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-25 — The two-size h1 is reverted. The chapter h1 is byte-identical to its pre-trial state, and a claim made last session was wrong
+
+Moataz looked at the trial and ruled against it. The chapter h1 is one size again, with no split and no span.
+
+### What came out
+
+| | |
+|---|---|
+| `lib/utils/splitHeading.ts` | **deleted.** The punctuation matching, the mark set, the head/tail type — all of it |
+| `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx` | **restored to `57c99c3`.** `git diff 57c99c3 -- <the file>` is **empty** — the import, the `splitHeading()` call, the 20-line comment and the two-branch `<h1>` are gone and nothing was left behind |
+| `TASKS.md` | the trial's BLOCKED row moved to DONE, per the file's own protocol |
+
+The h1 is `<h1 className="mt-5 max-w-measure text-title text-fg">{headline}</h1>` again, and the served HTML is one text node with no `<span>` in it — checked on `/en/…/workflow` and `/ar/…/method`.
+
+### Nothing else was relying on it
+
+`splitHeading` had **one** importer, the chapter page, confirmed by grepping the whole tree for the symbol and for `lib/utils`. `lib/utils/` is empty again, as it was before the trial.
+
+`text-h2` **stays**, obviously — it is a scale token with five call sites that predate the trial (`contact`, `not-found`, two headings and two sibling links on `all` and `results`). The trial used it; it did not introduce it.
+
+### What was KEPT, and a correction
+
+**`scripts/screenshot.mjs` stays.** It is the tool this verification was done with, and it is not part of the split logic. Delete it if it is not wanted; nothing imports it.
+
+**The Arabic heading fix (`7eebdb0`) stays — and last session's account of it was wrong.**
+
+It was reported here as inert once the span was gone. **It is not.** That claim came from grepping the source for `<span>` inside a heading, which found only the cover's mono labels and concluded nothing else matched. Querying the rendered DOM instead, across twelve Arabic pages, finds **eight elements it does match** — and none of them are spans:
+
+| Page | Matches | What they are |
+|---|---|---|
+| `/ar/work/[caseFile]/all` | 4 | Each chapter heading is wrapped in an `<a>` |
+| `/ar/about/philosophy` | 4 | Each numbered position's heading is a link |
+| the other ten Arabic pages | 0 | — |
+
+Measured on `/ar/work/egypt-acquisition/all`: without the rule the anchor computes **`meralSans`** inside an `h2` computing **`lantx`** — the h2's entire text is inside the link, so **four chapter objectives were set in the body face on that page**, and the same on Philosophy. With the rule they compute `lantx` at 400, matching the heading they are part of. Weight is 400 either way here; the difference is the face alone. The Egypt heading also reflows from four lines to three.
+
+So the fix is real, correct, and **visible on two Arabic pages** rather than dormant. It is left in because it repairs a bug that predates the trial by months. If the tree should be exactly pre-trial, `git revert 7eebdb0` is the whole of it.
+
+Added to `learn.md` Part 5 as its own bug class: **a claim about what a CSS selector matches is a claim about the DOM, and the source is not the DOM.** Query the running page.
+
+### Verified on localhost:3000, against screenshots rather than by assertion
+
+The 18 pre-trial reference shots taken during the trial (`~/Desktop/two-size-h1-trial/before-*`) were re-taken after the revert with the same tool, the same clip and the same flags.
+
+| | |
+|---|---|
+| **Dark, 18/18** | **BYTE-IDENTICAL.** 4 chapters + the comparison control × en/ar × 390/1440 |
+| **Light, 18/18** | **BYTE-IDENTICAL** against a reconstructed pre-trial build — `globals.css` checked out from `57c99c3`, shot, restored, diffed. This is the stronger test of the two, because it is the only file still differing from pre-trial, and it proves the difference is invisible on every one of these pages |
+| Light is really light | confirmed by diffing a light shot against its dark twin, which differs |
+| `tsc` · `eslint .` · `next build` | clean · 0/0 · exit 0 |
+
+The four Moataz named — `egypt-acquisition/workflow`, `egypt-acquisition/onboarding`, `uae-acquisition/onboarding`, `cervello/method` — are all in that set, in both locales, at both widths, in both themes.
+
+The server is `npm run dev` on **localhost:3000**, and it is this working tree: the `<span>` left the served HTML within seconds of the file being restored.
+
+### Not verified
+
+- **Only the four trial chapters plus the comparison control** were photographed. The other six chapters render through the same restored code path and the file is byte-identical to pre-trial, so there is nothing chapter-specific left that could differ, but they were not shot.
+- **The two Arabic pages the kept CSS fix does change** — `all` and `philosophy` — were measured and photographed at 1440 dark only. Not at 390, not in light.
+
+---
+
 ## 2026-08-24 (night) — TRIAL: the two-size chapter h1. It works typographically and the rule cuts three of eight objectives in the wrong place
 
 **This is a trial, awaiting a ruling.** It is built, it renders, and it is committed so it can be looked at. Nothing about it is settled.

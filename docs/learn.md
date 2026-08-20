@@ -220,6 +220,16 @@ Decision 013 makes a missing translation *normal*, so a systematic sync failure 
 
 **The remedy:** print the resolved shape on every run, so a section disappearing shows as a line that *changed* rather than as nothing.
 
+## A grep is not the DOM
+
+A CSS rule was added and reported as matching nothing, on the strength of grepping the components for `<span>` inside a heading. Querying the twelve rendered Arabic pages for the actual selector found **eight** elements it matched — all `<a>`, none of them spans, on two pages that were never opened.
+
+**A claim about what a selector matches is a claim about the DOM.** The source is not the DOM: elements arrive from `map()`, from shared layout components, from a wrapper a page adds around a heading. Grepping finds the shapes you thought to look for.
+
+The same holds for "nothing uses this" before a deletion. Grepping the symbol is right for an import — that IS in the source. Grepping for rendered structure is not.
+
+Run the selector against the running page. `document.querySelectorAll(<the selector>).length`, on every page that could be affected, is one line and settles it.
+
 ## A container that loses a child keeps its tracks
 
 A two-track grid whose first child stopped rendering put its only remaining child in the first track — 256px. Nothing errored.
