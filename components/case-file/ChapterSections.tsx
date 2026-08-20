@@ -84,7 +84,7 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
               <h2
                 lang={section.headingLang}
                 dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
-                className="font-mono text-label uppercase text-fg-dim"
+                className="font-mono text-section uppercase text-fg-dim"
               >
                 {section.heading}
               </h2>

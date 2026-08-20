@@ -1,4 +1,5 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import type { PresetName } from "@/lib/media/presets";
 import { dirForLocale } from "@/lib/content/types";
 import type { CoverSection, Locale } from "@/lib/content/types";
 
@@ -134,7 +135,13 @@ export function CoverSections({
                   heading a cover wrote is content and outranks a generic label.
                 */}
                 {section.heading || roleLabel ? (
-                  <span className="font-mono text-section uppercase text-fg-dim">
+                  /*
+                   * `text-label`, NOT `text-section`. This is the MY ROLE
+                   * label introducing a statement inside a card — a different
+                   * role from a section heading above prose, and it keeps the
+                   * smaller size deliberately.
+                   */
+                  <span className="font-mono text-label uppercase text-fg-dim">
                     {section.heading ?? roleLabel}
                   </span>
                 ) : null}
@@ -250,10 +257,49 @@ export function CoverSections({
           );
         }
 
+        /*
+         * ── WHERE THE IMAGE GOES, DECIDED BY ITS OWN ASPECT ────────────────
+         *
+         * A LANDSCAPE image goes FULL WIDTH BELOW the text. A portrait or a
+         * square sits BESIDE it at one third.
+         *
+         * Measured, which is why the rule exists: the journey diagram is 4:3
+         * and rendered 357x268 in a one-third column, putting its five labels
+         * at about 7px — legible if you lean in, not readable. At 1152px the
+         * same 4:3 is 1152x864 and every label reads. A wide image squeezed
+         * into a third loses the thing it is for.
+         *
+         * THE THRESHOLD IS 1.2, and it sits between square (1.0) and 4:3
+         * (1.333) on purpose. A square keeps the column: the problem is width
+         * squeezed, not area, and a square at 357px loses nothing.
+         *
+         * A PORTRAIT NEVER WIDENS, and the reason is height rather than
+         * taste. The cover's cut-out is 0.671; at 1152px wide it renders
+         * 1152x1717 — taller than the viewport, pushing the rest of the cover
+         * off screen. Fitting a narrow column at a readable height is the
+         * whole advantage of a portrait.
+         *
+         * Derived from the media row's own dimensions, so the data decides and
+         * no call site passes a layout flag. If an override is ever needed it
+         * is a column, not a prop.
+         */
+        const { width, height } = section.media;
+        const isLandscape = width !== null && height !== null && width / height >= 1.2;
+
+        if (isLandscape) {
+          return (
+            <section key={section.id} className="mt-10">
+              {body}
+              {/* `hero` — 1200 at `limit`, an exact fit for the container. */}
+              <SectionImage media={section.media} preset="hero" className="mt-8" />
+            </section>
+          );
+        }
+
         return (
           <section key={section.id} className="mt-10 grid items-start gap-x-10 lg:grid-cols-3">
             <div className="lg:col-span-2">{body}</div>
-            <SectionImage media={section.media} />
+            <SectionImage media={section.media} preset="lead" />
           </section>
         );
       })}
@@ -273,15 +319,23 @@ export function CoverSections({
  * `/ar`, and unmarked English inside a `dir="rtl"` document puts its full stop
  * at the start of the line.
  */
-function SectionImage({ media }: { media: NonNullable<CoverSection["media"]> }) {
+function SectionImage({
+  media,
+  preset,
+  className = "mt-10 lg:mt-0",
+}: {
+  media: NonNullable<CoverSection["media"]>;
+  preset: PresetName;
+  className?: string;
+}) {
   const caption = media.fields.caption;
   const captionLang: Locale | undefined = media.fieldLocales.caption;
 
   return (
-    <figure className="mt-10 lg:mt-0">
+    <figure className={className}>
       <CloudinaryImage
         media={media}
-        preset="lead"
+        preset={preset}
         className="h-auto w-full rounded-panel border border-DEFAULT"
       />
       {caption ? (

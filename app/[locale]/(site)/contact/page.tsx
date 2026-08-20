@@ -130,7 +130,7 @@ export default async function Contact({
           {methods?.fields.body ? (
             <section>
               {methods.fields.heading ? (
-                <h2 className="font-mono text-label uppercase text-fg-dim">
+                <h2 className="font-mono text-section uppercase text-fg-dim">
                   {methods.fields.heading}
                 </h2>
               ) : null}
@@ -210,7 +210,7 @@ export default async function Contact({
       {alsoHere ? (
         <section className="mt-18 border-t border-DEFAULT pt-10">
           {alsoHere.fields.heading ? (
-            <h2 className="font-mono text-label uppercase text-fg-dim">
+            <h2 className="font-mono text-section uppercase text-fg-dim">
               {alsoHere.fields.heading}
             </h2>
           ) : null}

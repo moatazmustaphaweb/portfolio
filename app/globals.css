@@ -96,6 +96,15 @@
    *   with --type-scale-display   20px en / 20.0px ar  → 1.09x Arabic body
    *   with --type-scale           20px en / 23.0px ar  → 1.25x Arabic body
    *
+   * Brought down to 18px / 20.7px on 2026-08-23: 1.25x read as too large.
+   * The window is narrow and has a hard floor — the heading must stay
+   * VISIBLY larger than the 16px/18.4px prose beneath it, and 1.09x was
+   * judged not to read as a heading at all. Measured candidates:
+   *   17px → 1.06x   below the failure point
+   *   18px → 1.12x   chosen
+   *   19px → 1.19x   the fallback if 18 does not hold in Arabic
+   * Checked by looking at the Arabic, not by trusting the ratio.
+   *
    * `:lang(ar) h2` forces weight 400 with `font-synthesis-weight: none`,
    * because LANTX ships one weight. Arabic therefore has NO weight axis and
    * hierarchy is size alone — nine per cent above the body it introduces is
@@ -104,7 +113,7 @@
    * This is the rule stated two lines below for lead and statement: a size
    * that sits in the reading flow takes the body factor, however large it is.
    */
-  --text-section: calc(clamp(18px, 1.6vw, 20px) * var(--type-scale));
+  --text-section: calc(clamp(16px, 1.4vw, 18px) * var(--type-scale));
 
   --text-body: calc(16px * var(--type-scale));
   --text-body-sm: calc(15px * var(--type-scale));
