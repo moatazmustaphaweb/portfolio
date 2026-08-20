@@ -344,6 +344,34 @@
     line-height: 1.45;
   }
 
+  /*
+   * AND ANYTHING INSIDE ONE. Found by looking at /ar, not by reading the CSS.
+   *
+   * The rule above matches the heading ELEMENT. `:lang(ar)` further up matches
+   * every element, including a <span> inside that heading — and a direct match
+   * beats an inherited value, so the span took the BODY face while its parent
+   * kept LANTX. Two Arabic faces inside one sentence, and in the case that
+   * found it the span also carried a size utility's `font-weight: 600`, which
+   * Meral Sans really does ship: the tail rendered in Meral SemiBold under a
+   * LANTX Regular head.
+   *
+   * `font-synthesis-weight: none` does not save this one. It stops a FAKED
+   * bold; it cannot stop a real weight in a family that has it.
+   *
+   * An inline inside a heading is part of that heading, in any language.
+   */
+  /*
+   * `:not([class*="font-"])` leaves alone any inline that names its own face —
+   * the mono labels inside the cover's section headings, which are deliberately
+   * set in the body face at 500 by the rule below. This rule is for an inline
+   * that inherited its typography and got the wrong thing.
+   */
+  :lang(ar) :is(h1, h2, h3, h4) *:not([class*="font-"]) {
+    font-family: var(--font-arabic-heading);
+    font-weight: 400;
+    font-synthesis-weight: none;
+  }
+
   :lang(ar) .font-mono,
   :lang(ar) [class*="tracking-"] {
     font-family: var(--font-arabic-body);
