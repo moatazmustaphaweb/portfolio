@@ -37,6 +37,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-22 (evening) — SHAPE PROPOSED, NOT BUILT: an image per cover section
+
+**No code changed, no migration written.** The shape was asked for and waited on.
+
+### The correction — the expected shape is right, and not durable
+
+`media_id` on `cover_sections` is the correct modelling. It would also be **wiped on every sync**:
+
+| Table | Write strategy |
+|---|---|
+| `case_files` | **UPSERT** — which is why `lead_media_id` survives today |
+| `cover_sections` | **DELETE all for the case file, then re-insert** (`sync-notion.ts:781`) |
+
+The mirror to `cover_media_id` and `hero_media_id` is imperfect because both live on upserted tables. A column on `cover_sections` needs a second change or the association disappears on the next `npm run sync:notion`.
+
+Recommended: **preserve by slot across the replace** — read `slot → media_id` before the delete, restore after the insert. Keeps the expected shape and one table; costs the association if a slot leaves Notion and returns. Alternatives named: a separate `cover_section_media(case_file_id, slot, media_id)` the sync never touches, or upserting `cover_sections` by `(case_file_id, slot)`.
+
+### No enum split
+
+Nothing adds an `entity_type` label — alt and caption stay on the media row. The splits in 0034/0037 were forced by new enum values; there are none here.
+
+### `lead_media_id`: retire it, and only half the trigger work transfers
+
+- **Forward guard does not transfer.** `assert_cover_not_redacted` is bound to `case_files` and reads `new.lead_media_id`. A `cover_sections` column needs a new function and a new trigger on that table, carrying 0033's own lesson that a column list means the trigger does not fire for writes touching other columns.
+- **Reverse guard transfers cleanly.** `assert_redacted_not_in_use` is on `media` with column list `update of redacted`; it needs one more `EXISTS` and no trigger recreation.
+
+Both directions should cover the new column. 0033's argument applies verbatim and harder: same page, most-shared URL of the four, and now any section can carry an image rather than one.
+
+### The container moves into the component
+
+It activates once today, on the leading run, owned by the page through `sideImage` and `splitCoverSections`. It becomes per-section inside `CoverSections`: a section with media renders its own two-column grid, one without renders full width. The page stops owning the two-column shape.
+
+The role card's full-width treatment survives — separate branch, own box. If a role section is ever given an image the two rules conflict; proposed that the role branch **ignores `media_id` and the sync reports it**, rather than dropping it silently.
+
+### The asset, verified
+
+`Slide_4_3_-_1` — HTTP 200, `image/png`, **1024 × 768**, a diagram of the five journey containers, **84.5% transparent**.
+
+- **Landscape 4:3**, where the lead image is portrait 0.671. In a one-third column it renders **357 × 268** — a short wide block beside taller text.
+- **`e_grayscale` is a visual no-op**: the diagram is already white-on-dark monochrome.
+- **Works on both themes.** The label boxes have opaque dark fills, so white-on-dark survives a white ground and reads with more contrast on light. At 357px the labels are small but legible.
+
+Nothing was built, so there is nothing to verify on :3000. The four covers are as they were at `7f7030f`.
+
+---
+
 ## 2026-08-22 (later) — `docs/learn.md` read and wired in. One rule in it contradicts the content
 
 ### Wired in
