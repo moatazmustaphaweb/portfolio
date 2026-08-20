@@ -61,7 +61,21 @@ export function splitCoverSections(sections: CoverSection[]): {
   rest: CoverSection[];
 } {
   const roleAt = sections.findIndex((s) => s.slot === "role");
-  const end = roleAt >= 0 ? roleAt + 1 : sections.length > 0 ? 1 : 0;
+  /*
+   * ROLE IS NO LONGER PART OF THE LEAD. The run ends BEFORE it, so the role
+   * card falls into `rest` and renders full width beneath the container
+   * instead of inside its two-thirds column with dead space beside it.
+   *
+   * Document order is untouched: `rest` renders immediately after `lead`, so
+   * `sections.slice(0, roleAt)` followed by `sections.slice(roleAt)` is the
+   * same sequence it always was.
+   *
+   * The three covers with no lead image are unaffected by construction — the
+   * container only becomes a grid when `sideImage` exists, and it is null on
+   * all three. Neobiz has no `role` slot at all, so `roleAt` is -1 and the
+   * fallback below is the same one it has always taken.
+   */
+  const end = roleAt >= 0 ? roleAt : sections.length > 0 ? 1 : 0;
   return { lead: sections.slice(0, end), rest: sections.slice(end) };
 }
 
@@ -97,17 +111,27 @@ export function CoverSections({
           return (
             <section
               key={section.id}
-              className="mt-10 flex max-w-measure-lead items-stretch overflow-hidden rounded-panel border border-strong bg-surface"
+              /*
+               * FULL WIDTH BOX, CAPPED TEXT. The card was `max-w-measure-lead`
+               * (42ch) and sat inside the two-thirds column with the lead image
+               * beside it, leaving a band of dead space to its side.
+               *
+               * The box now spans the container so the card reads as a
+               * full-width band. The text does NOT: a statement at
+               * `--text-statement` set across 1152px is not a line anyone
+               * reads, so the inner column keeps a measure.
+               */
+              className="mt-10 flex items-stretch overflow-hidden rounded-panel border border-strong bg-surface"
             >
               <div aria-hidden="true" className="w-1 shrink-0 bg-accent" />
-              <div className="flex flex-col gap-3 p-card-p">
+              <div className="flex max-w-measure flex-col gap-3 p-card-p">
                 {/*
                   The mono label is the section's own heading when it has one —
                   "My role", "دوري" — falling back to the ui_strings label. The
                   heading a cover wrote is content and outranks a generic label.
                 */}
                 {section.heading || roleLabel ? (
-                  <span className="font-mono text-label uppercase text-fg-dim">
+                  <span className="font-mono text-section uppercase text-fg-dim">
                     {section.heading ?? roleLabel}
                   </span>
                 ) : null}
@@ -130,7 +154,7 @@ export function CoverSections({
             >
               {section.heading ? (
                 <h2>
-                  <span className="font-mono text-label uppercase text-fg-dim">
+                  <span className="font-mono text-section uppercase text-fg-dim">
                     {section.heading}
                   </span>
                 </h2>
@@ -184,7 +208,7 @@ export function CoverSections({
           <section key={section.id} className="mt-10">
             {section.heading ? (
               <h2 className="mb-3">
-                <span className="font-mono text-label uppercase text-fg-dim">
+                <span className="font-mono text-section uppercase text-fg-dim">
                   {section.heading}
                 </span>
               </h2>

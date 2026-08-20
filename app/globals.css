@@ -88,6 +88,24 @@
   --text-lead: calc(clamp(20px, 3vw, 28px) * var(--type-scale));
   --text-statement: calc(clamp(20px, 2.6vw, 26px) * var(--type-scale));
 
+  /*
+   * A SECTION HEADING above prose. Takes the BODY factor, and that is the
+   * whole decision (053... see decisions.md 054).
+   *
+   * Measured at 1440px, both factor choices:
+   *   with --type-scale-display   20px en / 20.0px ar  → 1.09x Arabic body
+   *   with --type-scale           20px en / 23.0px ar  → 1.25x Arabic body
+   *
+   * `:lang(ar) h2` forces weight 400 with `font-synthesis-weight: none`,
+   * because LANTX ships one weight. Arabic therefore has NO weight axis and
+   * hierarchy is size alone — nine per cent above the body it introduces is
+   * not a heading. The body factor holds the ratio at 1.25x in both languages.
+   *
+   * This is the rule stated two lines below for lead and statement: a size
+   * that sits in the reading flow takes the body factor, however large it is.
+   */
+  --text-section: calc(clamp(18px, 1.6vw, 20px) * var(--type-scale));
+
   --text-body: calc(16px * var(--type-scale));
   --text-body-sm: calc(15px * var(--type-scale));
   --text-ui: calc(14px * var(--type-scale));

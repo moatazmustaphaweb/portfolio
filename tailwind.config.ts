@@ -90,6 +90,12 @@ const config: Config = {
        * of the scale a stylesheet could not reach, and the Arabic faces need
        * the whole scale adjusted, not just the fluid display end (decision 045).
        */
+      /*
+       * A section heading above prose. No `letterSpacing`: the label sizes
+       * carry 0.12em because 11px mono needs it to stay legible, and the same
+       * tracking at 20px sets the words far too wide.
+       */
+      section: ["var(--text-section)", { lineHeight: "1.3", fontWeight: "500" }],
       body: ["var(--text-body)", { lineHeight: "1.7", fontWeight: "400" }],
       "body-sm": ["var(--text-body-sm)", { lineHeight: "1.6", fontWeight: "400" }],
       ui: ["var(--text-ui)", { lineHeight: "1.4", fontWeight: "500" }],
