@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { ChapterSections } from "@/components/case-file/ChapterSections";
 import { ProseSections } from "@/components/layout/ProseSections";
 import { getChapter, listChapterParams } from "@/lib/content/chapters";
 import { getPageSections } from "@/lib/content/pages";
+import { dirForLocale } from "@/lib/content/types";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
@@ -100,6 +102,71 @@ export default async function Chapter({
    */
   const headline = detail.fields.objective ?? title;
 
+  /*
+   * Sections are rendered in two runs so the decision cards keep their place in
+   * the argument. `context` is the hinge: everything up to it is the setup, the
+   * decisions are the turn, and the rest is the consequence.
+   *
+   * A chapter with sections but no `context` slot yields an empty lead and
+   * renders everything after the decisions — the correct degenerate case rather
+   * than a special one.
+   */
+  const hasSections = detail.sections.length > 0;
+
+
+  /*
+   * The `objective` slot is DROPPED, not rendered.
+   *
+   * `headline` above is `fields.objective` — the chapter's objective set as the
+   * h1, which is the design. The slot carries the same sentence, so rendering
+   * both printed the objective twice in a row, verbatim, under two identical
+   * OBJECTIVE labels. Caught in the browser at /en; it is invisible in the DOM
+   * checks because both copies are correct on their own.
+   */
+  const body = detail.sections.filter((s) => s.slot !== "objective");
+
+  const contextAt = body.findIndex((s) => s.slot === "context");
+  const splitAt = contextAt === -1 ? 0 : contextAt + 1;
+  const leadSections = body.slice(0, splitAt);
+  const restSections = body.slice(splitAt);
+
+  /*
+   * THE RAIL AND THE TWO-COLUMN GRID ARE ONE DECISION.
+   *
+   * They used to be two: the grid was applied whenever `kind === 'accessibility'`,
+   * while the rail had its own separate test. When those two disagreed the grid
+   * kept both of its tracks and the body — now the only child — landed in the
+   * FIRST one, which is `16rem`. The page rendered its prose in a 248px column
+   * at 1440px with two thirds of the width empty, and nothing errored.
+   *
+   * That is exactly what happened when this page's rail moved onto
+   * `detail.sections`: the sync refuses this page, so `sections` is empty, the
+   * rail disappeared and the grid did not. Deriving both from ONE list makes the
+   * disagreement unrepresentable rather than merely fixed.
+   *
+   * The list follows whichever path is actually rendering, so it keeps working
+   * when the page migrates onto the slot model.
+   */
+  const railItems = hasSections
+    ? body
+        .filter((sec) => sec.heading)
+        .map((sec) => ({
+          key: sec.id,
+          href: `#${sec.slot}`,
+          label: sec.heading as string,
+          lang: sec.headingLang,
+        }))
+    : page.sections
+        .filter((sec) => sec.kind !== "table" && sec.fields.heading)
+        .map((sec) => ({
+          key: sec.id,
+          href: `#${sec.slug}`,
+          label: sec.fields.heading as string,
+          lang: undefined,
+        }));
+
+  const showRail = detail.kind === "accessibility" && railItems.length > 3;
+
   /* "Chapter 1 of 4", from the ui_strings template. */
   const { current, total } = detail.position;
   const progress =
@@ -129,9 +196,7 @@ export default async function Chapter({
       {isDocument ? (
         <div
           className={
-            detail.kind === "accessibility"
-              ? "gap-14 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]"
-              : undefined
+            showRail ? "gap-14 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]" : undefined
           }
         >
           {/*
@@ -140,7 +205,7 @@ export default async function Chapter({
             becomes a wrapping row on narrow ones. Comparison pages have four
             sections and get none.
           */}
-          {detail.kind === "accessibility" && page.sections.length > 3 ? (
+          {showRail ? (
             <nav
               aria-labelledby="contents-heading"
               className="mb-10 lg:sticky lg:top-18 lg:mb-0 lg:self-start lg:border-e lg:border-DEFAULT lg:pe-6"
@@ -152,21 +217,31 @@ export default async function Chapter({
                 {title}
               </h2>
               <ol className="mt-4 flex flex-wrap gap-x-4 gap-y-1 lg:flex-col lg:gap-0">
-                {page.sections
-                  .filter((s) => s.kind !== "table" && s.fields.heading)
-                  .map((s, i) => (
-                    <li key={s.id}>
-                      <a
-                        href={`#${s.slug}`}
-                        className="flex gap-3 rounded-control py-2 text-body-sm text-fg-muted transition-colors hover:text-fg lg:px-3"
+                {/*
+                  Built from `railItems`, which follows whichever content path
+                  is rendering. On the slot model the anchor is the slot name —
+                  `#the-position` — stable across a re-sync and readable in the
+                  address bar, where the heading-derived slug was neither.
+                */}
+                {railItems.map((item, i) => (
+                  <li key={item.key}>
+                    <a
+                      href={item.href}
+                      className="flex gap-3 rounded-control py-2 text-body-sm text-fg-muted transition-colors hover:text-fg lg:px-3"
+                    >
+                      <span className="font-mono text-micro text-fg-dim">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span
+                        className="min-w-0"
+                        lang={item.lang}
+                        dir={item.lang ? dirForLocale(item.lang) : undefined}
                       >
-                        <span className="font-mono text-micro text-fg-dim">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span className="min-w-0">{s.fields.heading}</span>
-                      </a>
-                    </li>
-                  ))}
+                        {item.label}
+                      </span>
+                    </a>
+                  </li>
+                ))}
               </ol>
             </nav>
           ) : null}
@@ -176,17 +251,34 @@ export default async function Chapter({
               <p className="font-mono text-label uppercase text-fg-dim">{caseTitle}</p>
             ) : null}
             <h1 className="mt-4 max-w-measure text-title text-fg">{title}</h1>
-            <ProseSections
-              intro={page.intro}
-              sections={page.sections}
-              variant={
-                detail.kind === "comparison"
-                  ? "comparison"
-                  : detail.kind === "accessibility"
-                    ? "accessibility"
-                    : "plain"
-              }
-            />
+            {/*
+              Document pages read from the SLOT MODEL now (migrations 0035 and
+              0038), not from `page_sections`. The layout above is unchanged —
+              the container width, the two-column shell and the contents rail
+              are all still the `isDocument` design. Only the content source
+              moved, which is what brings the accessibility page's 36 figures
+              with it.
+
+              `page_sections` for these three page keys is retired rather than
+              left in place: two representations of one page's prose diverge the
+              moment either is edited, and the chapter route was their only
+              reader.
+            */}
+            {hasSections ? (
+              <ChapterSections sections={body} />
+            ) : (
+              <ProseSections
+                intro={page.intro}
+                sections={page.sections}
+                variant={
+                  detail.kind === "comparison"
+                    ? "comparison"
+                    : detail.kind === "accessibility"
+                      ? "accessibility"
+                      : "plain"
+                }
+              />
+            )}
           </div>
         </div>
       ) : (
@@ -224,7 +316,26 @@ export default async function Chapter({
 
           <h1 className="mt-5 max-w-measure text-title text-fg">{headline}</h1>
 
-          {detail.fields.context ? (
+          {/*
+            THE SLOT MODEL, WHERE IT EXISTS (migration 0035).
+
+            A chapter that has sections renders them and nothing else: they
+            already carry objective, context, evidence and result, PLUS the
+            passages the flat fields had no key for and every figure on the
+            page. Rendering both would print each of those passages twice.
+
+            The fields remain the fallback for the nine chapters whose headings
+            are not yet in `chapter_slot_aliases`. This is a rollout, not a
+            switch, and the fallback is what keeps it from being one.
+
+            Sections are split around the decision cards so the reading order
+            still matches the page as written in Notion: the narrative runs up
+            to and including `context`, the decisions are argued, and the rest
+            of the chapter follows.
+          */}
+          {hasSections ? (
+            <ChapterSections sections={leadSections} />
+          ) : detail.fields.context ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               {ui.t("context") ? (
                 <h2 className="mb-4 font-mono text-label uppercase text-fg-dim">
@@ -269,12 +380,14 @@ export default async function Chapter({
             </div>
           ) : null}
 
+          {hasSections ? <ChapterSections sections={restSections} /> : null}
+
           {/*
             Evidence. The design pairs prose with masked figures; `media` is
             empty, so only the prose renders — and only one chapter has it.
             No placeholder frames: an empty figure reads as a broken image.
           */}
-          {detail.fields.evidence_note ? (
+          {!hasSections && detail.fields.evidence_note ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">
                 {ui.t("evidence") ? (
@@ -294,7 +407,7 @@ export default async function Chapter({
             </section>
           ) : null}
 
-          {detail.fields.result ? (
+          {!hasSections && detail.fields.result ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               {ui.t("result") ? (
                 <h2 className="mb-4 font-mono text-label uppercase text-fg-dim">
