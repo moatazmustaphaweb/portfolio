@@ -7,9 +7,8 @@ import { LivingMap } from "@/components/case-file/LivingMap";
 import { OutcomeStrip } from "@/components/case-file/OutcomeStrip";
 import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
-import { CoverSections, splitCoverSections } from "@/components/case-file/CoverSections";
+import { CoverSections } from "@/components/case-file/CoverSections";
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
-import { dirForLocale } from "@/lib/content/types";
 import { resolveCover } from "@/designs/registry";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
@@ -98,7 +97,6 @@ export default async function CaseFileCover({
    * split is positional rather than by slot NAME — selecting `thesis` by name
    * would reverse Cervello's reading order.
    */
-  const { lead, rest } = splitCoverSections(detail.sections);
 
   /*
    * What occupies the reserved third. Null today.
@@ -114,58 +112,6 @@ export default async function CaseFileCover({
    * where UAE's square image would suit it. Whether that existing artwork is
    * what the reserved column is FOR is a content decision — see docs/status.md.
    */
-  /*
-   * THE LEAD IMAGE — the third column, and what wakes the container up.
-   *
-   * `lead_media_id` had a column, a foreign key and two triggers since 0033
-   * and nothing read it; the container has been dormant since 2026-08-19
-   * waiting for exactly this. Null for every case file without one, so the
-   * other three covers keep full-width prose and never learn the container
-   * exists.
-   *
-   * ── PRESET: `lead` ────────────────────────────────────────────────────────
-   * `card` is a 640x400 `fill` and would crop a portrait; `gallery` and `hero`
-   * declare 1000/1200px for a column that is ~373px wide. `lead` is 600 at
-   * `limit` — never cropped, never upscaled — with `sizes` fixed at 400px above
-   * `lg` because the container is capped and the column stops growing.
-   *
-   * ── CAPTION: RENDERED, and this was a judgement ───────────────────────────
-   * The container spec never said. It renders, for a reason specific to this
-   * image: Egypt carries `nda = true`, so `e_grayscale` applies, and in grey
-   * the Egyptian card and the Emirates card lose the warm-cream against
-   * mint-teal contrast that makes the comparison read at a glance. What
-   * survives is the barcode block and the printed "United Arab Emirates".
-   * Without the caption the picture is two grey cards; with it, it is the
-   * comparison the cover is making. A figure whose subject is a DIFFERENCE
-   * needs the difference named.
-   */
-  const sideImage: React.ReactNode = detail.lead ? (
-    <figure>
-      <CloudinaryImage
-        media={detail.lead}
-        preset="lead"
-        className="h-auto w-full rounded-panel border border-DEFAULT"
-      />
-      {detail.lead.fields.caption ? (
-        <figcaption
-          /*
-           * Marked from the caption's OWN language (decision 053). English-only
-           * alt and caption fall back on /ar, and unmarked English inside a
-           * dir="rtl" document puts its full stop at the start of the line.
-           */
-          lang={detail.lead.fieldLocales.caption}
-          dir={
-            detail.lead.fieldLocales.caption
-              ? dirForLocale(detail.lead.fieldLocales.caption)
-              : undefined
-          }
-          className="mt-3 text-meta text-fg-muted"
-        >
-          {detail.lead.fields.caption}
-        </figcaption>
-      ) : null}
-    </figure>
-  ) : null;
   const firstChapter = detail.chapters[0];
 
   return (
@@ -255,29 +201,18 @@ export default async function CaseFileCover({
         docs/status.md, where this is the same missing content as the About
         timeline.
       */}
-      {lead.length > 0 ? (
-        <div
-          className={
-            sideImage
-              ? "grid items-start gap-x-10 lg:grid-cols-3"
-              : undefined
-          }
-        >
-          {/*
-            Logical by construction: CSS Grid places items along the INLINE
-            axis, so under `dir="rtl"` the text column lands on the right and
-            the image column on the left with no direction check anywhere.
-          */}
-          <div className={sideImage ? "lg:col-span-2" : undefined}>
-            <CoverSections sections={lead} roleLabel={ui.t("role_label")} />
-          </div>
+      {/*
+        ONE CALL. The two-column container used to live here, wrapping the
+        leading run and activating once per cover — which is why an image could
+        only ever sit beside the opening passage.
 
-          {sideImage ? <div className="mt-10 lg:mt-0">{sideImage}</div> : null}
-        </div>
-      ) : null}
-
-      {/* map · what-it-is · status · why-it-matters — full width, below. */}
-      <CoverSections sections={rest} roleLabel={ui.t("role_label")} />
+        An image is a property of a SECTION (migration 0041), so the container
+        moved into `CoverSections` and activates per section: a section with an
+        image renders text at two thirds and the image at one third, a section
+        without renders full width. The page no longer owns the two-column
+        shape and no longer needs to split the sections to express it.
+      */}
+      <CoverSections sections={detail.sections} roleLabel={ui.t("role_label")} />
 
       {/* The metric grid. Empty for a case file that claims no numbers. */}
       {detail.outcomes.length > 0 ? (

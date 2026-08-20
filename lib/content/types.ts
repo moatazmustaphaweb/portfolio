@@ -181,6 +181,14 @@ export type CoverSection = {
   heading?: string;
   /** One entry per paragraph, in order. Never a joined string. */
   paragraphs: string[];
+  /**
+   * The image beside this section — `cover_sections.media_id` (0041).
+   *
+   * An image is a property of a SECTION, not of a case file. Any section may
+   * have one and most will not: null keeps the section at full width, which is
+   * how every section rendered before this existed.
+   */
+  media: Media | null;
 };
 
 /**
@@ -233,14 +241,6 @@ export type ChapterSection = {
 };
 
 export type CaseFileDetail = CaseFile & {
-  /**
-   * The image beside the cover's leading run — `case_files.lead_media_id`
-   * (migration 0033), NOT the cover image. `cover` is unrelated and unchanged.
-   *
-   * Null on every case file that has no lead image, which keeps the two-column
-   * container dormant and the prose at full width.
-   */
-  lead: Media | null;
   /**
    * The cover's slots, in the order the database says — not a fixed order and
    * not the same order for every case file.

@@ -1,4 +1,6 @@
-import type { CoverSection } from "@/lib/content/types";
+import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { dirForLocale } from "@/lib/content/types";
+import type { CoverSection, Locale } from "@/lib/content/types";
 
 /**
  * A cover's slots, rendered in the order the database holds them.
@@ -205,8 +207,24 @@ export function CoverSections({
          * "Status, honestly" to "STATUS, HONESTLY" in ENGLISH, and that comma is
          * doing work. Arabic is unaffected — it has no case. See docs/status.md.
          */
-        return (
-          <section key={section.id} className="mt-10">
+        /*
+         * ── THE IMAGE COLUMN, PER SECTION (migration 0041) ─────────────────
+         *
+         * An image belongs to a SECTION, not to a case file. A section that
+         * has one renders its text at two thirds with the image at one third;
+         * a section without renders full width, byte-identical to how every
+         * section rendered before this existed.
+         *
+         * The container used to live on the page and activate once, on the
+         * leading run, which is why the `map` section had unaddressable space
+         * beside it. It activates per section now.
+         *
+         * Logical by construction: CSS Grid places items along the INLINE
+         * axis, so under `dir="rtl"` the text column lands on the right and
+         * the image on the left, with no direction check anywhere.
+         */
+        const body = (
+          <>
             {section.heading ? (
               <h2 className="mb-3">
                 <span className="font-mono text-section uppercase text-fg-dim">
@@ -221,9 +239,60 @@ export function CoverSections({
                 </p>
               ))}
             </div>
+          </>
+        );
+
+        if (!section.media) {
+          return (
+            <section key={section.id} className="mt-10">
+              {body}
+            </section>
+          );
+        }
+
+        return (
+          <section key={section.id} className="mt-10 grid items-start gap-x-10 lg:grid-cols-3">
+            <div className="lg:col-span-2">{body}</div>
+            <SectionImage media={section.media} />
           </section>
         );
       })}
     </>
+  );
+}
+
+/**
+ * One section's image: the third column.
+ *
+ * `preset="lead"` — 600 at `limit`, `sizes` fixed at 400px above `lg`. It never
+ * crops, so a portrait keeps its height and a landscape keeps its width, and
+ * the two images on the Egypt cover are deliberately different shapes.
+ *
+ * A caption is optional and most section images will not have one. It is marked
+ * from its OWN language (decision 053): alt and caption fall back to English on
+ * `/ar`, and unmarked English inside a `dir="rtl"` document puts its full stop
+ * at the start of the line.
+ */
+function SectionImage({ media }: { media: NonNullable<CoverSection["media"]> }) {
+  const caption = media.fields.caption;
+  const captionLang: Locale | undefined = media.fieldLocales.caption;
+
+  return (
+    <figure className="mt-10 lg:mt-0">
+      <CloudinaryImage
+        media={media}
+        preset="lead"
+        className="h-auto w-full rounded-panel border border-DEFAULT"
+      />
+      {caption ? (
+        <figcaption
+          lang={captionLang}
+          dir={captionLang ? dirForLocale(captionLang) : undefined}
+          className="mt-3 text-meta text-fg-muted"
+        >
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }

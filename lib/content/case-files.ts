@@ -325,7 +325,7 @@ export const getCaseFile = cache(
       withFields("outcome", outcomeRes.data ?? [], locale),
       withFields("target", targetRes.data ?? [], locale),
       fetchMedia(
-        [row.cover_media_id, row.lead_media_id, ...chapterRows.map((c) => c.hero_media_id)],
+        [row.cover_media_id, ...chapterRows.map((c) => c.hero_media_id)],
         locale,
         row.nda,
       ),
@@ -336,20 +336,6 @@ export const getCaseFile = cache(
       : null;
     assertNotRedacted(cover, row.slug);
 
-    /*
-     * The lead image. Fetched in the SAME `fetchMedia` call as the cover and
-     * the chapter heroes — one query, not a second round trip for one row.
-     *
-     * `nda` is stamped by fetchMedia from the case file, so the grayscale
-     * treatment rides on the row and no call site can forget it (amendment
-     * 036). `assertNotRedacted` applies for the same reason it applies to the
-     * cover: migration 0033 extended both redaction triggers to this column,
-     * and this is the render-side half of the same guarantee.
-     */
-    const lead = row.lead_media_id
-      ? (media.get(row.lead_media_id) ?? null)
-      : null;
-    assertNotRedacted(lead, row.slug);
     const coverCard = await resolveCoverCard(cover, locale, row.nda);
     assertNotRedacted(coverCard, row.slug);
 
@@ -420,7 +406,7 @@ export const getCaseFile = cache(
      */
     const { data: sectionRows, error: sectionError } = await supabaseServer
       .from("cover_sections")
-      .select("id, slot, sort_order")
+      .select("id, slot, sort_order, media_id")
       .eq("case_file_id", row.id)
       .order("sort_order");
     if (sectionError) {
@@ -439,15 +425,31 @@ export const getCaseFile = cache(
         throw new Error(`Failed to load cover paragraphs for ${slug}: ${paraError.message}`);
       }
 
-      const [headingFields, paragraphFields] = await Promise.all([
+      /*
+       * Section images, in ONE query for the whole cover — not one round trip
+       * per section. `nda` is stamped from the case file by `fetchMedia`, so
+       * the grayscale treatment rides on the row and no call site can forget
+       * it (amendment 036).
+       */
+      const [headingFields, paragraphFields, sectionMedia] = await Promise.all([
         resolveMany("cover_section", sectionIds, locale),
         resolveMany("cover_paragraph", (paraRows ?? []).map((p) => p.id), locale),
+        fetchMedia((sectionRows ?? []).map((x) => x.media_id), locale, row.nda),
       ]);
 
       for (const s of sectionRows ?? []) {
+        /*
+         * The render-side half of migration 0041's forward trigger. The
+         * database refuses to attach a redacted asset here; this refuses to
+         * render one if it ever arrives another way.
+         */
+        const sectionImage = s.media_id ? (sectionMedia.get(s.media_id) ?? null) : null;
+        assertNotRedacted(sectionImage, row.slug);
+
         sections.push({
           id: s.id,
           slot: s.slot,
+          media: sectionImage,
           heading: headingFields.get(s.id)?.heading,
           /*
            * A paragraph with no text in THIS locale is omitted, not rendered
@@ -477,7 +479,6 @@ export const getCaseFile = cache(
       fields: caseFields.get(row.id) ?? {},
       cover,
       coverCard,
-      lead,
       headline: null,
       sections,
       summary,
