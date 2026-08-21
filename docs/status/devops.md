@@ -16,6 +16,87 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 021210826 — 2026-08-21 23:08 — `docs/content-brief.md` committed, wired in, and pushed
+
+**Brief:** Commit the new untracked `docs/content-brief.md`, its wiring across four files, the
+`docs/learn.md` row and the three status records, then push `main`. Read the full staged diff of
+every commit. Confirm the new file carries no secret, no credential, no NDA asset and no signed
+URL. Check the three entries' timestamps against the real commit time. Stop and report if the
+push were refused.
+
+**Commits** (all authored 2026-08-21 23:08, all on `main`):
+
+- `53bba4f` `docs(content): the content conversation's operating manual, and its boundary` —
+  the new file, 319 lines. Written by an earlier conversation; its opening section by the
+  orchestrator.
+- `dd19cbd` `docs(agents): give content-brief.md an owner and a stated boundary` — the
+  orchestrator's `docs/agents.md` row and section, its `CLAUDE.md` row, and
+  `.claude/agents/content.md`.
+- `86fcae3` `docs(learn): a rule broken twice needs a mechanism, not a third mention` — the
+  one PART 8 row.
+- `b82cb4c` `docs(status): the 021210826 record -- measured, wired, and what it contradicts` —
+  the orchestrator's `docs/status.md` entry plus **backend's and content's entries, written by
+  those two agents in this task and committed unedited** because neither writes to git.
+
+**Grouping:** as briefed, with one change. **This entry is not in `b82cb4c`.** It is committed
+after the push, because it states that the push happened and no entry may say "pushed" before
+the command has run and its result has been read. **No file is split across commits**, so the
+sum-of-halves check does not apply here.
+
+**Pushed:** yes. `git push origin main` returned `802f0f2..b82cb4c  main -> main`, exit 0.
+Verified by running: `git log origin/main..HEAD --oneline | wc -l` → **0** ·
+`git ls-remote --heads origin main` → `b82cb4c4e8021e74fffffd6271c5933269d75188`, equal to
+`git rev-parse HEAD` · `git status --porcelain` → clean · `git log --format='%b' 802f0f2..HEAD |
+grep -i 'co-authored'` → no match. No trailer landed.
+
+**Deployed:** no. There is no Vercel project and nothing was deployed.
+
+**Verified:**
+- **The full staged diff of every commit, read line by line.** **No third defect this time.**
+  Every hunk is additive except two intentional replacements: the read-order list in
+  `.claude/agents/content.md` renumbers 2–5 to 3–6 around the new item 2, and the *"No entries
+  yet"* placeholder in `docs/status/backend.md` and `docs/status/content.md` is replaced by each
+  agent's first real entry. No section deleted, no table row detached by a blank line — the new
+  `docs/agents.md` ownership row sits between two existing rows, and its explanatory section is
+  appended whole before the next `###`.
+- **`docs/content-brief.md` carries no secret.** Grepped for key, token, bearer, `eyJ`, `sk-`,
+  `X-Amz-`, `Signature=`, `Expires=`, `amazonaws`, `service_role`, `cloudinary://`, `AKIA`,
+  `ghp_` and PEM headers: **no match**. **It contains no URL of any kind** — grepping for
+  `https?://` returns nothing — so no signed S3 URL and no signed Cloudinary URL can be in it.
+  No image, PDF or design file is referenced. It names `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` as an
+  unset variable, with no value.
+- **The Notion database id is an identifier, not a credential.** `collection://7a8ab2e1-…` is a
+  Notion resource UUID. It addresses a database; it does not authorise access to one, which
+  requires an integration token held in `.env.local`. Safe in a private repo and safe in a
+  public one.
+- **No NDA asset and no client screen.** The file is prose about writing. It references
+  Cloudinary public IDs by name (`36-exception-trail`) and describes Mashreq work in words only.
+- **`git check-ignore .env.local`** returns the path — the ignore is live.
+- **The three timestamps against the real commit time.** `docs/status.md` reads **23:06**,
+  `docs/status/backend.md` and `docs/status/content.md` both **23:03**; the commits are at
+  **23:08**. **All three are behind the commit — nothing is future-dated this task.** The clock
+  read 23:07 before the first commit and 23:08 at the status commit, so the orchestrator's own
+  entry was written two minutes before it was committed, not after. **The three-task run of
+  future-dated entries is broken.**
+
+**Not verified:**
+- **Nothing was rendered.** No browser, no `:3000`, no dev server started. This task was git only.
+- **No build, typecheck, lint or test was run.** Nothing in these four commits is code — seven
+  modified Markdown files and one new one — but that makes "the build still passes" an
+  assumption here, not a measurement.
+- **None of the measurements in backend's and content's entries were re-checked.** I committed
+  their text as written and did not verify a single count in it. Reading their diffs confirmed
+  the files were well-formed, not that their numbers are right.
+- **This entry's own commit is not covered by the verification block above**, which describes the
+  state at `b82cb4c`.
+
+**Open questions:** none. Nothing was refused.
+
+**Reported, not fixed:** nothing new. The two defects found in `020210826` were fixed by the
+orchestrator before this task and are already in history at `422eea2` and `63b96f5`.
+
+---
+
 ## 020210826 — 2026-08-21 18:24 — the two findings, fixed by the orchestrator, committed and pushed
 
 **Brief:** Follow-up on the same task. Commit and push the orchestrator's fixes for the two
