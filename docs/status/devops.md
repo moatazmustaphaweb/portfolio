@@ -16,6 +16,77 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 018210826 — 2026-08-21 17:38 — four files, six commits; the push not attempted, and a future-dated entry waited out rather than edited
+
+**Brief:** Commit the four uncommitted files spanning tasks `018210826` and `019210826`.
+Split `docs/agents.md` by content, since it carries both tasks. **Do not push** — the push is
+already known to be refused, and unblocking it is Moataz's decision. Do not edit content.
+
+**Commits** (all six written by me; the files in the first five were written by the
+orchestrator, the last carries this entry):
+
+- `f6a470c` — `docs(agents): the orchestrator's reply protocol -- Arabic to Moataz, English to the agents`
+  — task `019210826`. `docs/agents.md` only: standing rule 8, the `HOW THE ORCHESTRATOR
+  REPLIES TO MOATAZ` section, and the sentence added to the orchestrator's own definition.
+- `d3663e0` — `docs(agents): every tracked path gets an owner; the standing audit closes`
+  — task `018210826`. The same file: the seven new permission-table rows, the `learn.md`
+  append rule, the `CLAUDE.md`/`decisions.md` reasoning, `app/api/**` left open, and the
+  unowned-paths audit rewritten as closed.
+- `740e210` — `docs(claude): bring the front door level with the constitution` — `CLAUDE.md`.
+- `731bc0d` — `docs(learn): two environment traps -- a stale git fact, and gh as the wrong account`
+  — `docs/learn.md`, two rows appended to PART 6.
+- `fce395f` — `docs(status): the records for 018 and 019` — `docs/status.md`.
+- `<this commit>` — this file. A status entry cannot name its own sha; the five above are named.
+
+**The `docs/agents.md` split, verified rather than asserted.** The file carried two
+independent rules, so it is split by content across `f6a470c` and `d3663e0`, not by file.
+The halves are **80 insertions / 0 deletions** and **81 insertions / 30 deletions**; they sum
+to **161 insertions / 30 deletions**, which is exactly the original working-tree diff for that
+file. The final committed file was also compared byte-for-byte against a copy of the
+working-tree original taken before the split — identical. Nothing was lost or invented.
+
+**Pushed:** **no, and not attempted.** The brief said the push is refused and told me not to
+run it, not even `--dry-run`; I did not. `origin/main` is unmoved at `c448f9d` and
+`git log origin/main..HEAD --oneline | wc -l` returns **14**. I did not re-authenticate,
+switch accounts, change the remote or add a token.
+
+**Deployed:** no. No Vercel project exists.
+
+**Verified:** the working tree is clean apart from gitignored files; `git check-ignore
+.env.local` returns the path; the full staged diff of every commit was read before committing
+and contains nothing but documentation prose — no secret, no NDA asset, no client screen;
+`git log -6 --format='%an <%ae>%n%b'` shows every commit authored `MoatazMu
+<315330096+moatazmustaphaweb@users.noreply.github.com>` with **no `Co-Authored-By` and no
+"Generated with" trailer**; the unpushed count above is from the command, not from a document.
+
+**Not verified:** I did not confirm the push is still refused — I was told not to run it, so
+that is the orchestrator's observation carried forward, not mine. I did not build, typecheck,
+lint or run the site; nothing in these six commits is code. **Nothing was loaded in a browser.**
+
+**Timestamps — the standing job, and this time ordering could not fix it.** At the start of
+this task the clock read `17:15:45` while the orchestrator's entries were dated `17:20`
+(`019`) and `17:38` (`018`) — **both in the future, one by 22 minutes.** In `017210826` the
+same problem was four minutes wide and ordering the work commits first absorbed it. Here it
+could not: no ordering makes a `17:38` entry land behind a commit made at `17:19`. So the four
+work commits went in at `17:17:39`–`17:18:14` and **the status commit was held until the clock
+passed `17:38`**, landing at `17:38:32`. Both entries are now behind the commit carrying them.
+`docs/status.md` was not edited, no correction commit was needed, and no future-dated record
+entered history. **Waiting eighteen minutes was cheaper than the two commits a correction
+would have cost** — and cheaper than the permanent record.
+
+**Found, and not fixed — a stale count of the kind the same entry warns against.** The
+`018210826` entry in `docs/status.md` reads *"Eight commits stranded, and this task's changes
+are not yet among them."* It was true when written. It is now **14**, and it will move again
+with the next commit. This is the exact failure the two `learn.md` rows committed in `731bc0d`
+were written about, and the `CLAUDE.md` line rewritten in `740e210` says *"do not restate a
+commit count here — run the command."* `docs/status.md` is not mine to write, so I am
+reporting it rather than correcting it.
+
+**Open questions:** none of mine. The push remains blocked on which GitHub identity owns this
+history, which is Moataz's decision and was never mine to take.
+
+---
+
 ## 017210826 — 2026-08-21 16:54 — eight files, four commits; the push is blocked on the wrong GitHub identity
 
 **Brief:** Commit and push the eight uncommitted files spanning tasks `016210826` and
