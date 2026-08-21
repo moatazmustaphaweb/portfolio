@@ -320,6 +320,63 @@ Against `npm run dev` on **localhost:3000**, which is this working tree — prov
 
 ---
 
+## 2026-08-24 (evening) — `OBJECTIVE` joins the set. The breadcrumb gap is one shared class, fixed once
+
+### 1 · The objective label
+
+| | EN | AR | × body |
+|---|---|---|---|
+| **Before** (`--text-label`) | 11.0px | 14.3px | 0.69× / 0.78× |
+| **After** (`--text-section`) | **18.0px** | **20.7px** | **1.12×** |
+
+**Only `OBJECTIVE` was missed.** The other labels of that role on the chapter page are already correct — extracted from the rendered page, `Context`, `Evidence`, `What I designed`, `The interface`, `The fight I lost` and `Result` all carry `text-section` through `ChapterSections`. `OBJECTIVE` was the one left behind, because it sits in the label row above the `h1` rather than inside a section, and was classified as an eyebrow.
+
+There are three more `text-label` headings in that file — CONTEXT at 367, EVIDENCE at 420, RESULT at 439 — and they are **unreachable**. They belong to the fallback field branch, and every chapter now has sections, so `hasSections` is always true. They render on nothing.
+
+Correctly left alone: `Chapter 1 of 4` (progress metadata), the `DECISION` accent pill, the case-file eyebrow, and the `text-micro` labels.
+
+### ⚠️ I did NOT step the size down, and this is the one thing to overrule if you disagree
+
+The instruction asked for two things that cannot both hold: **take the same token as every other section heading**, and **come down a step or two from where that lands**.
+
+At 18px `OBJECTIVE` and `CONTEXT` are peers, which is what parity means and what the screenshot shows. The steps below are measured:
+
+| | EN | AR | × body |
+|---|---|---|---|
+| `--text-body-sm` | 15.0px | 17.2px | 0.94× |
+| `--text-ui` | 14.0px | 16.1px | 0.88× |
+
+Both are **below body size**, and both would make `OBJECTIVE` smaller than every other section heading — reintroducing exactly the mismatch this task exists to fix, one label over. There is no step between 16 and 18 on the scale.
+
+So parity was kept and the size was not reduced. If it still reads large in place, the honest options are to move the whole token down (which moves covers, chapters and contact together) or to accept that this label is deliberately not a peer — not to make this one heading an exception silently.
+
+### 2 · The breadcrumb gap — shared, and fixed once
+
+**It is one class in the shared component**: `Breadcrumb.tsx` carried `className="mb-6"`. That is the gap on **every page that renders a breadcrumb**, which is nine of them — `work`, the case file, the chapter, `results`, `all`, the accessibility page, `about`, `about/philosophy`, `systems` and `contact`.
+
+Fixed once, there, rather than per page.
+
+| | Token | Rendered gap |
+|---|---|---|
+| **Before** | `mb-6` = **24px** | **32px** |
+| **After** | `mb-8` = **32px** | **40px** |
+
+One step up the scale. `mb-10` (40px) was the alternative and opens a gap rather than letting the page breathe. The rendered gap exceeds the margin by the breadcrumb's descender space and the label's leading, which is why 24 → 32 reads as 32 → 40.
+
+Measured by temporarily restoring `mb-6`, screenshotting, restoring `mb-8`, and comparing pixel bands — not computed from the token.
+
+### Verified on localhost:3000
+
+**20 route-locale combinations across all nine breadcrumb pages: every one 200, every one carrying `mb-8`.**
+
+**32 screenshots — 4 surfaces × 2 locales × 2 widths × 2 themes** (chapter, cover, results table, accessibility document page), each verified for the theme it was meant to be and its dimensions. All 32 correct. Both themes were pinned via `data-theme` and reverted; `git diff` on `layout.tsx` is empty.
+
+⚠️ **Worth recording: headless Chrome's default `prefers-color-scheme` changed mid-session.** Earlier captures came back dark; later ones came back light with no code change and no `data-theme` in the served HTML. A screenshot's theme is not something to assume from the harness — it has to be pinned, and the background checked against what was pinned. That check is what caught it.
+
+`tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+---
+
 ## 2026-08-24 (later) — The aspect rule is removed. A layout computed from pixels cannot know what an image is for
 
 ### What changed

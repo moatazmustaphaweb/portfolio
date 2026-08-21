@@ -34,7 +34,15 @@ export function Breadcrumb({
   if (usable.length < 2) return null;
 
   return (
-    <nav aria-label={label} className="mb-6">
+    /*
+     * `mb-8` (32px), one step up the scale from `mb-6` (24px).
+     *
+     * SHARED. This is the gap between the breadcrumb and the first thing on
+     * the page for every route that renders one — nine of them — so the fix is
+     * made once here rather than per page. `mb-10` (40px) was the alternative
+     * and opens a gap rather than letting the page breathe.
+     */
+    <nav aria-label={label} className="mb-8">
       <ol className="flex flex-wrap items-center gap-2 text-meta text-fg-dim">
         {usable.map((crumb, i) => {
           const isLast = i === usable.length - 1;

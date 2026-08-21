@@ -290,7 +290,7 @@ export default async function Chapter({
           */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             {ui.t("objective") ? (
-              <span className="font-mono text-label uppercase text-fg-dim">
+              <span className="font-mono text-section uppercase text-fg-dim">
                 {ui.t("objective")}
               </span>
             ) : null}
