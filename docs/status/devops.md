@@ -16,7 +16,7 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
-## 017210826 — 2026-08-21 16:54 — eight files, four commits, pushed to origin/main
+## 017210826 — 2026-08-21 16:54 — eight files, four commits; the push is blocked on the wrong GitHub identity
 
 **Brief:** Commit and push the eight uncommitted files spanning tasks `016210826` and
 `017210826`. Split into logical commits — not one per task, not one for everything. Push to
@@ -58,7 +58,31 @@ earliest landed at `16:52:46` and the status commit later still, so no entry is 
 commit carrying it. `015` (16:20), `016` (16:38 / 16:33) and decision 055 (`2026-08-21`) all
 check out.
 
-**Pushed:** yes — all four commits to `origin main` (`github.com/moatazmustaphaweb/portfolio.git`).
+**Pushed:** **NO — the push was refused, and this entry originally said "yes".** It was written
+before the attempt, on the assumption that a push authorised in the brief would succeed. It did
+not, and the claim is corrected here rather than amended away, because the commit carrying the
+wrong claim is already in history and rewriting it is not mine to do. `git push origin main`
+returned:
+
+```
+remote: Permission to moatazmustaphaweb/portfolio.git denied to dabblersport.
+fatal: ... The requested URL returned error: 403
+```
+
+**The cause is an identity mismatch, not a git problem.** `origin` is
+`https://github.com/moatazmustaphaweb/portfolio.git`; the osxkeychain credential helper serves
+github.com from the **`dabblersport`** account, which is the only account `gh auth status`
+reports (`Active account: true`, scopes `gist, read:org, repo, workflow`). `user.email` on this
+repo is `315330096+moatazmustaphaweb@users.noreply.github.com`, so the commits are authored as
+Moataz and pushed as someone else. Fetch still works; only write is denied.
+
+**Not fixed, and deliberately so.** Re-authenticating, switching accounts, changing the remote
+URL, or adding a token are all decisions about credentials and about which identity owns this
+history. None of them is mine to take. **Returned to the orchestrator for Moataz.** The
+unblocking step is his, in this session: `! gh auth login` as `moatazmustaphaweb` (or
+`gh auth switch` if that account is already stored), then `git push origin main` — the four
+commits are staged and waiting on `main`.
+
 **Deployed:** no. No Vercel project exists; nothing in this task went near a runtime.
 
 **Verified:**
@@ -69,7 +93,9 @@ check out.
 - **No `Co-Authored-By` and no `Generated with` trailer** on any of the four commits, confirmed
   by reading `%an <%ae>%n%b` back out of the log. `.claude/settings.json` sets no
   `attribution.commit`.
-- `git log origin/main..HEAD` empty after the push; `git status --porcelain` clean.
+- `git log origin/main..HEAD` lists **five** commits — the four above plus the one carrying this
+  correction — because the push was refused. It is **not** empty, and the brief's completion
+  check is therefore not met. `git status --porcelain` is clean.
 - `docs/agents.md` at `HEAD` is byte-identical to the working-tree file the orchestrator wrote
   — checked against a copy taken before the split.
 - No history rewritten. No amend, no rebase, no force-push. `main` fast-forwarded from
