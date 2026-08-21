@@ -143,11 +143,66 @@ Three of the four, unchanged: what replaces *"ask one question at a time"* in
 `docs/content-brief.md` · whether "new text" includes a rewrite of existing prose or only new
 pages · whether the absent generative layer is itself recorded, and where.
 
-### Handed to devops
+### Handed to devops — and it came back with the constitution wrong
 
-Commit and push, task `024210826`. **The push is expected to be refused** — the only
-authenticated GitHub account has no write access to the repository. devops reports what the
-remote actually did rather than what the command was.
+Commit and push. The brief said **the push is expected to be refused**, quoting the standing
+line in `CLAUDE.md` and in the launch gate below. **It was not refused. The line is stale, and
+this task is the third to quote it instead of testing it.**
+
+- `c4c0c0a` `docs(voice): single-source the writing rules in a portfolio-voice skill` — 10
+  files, +895 −36, carrying `022210826`, `023210826` and `024210826` together. **One commit,
+  not two, and correctly so**: `SKILL.md` is a new file created in one task and corrected in
+  the other, and splitting it would mean committing an intermediate version that never existed
+  on disk. `14fce11` carries devops' own entry, after the push, because an entry may not say
+  *pushed* before the command has run.
+- **Pushed.** `4a631d0..c4c0c0a  main -> main`, exit 0. Verified independently of devops'
+  report: `git ls-remote origin main` and local `HEAD` are the same object, `14fce11`.
+- **Why the line was wrong.** `gh auth status` names **`moatazmustaphaweb`** — the account
+  that owns the repository — as **active**, with `dabblersport` logged in and inactive. The
+  account was switched at some point and no document was corrected. Verified here directly,
+  not taken from the agent's report.
+
+**`CLAUDE.md`'s CURRENT STATE line is corrected in this task.** The launch-gate section of
+this file still carries the old claim in two places (lines about eight stranded commits and
+an identity mismatch) — **left standing, because they are dated historical entries and
+rewriting old entries is how a log stops being one.** The current line is the one that had to
+be right.
+
+### devops refused the correction, and the refusal was right
+
+**Second handoff, same task. It came back `BLOCKED` with nothing staged, and the reason holds.**
+
+The `CLAUDE.md` fix above corrected the push verdict and **left a second stale git fact standing
+in the same bullet**, in bold, two clauses earlier: *"`main` is NOT level with origin, and this
+line claimed it was for two days."* True when `018210826` wrote it. **False now** — `git rev-parse
+HEAD`, `git rev-parse origin/main` and `git ls-remote origin main` all resolve to one object after
+a fresh fetch.
+
+**And it is a push verdict, restated in bold inside the sentence that forbids restating push
+verdicts.** devops named that as the reason it stopped rather than merely reported it: committing a
+self-contradicting correction inside the commit whose purpose is to stop stale git claims would
+have put the failure into permanent history. **CURRENT STATE is an orientation block, not a dated
+log** — a bold clause in it reads as a live claim, which is the whole mechanism by which this line
+has now misled three times.
+
+**The bullet is rewritten to carry no git fact at all.** Not a count, not a verdict, not an account
+name. It keeps the three-state history — *claimed level when it was not · claimed refused when it
+was not · half-corrected into self-contradiction* — because that is the lesson, and it replaces
+every fact with the commands that produce one. **A line that cannot be true or false cannot rot.**
+
+**What this says about the review loop, and it is the part worth keeping.** The orchestrator wrote
+the stale-git-fact row into `docs/learn.md` in this same task and then reproduced the exact bug two
+edits later, in the file the row is about. **An agent caught it by running the command instead of
+reading the sentence — which is what the row it had just read tells it to do.** The value was in
+the agent being able to refuse a brief from the orchestrator, not in the orchestrator reviewing the
+agent. That direction is the one this structure usually forgets to protect.
+
+**This is `docs/learn.md` Part 6's own trap, one row below the row about the wrong `gh`
+account:** *a status line that states a git fact goes stale the moment the next commit lands.*
+It has now gone stale in **both** directions — first claiming `main` was level with origin
+when it was not, now claiming the push was refused when it was not. **The rule was already
+written and was read past three times.** Appended to `docs/learn.md` accordingly: the remedy
+for a fact that keeps rotting is to delete the fact and leave the command.
 
 ---
 

@@ -169,7 +169,21 @@ docs/                 all project documentation
 - **No accessibility audit.** No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised.
 - **The contact form has never been submitted through a browser.** Four route branches tested with `curl`; the rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once.
 - **ISR has never been observed working in production**, and `/api/revalidate` has never been called against a production build.
-- **No deploy.** No Vercel project. Nothing has ever run on Vercel's runtime. *(Corrected 2026-08-21, task `001210826`: the "no git remote" half of this was stale — `origin` is `github.com/moatazmustaphaweb/portfolio.git`.)* **`main` is NOT level with origin, and this line claimed it was for two days.** Corrected 2026-08-21, task `018210826`, by running the command rather than reading the sentence. **The push is refused**: the only authenticated GitHub account has no write access to the repository, so commits are authored as Moataz and pushed as someone else. **Do not restate a commit count here** — a number goes stale the moment the next commit lands, and this line going stale is what let a task-014 commit be reported as pushed when it never left the machine. Run `git log origin/main..HEAD --oneline` and read the answer.
+- **No deploy. No Vercel project. Nothing has ever run on Vercel's runtime.** That much is true and is not a git fact.
+
+  **This bullet no longer states the git state, and that is the correction.** Rewritten 2026-08-22, task `024210826`, after devops **refused to commit the previous version** of it — which had corrected one stale claim (*"the push is refused"*) while leaving a second one standing in bold two clauses earlier (*"`main` is NOT level with origin"*), inside the same sentence that forbids restating a push verdict. Both were true when written. Neither was true when read.
+
+  **The history is the lesson, so it is kept and the facts are not:** this line claimed `main` was level with origin when it was not, was corrected to claim the push was refused when it was not, and was then half-corrected in a way that contradicted itself. Three states, three tasks, one line, and every one of them was quoted into a brief rather than tested.
+
+  **So there is no git fact here to go stale.** Do not write one back in — not a commit count, not a push verdict, not an account name, not "level with origin". **Run the commands and read the answers:**
+
+  ```
+  git fetch origin && git log origin/main..HEAD --oneline
+  git ls-remote origin main && git rev-parse HEAD
+  gh auth status
+  ```
+
+  A line that cannot be true or false cannot rot. See `docs/learn.md` Part 6, the two rows on git facts in status lines — the second of which this bullet is the case study for.
 
 **Known broken or half-done:**
 

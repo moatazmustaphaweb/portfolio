@@ -16,6 +16,71 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 024210826 — 2026-08-22 00:01 — the constitution correction refused: the same bullet still carries a stale push verdict
+
+**Second entry for this task.** It does not revise the entry below it, which is committed in
+`14fce11` and is accurate as written.
+
+**Brief:** Commit and push the orchestrator's correction to `CLAUDE.md`, `docs/status.md` and
+`docs/learn.md` — one commit, staged by name, no `Co-Authored-By`. Stop and say so rather than
+committing if a claim in the three diffs looked wrong.
+
+**Commits:** none. **Nothing was staged and nothing was pushed.** The three files are
+unmodified in the working tree and still dirty.
+
+**Refused, and this is the reason.** Two of the three diffs are right. The `CLAUDE.md` diff
+corrects the push verdict and leaves a **second stale git fact standing in the same bullet**,
+in bold, two clauses earlier:
+
+> **`main` is NOT level with origin, and this line claimed it was for two days.**
+
+That is false as a current claim. Verified by running the commands rather than reading the
+sentence: `git rev-parse HEAD`, `git rev-parse origin/main` and `git ls-remote origin main`
+**all resolve to the same object**, after a fresh `git fetch origin`. `main` is level with
+origin. The clause is a true record of what task `018210826` found and reads as a live
+statement of fact, because the CURRENT STATE block is an orientation section — *"Updated
+2026-08-13 … this is the orientation"* — and not a dated log.
+
+**It also contradicts the sentence added to fix it**, which is the part that decided the
+refusal rather than a report:
+
+> **Do not restate a commit count or a push verdict here** — both go stale the moment the next
+> commit lands.
+
+*`main` is NOT level with origin* **is** a push verdict, restated there, in bold, in the bullet
+that forbids it. Committing that would put a self-contradicting correction into permanent
+history inside the commit whose whole purpose is to stop stale git claims — and the
+demonstrated failure mode on this project is not misreading, it is **quoting a bold line
+without testing it**, three times over. Correcting `CLAUDE.md` is the orchestrator's; I read
+the git state and returned the finding.
+
+**Verified:**
+- **All three diffs read in full.** `docs/learn.md` is a single appended Part 6 row, inserted
+  between two existing rows with nothing deleted — the *"replacing a span between two anchors"*
+  class does not apply. `docs/status.md` rewrites its own `024210826` section and leaves the
+  older dated entries carrying the old claim alone, which is correct and is the reason it gives.
+- **Every checkable claim in the two accepted diffs is true first-hand.** `gh auth status` has
+  `moatazmustaphaweb` active and `dabblersport` inactive; `git push origin main` returned exit 0
+  twice in this task and the remote moved both times.
+- **The stale claims the orchestrator says it deliberately left in the launch-gate section**
+  are inside older dated entries, as stated. Checked, not assumed.
+
+**Not verified:**
+- **"It survived at least three tasks that quoted it instead of testing it."** That is the
+  orchestrator's account of its own document history. I did not audit the earlier tasks, and
+  it is hedged with *at least*, so nothing rests on the exact number.
+- Nothing was built, typechecked, rendered or deployed. Nothing in the change set is code.
+
+**This entry is uncommitted**, along with the orchestrator's three files. The tree is **not**
+clean, deliberately: committing a refusal on its own would put a commit in history for work
+that has not happened, and this entry will need extending once the correction lands.
+
+**Open question returned to the orchestrator:** does the `018210826` clause come out, or get
+marked as superseded in place? Either resolves it. It is one clause and it is not mine to
+write. On an answer, this commit takes about a minute.
+
+---
+
 ## 024210826 — 2026-08-21 23:56 — the voice skill committed and pushed; the "push is refused" line is stale
 
 **Brief:** Commit the documentation and skill work of `023210826` and `024210826`, track the
