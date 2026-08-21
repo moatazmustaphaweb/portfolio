@@ -37,6 +37,392 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 024210826 — 2026-08-21 23:52 — the six rulings applied, the skill corrected against its own measurements, grilling answered as decision 056
+
+**Rules only. No prose was written and no published string was changed** — not one word of the
+site's text, in either language. Every correction below is to a document that describes the
+text, never to the text.
+
+### The six rulings
+
+**1 — The Arabic em-dash claim is deleted, all three copies.** It said the dash is "doubly
+wrong" in Arabic (`docs/learn.md`), "foreign to the punctuation system entirely"
+(`docs/content-brief.md`), and "not native to Arabic and used sparingly" (the skill). The
+site's own Arabic carries it **more** densely than the English, in every corpus that has one —
+5.97 per 100 words in captions against 4.79, 2.04 in chapter prose against 1.58. **One rule,
+both languages: the pivot-versus-balance test.** A sweep confirms no copy of the ban survives
+anywhere outside this log.
+
+**2 — The short close is deleted as a general move** and rewritten as what it measurably is:
+the **entry-handle payoff format** — 6.3 words against 17.3 for the sentence before it, 75%
+ending in six words or fewer. In every other corpus the last sentence is the *longest*, and in
+chapter paragraphs that is true two times in three (17.4 against 12.5). `The door, found.` and
+`الباب، وقد وُجد.` were listed under both *opens with a definite article* and *closes short*;
+they are openers, both shown whole now under the opening move only, and the skill says
+explicitly not to manufacture a clipped final line.
+
+**3 — Definition by negation stays, at its measured size.** "The single most recognisable move
+in the entire body of work" and "roughly two in five captions" are gone, replaced by the rate
+table and by the part that changes behaviour: **1.15 per 100 words in captions, 0.24 in a
+thesis or role statement, 0.00 in an entry handle.** Written as *where he does not use it*, and
+added to the closing checklist as test 7, because an agent that only learns the move exists
+writes it everywhere.
+
+**4 — The tanween rule is widened.** From *adverbial accusatives* to **the accusative carries
+its tanween** — object, `حال` or adverb alike — which is what the corpus shows: `شيئًا` (16) ·
+`أصلًا` (21) · `منتجًا` (8) · `مكتوبًا` (4) · `دفعةً` (4) outrank the adverbs. Orthography
+unified on **`ًا`**, the majority form (448 against 92) and the typographically correct one.
+The skill records that **every one of the 92 exceptions is in `page_section.body`** — the
+static pages, written in a different context, not under a different convention — and states
+that the rule is written but **the text is not to be normalised in passing.**
+
+**5 — `مباشرة` is untouched, and the conflict is logged here as instructed.** 13 occurrences,
+**0 marked**, of which **11 are adverbial** (`راسلني مباشرة` · `يصل إلى العميل مباشرة` ·
+`فينصرف الذهن مباشرة` · `يدخل مباشرة` · `أطلب إذن الإشعارات مباشرة بعد رمز التحقق`), and 2
+adjectival and correctly unmarked (`نتيجة مباشرة لبنية هذا النظام`). **The rule as now written
+requires `مباشرةً` in the 11. Moataz's ruling: this is his text, not the agent's, and not one
+word moves.** Recorded so the next sweep reads it as decided rather than missed.
+
+Second, smaller conflict in the same family, also untouched: **`صراحة` appears adverbially
+marked twice** (`مع ذكر السبب صراحةً`, `والشاشة تذكر السبب صراحةً`) **and unmarked twice**
+(`وأفضّل قول ذلك صراحة`, `وأقول ذلك صراحة`) — the only genuine internal inconsistency the
+27-word test found. A third instance is a cover heading, `صراحة`, correctly unmarked as a noun.
+
+**6 — Three copies became one.** `docs/content-brief.md` and `.claude/agents/content.md` now
+hold pointers to the skill instead of the rule. Both pointers keep the *reasoning* — what the
+old rule claimed and which measurement killed it — because that is the part that stops it
+being re-derived from memory. `docs/learn.md` keeps the corrected rule and the function table,
+and points at the skill for the full description.
+
+### The skill's own provenance, corrected
+
+It opened with *"drawn from the 140 captions and 22 pages already on the site."* **The 140 is
+from a Cloudinary inventory file and counts tags, not captions.** Replaced with the measured
+corpus: **58 English captions and 25 Arabic · 36 English page bodies and 22 Arabic** · 248
+English chapter paragraphs and 139 Arabic · 41 cover paragraphs · 20 decision bodies · 12 entry
+handles. The correction matters because every move in the skill is an inference from
+repetition, and the skill was claiming a base two and a half times wider than the one it had.
+
+### Grilling — `022210826` question 1 is answered
+
+**Decision 056.** The session runs **with Moataz, in the main session, conducted by the
+orchestrator**. Never inside a subagent: grilling is many rounds and a subagent turn ends at
+its first reply. The content agent writes from the answers of a **finished** session, relayed
+in its brief; briefed to write new prose with no answers, it stops and asks. **The
+no-direct-contact rule is untouched** — it was never the obstacle, the shape of an agent turn
+was. `.claude/skills/portfolio-voice` → *Before writing anything new* is now **in force**, and
+`.claude/agents/content.md` and `docs/agents.md` were rewritten from "not yet wired" to the
+ruling, including a line forbidding the obvious workaround: relaying an interview through the
+orchestrator question by question is not the same conversation.
+
+**Decision 057** records the writing-rule consolidation and every measurement behind it.
+
+### Files changed
+
+`.claude/skills/portfolio-voice/SKILL.md` (7 sections) · `.claude/agents/content.md` ·
+`docs/agents.md` · `docs/learn.md` · `docs/content-brief.md` · `docs/decisions.md`
+(056, 057) · this file.
+
+### Not verified
+
+- **Nothing was rendered and nothing was run.** No build, no typecheck, no page opened. The
+  change set is documentation and one skill; it touches no code path.
+- **The measurements are `023210826`'s, not re-taken.** They were read once, from
+  `translations`, by `SELECT`. Nothing has written to that table since.
+- **`مباشرة`'s 11 adverbial cases were judged by reading the surrounding words**, not parsed.
+  Two were called adjectival on the same basis. A grammarian may split them differently.
+- **Whether the content subagent can load `.claude/skills/portfolio-voice` is still untested** —
+  carried over unresolved from `022210826`, and now load-bearing, since decision 056 makes the
+  skill the content agent's standing load.
+- **`.claude/agents/*.md` is read at session start**, so the content agent as amended does not
+  exist until Claude Code is restarted.
+
+### Still open from `022210826`
+
+Three of the four, unchanged: what replaces *"ask one question at a time"* in
+`docs/content-brief.md` · whether "new text" includes a rewrite of existing prose or only new
+pages · whether the absent generative layer is itself recorded, and where.
+
+### Handed to devops
+
+Commit and push, task `024210826`. **The push is expected to be refused** — the only
+authenticated GitHub account has no write access to the repository. devops reports what the
+remote actually did rather than what the command was.
+
+---
+
+## 023210826 — 2026-08-21 23:36 — `portfolio-voice` wired to content, the em-dash rule corrected, three inferred moves measured
+
+**Wiring and review only. No content written, no prose touched.** The skill was read in full,
+connected in three files, one rule in `docs/learn.md` was corrected against it, and its three
+repetition-derived claims were measured against the whole database rather than the captions.
+
+### What was wired
+
+`.claude/skills/portfolio-voice/SKILL.md` (10,575 bytes, read in full) is now named in:
+
+- **`CLAUDE.md`** — added to the SKILL PRECEDENCE table as the first row, plus a section
+  defining its surface: every string a visitor reads, both locales, revision counted as
+  writing; explicitly **not** code comments, commit messages, `docs/**`, briefs or replies.
+- **`docs/agents.md`** — added to the skills-ownership table, to the brief checklist ("any
+  brief that has an agent write or revise a line a visitor reads names `portfolio-voice`"),
+  the "four skills" count corrected to five in both places, and a new section on the
+  boundary it does and does not move.
+- **`.claude/agents/content.md`** — a `portfolio-voice` block at the head of SKILLS, marked
+  as content's **standing load** on any writing or revising task.
+
+**The wiring grants no authoring permission**, and all three files say so in those words.
+*Report gaps; never fill them* and the Notion read-only default are restated inside the new
+text, because a gap filled in a convincing voice is harder to catch than one filled badly.
+
+**One section of the skill is deliberately NOT in force:** its *Before writing anything new*
+requires a `grilling` session, and where grilling runs is question 1 of the four returned to
+Moataz in `022210826` and still unanswered. All three files record that the voice sections
+bind and the grilling instruction does not, until he rules.
+
+### The em-dash rule in `docs/learn.md`, corrected
+
+Part 2's first section read *"The em dash is a tell — long dashes read as machine-written"*
+and prescribed replacement by function. **Wrong as an absolute, and the absolute broke
+sentences that were already right.** Replaced with the pivot/balance distinction and the
+test — *does the second half say what the first half could not?* — pointing at the skill for
+the full description rather than restating it. The replacement-by-function table is kept, now
+scoped to a dash that fails the test. The structural do-not-touch list is unchanged.
+
+Measured while correcting it, because the old rule made an empirical claim:
+
+| Corpus | em dashes / 100 words | units carrying one |
+|---|---|---|
+| captions, `en` | **4.79** | 53 of 58 |
+| captions, `ar` | **5.97** | 23 of 25 |
+| chapter paragraphs, `en` | 1.58 | 92 of 248 |
+| chapter paragraphs, `ar` | 2.04 | 57 of 139 |
+| cover paragraphs, `en` | 0.15 | 2 of 41 |
+| case-file thesis/role/reflection · entry-handle payoffs, `en` | 0.00 | 0 |
+
+**The Arabic uses the em dash more per word than the English does, in every corpus that has
+one.** `docs/learn.md` and `docs/content-brief.md` both say the dash is "doubly wrong" in
+Arabic and "not native to Arabic punctuation at all"; the skill says "used sparingly". Both
+descriptions are contradicted by the text on the site. **Left uncorrected and reported** —
+Moataz asked for contradictions to be named, not fixed.
+
+### The three inferred moves, measured against the whole corpus
+
+All human-readable text on this site is one table, `translations` (1,447 rows across 13
+entity types). Measured there, not in the captions.
+
+**1 — Definition by negation, described as "roughly two in five captions".**
+
+Both readings measured. *Any* negation word: **39.7% of English captions** — that is where
+"two in five" comes from and it is correct. The *construction* — `X, not Y` / `not X but Y` /
+`is not … it is` / `rather than`: **20.7% of captions**, and per 100 words it is the densest
+corpus on the site at **1.15**.
+
+| Corpus | negation-definition per 100 words | vs captions |
+|---|---|---|
+| captions | **1.15** | — |
+| page bodies (About, Philosophy, Systems, Contact) | 0.77 | −33% |
+| chapter paragraphs | 0.70 | −39% |
+| decision bodies | 0.58 | −50% |
+| cover paragraphs | 0.37 | −68% |
+| chapter context + result | 0.28 | −76% |
+| thesis · role · reflection | 0.24 | −79% |
+| entry-handle payoffs | **0.00** | absent |
+
+**It holds, and the skill overstates it.** It is a caption-density move. In the prose that
+opens a case file — thesis, role, cover paragraphs, handles — it is between a quarter as
+frequent and entirely absent. Calling it "the single most recognisable move in the entire
+body of work" will make an agent write it into places the site does not.
+
+**2 — "He closes short." It does not hold, and one of its examples is misread.**
+
+Last sentence vs the earlier sentences in the same unit, English:
+
+| Corpus | earlier sentences | last sentence | last is longer |
+|---|---|---|---|
+| entry-handle payoffs | 17.3 words | **6.3** | 17% |
+| captions | 11.4 words | 10.8 | 46% |
+| page bodies | 15.5 words | 17.2 | 52% |
+| decision bodies | 15.3 words | 18.5 | 55% |
+| cover paragraphs | 14.1 words | 17.5 | 59% |
+| chapter paragraphs | 12.5 words | **17.4** | **67%** |
+
+**In the long prose the last sentence is the longest, two times in three.** The only corpus
+where the short close is real is the **entry-handle payoff** — 75% end in six words or fewer
+— and that is a format with a fixed length, not a habit.
+
+And the four cited examples are all `media.caption`, where **three of the four are the second
+sentence of a two-sentence caption** and the fourth is not a close at all:
+
+> "**The door, found.** An applicant who wants out and cannot leave stays in the system as a ghost."
+
+That is short **first**, long second. The skill lists it under *He opens with a definite
+article* and again under *He closes short* — it is the opener. The Arabic example the skill
+gives for the short close, `الباب، وقد وُجد.`، has the same shape and the same problem.
+
+**Reported, not corrected** — the skill is the orchestrator's to edit and the ruling is his.
+
+**3 — Tashkeel on the accusative. It holds site-wide, and the rule as written is too narrow.**
+
+`ً` per 100 Arabic words: captions 4.42 · page bodies 4.68 · chapter fields 4.06 · chapter
+paragraphs 4.05 · table cells 3.62 · decisions 3.46 · handles 3.11 · case-file cover fields
+2.98 · cover paragraphs 2.55. **Not a caption habit — every prose corpus is in the same
+band.** The low ones are UI strings (1.80), alt text (1.65) and metric labels (1.59).
+
+Tested word by word across a 27-adverb list: **120 marked, 2 unmarked**, and both unmarked
+are `صراحة` — which appears adverbially **marked twice and unmarked twice**, the only genuine
+inconsistency found.
+
+Two corrections to the rule as stated:
+
+- **It is not restricted to adverbial accusatives.** The most frequent marked tokens are
+  direct objects and `حال`: `شيئًا` (16) · `أصلًا` (21) · `منتجًا` (8) · `أحدًا` (5) ·
+  `مكتوبًا` (4) · `دفعةً` (4). The practice is *the accusative carries its tanween*, which is
+  a wider and simpler rule than the one the skill records.
+- **`مباشرة` is a standing exception, unflagged anywhere.** 13 occurrences, **0 marked**, and
+  roughly 11 of them adverbial (`راسلني مباشرة`, `يصل إلى العميل مباشرة`). Whether that is
+  deliberate is Moataz's to say.
+
+**And one finding that belongs to someone else.** The tanween orthography splits by authoring
+origin, not by register: site-wide **448 `ًا` against 92 `اً`**, and `page_section.body` is
+**0 / 84** — every instance on the static pages uses the opposite order from every instance in
+the case files (`chapter_paragraph` 125/1, `decision` 116/1). The static pages were written or
+seeded under a different convention. **Reported, not touched.**
+
+### Not verified
+
+- **Nothing was rendered.** All measurement is against `translations` in Supabase, read-only,
+  via `SELECT` only. No page was opened; the browser still cannot reach the local server.
+- **The skill's own provenance was not checked.** It says "140 captions and 22 pages". The
+  database holds **58 English media captions and 25 Arabic** (119 rows including alt text) and
+  36 English `page_section` bodies. The gap may be Notion, the `Image mapping/` folder, or a
+  different definition of "caption" — not established, and it does not change any finding
+  above, all of which were measured on what is actually there.
+- **The negation-definition regex is a proxy**, not a parse. Its definition is written above so
+  the number can be re-derived or disputed.
+- **Whether the content subagent can load `.claude/skills/portfolio-voice` was not tested** —
+  the same gap `022210826` recorded for `grilling`. Expected to work; expected is not measured.
+- `docs/decisions.md`, `docs/brief.md` and `docs/workflows.md` were not read for this task.
+
+### Open questions returned to Moataz
+
+1. The em dash in Arabic — three files say sparing-to-forbidden, the site says the opposite.
+   Which is the rule?
+2. The short close — remove it from the skill, or rewrite it as a property of entry handles?
+3. `مباشرة` unmarked in 11 adverbial positions — deliberate, or a sweep?
+4. `page_section.body` at 0/84 on tanween order — normalise it, and to which form?
+5. `.claude/agents/content.md` still carries its own copy of *The em dash is a tell*, and
+   `docs/content-brief.md` a third. Precedence now resolves them, but three copies of one rule
+   is what he said he does not want. Delete the two copies and leave the pointer?
+
+---
+
+## 022210826 — 2026-08-21 23:20 — the grilling skills read, `content-brief.md` audited against them, wiring NOT written
+
+**No wiring done. No content work. This entry records a reading and a diagnosis, and the task is
+open on four questions returned to Moataz.** He asked, explicitly, that `docs/content-brief.md` be
+audited for a description of the writing method that contradicts grilling-first, *before* anything
+is written. It does contradict it, in three specific places, and two of them are structural rather
+than editorial — so the wiring cannot be written until he rules.
+
+### What was read
+
+`.claude/skills/grill-me/SKILL.md` (5 lines, a shim: `disable-model-invocation: true`, body is
+"Run a `/grilling` session") · `.claude/skills/grilling/SKILL.md` (the design-tree interview: work
+the frontier in rounds, number each question, give a recommended answer, wait; dispatch sub-agents
+for facts, never ask the user for a fact; done when the frontier is empty; **"Do not act on it until
+the user confirms you have reached a shared understanding"**) · `docs/content-brief.md` in full (319
+lines) · `.claude/agents/content.md` in full (357 lines) · the id ledger in `docs/status.md`.
+
+### 1 — The answer to the question he asked
+
+**`docs/content-brief.md` does not describe writing as starting from general knowledge. It does not
+describe where writing starts at all.** That is the finding, and the omission is functionally the
+error he feared.
+
+The file has a fully developed **defensive** layer — do not invent a number, do not fill a gap, do
+not rule on authorship, report and stop — and **no generative layer**. Nothing in it says where
+legitimate material comes from. A reader can satisfy every rule in the file and still write a case
+file the way Cervello was written, because reconstructing prose from an old portfolio deck breaks
+none of them: there was a source, no structural gap was filled, no number was fabricated.
+
+**The one place the file names interviewing as the correct source is line 232**, inside section 3,
+describing the Cervello passages as "reconstructed from his old portfolio write-up **rather than
+from an interview with him**." Section 3 is the section the file's own opening warning tells the
+reader is a snapshot of a moving object and not to be relied on. **The diagnosis is buried in the
+chapter the reader is instructed to distrust.**
+
+Section 5 then post-mortems the same failure as *"I inferred meaning from artefact names… naming
+something is not knowing why it exists."* That is a reading error. The actual failure was a
+**process** error — writing without an interview — and section 5 never says so.
+
+### 2 — A direct procedural conflict, and it blocks the wiring
+
+- `docs/content-brief.md` line 319: **"Ask one question at a time and stop."**
+- `grilling`: **"Ask the whole frontier in one round: number each question and give your
+  recommended answer."**
+
+These are opposite instructions about the same act. The condensed rule is the last line of the file
+and reads as final. Wiring grilling in without resolving this leaves the content agent holding two
+contradictory procedures. **Returned to Moataz, not decided here.**
+
+Note that `CLAUDE.md`'s first rule — *never a question and a prompt in the same message* — does
+**not** conflict with grilling. Grilling never sends a draft alongside its questions. Only the
+one-at-a-time rule conflicts.
+
+### 3 — A structural conflict: a subagent cannot run a grilling session
+
+Grilling is multi-round and conversational: ask the frontier → **wait** → the answers reshape the
+tree → recompute → ask again, until the frontier is empty.
+
+`.claude/agents/content.md` line 20, and `CLAUDE.md`'s first rule: **"You do not talk to Moataz
+directly. Return the question to the orchestrator and stop."** An agent turn ends at the question.
+There is no round two inside a subagent.
+
+**So grilling cannot live inside the content agent as the constitution currently stands.** Either
+the orchestrator conducts the session and hands the settled understanding down as source material,
+or the content agent gets a named exception to the no-direct-contact rule. That is an amendment to
+`docs/agents.md`, not a note in a skill table. Returned to Moataz.
+
+### 4 — A second structural conflict: the content agent is defined as not-the-author
+
+`.claude/agents/content.md` line 8: **"You read what is written and report what is there. You are
+not the author."** Line 30: **"Report gaps; never fill them."** Line 51: Notion is **read-only by
+default**, the single exception being an edit Moataz has explicitly approved and relayed verbatim.
+
+The agent as written has no authoring mode at all. Adding "any work producing new text starts with
+a grilling session" gives it a capability its own definition twice forbids. The wiring is therefore
+not an addition — it is a **boundary change**, and the read-only rule and the never-fill rule both
+have to be restated so the new mode does not become a loophole for the exact behaviour they exist
+to stop. Returned to Moataz.
+
+### What is NOT verified
+
+- Whether the content **subagent** can load `.claude/skills/grilling` at all was not tested. The
+  agent definition already references `metric-integrity` and `rtl-guard`, so it is expected to
+  work; expected is not measured, and nothing was run.
+- `docs/learn.md` and `docs/agents.md` were not read in full for this task. Either may already
+  carry a provenance rule that changes the shape of the wiring.
+- No claim here about what is *in* Notion or the database. Section 3's status claims were not
+  re-measured; task `021210826` did that and this entry does not repeat it.
+
+### Open questions
+
+Four, returned in the reply, with no prompt in the message:
+
+1. Does grilling run in the orchestrator or inside the content agent — and if inside, does the
+   content agent get an exception to the no-direct-contact rule?
+2. What replaces "ask one question at a time" in `docs/content-brief.md`, and who writes that
+   correction — the file is content's, and it is appended to, never restructured.
+3. Does "new text" include a rewrite of existing prose, or only genuinely new pages?
+4. Should the omission itself be recorded — that `content-brief.md` has no generative layer — and
+   if so, in which file.
+
+**Nothing was written to `.claude/agents/content.md`, `docs/agents.md`, `CLAUDE.md` or
+`docs/content-brief.md`.**
+
+---
+
 ## 021210826 — 2026-08-21 23:06 — `docs/content-brief.md` read, measured against reality, and wired in behind a stated boundary
 
 **No content work. No correction to the file.** Absorption and wiring, as briefed. Routed to backend (database and repo) and content (Notion and the `learn.md` overlap) in parallel; both measured rather than asserted, and both returned honest not-verified sections.

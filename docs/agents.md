@@ -223,7 +223,7 @@ Added 2026-08-21, task `017210826`, after task 016 hit the gap by routing into i
 - **`.claude/agents/*.md` → the orchestrator.** *An agent editing its own definition is a
   closed loop — rewriting the rules it is judged against.* The structure describing itself
   belongs to the layer above it, not to the layer it describes.
-- **`.claude/skills/**` → the orchestrator.** The four skills govern all four agents. No
+- **`.claude/skills/**` → the orchestrator.** The five skills govern all four agents. No
   one agent may change them on the other three's behalf.
 - **`.claude/settings*.json`, `.mcp.json`, hook configuration → devops.** Environment,
   which devops already owns. Note that `.claude/settings.local.json` is gitignored, so a
@@ -555,9 +555,10 @@ So **the orchestrator's brief must carry, explicitly:**
 - **What is out of scope**, named. Especially: which adjacent thing looks broken and is
   deliberately not being fixed in this task.
 - **What "done" is**, and how it will be checked.
-- **Which skills to load** — `rtl-guard`, `metric-integrity`, `motion-system`,
-  `perf-budget`. The definitions say when, but naming it in the brief removes the judgement
-  call.
+- **Which skills to load** — `portfolio-voice`, `rtl-guard`, `metric-integrity`,
+  `motion-system`, `perf-budget`. The definitions say when, but naming it in the brief
+  removes the judgement call. **Any brief that has an agent write or revise a line a
+  visitor reads names `portfolio-voice`**, whichever agent it goes to.
 - **The open questions that are already answered**, if the task sits near one. An agent
   told to stop and ask will stop on a question Moataz answered yesterday unless the answer
   travels with the brief.
@@ -593,16 +594,54 @@ definition that forbids a verdict and permits only a measurement.
 
 ## WHAT THE SKILLS AND `docs/learn.md` NOW BELONG TO
 
-The four skills in `.claude/skills/` stay **project-wide** and are unchanged by this
+The five skills in `.claude/skills/` stay **project-wide** and are unchanged by this
 structure. Each is loaded by more than one agent, and splitting one into an agent
 definition would create a second copy that drifts:
 
 | Skill | Loaded by |
 |---|---|
+| `portfolio-voice` | **content, as a standing load** — every task that writes or revises a line a visitor reads · frontend and backend when a brief has them place or seed one |
 | `rtl-guard` | frontend (all of it) · backend (translation resolution, `fieldLocales`) · content (Arabic typography, glyphs) |
 | `metric-integrity` | content (the writing) · backend (the parser, the enums) · frontend (status pills, count-up) |
 | `motion-system` | frontend, effectively alone — but it gates a whole future layer, not one agent's files |
 | `perf-budget` | frontend (per-frame, bundle) · backend (query caching, per-request) |
+
+### `portfolio-voice` and the content agent
+
+Added 2026-08-21, task `023210826`.
+
+**The skill is content's standing load, and it is not optional on a writing task.** It was
+drawn from the 140 captions and 22 pages already on the site, so it describes how this site
+already reads rather than prescribing a house style. Where `docs/learn.md` Part 2 or
+`docs/content-brief.md` describes *how a sentence is written*, the skill decides and they
+carry the reasoning — but only there. On what may be published, the older files and the
+constitution stand unchanged.
+
+**In scope — every string a visitor reads:** covers, chapters, captions and alt text,
+section headings, outcome and target labels and notes, entry handles, About, Philosophy,
+Systems, Contact, the 404, UI strings. Both locales. **A revision counts as writing.**
+
+**Out of scope — everything only a maintainer reads:** code comments, commit messages,
+`docs/**` (including status entries and `learn.md`), briefs, and replies to Moataz.
+
+**It grants no authoring permission.** The second rule — *report gaps; never fill them* —
+and the read-only default on Notion are untouched by it. Loading a voice skill is not a
+licence to supply a missing sentence in that voice; that is the exact failure the second
+rule exists to stop, and it would now arrive better disguised.
+
+**The whole skill is in force, including its `Before writing anything new` section.**
+Moataz answered `022210826`'s first question on 2026-08-21; it is **decision 056**.
+
+**Grilling runs with Moataz, in the main session, conducted by the orchestrator.** It is a
+long back-and-forth — ask the frontier, wait, let the answers reshape the tree, ask again —
+and **a subagent gets one reply and ends.** The structural conflict `022210826` named is
+resolved by putting the session where the conversation already is, not by giving an agent an
+exception to the no-direct-contact rule. That rule stands untouched.
+
+**Consequences for briefs.** A brief that asks any agent to write new prose **carries the
+answers** from a finished session, in the brief itself. An agent briefed to write without
+them stops and asks for them — and the orchestrator's answer is to run the session with
+Moataz, never to reconstruct the answers itself to keep the task moving.
 
 `docs/learn.md` likewise stays project-wide and is read in full by every agent, every
 time. Parts of it are now *emphasised* per agent rather than owned: Part 2 (writing) and

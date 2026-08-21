@@ -68,16 +68,27 @@ Five roles. **`docs/agents.md` is the constitution** — the shape, who owns wha
 
 ## SKILL PRECEDENCE
 
-Four project skills live in `.claude/skills/` and govern this repo. Where a global or plugin skill covers the same ground, **the project skill decides and the global skill executes.**
+Five project skills live in `.claude/skills/` and govern this repo. Where a global or plugin skill covers the same ground, **the project skill decides and the global skill executes.**
 
 | Skill | Read it when | Takes precedence over |
 |---|---|---|
+| `portfolio-voice` | Any prose that will appear on the site, in either language | `docs/learn.md` Part 2 and `docs/content-brief.md` on **how a sentence is written** |
 | `motion-system` | Any animation, transition, scroll effect, canvas, or interactive surface | `motion-framer`, `gsap-scrolltrigger`, `threejs-webgl`, `react-three-fiber`, `babylonjs-engine` |
 | `metric-integrity` | Any number, outcome, target, or results table | — |
 | `rtl-guard` | Any component, style, layout, or directional glyph | `artifact-design`, any Figma design-to-code skill |
 | `perf-budget` | Anything running per frame or on every request | The animation and 3D skills above |
 
 The library skills describe **how to use a library**. The project skills decide **what is permitted here**. Reaching for the library skill first is how a correct implementation ships a wrong one — a redacted region rendered as dissolving points is technically fine WebGL and a hard failure under rule 6.
+
+### `portfolio-voice` — what passes through it
+
+Added 2026-08-21, task `023210826`. It was drawn from the captions and pages already written, so it describes this site's prose rather than prescribing prose in general.
+
+**Everything that a visitor reads goes through it:** case-file covers, chapters, captions and alt text, section headings, outcome and target labels and notes, entry handles, About, Philosophy, Systems, Contact, the 404, UI strings — English and Arabic alike. **Revising an existing line counts**, not only writing a new one.
+
+**Nothing that only a maintainer reads goes through it:** code comments, commit messages, `docs/**` including `status.md` and `learn.md`, agent briefs, and replies to Moataz. Those have their own conventions and the voice does not apply to them.
+
+**It owns voice, not permission.** `metric-integrity` still governs every number, rule 7 still forbids invented content, and content still reports gaps rather than filling them. A sentence that is perfectly in voice and unsourced is still refused.
 
 ---
 

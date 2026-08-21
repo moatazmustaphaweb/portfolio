@@ -140,20 +140,16 @@ Arabic uses `←`, English uses `→`. Colons were rejected as a separator: they
 
 ## 2 · Writing conventions that settled
 
-### No em dashes
+### The em dash → `.claude/skills/portfolio-voice`
 
-The em dash reads as machine-generated, and the whole site rests on the claim that this content is written rather than produced. Replace with **what the sentence is actually doing**, not one substitute everywhere:
+**This section used to hold a ban on the em dash and a table for removing them. Deleted 2026-08-21, task `024210826`.** It was wrong twice over, and both errors are recorded here rather than in the rule itself so that the rule has exactly one home.
 
-| Function | Replacement |
-|---|---|
-| Parenthetical aside | commas, or parentheses |
-| Introducing a list or explanation | colon |
-| Joining two independent clauses | full stop, or semicolon |
-| Label and its description | colon |
+- **The ban was false about the English.** 53 of 58 English captions on the site carry a dash, at 4.79 per 100 words. A rule that condemns most of the text it governs is not describing that text.
+- **The Arabic clause — *"foreign to the punctuation system entirely"* — was false in the other direction.** The Arabic carries the dash **more** densely than the English: 5.97 per 100 words in captions, 2.04 in chapter prose against the English 1.58. There is no Arabic exception.
 
-In Arabic the em dash is foreign to the punctuation system entirely. Use `،` and `؛` and `:` as the default, not as an accepted substitute.
+**The rule now lives only in `.claude/skills/portfolio-voice`**, as one test in both languages: *does the second half say what the first half could not?* If it turns, keep it. If it restates, decorates or balances, cut it — and replace it by function. **Do not restate the rule here or anywhere else.** Three copies of one rule is how three versions of it appeared, and the copy in `.claude/agents/content.md` was deleted in the same task.
 
-**Do not touch:** page titles (`النسخة العربية — …`), case-file names (`Neobiz Mobile — Egypt`), numeric ranges (`2018–2021`, `٢٤ ساعة – ٣ أيام`), fixed terms (`maker–checker`), and the entry-point arrows.
+**Do not touch:** page titles (`النسخة العربية — …`), case-file names (`Neobiz Mobile — Egypt`), numeric ranges (`2018–2021`, `٢٤ ساعة – ٣ أيام`), fixed terms (`maker–checker`), and the entry-point arrows. **These are structure the sync reads, not punctuation**, and they sit outside the test entirely.
 
 ### Arabic is an original, not a translation
 

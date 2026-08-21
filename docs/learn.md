@@ -56,9 +56,22 @@ If the question is "which one", answer with one. A table of options in response 
 
 # PART 2 — WRITING
 
-## The em dash is a tell
+## The em dash is not a tell. The test is whether it turns
 
-Long dashes read as machine-written, and this site's entire argument rests on the opposite impression. Replace by **function**, not with a single substitute:
+**Corrected 2026-08-21, task `023210826`.** This section used to read *"Long dashes read as machine-written"* and prescribe replacing them by function. **That is wrong as an absolute, and the absolute did damage** — Moataz's own writing is full of em dashes, they work, and the blanket ban broke sentences that were already right. Measured against the live database in this task: 53 of 58 English captions carry one, and the Arabic carries them at a *higher* rate per word than the English does. A rule that condemns most of the corpus it governs is not describing the corpus.
+
+**The real distinction, and it is a distinction, not a quota:**
+
+- **His dash pivots.** It turns from the object to what the object means. The second half says something the first half could not.
+- **The machine dash balances.** Two clauses of matching length and matching shape, held in symmetry, neither earning its place.
+
+**The test on every dash: does the second half say what the first half could not?** If it is restating, decorating or balancing, cut it — and then replace it by *function*, per the table below. If it is turning, keep it.
+
+**`.claude/skills/portfolio-voice` carries the full description**, with his examples and the machine counterexample, and it decides where this file and `docs/content-brief.md` disagree with it about how a sentence is written. Do not restate the rule from memory; the memory of it is what was wrong.
+
+The same test extends past the dash: **AI prose is recognisable by its evenness**, not by its punctuation. Clauses of matching length, sentences of matching shape, every paragraph landing the same way. His prose is uneven on purpose.
+
+Where a dash does fail the test, replace by **function**, not with a single substitute:
 
 | What the dash was doing | Use instead |
 |---|---|
@@ -70,7 +83,9 @@ Long dashes read as machine-written, and this site's entire argument rests on th
 
 **Do not touch:** dashes inside Notion page titles (`النسخة العربية — …`) — those are structure the sync reads. Entry-handle arrows (`←` / `→`). Numeric ranges (`2018–2021`). Fixed terms (`maker–checker`).
 
-In Arabic the dash is doubly wrong: it is not native to Arabic punctuation at all. Use `،` `؛` `:` — those are the originals, not an acceptable substitute.
+**There is no Arabic exception, and the one that used to be here was invented.** This section said *"in Arabic the dash is doubly wrong: it is not native to Arabic punctuation at all"* — deleted 2026-08-21, task `024210826`. Measured on the site's own Arabic: it carries the dash **more** densely than the English does, in every corpus that has one — 5.97 per 100 words in captions against the English 4.79, 2.04 in chapter prose against 1.58. **One rule, both languages: does it turn, or is it balancing?**
+
+**And this rule now lives in one place.** The copies in `docs/content-brief.md` and `.claude/agents/content.md` were deleted in the same task and replaced with pointers to `.claude/skills/portfolio-voice`. Three copies of one rule is how three versions of it appear, and it is how this one drifted into a ban.
 
 ## Each project is written in its own way
 

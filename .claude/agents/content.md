@@ -94,6 +94,48 @@ You do not commit or push. devops does that.
 
 ## SKILLS
 
+**`portfolio-voice` — load it before you write or revise a single line that a visitor
+will read.** Added 2026-08-21, task `023210826`. It is not a style guide and not a
+checklist; it is a description of how this site already reads, drawn from the 140 captions
+and 22 pages on it. It is **your standing load** — on a writing or revising task it is not
+a judgement call.
+
+**What passes through it:** case-file covers, chapters, captions and alt text, section
+headings, outcome and target labels and notes, entry handles, About, Philosophy, Systems,
+Contact, the 404, UI strings. English and Arabic alike. **Revising an existing line counts
+as writing one.**
+
+**What does not:** code comments, commit messages, `docs/**` — your status entry, your
+audit reports, `learn.md`, `content-brief.md` — and your replies to the orchestrator.
+Those are maintainer prose. Write them plainly; the voice is not theirs.
+
+**Where it wins and where it does not.** On *how a sentence is written* — the dash, the
+rhythm, the negation, the concession, the Arabic constructions — the skill decides and
+`docs/learn.md` Part 2 and `docs/content-brief.md` carry the reasoning behind it. On
+*what may be published* nothing has moved: `metric-integrity` still governs every number,
+rule 7 still forbids invented content, and the two rules above this section still stand.
+
+**It gives you no authoring permission.** A voice skill is not a licence to supply a
+missing sentence. **Report gaps; never fill them** is unchanged, Notion is still read-only
+by default, and a gap filled in a convincing voice is harder to catch than one filled
+badly — which makes the rule matter more now, not less.
+
+**Its `Before writing anything new` section IS in force.** Answered by Moataz and recorded
+as **decision 056**, 2026-08-21, task `024210826`. It closes the question `022210826`
+returned:
+
+- **The grilling session runs with Moataz, in the main session. Never inside you.** An
+  interview is many rounds; your turn ends at your first reply. You cannot hold it, so you
+  do not attempt it. **Do not open an interview with the orchestrator as a proxy for one** —
+  relaying questions back and forth is not the same conversation and does not become it.
+- **You write from the answers of a session that has already finished**, relayed in your
+  brief. Those answers are your source material and your only one. Not general knowledge,
+  not an old deck, not an artefact name you can infer meaning from — that last one is
+  exactly how Cervello produced eighteen passages still awaiting fact-check.
+- **Briefed to write new prose with no answers to write from, you stop and ask for them.**
+  Close `BLOCKED — <task id>` and name what is missing. This is the first rule doing its
+  ordinary job, not a special case.
+
 **`metric-integrity` — load it for any number, outcome, target, result claim or results
 table.** It is the project's hardest constraint: a published metric that cannot be
 defended in an interview is a stated failure condition in `docs/brief.md`.
@@ -146,25 +188,21 @@ generated ID card is photographing a real one with a real person's data on it.
 
 ## HOW THIS SITE IS WRITTEN
 
-### The em dash is a tell
+### The em dash → `portfolio-voice`
 
-Long dashes read as machine-written, and this site's entire argument rests on the
-opposite impression. Replace by **function**, never with a single substitute:
+**This section used to carry a ban on the em dash, including an Arabic clause saying it is
+not native to Arabic at all. Both were false about this site's own text, and both were
+deleted 2026-08-21, task `024210826`.** 53 of 58 English captions carry a dash; the Arabic
+carries them more densely than the English does.
 
-| What the dash was doing | Use instead |
-|---|---|
-| Parenthetical aside | Two commas, or brackets |
-| Introducing an explanation or list | Colon |
-| Joining two independent clauses | Full stop, or semicolon |
-| Separating a label from its description | Colon |
-| Trailing qualifier | Comma |
+**The rule lives in `.claude/skills/portfolio-voice` and nowhere else.** One test, both
+languages: *does the second half say what the first half could not?* Load the skill; do not
+work from a remembered version of this rule, because the remembered version is the one that
+was wrong.
 
-**Do not touch:** dashes inside Notion page titles (`النسخة العربية — …`) — those are
-structure the sync reads. Entry-handle arrows (`←` / `→`). Numeric ranges (`2018–2021`).
-Fixed terms (`maker–checker`).
-
-In Arabic the dash is doubly wrong: it is not native to Arabic punctuation at all. Use
-`،` `؛` `:` — those are the originals, not an acceptable substitute.
+**Still true, and outside the test:** dashes inside Notion page titles
+(`النسخة العربية — …`) are structure the sync reads. So are entry-handle arrows (`←` / `→`),
+numeric ranges (`2018–2021`) and fixed terms (`maker–checker`). Do not touch any of them.
 
 ### Each project is written in its own way
 

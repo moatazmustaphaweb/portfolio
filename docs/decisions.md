@@ -788,6 +788,88 @@ and `016210826`.
 
 ---
 
+## 056 — Grilling runs with Moataz in the main session. The content agent writes from a session that has already finished
+
+**Decided 2026-08-21, task `024210826`.** Closes the first of the four questions returned in
+`022210826`.
+
+**Decision:** The `grilling` interview that must precede any new prose is conducted by the
+**orchestrator, with Moataz, in the main session**. It never runs inside a subagent. The
+content agent receives the settled answers in its brief and writes from those and nothing
+else. Briefed to write new prose with no answers to write from, it stops and asks for them.
+
+**Why:** Grilling is multi-round by construction — ask the frontier, wait, let the answers
+reshape the tree, recompute, ask again, until the frontier is empty. **A subagent gets one
+reply and its turn ends.** There is no round two inside it. `022210826` framed the choice as
+*either the orchestrator conducts it, or the content agent gets an exception to the
+no-direct-contact rule*. Moataz's ruling takes the first: the session goes where the
+conversation already is. **The no-direct-contact rule is untouched** — it was never the
+obstacle, the shape of an agent turn was.
+
+**Consequence:**
+- `.claude/skills/portfolio-voice` → *Before writing anything new* is **in force**, with the
+  location of the session written into it.
+- Any brief that has an agent write new prose **carries the answers in the brief**. A brief
+  without them is incomplete, and the fix is to run the session — never to reconstruct the
+  answers to keep the task moving.
+- The content agent's second rule is unchanged and now matters more, not less: *report gaps;
+  never fill them.* An interview that did not produce a fact leaves a gap to report.
+- The remaining three questions from `022210826` — what replaces "ask one question at a
+  time" in `docs/content-brief.md`, whether "new text" includes a rewrite, and whether the
+  missing generative layer is itself recorded — **stay open.**
+
+**Status:** ACTIVE
+
+---
+
+## 057 — The writing rules live in the skill alone. The em dash is not a tell, and there is no Arabic exception
+
+**Decided 2026-08-21, task `024210826`**, after the rule was measured against the
+`translations` table rather than recalled.
+
+**Decision:** `.claude/skills/portfolio-voice` is the **single home** for how a sentence on
+this site is written. `docs/learn.md`, `docs/content-brief.md` and `.claude/agents/content.md`
+point to it and do not restate it.
+
+The em-dash ban is **deleted**, in both languages. The rule is one test: *does the second
+half say what the first half could not?* If it turns, keep it; if it restates, decorates or
+balances, cut it and replace it by function.
+
+**Why:** The ban was false about the text it governed, in both directions.
+
+| | measured |
+|---|---|
+| English captions carrying a dash | **53 of 58**, 4.79 per 100 words |
+| Arabic captions carrying a dash | **23 of 25**, **5.97** per 100 words |
+| chapter prose | `en` 1.58 · `ar` **2.04** |
+
+**The Arabic uses the em dash more per word than the English does, in every corpus that has
+one** — against three files that called it "doubly wrong", "foreign to the punctuation system
+entirely" and "used sparingly". Stated as an absolute, the rule broke sentences that were
+already right.
+
+**Consequence:**
+- Three copies became one. The sections in `docs/content-brief.md` and
+  `.claude/agents/content.md` are now pointers that record *why* the old rule was wrong,
+  which is the part worth keeping.
+- Three further claims in the skill were corrected against the same measurement: definition
+  by negation is a **caption-density** move (1.15 per 100 words there, 0.24 in a thesis, 0.00
+  in an entry handle) rather than "the most recognisable move in the body of work"; the
+  **short close is deleted as a general move** and rewritten as the entry-handle payoff
+  format (6.3 words against 17.3), because in chapter prose the last sentence is the longest
+  two times in three; and the tanween rule is widened from *adverbial accusatives* to **the
+  accusative generally**, with `ًا` as the unified orthography.
+- The skill's own provenance line was corrected: it claimed *140 captions and 22 pages*; the
+  140 came from a Cloudinary inventory file and counts **tags**. The real corpus is 58
+  English captions, 25 Arabic, and 36 English page bodies.
+- **No prose was corrected.** Normalising `اً` in `page_section.body` and the 11 unmarked
+  adverbial `مباشرة` are content tasks with their own briefs — see `docs/status.md`
+  `024210826`.
+
+**Status:** ACTIVE
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |
