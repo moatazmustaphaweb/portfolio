@@ -251,6 +251,50 @@ Written into all four definitions, in these words:
 4. **Guards stay. Widen what they accept, never weaken what they protect.**
 5. **The status entry is part of the task, not offered afterwards.**
 6. **Say what was not verified.**
+7. **End every reply with the closing line.** See below. It is rule 7 because it is checked
+   like the others, not because it is smaller than them.
+
+---
+
+## THE CLOSING LINE — EVERY REPLY, NO EXCEPTIONS
+
+Added 2026-08-21, task `017210826`, at Moataz's instruction and in his words:
+*"I have been reading 'finished' signals that carried no content and guessing whether a task
+was over. That line is the signal."*
+
+**Every reply ends with a single closing line, on its own, with nothing after it:**
+
+```
+DONE — <task id>
+```
+
+**If the work is incomplete or blocked**, say so *above* the line — what is done, what is
+not, and what it is waiting on — and close with:
+
+```
+BLOCKED — <task id>
+```
+
+The rules, because a signal that is applied loosely is worse than none:
+
+- **Nothing comes after it.** Not a sign-off, not a postscript, not "let me know if…".
+  The line is the last thing in the message. Anything below it destroys the property that
+  makes it readable at a glance.
+- **It carries the task id**, nine digits, the one the orchestrator assigned. A closing
+  line without an id cannot be tied to a task.
+- **`DONE` means the work in the brief is finished**, not that the reply has ended. A reply
+  that reports a refusal, a diagnosis, or a returned question is `DONE` **only if that
+  report was the deliverable**. If the brief asked for work that did not happen, it is
+  `BLOCKED`, even when the reply is long and full of findings.
+- **An open question returned to the orchestrator is `BLOCKED`.** The first rule stops the
+  agent; the closing line has to say so. This is the case it exists for.
+- **It applies to the orchestrator too**, on every reply to Moataz — not only to subagents
+  reporting inward.
+
+**This does not replace the status entry.** `docs/status.md` is still the channel and is
+still written as part of the task. The closing line says *whether the task is over*; the
+status entry says *what happened*. An unchanged status file with a `DONE` line under it is
+the exact failure this structure already has a rule against.
 
 ---
 

@@ -85,6 +85,8 @@ change enters history under a commit message that describes something else.
   fails is not a check to skip. `--no-verify` is not available to you.
 - **The status entry is part of the task, not offered afterwards.**
 - **Say what was not verified.** Especially: *deployed* is not *checked*.
+- **End every reply with the closing line.** See **THE CLOSING LINE**, at the end of this
+  file. It is checked like every other standing rule.
 
 ---
 
@@ -179,3 +181,37 @@ empty file is not.**
 Report to the orchestrator: every sha and what it carries · whether it was pushed and
 where · what you verified by loading it · what you did **not** verify · anything you
 refused and why · any question still open.
+
+---
+
+## THE CLOSING LINE — EVERY REPLY, NO EXCEPTIONS
+
+Added 2026-08-21, task `017210826`. Moataz's reason, in his words: *"I have been reading
+'finished' signals that carried no content and guessing whether a task was over. That line
+is the signal."*
+
+**Every reply you send the orchestrator ends with a single line, on its own, nothing after
+it:**
+
+```
+DONE — <task id>
+```
+
+**If the work is incomplete or blocked**, say so *above* the line — what is done, what is
+not, what it waits on — and close with:
+
+```
+BLOCKED — <task id>
+```
+
+- **Nothing comes after it.** Not a sign-off, not a postscript. It is the last thing in the
+  message, or it does not work.
+- **It carries the nine-digit task id** the orchestrator gave you in the brief.
+- **`DONE` means the work in the brief is finished**, not that your reply has ended. A
+  report *is* the deliverable when the brief asked for one — that is `DONE`. A brief that
+  asked for work you did not do is `BLOCKED`, however long and useful the reply.
+- **A question returned to the orchestrator is `BLOCKED`.** The first rule stops you; this
+  line is how you say so. That is the case it exists for.
+- **It does not replace your status entry.** The entry says what happened; this line says
+  whether the task is over. A `DONE` line above an unwritten status entry is the failure
+  this structure already forbids.
