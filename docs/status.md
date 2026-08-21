@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 021210826 — 2026-08-21 23:06 — `docs/content-brief.md` read, measured against reality, and wired in behind a stated boundary
+
+**No content work. No correction to the file.** Absorption and wiring, as briefed. Routed to backend (database and repo) and content (Notion and the `learn.md` overlap) in parallel; both measured rather than asserted, and both returned honest not-verified sections.
+
+### 1 — What contradicts reality
+
+**Sections 1, 2, 4 and 5 held up.** Notion mechanics, writing conventions, editorial reasoning and the recorded mistakes were checked where checkable and are sound. **Section 3, "Content status", is where it fails — and it fails hardest on the claim it flags as mattering most.**
+
+| Claim | Measured |
+|---|---|
+| "Six image tags absent… four on Accessibility AR, so that page argues bilingual parity with no parity pair beneath it" | **All six present in Notion.** Accessibility AR carries 18 tags against EN's 18, all four parity pairs included |
+| "25 pages `In MVP-1`, all `Content ready = Done`, in both languages" | **34 rows.** 26 Done and `EN + AR full`; 8 are `FOUNDATION —` / `Linear View —` rows, all Not started. The file's own enumerated list totals 26 — **it disagrees with itself as well as with the database** |
+| "All MVP-1 writing is done… in both languages" | **109 of 248 prose paragraphs carry no Arabic.** `page_sections` 37 en / 22 ar, the entire gap being the Egypt accessibility page at 15 en / 0 ar |
+| "The two-arrow problem is unresolved in the sync script" | **Resolved.** `lib/sync/handles.ts` splits the invitation on the first arrow and recovers the pointer from the last sentence; `ARROW_RTL` carries `←`. `entry_handles` is 24/24 |
+| "`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` was unset… every image is dropped" | Superseded by **decision 052** — the cloud name is committed configuration. `CloudinaryImage` does drop an image with no alt, but the locale fallback means none is currently dropped |
+| "Orphaned Cervello rows… believed to confuse the sync script — unresolved" | Dry run shows **no route collision**; Cervello's entry handles report 3 (3 linked) |
+| "`[reported]`… the build stops on it" | Not quite. A bad marker aborts **that entity** and the sync continues, exiting 1 at the end. The distinction matters to anyone debugging a partial sync |
+| `Order` is the sort key | **Confirmed** — `sort_order: row.order ?? 0` |
+| `media` | **76 rows**, alt present in at least one locale on every row |
+
+**The `media` line also falsifies `CLAUDE.md`'s own CURRENT STATE**, which still says `media` has 0 rows and no case file has a cover. One of 8 case files carries a `cover_media_id`. That is a stale claim in the front door, not in the new file.
+
+**And the raw Arabic-alt gap is smaller than it looks, which is the more useful finding:** split by folder, English-folder and Arabic-folder images are locale-specific screenshots and are not expected to carry the other language's alt. **The real gap is 22 of 33 language-neutral images with no Arabic alt** — not "roughly half of 76".
+
+**Content also found eight things the file does not mention**, several of which are defects rather than drift: **Arabic numerals are Arabic-Indic throughout the prose**, contradicting `content-brief.md`, `learn.md` **and** the `rtl-guard` skill in identical terms · **em dashes are pervasive in Arabic**, 28 on one page, against a rule all three state as settled · the 404 Arabic heading reads **`٥٠٤`, not `٤٠٤`** · a doubled public ID `…-governance-governance` · Landing and Classic Gallery show no Arabic while marked `EN + AR full` · the Classic Gallery promises figures labelled *"Measured, agreed target, reported, or projected"* — **a four-term vocabulary containing the rejected `reported` and none of the three real markers** · and the Landing proof strip compresses the `2 weeks – 1 month` baseline to "Two weeks on paper", **keeping only the flattering end of a range**. The last two are metric-integrity failures on live pages.
+
+**The one caveat that bounds all of it:** every Notion fetch returned a **cached snapshot dated 2026-08-10 to 2026-08-19**. The only read-only currency probe is a single-edit write, which this task forbade. So the Notion half is as-of that snapshot, not as-of today — and the file's own section 1 warns about exactly this.
+
+### 2 — What duplicates `docs/learn.md`
+
+**Roughly thirteen rules are stated in both files.** The em dash · report-gaps-do-not-fill · Arabic-is-an-original · the metric markers · say-what-you-did-not-check · one-question-at-a-time · `plain_text` stripping backticks · recount-from-the-artefact, among others.
+
+**content's recommendation, and it is the right shape:** `learn.md` owns every **rule**, because it is read by all five agents every time and a rule that binds only content is rare. `content-brief.md` keeps **mechanisms, the terminology glossary, and the worked examples** — the things that are not rules and cannot be compressed into one. And **three rules should leave both files for the skills that already state them more precisely**: numerals, the marker set, and the marker/basis split all live in `metric-integrity` and `rtl-guard`.
+
+**Nothing deleted. Nothing moved.** Proposal only, as instructed.
+
+### 3 — What it lacks
+
+It was written by a conversation that saw **only Notion**, so it has no model of what happens after: which fields the sync actually populates, where a paragraph is dropped by the pairing gate rather than never written, what `verify:content` and `check:seed-drift` check, or that the dry run **cannot see paragraph-pairing drops at all**. The practical consequence is the one this task demonstrated — it cannot distinguish *"not written"* from *"written and dropped"*, and it reports both as *"not reaching the site"*.
+
+### 4 — Wired in, behind a stated boundary
+
+- **A boundary section at the top of the file**, marked as the orchestrator's and the only part not written by the content conversation. It says the file is an operating manual and not a source of truth about content state, that the live page and the database win, and — **because the measurements now exist** — that this is a demonstrated failure rather than a hypothetical caution.
+- **A row in the ownership table:** `docs/content-brief.md` → **content, append only.** Same rule as `learn.md`, same reason.
+- **`.claude/agents/content.md`** — read in full at the start of every content task, second only to `learn.md`, with the boundary and *never quote a count from it* stated in the definition rather than left to the file.
+- **`CLAUDE.md`** — a row in the read-this-when table carrying the same boundary.
+
+---
+
 ## 020210826 — 2026-08-21 18:12 — The orchestrator issues the id, the close is gated on the entry, and the last open ownership row is ruled
 
 **Id derived, not requested.** `019210826` was the highest in this file, the day had not changed, so this task is `020`. That derivation is now the standing rule rather than a one-off.
