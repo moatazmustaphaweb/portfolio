@@ -37,6 +37,206 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 14:15 — REPORTED, NOT FIXED: Arabic written in Notion that never reaches the site, and 053's punctuation bug still live on two surfaces
+
+Both items from the previous brief. Nothing was changed — both were
+report-first, and item 2 is explicitly awaiting a ruling.
+
+---
+
+# 1 — ARABIC THAT EXISTS IN NOTION AND IS NOT ON THE SITE
+
+## ⚠️ First, a correction to this project's own current state
+
+`CLAUDE.md` says *"46 `page_sections` and 12 `entry_handles` have no Arabic, so
+About, Philosophy, Systems, Contact … are English-only for an Arabic visitor."*
+
+**That is stale.** Measured against the database now:
+
+| page | sections | with Arabic |
+|---|---|---|
+| about | 7 | **7** |
+| about/philosophy | 5 | **5** |
+| contact | 5 | **5** |
+| systems | 5 | **5** |
+| work/egypt-acquisition/accessibility | 15 | **0** |
+
+`entry_handle` is at 24/24. The four static pages are **fully translated**. The
+entire remaining `page_section` gap is one page, and its Arabic *is written*.
+
+## ⚠️ The dry run cannot see this class of problem
+
+`writeChapterSections` returns its shape string at `scripts/sync-notion.ts:1115`
+**before** the paragraph-pairing loop, so `--dry-run` structurally cannot emit a
+paragraph-pairing notice. This is the same trap already recorded for
+`writeCoverSections`; it is confirmed on the chapter path too. Everything below
+came from the database and from reading Notion directly, not from the dry run.
+
+## LIST A — written in Notion, absent from the database. Mine.
+
+### A1. The per-slot paragraph-count gate. The largest by far.
+
+Arabic paragraphs pair with English **by position within a slot, and only when
+the counts match exactly** (`sync-notion.ts:1201`). Where they differ the whole
+slot's Arabic is dropped. That refusal is deliberate and correct in principle —
+pairing one row off would put an Arabic screenshot under a paragraph about a
+different screen — but it is currently discarding a large body of finished work.
+
+| chapter | ¶ | Arabic ¶ | missing | headings translated |
+|---|---|---|---|---|
+| egypt/workflow | 41 | 5 | **36** | 6 of 7 |
+| egypt/onboarding | 47 | 22 | **25** | 6 of 7 |
+| egypt/fulfilment | 33 | 14 | **19** | 5 of 5 |
+| neobiz/portal | 8 | 1 | 7 | 4 of 4 |
+| egypt/web-vs-mobile-onboarding | 6 | 0 | 6 | 3 of 3 |
+| egypt/portal | 30 | 25 | 5 | 5 of 5 |
+| neobiz/onboarding | 6 | 1 | 5 | 3 of 3 |
+| cervello/on-premises-to-cloud | 15 | 11 | 4 | 4 of 4 |
+| cervello/permission-architecture | 9 | 5 | 4 | 3 of 3 |
+| **total** | **248** | **139** | **109** | |
+
+**The tell is in the last column.** Section *headings* are translated while their
+paragraphs are not. If the Arabic page were missing, the headings would be
+missing too. The Arabic is found, matched to its slot, and then dropped one
+level down.
+
+Verified end to end on `egypt-acquisition/workflow`: the Arabic child page
+`النسخة العربية — الفصل الثاني: نظام مراجعة الطلبات` is **complete** — nine
+sections, every paragraph, against seven English sections. The database holds
+5 of 41. On screen, `/ar/work/egypt-acquisition/workflow` renders **88% English**
+(36 of 41 blocks), measured at 390 and 1440.
+
+### A2. Arabic `alt` and `caption` die with it
+
+The media write sits *inside* the same gate, so images lose their Arabic
+whenever their slot fails to pair. Of the 11 images in the workflow chapter,
+**every one carries Arabic `[alt]` and `[caption]` in Notion** — they are on the
+page, I read them — and **one** (`37-audit-log`) has Arabic in the database. It
+is the one whose slot happened to pair.
+
+That accounts for the bulk of the `media` gap: 119 English fields, 53 Arabic.
+
+### A3. The accessibility page — 8 Arabic sections, none of them used
+
+The sync reports it: *"Arabic has 8 section(s) to English's 14. Arabic skipped."*
+Same positional-pairing rule, applied at page-section level, and it drops all
+27 missing `page_section` Arabic fields at once.
+
+### A4. ⚠️ A FOURTH MATCHER GAP — and it is a hard failure, not a silent one
+
+```
+✗ Case File Cover — Neobiz Mobile (Egypt) (ar):
+  heading "ولماذا يهم رغم أنه لم يتم تطبيقه حتى الآن" matches no cover slot.
+```
+
+This is the fourth of the class — after the `النسخة العربية` prefix, the
+`ثلاثة مداخل` aliases and the `←` arrow. The heading means roughly *"and why it
+matters even though it has not been implemented yet"*; it is `why-it-matters`
+wearing a leading و and a trailing clause.
+
+Unlike the other three it is **not** invisible — the sync fails the row loudly
+and writes nothing for the Neobiz Arabic cover, so it can no longer be updated
+from Notion at all. Existing Arabic on that cover survives from an earlier sync;
+`case_files.thesis` (ar) for `neobiz-mobile` is missing.
+
+**Fix is a data row in `cover_slot_aliases` — no code change, no deploy.**
+
+## LIST B — not written in Notion. Yours.
+
+Small, and none of it renders today:
+
+- `case_file.title` (ar) for the four **draft** mini case files — `east`,
+  `kshemam`, `pidetaxi`, `aam-advisor`. Drafts; they 404.
+- `case_file_sibling.note` (ar) — 4 of 4 missing.
+
+**Stated honestly:** an 11-field remainder (1 `chapter.evidence_note`, 1
+`decision` name+body, 2 `chapter_section.heading`, 2 `cover_paragraph.body`) was
+**not** individually confirmed against Notion. It is what is left after the three
+systemic causes above, and it is small enough that guessing its side of the line
+would be worth less than saying it is unclassified.
+
+---
+
+# 2 — ENGLISH FALLBACK ALIGNMENT ON ARABIC PAGES
+
+## The answer to your question is yes, and it is achievable
+
+Direction and alignment are separate properties, and `text-align` does not
+participate in bidi resolution. A paragraph can keep `dir="ltr"` — so its
+punctuation and Latin runs resolve correctly — and still align to the page's
+inline start.
+
+**`text-align: match-parent` is the textbook answer and it does not work here.**
+`CSS.supports("text-align","match-parent")` returns **false** in this Chrome; the
+declaration is dropped and the computed value stays `start`. Measured, not
+assumed.
+
+**What does work:** `text-align: end` on the LTR element, scoped to RTL pages.
+
+```css
+:root[dir="rtl"] [dir="ltr"] { text-align: end; }
+```
+
+Not a trick, and not physical: whenever an LTR element sits inside an RTL page,
+that element's `end` **is** the page's `start`. The two are the same edge by
+construction.
+
+Tested live at 1440 and 390 by injecting it: the English block goes flush right
+with its ragged edge on the left, matching the Arabic around it, and
+`…without losing position.` keeps its full stop at the end of the sentence.
+053 is untouched — `dir="ltr"` still governs the bidi algorithm.
+
+English pages are unaffected: the selector cannot match, and every `[dir="ltr"]`
+there stays at `start`. Confirmed at both widths — 29 paragraphs, 16 captions
+and 6 headings all still `start` on `/en`.
+
+Coverage on `/ar/work/egypt-acquisition/onboarding`: 14 paragraphs, 10
+figcaptions, 1 heading — prose and captions both.
+
+## ⚠️ Is CoverSections still missing 053? Partly — and there is worse
+
+**Not "never received it" any more, but not fixed either.**
+
+- `ChapterSections` — complete. Headings, prose, tables, captions.
+- `CoverSections` — **captions only** (line 327), which arrived with the
+  section-image work. Its **prose** (lines 153, 155, 179, 249) and its
+  **headings** (149, 172, 242) still carry no `lang`/`dir`.
+- `ProseSections` — **nothing at all.** This renders the static pages and the
+  accessibility page.
+
+**And the original bug is still live where 053 never reached.** On
+`/ar/work/egypt-acquisition/accessibility` an English paragraph has no `dir`,
+no `lang`, and computes `direction: rtl`. It renders:
+
+> `.claims and open claims are separated below`
+
+The full stop is at the **start** of the line. That is the exact defect 053 was
+written to fix, on a page that never got it. The four static pages escape it
+only because they are now fully translated — there is no fallback prose left
+there to break.
+
+## What I propose, awaiting your answer
+
+1. Apply 053 to `CoverSections` prose and headings, and to `ProseSections` —
+   this is the correctness fix and it stands on its own, independent of
+   alignment.
+2. Then the one-rule alignment change above.
+
+In that order, because right-aligning an unmarked paragraph would move a full
+stop that is already on the wrong side to the other wrong side. **Alignment is
+not changed and will not be until you answer.**
+
+---
+
+### Verified
+
+`:3000` on localhost, both locales, 390 and 1440, on the case-file covers, the
+chapter pages, the comparison page, the accessibility page and the static pages.
+The alignment rule was tested by injection only — nothing in the repo changed.
+Sync run was `--dry-run --all`; it wrote nothing.
+
+---
+
 ## 2026-08-21 13:50 — The section labels come down to 13px. They are labels now, not headings, and the old ratio rule is retired
 
 `--text-section` ran 11px → 18px → **13px**. 18 was an overshoot, corrected.
