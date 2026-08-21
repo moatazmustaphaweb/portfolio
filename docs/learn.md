@@ -242,6 +242,18 @@ Generalises: when two things must agree — a grid and its rail, a flag and its 
 
 ---
 
+## Replacing a span between two anchors deletes whatever else lives between them
+
+Rewriting a document section by slicing from one heading to the next heading — `s[start:end]` where `end` is the *next* landmark — silently removes every section that happens to sit in between. In `020210826` the orchestrator replaced the `app/api/**` section by slicing to `### ⚠️ THE ONE EXPLICIT EXCEPTION` and destroyed the `### .claude/** — why it splits three ways` section that sat between the two. The reasoning for a rule survived; the reasoning for a *different* rule did not.
+
+**It is invisible at the point of edit.** The script asserts its anchors, the replacement lands, the file parses, the headings that remain all look right. Nothing fails.
+
+- **Slice to the end of the thing you are replacing, not to the start of the next thing you can find.**
+- **After a structural edit, diff the heading list** — `grep -n '^### '` before and after. A section that vanished shows up instantly and shows up nowhere else.
+- **This is what review is for.** It was caught by devops reading the staged diff before committing, not by the author. An agent that reads the whole diff rather than trusting the intent of the edit is the last defence against this class.
+
+---
+
 ## Ambiguity in a permissions table is a vulnerability, not an editorial detail
 
 The ownership table in `docs/agents.md` used a dash for two different facts: *"this agent does not touch this"* and *"nobody owns this at all."* Reading a row of dashes, both look like a decision. **One of them was a hole**, and it stayed invisible until a task routed straight into it — `.claude/**` had no owner, and that was only discovered by needing to write there.
@@ -314,7 +326,6 @@ Recorded so the same error is not repeated by a fresh session.
 | Making the repo public would allow reading it | GitHub blocks automated access regardless. The step was wasted |
 | The Egypt thesis was one unsplit paragraph in Notion | It was already five. The loss was at render, not at source |
 | The Arabic child-page naming pattern was the sync bug | It was three unrelated matcher bugs. The hypothesis was wrong and saying so first mattered |
-
 | Writing a rule protects the writer from breaking it | The orchestrator codified *"entries are dated to match the commit time, never ahead of it"* and then, **in the same task**, dated its own entry twenty minutes in the future. It resolved only because the clock caught up — nothing was corrected. **Authorship confers no immunity;** check your own output against the rule you just wrote |
 
 **The pattern in most of these:** a conclusion drawn from a document rather than from the system it describes. `status.md` is a narrative and is behind in places. When a fact is checkable, check it.
