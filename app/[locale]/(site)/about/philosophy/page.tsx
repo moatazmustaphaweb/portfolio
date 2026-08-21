@@ -6,6 +6,7 @@ import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
 
 /**
  * Philosophy — composed from `Philosophy.dc.html`.
@@ -96,6 +97,8 @@ export default async function Philosophy({
         <h1
           id={thesis.slug}
           className="mt-4 max-w-measure scroll-mt-18 text-title text-fg"
+          lang={thesis.fieldLocales.heading}
+          dir={thesis.fieldLocales.heading ? dirForLocale(thesis.fieldLocales.heading) : undefined}
         >
           {thesis.fields.heading}
         </h1>
@@ -108,7 +111,11 @@ export default async function Philosophy({
       ) : null}
 
       {thesis?.fields.body ? (
-        <p className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-body">
+        <p
+          className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-body"
+          lang={thesis.fieldLocales.body}
+          dir={thesis.fieldLocales.body ? dirForLocale(thesis.fieldLocales.body) : undefined}
+        >
           {thesis.fields.body}
         </p>
       ) : null}
@@ -132,13 +139,25 @@ export default async function Philosophy({
                 </span>
                 <div className="min-w-0 flex-1">
                   {principle.fields.heading ? (
-                    <h2 className="max-w-measure text-h3 text-fg">
+                    <h2
+                      className="max-w-measure text-h3 text-fg"
+                      lang={principle.fieldLocales.heading}
+                      dir={
+                        principle.fieldLocales.heading
+                          ? dirForLocale(principle.fieldLocales.heading)
+                          : undefined
+                      }
+                    >
                       <a href={`#${principle.slug}`} className="hover:text-accent">
                         {principle.fields.heading}
                       </a>
                     </h2>
                   ) : null}
-                  <p className="mt-3 max-w-measure whitespace-pre-line text-body text-fg-body">
+                  <p
+                    className="mt-3 max-w-measure whitespace-pre-line text-body text-fg-body"
+                    lang={principle.fieldLocales.body}
+                    dir={principle.fieldLocales.body ? dirForLocale(principle.fieldLocales.body) : undefined}
+                  >
                     {principle.fields.body}
                   </p>
                 </div>

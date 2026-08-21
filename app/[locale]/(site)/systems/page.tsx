@@ -7,6 +7,7 @@ import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
 
 /**
  * Systems — composed from `SystemsEssay.dc.html` (Direction B).
@@ -192,11 +193,19 @@ export default async function Systems({
         return section.fields.body ? (
           <section key={section.id} className="mt-14 border-t border-DEFAULT pt-10">
             {section.fields.heading ? (
-              <h2 className="mb-5 max-w-measure text-h3 text-fg">
+              <h2
+                className="mb-5 max-w-measure text-h3 text-fg"
+                lang={section.fieldLocales.heading}
+                dir={section.fieldLocales.heading ? dirForLocale(section.fieldLocales.heading) : undefined}
+              >
                 {section.fields.heading}
               </h2>
             ) : null}
-            <p className="max-w-measure whitespace-pre-line text-body text-fg-body">
+            <p
+              className="max-w-measure whitespace-pre-line text-body text-fg-body"
+              lang={section.fieldLocales.body}
+              dir={section.fieldLocales.body ? dirForLocale(section.fieldLocales.body) : undefined}
+            >
               {section.fields.body}
             </p>
 
@@ -233,11 +242,19 @@ export default async function Systems({
       {close?.fields.body ? (
         <section className="mt-14 border-t border-DEFAULT pt-10">
           {close.fields.heading ? (
-            <h2 className="mb-4 font-mono text-label uppercase text-fg-dim">
+            <h2
+              className="mb-4 font-mono text-label uppercase text-fg-dim"
+              lang={close.fieldLocales.heading}
+              dir={close.fieldLocales.heading ? dirForLocale(close.fieldLocales.heading) : undefined}
+            >
               {close.fields.heading}
             </h2>
           ) : null}
-          <p className="max-w-measure whitespace-pre-line text-statement text-fg">
+          <p
+            className="max-w-measure whitespace-pre-line text-statement text-fg"
+            lang={close.fieldLocales.body}
+            dir={close.fieldLocales.body ? dirForLocale(close.fieldLocales.body) : undefined}
+          >
             {close.fields.body}
           </p>
         </section>

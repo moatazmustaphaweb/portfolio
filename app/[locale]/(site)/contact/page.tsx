@@ -9,6 +9,7 @@ import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
 
 /**
  * Contact — composed from `Contact.dc.html`.
@@ -130,11 +131,19 @@ export default async function Contact({
           {methods?.fields.body ? (
             <section>
               {methods.fields.heading ? (
-                <h2 className="font-mono text-section uppercase text-fg-dim">
+                <h2
+                  className="font-mono text-section uppercase text-fg-dim"
+                  lang={methods.fieldLocales.heading}
+                  dir={methods.fieldLocales.heading ? dirForLocale(methods.fieldLocales.heading) : undefined}
+                >
                   {methods.fields.heading}
                 </h2>
               ) : null}
-              <p className="mt-4 max-w-measure whitespace-pre-line text-body text-fg-body">
+              <p
+                className="mt-4 max-w-measure whitespace-pre-line text-body text-fg-body"
+                lang={methods.fieldLocales.body}
+                dir={methods.fieldLocales.body ? dirForLocale(methods.fieldLocales.body) : undefined}
+              >
                 {methods.fields.body}
               </p>
             </section>
@@ -169,12 +178,20 @@ export default async function Contact({
         {/* Right — the form, in its own card. */}
         <section className="rounded-panel border border-DEFAULT bg-surface p-card-p">
           {formIntro?.fields.heading ? (
-            <h2 className="font-mono text-label uppercase text-fg-dim">
+            <h2
+              className="font-mono text-label uppercase text-fg-dim"
+              lang={formIntro.fieldLocales.heading}
+              dir={formIntro.fieldLocales.heading ? dirForLocale(formIntro.fieldLocales.heading) : undefined}
+            >
               {formIntro.fields.heading}
             </h2>
           ) : null}
           {formIntro?.fields.body ? (
-            <p className="mt-4 whitespace-pre-line text-body-sm text-fg-muted">
+            <p
+              className="mt-4 whitespace-pre-line text-body-sm text-fg-muted"
+              lang={formIntro.fieldLocales.body}
+              dir={formIntro.fieldLocales.body ? dirForLocale(formIntro.fieldLocales.body) : undefined}
+            >
               {formIntro.fields.body}
             </p>
           ) : null}
@@ -199,7 +216,11 @@ export default async function Contact({
 
           {/* The promise about the button you just pressed. */}
           {whatNext?.fields.body ? (
-            <p className="mt-6 whitespace-pre-line font-mono text-meta leading-relaxed text-fg-dim">
+            <p
+              className="mt-6 whitespace-pre-line font-mono text-meta leading-relaxed text-fg-dim"
+              lang={whatNext.fieldLocales.body}
+              dir={whatNext.fieldLocales.body ? dirForLocale(whatNext.fieldLocales.body) : undefined}
+            >
               {whatNext.fields.body}
             </p>
           ) : null}
@@ -210,7 +231,11 @@ export default async function Contact({
       {alsoHere ? (
         <section className="mt-18 border-t border-DEFAULT pt-10">
           {alsoHere.fields.heading ? (
-            <h2 className="font-mono text-section uppercase text-fg-dim">
+            <h2
+              className="font-mono text-section uppercase text-fg-dim"
+              lang={alsoHere.fieldLocales.heading}
+              dir={alsoHere.fieldLocales.heading ? dirForLocale(alsoHere.fieldLocales.heading) : undefined}
+            >
               {alsoHere.fields.heading}
             </h2>
           ) : null}

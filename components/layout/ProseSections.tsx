@@ -1,4 +1,5 @@
-import type { PageSection } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
+import type { Locale, PageSection } from "@/lib/content/types";
 
 /**
  * Ordered prose sections for a static or document page.
@@ -18,10 +19,13 @@ import type { PageSection } from "@/lib/content/types";
  */
 export function ProseSections({
   intro,
+  introLang,
   sections,
   variant = "plain",
 }: {
   intro?: string;
+  /** Which locale `intro` came from — decision 053. */
+  introLang?: Locale;
   sections: PageSection[];
   variant?: "plain" | "comparison" | "accessibility";
 }) {
@@ -37,14 +41,36 @@ export function ProseSections({
   return (
     <>
       {intro ? (
-        <p className="mt-6 max-w-measure whitespace-pre-line text-lead text-fg-body">
+        <p
+          className="mt-6 max-w-measure whitespace-pre-line text-lead text-fg-body"
+          lang={introLang}
+          dir={introLang ? dirForLocale(introLang) : undefined}
+        >
           {intro}
         </p>
       ) : null}
 
       {usable.map((section) => {
+        /*
+         * Decision 053, per field. `withFields` has always returned
+         * `fieldLocales`; only the `PageSection` type omitted it, which is why
+         * this component never got the fix and the accessibility page was
+         * still putting a full stop at the start of the line.
+         */
+        const headingLang = section.fieldLocales.heading;
+        const bodyLang = section.fieldLocales.body;
+        const headingDir = headingLang ? dirForLocale(headingLang) : undefined;
+        const bodyDir = bodyLang ? dirForLocale(bodyLang) : undefined;
+
         if (section.kind === "table") {
-          return <SectionTable key={section.id} body={section.fields.body!} />;
+          return (
+            <SectionTable
+              key={section.id}
+              body={section.fields.body!}
+              lang={bodyLang}
+              dir={bodyDir}
+            />
+          );
         }
 
         /*
@@ -66,12 +92,20 @@ export function ProseSections({
                   {String(n).padStart(2, "0")}
                 </span>
                 {section.fields.heading ? (
-                  <h2 className="max-w-measure text-h3 text-fg">
+                  <h2
+                className="max-w-measure text-h3 text-fg"
+                lang={headingLang}
+                dir={headingDir}
+              >
                     {section.fields.heading}
                   </h2>
                 ) : null}
               </div>
-              <p className="mt-4 max-w-measure whitespace-pre-line text-body text-fg-body sm:ps-10">
+              <p
+                className="mt-4 max-w-measure whitespace-pre-line text-body text-fg-body sm:ps-10"
+                lang={bodyLang}
+                dir={bodyDir}
+              >
                 {section.fields.body}
               </p>
             </section>
@@ -86,11 +120,19 @@ export function ProseSections({
               className="mt-14 rounded-panel border border-accent bg-surface p-card-p"
             >
               {section.fields.heading ? (
-                <h2 className="font-mono text-label uppercase text-fg-dim">
+                <h2
+                className="font-mono text-label uppercase text-fg-dim"
+                lang={headingLang}
+                dir={headingDir}
+              >
                   {section.fields.heading}
                 </h2>
               ) : null}
-              <p className="mt-5 max-w-measure whitespace-pre-line text-h3 text-fg">
+              <p
+                className="mt-5 max-w-measure whitespace-pre-line text-h3 text-fg"
+                lang={bodyLang}
+                dir={bodyDir}
+              >
                 {section.fields.body}
               </p>
             </section>
@@ -102,11 +144,19 @@ export function ProseSections({
           return (
             <section key={section.id} className="mt-14 border-t border-DEFAULT pt-10">
               {section.fields.heading ? (
-                <h2 className="mb-4 font-mono text-label uppercase text-fg-dim">
+                <h2
+                className="mb-4 font-mono text-label uppercase text-fg-dim"
+                lang={headingLang}
+                dir={headingDir}
+              >
                   {section.fields.heading}
                 </h2>
               ) : null}
-              <p className="max-w-measure whitespace-pre-line text-statement text-fg">
+              <p
+                className="max-w-measure whitespace-pre-line text-statement text-fg"
+                lang={bodyLang}
+                dir={bodyDir}
+              >
                 {section.fields.body}
               </p>
             </section>
@@ -116,11 +166,19 @@ export function ProseSections({
         return (
           <section key={section.id} className="mt-14">
             {section.fields.heading ? (
-              <h2 className="mb-4 max-w-measure text-h3 text-fg">
+              <h2
+                className="mb-4 max-w-measure text-h3 text-fg"
+                lang={headingLang}
+                dir={headingDir}
+              >
                 {section.fields.heading}
               </h2>
             ) : null}
-            <p className="max-w-measure whitespace-pre-line text-body text-fg-body">
+            <p
+                className="max-w-measure whitespace-pre-line text-body text-fg-body"
+                lang={bodyLang}
+                dir={bodyDir}
+              >
               {section.fields.body}
             </p>
           </section>
@@ -142,7 +200,15 @@ export function ProseSections({
  * Scrolls inside its own container so a five-column table never makes the
  * page scroll sideways.
  */
-export function SectionTable({ body }: { body: string }) {
+export function SectionTable({
+  body,
+  lang,
+  dir,
+}: {
+  body: string;
+  lang?: Locale;
+  dir?: "ltr" | "rtl";
+}) {
   const rows = body
     .split("\n")
     .map((row) => row.split("\t"))
@@ -154,7 +220,9 @@ export function SectionTable({ body }: { body: string }) {
 
   return (
     <div className="mt-10 overflow-x-auto rounded-panel border border-DEFAULT bg-surface">
-      <table className="w-full border-collapse text-start">
+      {/* 053 on the table rather than each cell: the whole grid is one field,
+          resolved as one string, so it is one language. */}
+      <table className="w-full border-collapse text-start" lang={lang} dir={dir}>
         <thead>
           <tr className="bg-surface-raised">
             {header.map((cell, i) => (

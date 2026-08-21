@@ -7,6 +7,7 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { listChapterBodies } from "@/lib/content/chapters";
 import { getUiStrings } from "@/lib/content/ui";
+import { dirForLocale } from "@/lib/content/types";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale, TargetStatus } from "@/lib/content/types";
 
@@ -151,8 +152,13 @@ export default async function LinearView({
           {opening ? (
             <div className="mt-6 flex max-w-measure flex-col gap-4">
               {opening.paragraphs.map((paragraph, i) => (
-                <p key={i} className="text-body text-fg-body">
-                  {paragraph}
+                <p
+                  key={i}
+                  className="text-body text-fg-body"
+                  lang={paragraph.lang}
+                  dir={dirForLocale(paragraph.lang)}
+                >
+                  {paragraph.text}
                 </p>
               ))}
             </div>
@@ -179,14 +185,31 @@ export default async function LinearView({
         {roleSection ? (
           <section className="mt-10 max-w-measure border-s border-strong ps-6">
             {roleSection.heading || ui.t("role_label") ? (
-              <h2 className="font-mono text-micro uppercase text-fg-dim">
+              <h2
+                className="font-mono text-micro uppercase text-fg-dim"
+                lang={roleSection.headingLang}
+                dir={roleSection.headingLang ? dirForLocale(roleSection.headingLang) : undefined}
+              >
                 {roleSection.heading ?? ui.t("role_label")}
               </h2>
             ) : null}
-            <p className="mt-3 text-statement text-fg">{roleSection.paragraphs[0]}</p>
+            {roleSection.paragraphs[0] ? (
+              <p
+                className="mt-3 text-statement text-fg"
+                lang={roleSection.paragraphs[0].lang}
+                dir={dirForLocale(roleSection.paragraphs[0].lang)}
+              >
+                {roleSection.paragraphs[0].text}
+              </p>
+            ) : null}
             {roleSection.paragraphs.slice(1).map((paragraph, i) => (
-              <p key={i} className="mt-3 text-body text-fg-body">
-                {paragraph}
+              <p
+                key={i}
+                className="mt-3 text-body text-fg-body"
+                lang={paragraph.lang}
+                dir={dirForLocale(paragraph.lang)}
+              >
+                {paragraph.text}
               </p>
             ))}
           </section>
@@ -226,7 +249,11 @@ export default async function LinearView({
               ) : null}
 
               {chapter.fields.context ? (
-                <p className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-body">
+                <p
+                  className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-body"
+                  lang={chapter.fieldLocales.context}
+                  dir={chapter.fieldLocales.context ? dirForLocale(chapter.fieldLocales.context) : undefined}
+                >
                   {chapter.fields.context}
                 </p>
               ) : null}
@@ -242,11 +269,19 @@ export default async function LinearView({
                         {ui.t("decision")}
                       </p>
                     ) : null}
-                    <p className="mt-2 max-w-measure text-statement text-fg">
+                    <p
+                      className="mt-2 max-w-measure text-statement text-fg"
+                      lang={decision.fieldLocales.name}
+                      dir={decision.fieldLocales.name ? dirForLocale(decision.fieldLocales.name) : undefined}
+                    >
                       {decision.fields.name}
                     </p>
                     {decision.fields.body ? (
-                      <p className="mt-3 max-w-measure whitespace-pre-line text-body text-fg-body">
+                      <p
+                        className="mt-3 max-w-measure whitespace-pre-line text-body text-fg-body"
+                        lang={decision.fieldLocales.body}
+                        dir={decision.fieldLocales.body ? dirForLocale(decision.fieldLocales.body) : undefined}
+                      >
                         {decision.fields.body}
                       </p>
                     ) : null}
@@ -321,7 +356,11 @@ export default async function LinearView({
                             {statusLabel[status] ?? status}
                           </span>
                           {target.fields.note ? (
-                            <span className="mt-2 block text-meta text-fg-muted">
+                            <span
+                              className="mt-2 block text-meta text-fg-muted"
+                              lang={target.fieldLocales.note}
+                              dir={target.fieldLocales.note ? dirForLocale(target.fieldLocales.note) : undefined}
+                            >
                               {target.fields.note}
                             </span>
                           ) : null}

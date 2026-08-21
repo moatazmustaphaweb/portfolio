@@ -146,14 +146,29 @@ export function CoverSections({
                    * inconsistency, not as a different kind of thing. The
                    * cover's headings are one set and they are sized as one.
                    */
-                  <span className="font-mono text-section uppercase text-fg-dim">
+                  <span
+                    className="font-mono text-section uppercase text-fg-dim"
+                    lang={section.headingLang}
+                    dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
+                  >
                     {section.heading ?? roleLabel}
                   </span>
                 ) : null}
-                <p className="text-statement text-fg">{statement}</p>
+                <p
+                  className="text-statement text-fg"
+                  lang={statement.lang}
+                  dir={dirForLocale(statement.lang)}
+                >
+                  {statement.text}
+                </p>
                 {rest.map((p, i) => (
-                  <p key={i} className="text-body text-fg-body">
-                    {p}
+                  <p
+                    key={i}
+                    className="text-body text-fg-body"
+                    lang={p.lang}
+                    dir={dirForLocale(p.lang)}
+                  >
+                    {p.text}
                   </p>
                 ))}
               </div>
@@ -169,15 +184,24 @@ export function CoverSections({
             >
               {section.heading ? (
                 <h2>
-                  <span className="font-mono text-section uppercase text-fg-dim">
+                  <span
+                    className="font-mono text-section uppercase text-fg-dim"
+                    lang={section.headingLang}
+                    dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
+                  >
                     {section.heading}
                   </span>
                 </h2>
               ) : null}
               <div className="mt-4 flex flex-col gap-4">
                 {section.paragraphs.map((p, i) => (
-                  <p key={i} className="text-body text-fg-body">
-                    {p}
+                  <p
+                    key={i}
+                    className="text-body text-fg-body"
+                    lang={p.lang}
+                    dir={dirForLocale(p.lang)}
+                  >
+                    {p.text}
                   </p>
                 ))}
               </div>
@@ -239,15 +263,24 @@ export function CoverSections({
           <>
             {section.heading ? (
               <h2 className="mb-3">
-                <span className="font-mono text-section uppercase text-fg-dim">
+                <span
+                  className="font-mono text-section uppercase text-fg-dim"
+                  lang={section.headingLang}
+                  dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
+                >
                   {section.heading}
                 </span>
               </h2>
             ) : null}
             <div className="flex max-w-measure flex-col gap-4">
               {section.paragraphs.map((p, i) => (
-                <p key={i} className="text-body text-fg-body">
-                  {p}
+                <p
+                  key={i}
+                  className="text-body text-fg-body"
+                  lang={p.lang}
+                  dir={dirForLocale(p.lang)}
+                >
+                  {p.text}
                 </p>
               ))}
             </div>

@@ -75,6 +75,8 @@ export type Media = MediaRow & {
 };
 
 export type CaseFile = Tables<"case_files"> & {
+  /** Which locale supplied each field — decision 053. */
+  fieldLocales: FieldLocales;
   /**
    * From translations: `title`, plus the legacy `thesis` · `role` ·
    * `reflection` fields the cover slot model (0031) replaces. Those three are
@@ -118,9 +120,13 @@ export type ChapterKind = Enums<"chapter_kind">;
 export type Decision = Tables<"decisions"> & {
   /** From translations: `name`, `body`. */
   fields: Fields;
+  /** Which locale supplied each field — decision 053. */
+  fieldLocales: FieldLocales;
 };
 
 export type Chapter = Tables<"chapters"> & {
+  /** Which locale supplied each field — decision 053. */
+  fieldLocales: FieldLocales;
   /**
    * From translations: `title`, `objective`, `context`, `decision`,
    * `evidence_note`, `result`, `milestone`.
@@ -136,6 +142,8 @@ export type Chapter = Tables<"chapters"> & {
  * would add a query per chapter to a page whose whole point is one request.
  */
 export type ChapterWithDecisions = Tables<"chapters"> & {
+  /** Which locale supplied each field — decision 053. */
+  fieldLocales: FieldLocales;
   fields: Fields;
   decisions: Decision[];
 };
@@ -143,6 +151,16 @@ export type ChapterWithDecisions = Tables<"chapters"> & {
 /** One section of static page prose. From translations: `heading`, `body`. */
 export type PageSection = Tables<"page_sections"> & {
   fields: Fields;
+  /**
+   * Which locale supplied each field — see `FieldLocales`.
+   *
+   * `withFields` has always attached this at runtime; the type simply did not
+   * declare it, so `ProseSections` could not see it and the static and
+   * document pages never got decision 053. That is why the accessibility page
+   * was still rendering `.claims and open claims are separated below` with the
+   * full stop at the start of the line, months after 053 shipped.
+   */
+  fieldLocales: FieldLocales;
 };
 
 export type Feature = Tables<"features"> & {
@@ -158,6 +176,8 @@ export type Outcome = Tables<"outcomes"> & {
 export type Target = Tables<"targets"> & {
   /** From translations: `target`, `note`. */
   fields: Fields;
+  /** Which locale supplied each field — decision 053. */
+  fieldLocales: FieldLocales;
 };
 
 export type NavItem = Tables<"navigation"> & {
@@ -167,6 +187,14 @@ export type NavItem = Tables<"navigation"> & {
 };
 
 /** A full case file with everything needed to render its cover. */
+/** One paragraph of a cover section, with the language it is written in. */
+export type CoverParagraph = {
+  text: string;
+  /** Decision 053: `en` here on an Arabic page is the fallback, and must be
+   * marked `dir="ltr" lang="en"` when rendered. */
+  lang: Locale;
+};
+
 /**
  * One slot on a cover.
  *
@@ -179,8 +207,17 @@ export type CoverSection = {
   slot: string;
   /** The heading as written, or undefined when this locale has no translation. */
   heading?: string;
-  /** One entry per paragraph, in order. Never a joined string. */
-  paragraphs: string[];
+  /** Which locale supplied `heading` — decision 053. */
+  headingLang?: Locale;
+  /**
+   * One entry per paragraph, in order. Never a joined string.
+   *
+   * Each carries its own language rather than sitting beside a parallel array
+   * of languages: two arrays indexed together are two things free to disagree,
+   * and a paragraph rendered under the wrong `lang` is exactly the bug 053
+   * exists to prevent. One object makes the disagreement unrepresentable.
+   */
+  paragraphs: CoverParagraph[];
   /**
    * The image beside this section — `cover_sections.media_id` (0041).
    *

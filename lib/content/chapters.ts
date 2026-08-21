@@ -344,8 +344,10 @@ export const getChapter = cache(
     }
 
     const [chapterFields, caseFileFields, features, decisions, media, sections] = await Promise.all([
-      resolveMany("chapter", [chapterRow.id], locale),
-      resolveMany("case_file", [caseFileRow.id], locale),
+      // Detailed: the chapter's own title/objective and the case file's title
+      // are rendered into the page and must carry their language (053).
+      resolveManyDetailed("chapter", [chapterRow.id], locale),
+      resolveManyDetailed("case_file", [caseFileRow.id], locale),
       withFields("feature", featureRows ?? [], locale),
       withFields("decision", decisionRows ?? [], locale),
       (async () => {
@@ -377,7 +379,8 @@ export const getChapter = cache(
 
     return {
       ...chapterRow,
-      fields: chapterFields.get(chapterRow.id) ?? {},
+      fields: chapterFields.get(chapterRow.id)?.fields ?? {},
+      fieldLocales: chapterFields.get(chapterRow.id)?.fieldLocales ?? {},
       // 1-based for display; index is -1 for a comparison or accessibility
       // page, which is not part of the sequence and shows no indicator.
       position: { current: index + 1, total: siblings.length },
@@ -393,7 +396,8 @@ export const getChapter = cache(
       decisions,
       caseFile: {
         ...caseFileRow,
-        fields: caseFileFields.get(caseFileRow.id) ?? {},
+        fields: caseFileFields.get(caseFileRow.id)?.fields ?? {},
+        fieldLocales: caseFileFields.get(caseFileRow.id)?.fieldLocales ?? {},
         cover: null,
         coverCard: null,
         // The chapter route shows a breadcrumb, not a card.

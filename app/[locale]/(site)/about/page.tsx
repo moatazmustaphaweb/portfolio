@@ -6,6 +6,7 @@ import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
 
 /**
  * About — composed from `About.dc.html`.
@@ -123,11 +124,19 @@ export default async function About({
         section.fields.body ? (
           <section key={section.id} className="mt-14 border-t border-DEFAULT pt-10">
             {section.fields.heading ? (
-              <h2 className="mb-4 max-w-measure text-h3 text-fg">
+              <h2
+                className="mb-4 max-w-measure text-h3 text-fg"
+                lang={section.fieldLocales.heading}
+                dir={section.fieldLocales.heading ? dirForLocale(section.fieldLocales.heading) : undefined}
+              >
                 {section.fields.heading}
               </h2>
             ) : null}
-            <p className="max-w-measure whitespace-pre-line text-body text-fg-body">
+            <p
+              className="max-w-measure whitespace-pre-line text-body text-fg-body"
+              lang={section.fieldLocales.body}
+              dir={section.fieldLocales.body ? dirForLocale(section.fieldLocales.body) : undefined}
+            >
               {section.fields.body}
             </p>
           </section>

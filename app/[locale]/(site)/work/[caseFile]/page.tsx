@@ -14,6 +14,7 @@ import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
 
 /**
  * Case File Cover — composed from the CORRECTED `CaseFile.dc.html`.
@@ -295,6 +296,8 @@ export default async function CaseFileCover({
                 key={page.id}
                 href={`/${l}/work/${caseFile}/${page.slug}`}
                 className="rounded-control border border-DEFAULT px-4 py-2 text-ui text-fg-muted transition-colors hover:border-strong hover:text-fg"
+                lang={page.fieldLocales.title}
+                dir={page.fieldLocales.title ? dirForLocale(page.fieldLocales.title) : undefined}
               >
                 {page.fields.title}
               </Link>

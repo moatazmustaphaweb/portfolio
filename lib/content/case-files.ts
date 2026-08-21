@@ -4,8 +4,9 @@ import { cache } from "react";
 
 import { supabaseServer } from "@/lib/supabase/server";
 
-import { resolveMany, withFields } from "./translate";
+import { resolveMany, resolveManyDetailed, withFields } from "./translate";
 import type {
+  CoverParagraph,
   CoverSection,
   CaseFile,
   CaseFileDetail,
@@ -320,7 +321,8 @@ export const getCaseFile = cache(
     const chapterRows = chapterRes.data ?? [];
 
     const [caseFields, chapters, outcomes, targets, media] = await Promise.all([
-      resolveMany("case_file", [row.id], locale),
+      // Detailed: the case-file title is rendered into the page (053).
+      resolveManyDetailed("case_file", [row.id], locale),
       withFields("chapter", chapterRows, locale),
       withFields("outcome", outcomeRes.data ?? [], locale),
       withFields("target", targetRes.data ?? [], locale),
@@ -431,9 +433,15 @@ export const getCaseFile = cache(
        * the grayscale treatment rides on the row and no call site can forget
        * it (amendment 036).
        */
+      /*
+       * `resolveManyDetailed` rather than `resolveMany`: the cover needs to
+       * know WHICH locale each string came from, so English fallback prose can
+       * be marked `dir="ltr" lang="en"` (decision 053). Same one round trip
+       * per entity type — the detail was already computed and thrown away.
+       */
       const [headingFields, paragraphFields, sectionMedia] = await Promise.all([
-        resolveMany("cover_section", sectionIds, locale),
-        resolveMany("cover_paragraph", (paraRows ?? []).map((p) => p.id), locale),
+        resolveManyDetailed("cover_section", sectionIds, locale),
+        resolveManyDetailed("cover_paragraph", (paraRows ?? []).map((p) => p.id), locale),
         fetchMedia((sectionRows ?? []).map((x) => x.media_id), locale, row.nda),
       ]);
 
@@ -450,16 +458,25 @@ export const getCaseFile = cache(
           id: s.id,
           slot: s.slot,
           media: sectionImage,
-          heading: headingFields.get(s.id)?.heading,
+          heading: headingFields.get(s.id)?.fields.heading,
+          headingLang: headingFields.get(s.id)?.fieldLocales.heading,
           /*
            * A paragraph with no text in THIS locale is omitted, not rendered
            * blank. Decision 013 makes a partial translation normal, and an
            * empty <p> would read as a mistake in the writing.
+           *
+           * The language travels WITH the text, resolved from the same entry,
+           * so a paragraph cannot arrive labelled as the wrong one.
            */
           paragraphs: (paraRows ?? [])
             .filter((p) => p.cover_section_id === s.id)
-            .map((p) => paragraphFields.get(p.id)?.body)
-            .filter((b): b is string => Boolean(b && b.trim())),
+            .map((p) => {
+              const entry = paragraphFields.get(p.id);
+              const text = entry?.fields.body;
+              if (!text || !text.trim()) return null;
+              return { text, lang: entry?.fieldLocales.body ?? locale };
+            })
+            .filter((p): p is CoverParagraph => p !== null),
         });
       }
     }
@@ -471,12 +488,13 @@ export const getCaseFile = cache(
      * its three metadata sites have been describing it with nothing.
      */
     const summary =
-      sections.find((s) => s.slot === "thesis")?.paragraphs[0] ??
-      sections.find((s) => s.slot === "what-it-is")?.paragraphs[0];
+      sections.find((s) => s.slot === "thesis")?.paragraphs[0]?.text ??
+      sections.find((s) => s.slot === "what-it-is")?.paragraphs[0]?.text;
 
     return {
       ...row,
-      fields: caseFields.get(row.id) ?? {},
+      fields: caseFields.get(row.id)?.fields ?? {},
+      fieldLocales: caseFields.get(row.id)?.fieldLocales ?? {},
       cover,
       coverCard,
       headline: null,

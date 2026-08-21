@@ -20,7 +20,7 @@ export const getPageSections = cache(
   async (
     page: string,
     locale: Locale,
-  ): Promise<{ intro?: string; sections: PageSection[] }> => {
+  ): Promise<{ intro?: string; introLang?: Locale; sections: PageSection[] }> => {
     const { data, error } = await supabaseServer
       .from("page_sections")
       .select("*")
@@ -36,6 +36,9 @@ export const getPageSections = cache(
 
     return {
       intro: withText.find((s) => s.slug === "intro")?.fields.body,
+      // The intro is lifted out of `sections`, so its language has to come
+      // with it or ProseSections cannot mark it (decision 053).
+      introLang: withText.find((s) => s.slug === "intro")?.fieldLocales.body,
       sections: withText.filter((s) => s.slug !== "intro"),
     };
   },

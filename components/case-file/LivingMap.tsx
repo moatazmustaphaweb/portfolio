@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { Chapter, Grammar, Locale } from "@/lib/content/types";
+import { dirForLocale } from "@/lib/content/types";
 
 /**
  * The chapter map.
@@ -79,7 +80,15 @@ export function LivingMap({
               <span className="text-h3 text-fg">{title}</span>
 
               {chapter.fields.objective ? (
-                <span className="max-w-measure text-body-sm text-fg-muted">
+                <span
+                  className="max-w-measure text-body-sm text-fg-muted"
+                  lang={chapter.fieldLocales.objective}
+                  dir={
+                    chapter.fieldLocales.objective
+                      ? dirForLocale(chapter.fieldLocales.objective)
+                      : undefined
+                  }
+                >
                   {chapter.fields.objective}
                 </span>
               ) : null}

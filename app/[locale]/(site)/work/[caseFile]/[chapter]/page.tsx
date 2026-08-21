@@ -269,6 +269,7 @@ export default async function Chapter({
             ) : (
               <ProseSections
                 intro={page.intro}
+                introLang={page.introLang}
                 sections={page.sections}
                 variant={
                   detail.kind === "comparison"
@@ -368,7 +369,11 @@ export default async function Chapter({
                   {ui.t("context")}
                 </h2>
               ) : null}
-              <p className="max-w-measure whitespace-pre-line text-body text-fg-body">
+              <p
+                className="max-w-measure whitespace-pre-line text-body text-fg-body"
+                lang={detail.fieldLocales.context}
+                dir={detail.fieldLocales.context ? dirForLocale(detail.fieldLocales.context) : undefined}
+              >
                 {detail.fields.context}
               </p>
             </section>
@@ -392,11 +397,19 @@ export default async function Chapter({
                         {ui.t("decision")}
                       </p>
                     ) : null}
-                    <h2 className="mt-5 max-w-measure text-h3 text-fg">
+                    <h2
+                      className="mt-5 max-w-measure text-h3 text-fg"
+                      lang={decision.fieldLocales.name}
+                      dir={decision.fieldLocales.name ? dirForLocale(decision.fieldLocales.name) : undefined}
+                    >
                       {decision.fields.name}
                     </h2>
                     {decision.fields.body ? (
-                      <p className="mt-5 max-w-measure whitespace-pre-line text-body text-fg-body">
+                      <p
+                        className="mt-5 max-w-measure whitespace-pre-line text-body text-fg-body"
+                        lang={decision.fieldLocales.body}
+                        dir={decision.fieldLocales.body ? dirForLocale(decision.fieldLocales.body) : undefined}
+                      >
                         {decision.fields.body}
                       </p>
                     ) : null}
@@ -427,7 +440,11 @@ export default async function Chapter({
                   </span>
                 ) : null}
               </div>
-              <p className="max-w-measure whitespace-pre-line text-body text-fg-muted">
+              <p
+                className="max-w-measure whitespace-pre-line text-body text-fg-muted"
+                lang={detail.fieldLocales.evidence_note}
+                dir={detail.fieldLocales.evidence_note ? dirForLocale(detail.fieldLocales.evidence_note) : undefined}
+              >
                 {detail.fields.evidence_note}
               </p>
             </section>
@@ -441,7 +458,11 @@ export default async function Chapter({
                 </h2>
               ) : null}
               {/* The design sets the result as a statement, not body copy. */}
-              <p className="max-w-measure whitespace-pre-line text-statement text-fg">
+              <p
+                className="max-w-measure whitespace-pre-line text-statement text-fg"
+                lang={detail.fieldLocales.result}
+                dir={detail.fieldLocales.result ? dirForLocale(detail.fieldLocales.result) : undefined}
+              >
                 {detail.fields.result}
               </p>
             </section>
