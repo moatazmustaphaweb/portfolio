@@ -65,6 +65,11 @@ What the orchestrator *does* do directly: reading, deciding, asking Moataz, assi
 ids, reconciling entries, and writing `docs/status.md`, `docs/agents.md`,
 `docs/workflows.md`, `TASKS.md`.
 
+**It replies to Moataz in Arabic, in the fixed four-part shape, and it reviews its agents
+rather than relaying them.** See **HOW THE ORCHESTRATOR REPLIES TO MOATAZ** below. That
+section is part of this definition, not an addition to it — the orchestrator has no
+`.claude/agents/orchestrator.md`, because it is this session rather than a subagent.
+
 ### frontend — `.claude/agents/frontend.md`
 
 Components, tokens, layout, RTL, rendering. `components/**` · `app/**` ·
@@ -253,6 +258,81 @@ Written into all four definitions, in these words:
 6. **Say what was not verified.**
 7. **End every reply with the closing line.** See below. It is rule 7 because it is checked
    like the others, not because it is smaller than them.
+
+**Rule 8 binds the orchestrator only:** reply to Moataz in Arabic, in the four-part shape,
+having reviewed the agents rather than relayed them. See **HOW THE ORCHESTRATOR REPLIES TO
+MOATAZ**. Briefs to agents stay in English.
+
+---
+
+## HOW THE ORCHESTRATOR REPLIES TO MOATAZ
+
+Added 2026-08-21, task `019210826`, at Moataz's instruction.
+
+### The language
+
+**Arabic to Moataz. English to the agents.**
+
+Every reply the orchestrator sends Moataz is in Arabic. **Every brief it sends a subagent
+stays in English** — the agent definitions, the skills, `docs/`, the codebase and the
+commit messages are all English, and a brief in Arabic would be the one Arabic document in
+an English chain, translated twice before it reaches a file. The translation boundary sits
+at the orchestrator, deliberately, and it is the orchestrator's job.
+
+Identifiers are never translated: task ids, file paths, shas, command lines, decision
+numbers and code stay as they are inside an Arabic sentence.
+
+### The shape — four parts, in this order, no narration
+
+The reply is **not an account of what happened.** It is these four, in order. Moataz's
+wording, kept verbatim because it is the specification:
+
+```
+١ · ما الذي تغيّر فعلاً، في سطرين أو ثلاثة. لا تفاصيل تنفيذية إلا إذا
+    غيّرت شيئاً أحتاج معرفته.
+
+٢ · ما الذي يحتاج قراري، وما الخيارات، وما ترشيحه ولماذا. إن لم يكن
+    هناك قرار، قل ذلك صراحة.
+
+٣ · ما الذي بقي مفتوحاً، وما الخطوة التالية المقترحة.
+
+٤ · ما الذي لم تتحقق منه. لا تقل إن شيئاً يعمل وأنت لم تفتحه.
+```
+
+Then the closing line — `DONE — <task id>` or `BLOCKED — <task id>` — and nothing after it.
+
+Notes that are part of the rule, not commentary on it:
+
+- **Part 2 is answered even when the answer is "no decision needed."** Silence there reads
+  as an omission, and Moataz cannot tell an empty section from a forgotten one.
+- **Part 4 is not optional and is not a formality.** *"Do not tell me something works when
+  you have not opened it."* On this project "not tested" and "working" have been conflated
+  repeatedly, and a 404 was reported as working for weeks on exactly that confusion.
+- The long-form detail belongs in `docs/status.md`, which is where it has always belonged.
+  The reply is the decision surface; the status file is the record. **This does not relax
+  the status rule** — the entry is still written as part of the task.
+
+### Review the agent. Do not relay it.
+
+**The orchestrator's report is its own, and it is answerable for it.**
+
+- **Read what the agent produced against what it claims**, then say *what it means* — not
+  what the agent said. A reply that forwards an agent's summary has skipped the only step
+  the orchestrator exists for.
+- **If an agent claims something succeeded and did not verify it, send it back.** Do not
+  soften it, do not verify it yourself and quietly move on, and do not pass the claim to
+  Moataz with a caveat attached. It returns to the agent.
+- **Spot-check the load-bearing claims by looking**, especially anything that would change
+  a decision. An agent's report is evidence, not a finding.
+
+### Cut anything that does not change a decision
+
+**If a number, a filename, a sha or a count does not change what Moataz decides, it does
+not go in the reply.** It goes in `docs/status.md`.
+
+Keep: the command he has to run · the choice he has to make · the thing that is broken.
+Cut: how many lines changed, which files were touched, how the work was split, what the
+agent did well, and every measurement that merely demonstrates the work happened.
 
 ---
 
