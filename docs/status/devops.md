@@ -16,6 +16,103 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 024210826 — 2026-08-21 23:56 — the voice skill committed and pushed; the "push is refused" line is stale
+
+**Brief:** Commit the documentation and skill work of `023210826` and `024210826`, track the
+three untracked skill directories, split into two commits if the tree separates cleanly, push,
+and report the refusal verbatim when the push is refused. No build, no typecheck — nothing in
+the change set is code.
+
+**Commits:**
+
+- `c4c0c0a` `docs(voice): single-source the writing rules in a portfolio-voice skill` —
+  10 files, +895 −36. Carries **three** tasks, not two: `022210826`, `023210826` and
+  `024210826`. Work of the orchestrator throughout; no agent files were written by me.
+- `<this entry>` `docs(status): the devops record for 024210826` — committed after the push,
+  because it states that the push happened and no entry may say "pushed" before the command
+  has run and its result has been read. Same reasoning as `021210826`.
+
+**Grouping: one commit, not two, and the brief permits it.** The tasks do not separate.
+`docs/learn.md` carries a `023210826`-attributed heading correction and a
+`024210826`-attributed deletion of the invented Arabic exception in adjacent hunks;
+`.claude/agents/content.md` carries the `023210826` standing-load section and the
+`024210826` em-dash deletion; `docs/status.md` carries three entries; and
+`.claude/skills/portfolio-voice/SKILL.md` is a **new file created in one task and corrected
+in the other** — splitting it would require committing an intermediate version that never
+existed on disk. Contorting the history to look tidier than the work was is the thing the
+brief named and refused.
+
+**Pushed:** yes. `git push origin main` returned `4a631d0..c4c0c0a  main -> main`, exit 0.
+
+**⚠️ THE PUSH WAS NOT REFUSED, AND `docs/status.md` SAYS IT WILL BE.** The CURRENT STATE
+block in `CLAUDE.md` and the launch-gate section of `docs/status.md` both state *"The push is
+refused: the only authenticated GitHub account has no write access to the repository."*
+**That is stale.** `gh auth status` names **`moatazmustaphaweb` as the active account** —
+the account that owns the repo — with `dabblersport` still logged in but inactive. The
+account was switched at some point and the document was never corrected. This is exactly the
+`docs/learn.md` Part 6 trap *"a status line that states a git fact"*, one row below the row
+about the wrong `gh` account. **Correcting those two lines is the orchestrator's, not mine.**
+
+**Also stale, and found by running the command rather than reading the sentence:** before my
+commit, `git log origin/main..HEAD` returned **one** commit, not a backlog — every commit
+through `4a631d0` was already on the remote. **No count is written here.** To get it:
+`git fetch origin && git rev-list --count origin/main..HEAD`.
+
+**Deployed:** no. There is no Vercel project. Nothing was deployed, and nothing in this change
+set is deployable — it is documentation and skills only.
+
+**Verified:**
+- **The full staged diff, read in whole**, plus all three untracked `SKILL.md` files read
+  end to end before they entered permanent history. Three files only; nothing binary.
+- **Nothing stray staged.** Ten paths, staged by name rather than by `git add -A`. No
+  `.env.local`, no `.next/`, no `node_modules/`, no `.claude-flow/`, no
+  `.claude/settings.local.json`, no `.DS_Store`. `git check-ignore .env.local` returns the
+  path; `.claude/settings.local.json` and `.DS_Store` are both matched by `.gitignore`.
+- **No secret.** Grepped the staged diff for key, secret, `service_role`, password, bearer,
+  `token=`, `eyJ…`, `sk-…`, `supabase.co`, `cloudinary://` and inline URL credentials:
+  **no match**.
+- **No NDA exposure.** `portfolio-voice` quotes site copy — Moataz's own prose, already in
+  the `translations` table and destined for the public site. `Mashreq` appears once, in a
+  list of Latin-script brand terms, as it already does in the committed `docs/learn.md`.
+  No client screen, no design file, no asset.
+- **No `Co-Authored-By` trailer.** `.claude/settings.json` **does not exist**, so no
+  `attribution.commit` is set and the trailer is forbidden. `git log -1 --format=%B | grep -ci
+  'co-authored-by'` → **0**.
+- **Timestamps are not future-dated.** The three `docs/status.md` entries are 23:20, 23:36 and
+  23:52; the commit landed at **23:55**. All three sit behind it.
+- **The push landed.** `git rev-parse origin/main` → `c4c0c0a…` after a fresh `git fetch`,
+  equal to `HEAD`. `git rev-list --count origin/main..HEAD` → **0**.
+
+**Not verified:**
+- **No build, no typecheck, no test run** — deliberately, as briefed. Nothing in the change
+  set is code, schema, component or query, and running a build "to be safe" would only have
+  reported on the state of the tree before this task.
+- **Nothing was rendered or loaded.** No page was opened, no dev server started. *Pushed* is
+  not *deployed* and neither is *checked*.
+- **The three skills were read, not exercised.** No task has yet loaded `portfolio-voice` and
+  written a line through it, so whether it produces the intended prose is untested.
+
+**Findings returned to the orchestrator, not fixed here** — `docs/**` and `.claude/agents/**`
+are the orchestrator's files:
+
+1. **The corpus figure contradicts itself inside one commit.** `.claude/agents/content.md`
+   says the skill was *"drawn from the 140 captions and 22 pages on it"* and `docs/agents.md`
+   says *"drawn from the 140 captions and 22 pages already on the site"* — while
+   `.claude/skills/portfolio-voice/SKILL.md`, in the same commit, **corrects that exact
+   number**: *"the 140 came from a Cloudinary inventory file and counts tags, not captions"*,
+   and gives the real corpus as 58 English captions, 25 Arabic, 36 English page bodies. Two
+   files now repeat a number the third one deletes. Committed as written because it is neither
+   a secret nor an NDA matter and a follow-up commit corrects it cleanly, but it is the
+   `docs/learn.md` "three copies of one rule" failure appearing inside the commit that exists
+   to end it.
+2. **`docs/status.md` carries three entries, not the two the brief listed.** `022210826` is
+   in the diff and is not in `HEAD`. It is squarely in scope — same arc, same file, and the
+   brief references task 022 repeatedly — so it was committed rather than returned.
+
+**Open questions:** none blocking. The two findings above are reports, not questions.
+
+---
+
 ## 021210826 — 2026-08-21 23:08 — `docs/content-brief.md` committed, wired in, and pushed
 
 **Brief:** Commit the new untracked `docs/content-brief.md`, its wiring across four files, the
