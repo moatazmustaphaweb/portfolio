@@ -200,6 +200,25 @@ simply never caught up with the definition.
 file is, not where it sits.** `i18n/**` and `fonts/**` went to frontend on that basis;
 `app/api/**` splits three ways under the same rule. A directory is not a unit of ownership.
 
+### `.claude/**` — why it splits three ways
+
+Added 2026-08-21, task `017210826`, after task 016 hit the gap by routing into it.
+
+- **`.claude/agents/*.md` → the orchestrator.** *An agent editing its own definition is a
+  closed loop — rewriting the rules it is judged against.* The structure describing itself
+  belongs to the layer above it, not to the layer it describes.
+- **`.claude/skills/**` → the orchestrator.** The four skills govern all four agents. No
+  one agent may change them on the other three's behalf.
+- **`.claude/settings*.json`, `.mcp.json`, hook configuration → devops.** Environment,
+  which devops already owns. Note that `.claude/settings.local.json` is gitignored, so a
+  change there is real but produces no commit — devops says so rather than reporting a
+  commit that does not exist.
+
+**`~/.mcp.json`, `~/.claude/settings.json` and `~/.claude/helpers/**` are outside the
+repository and outside every agent's write scope, devops included.** They are machine-level
+and affect every project run from the home directory. Any agent may read them; changing one
+is Moataz's decision, taken explicitly, never a side effect of a task.
+
 ### ⚠️ THE ONE EXPLICIT EXCEPTION TO "THE ORCHESTRATOR DOES NOT DO THE WORK"
 
 **The orchestrator writes `.claude/agents/*.md`, `.claude/skills/**`, `CLAUDE.md` and
