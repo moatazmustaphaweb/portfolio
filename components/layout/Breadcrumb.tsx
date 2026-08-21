@@ -47,17 +47,29 @@ export function Breadcrumb({
         {usable.map((crumb, i) => {
           const isLast = i === usable.length - 1;
           return (
-            <li key={`${crumb.label}-${i}`} className="flex items-center gap-2">
+            /*
+             * `items-start`, not `items-center`. A crumb long enough to wrap
+             * makes the li two lines tall, and centring floats the `/` in the
+             * gap between them, belonging to neither. Arabic reaches this
+             * first — "الاستحواذ في الخدمات المصرفية للشركات — مصر" wraps at
+             * 320px where every English crumb still fits on one line.
+             *
+             * `min-w-0` + `break-words` are the guard behind it: a flex item
+             * will not shrink below its min-content width by default, so a
+             * single unbreakable token would push the row wide rather than
+             * wrap. Nothing in the content hits that today.
+             */
+            <li key={`${crumb.label}-${i}`} className="flex min-w-0 items-start gap-2">
               {i > 0 ? <span aria-hidden="true">/</span> : null}
               {crumb.href && !isLast ? (
                 <Link
                   href={`/${locale}${crumb.href}`}
-                  className="transition-colors hover:text-fg"
+                  className="break-words transition-colors hover:text-fg"
                 >
                   {crumb.label}
                 </Link>
               ) : (
-                <span aria-current={isLast ? "page" : undefined} className="text-fg-muted">
+                <span aria-current={isLast ? "page" : undefined} className="break-words text-fg-muted">
                   {crumb.label}
                 </span>
               )}
