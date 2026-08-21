@@ -63,7 +63,7 @@ same file. Route it.
 
 What the orchestrator *does* do directly: reading, deciding, asking Moataz, assigning
 ids, reconciling entries, and writing `docs/status.md`, `docs/agents.md`,
-`docs/workflows.md`, `TASKS.md`.
+`docs/workflows.md`, `TASKS.md`, `.claude/agents/*.md` and `.claude/skills/**`.
 
 **It replies to Moataz in Arabic, in the fixed four-part shape, and it reviews its agents
 rather than relaying them.** See **HOW THE ORCHESTRATOR REPLIES TO MOATAZ** below. That
@@ -125,9 +125,60 @@ writer or says **UNOWNED** in full.
 | **`.claude/agents/*.md`** | **write** | read | read | read | read |
 | **`.claude/skills/**`** | **write** | read | read | read | read |
 | **`.claude/settings*.json`, `.mcp.json`, hook config** | read | read | read | **write** | read |
+| `supabase/**` outside `migrations/` | read | read | **write** | read | read |
+| `designs/` | read | **write** | read | read | read |
+| `Image mapping/` | read | read | read | read | **write** |
+| root config — `package.json`, `tsconfig.json`, `next.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`, `.gitignore`, `.env.example`, `proxy.ts` | read | read | read | **write** | read |
+| `CLAUDE.md` · `docs/decisions.md` | **write** | read | read | read | read |
+| **`docs/learn.md`** | **append** | **append** | **append** | **append** | **append** |
 | `docs/status/<own>.md` | read | **write** | **write** | **write** | **write** |
 | `docs/status.md` · `TASKS.md` · `docs/agents.md` · `docs/workflows.md` | **write** | — | — | — | — |
+| `.vscode/` | **UNOWNED — nobody writes it** | **UNOWNED** | **UNOWNED** | **UNOWNED** | **UNOWNED** |
+| `app/api/**` | *(pending — see below)* | *(pending)* | *(pending)* | *(pending)* | *(pending)* |
 | every other file in `docs/` | read | read | `schema.md`, `sync-contract.md` | read | audit reports, `ui-strings-review.md` |
+
+### `docs/learn.md` — append, by anyone, never restructure
+
+**The prose wins over the table**, ruled 2026-08-21, task `018210826`. `CLAUDE.md` and this
+document both say `learn.md` is appended to as part of the task by whoever learned the
+thing; the table used to forbid it. **That is the whole point of the file**, so the table
+changed, not the prose.
+
+**All five may append. None may do anything else.**
+
+- **Append only, to the section the lesson belongs in.** Not to the top, not to the end,
+  not to a new section invented for it.
+- **Never restructured, never rewritten, never reordered by an agent.** Not tidied, not
+  deduplicated, not "improved". **Moataz owns its shape** — it is written the way he wants
+  to read it, and an agent reorganising it destroys the thing that makes it readable to him.
+- Correcting an existing line is not appending. If a line is wrong, **say so in the report
+  and leave it**; changing it is his call.
+
+**What qualifies:** a bug class · a preference discovered by being corrected · an
+environment trap that cost a session · a rule that turned out to have an exception.
+
+**What does not:** a decision (that is `docs/decisions.md`) · a session outcome (that is
+`docs/status.md`) · anything true of only one file.
+
+**The test is unchanged: would reading it beforehand have saved time?** If no, it does not
+belong there.
+
+### `CLAUDE.md` and `docs/decisions.md` — the orchestrator, for the same reason as `.claude/agents/`
+
+Both describe the structure or the rules the agents are judged against, so both belong to
+the layer above the agents. **An agent must not be able to rewrite the rule it is judged
+against** — the same closed loop that put `.claude/agents/*.md` with the orchestrator.
+`docs/decisions.md` is additionally the tie-breaker when documents disagree; a tie-breaker
+an interested party can edit is not one.
+
+These fall under the same explicit exception below: **the orchestrator writes them itself
+rather than routing them.**
+
+### `app/api/**` — DELIBERATELY UNFILLED, awaiting Moataz
+
+**Not a gap and not an oversight.** It is an overlap, and it is the one row Moataz declined
+to settle by analogy. Until he rules, it follows the first rule: **stop and ask.** The
+orchestrator's proposal and the argument for it are in `docs/status.md`, task `018210826`.
 
 ### `.claude/**` — why it splits three ways
 
@@ -150,8 +201,8 @@ is Moataz's decision, taken explicitly, never a side effect of a task.
 
 ### ⚠️ THE ONE EXPLICIT EXCEPTION TO "THE ORCHESTRATOR DOES NOT DO THE WORK"
 
-**The orchestrator writes `.claude/agents/*.md` and `.claude/skills/**` itself. It does not
-route them.**
+**The orchestrator writes `.claude/agents/*.md`, `.claude/skills/**`, `CLAUDE.md` and
+`docs/decisions.md` itself. It does not route them.**
 
 This is written down so it is not read later as the boundary eroding. The general rule —
 *the orchestrator does not do the work itself when an agent exists for it* — still holds
@@ -160,9 +211,11 @@ these two paths to that would not be editing its own constitution, and routing "
 four agent definitions" to one of the four is the closed loop the rule above exists to
 prevent.
 
-The exception is **narrow and it is a list, not a principle**: those two paths, nothing else.
-It does not extend to `.claude/settings*.json` (devops), and it grants no general licence to
-do agent work directly.
+The exception is **narrow and it is a list, not a principle**: those four paths, nothing
+else. It does not extend to `.claude/settings*.json` (devops), and it grants no general
+licence to do agent work directly. `CLAUDE.md` and `docs/decisions.md` joined the list on
+2026-08-21, task `018210826`, on the same argument: an agent must not be able to rewrite the
+rule it is judged against.
 
 **Only devops commits or pushes.** frontend and backend write files and stop. This is
 deliberate and it is not a style preference: **two sessions committing in parallel
@@ -380,30 +433,28 @@ the exact failure this structure already has a rule against.
 
 ## PATHS WITH NO OWNER — THE STANDING AUDIT
 
-Task `017210826` closed `.claude/**` and then swept the rest of the repository for the same
-class of gap, because it was found by walking into it rather than by looking. **Recorded
-here rather than silently filled: assigning an owner is Moataz's decision, and a table that
-invents one is worse than a table with a hole in it, because the hole is visible.**
+Opened in task `017210826`, which found `.claude/**` by walking into it and then swept the
+repository for the same class of gap rather than waiting to hit the next one.
+**Closed in task `018210826`.** Kept here because the sweep is the method, not the result —
+a new top-level path is a new row, and the absence of one is a bug.
 
-**Transcribed, not decided** — already assigned elsewhere and merely missing from the table,
-now added above: `i18n/**` and `fonts/**` → frontend. Both are named in `CLAUDE.md` and in
-`.claude/agents/frontend.md`; their absence from the table was a copying error, not an open
-question.
+| Path | Resolved to | On what argument |
+|---|---|---|
+| `.claude/agents/*.md` · `.claude/skills/**` | orchestrator | The structure describing itself belongs above the layer it describes |
+| `.claude/settings*.json`, `.mcp.json`, hooks | devops | Environment |
+| `docs/learn.md` | **all five, append only** | The prose won over the table. It is the file's whole purpose |
+| `CLAUDE.md` · `docs/decisions.md` | orchestrator | An agent must not rewrite the rule it is judged against |
+| root config | devops | Environment and tooling |
+| `supabase/**` outside `migrations/` | backend | Same system, same owner |
+| `designs/` | frontend | |
+| `Image mapping/` | content | A Notion-side inventory |
+| `i18n/**` · `fonts/**` | frontend | Transcription — already assigned in `CLAUDE.md` and `frontend.md`, missing from the table by a copying error |
+| `.vscode/` | **UNOWNED, deliberately** | Editor preference, not project state. Written in full rather than left as dashes, so the next sweep reads it as decided rather than missed |
+| **`app/api/**`** | **STILL OPEN** | An overlap, not a gap. The one row Moataz declined to settle by analogy — see above |
 
-**Genuinely unowned, awaiting a decision:**
-
-| Path | The problem |
-|---|---|
-| `docs/learn.md` | **A live contradiction.** The table says every file in `docs/` other than the named ones is read-only to all four agents. `CLAUDE.md` and this file both say `learn.md` *"is appended to as part of the task… by whoever learned the thing."* The table forbids what the prose requires |
-| `docs/decisions.md` | No writer. `CLAUDE.md` makes it the tie-breaker when documents disagree and requires the conflicting document be corrected *in the same session* — so something must write it |
-| `CLAUDE.md` | No owner. It was edited in task `014210826` with no rule permitting it |
-| root config — `package.json`, `tsconfig.json`, `next.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`, `.gitignore`, `.env.example`, `proxy.ts` | Absent entirely. `tailwind.config.ts` is the only root file in the table |
-| `supabase/**` outside `migrations/` | The table grants `supabase/migrations/**`; the rest of the directory is unlisted |
-| `designs/`, `Image mapping/`, `.vscode/` | Tracked directories, no row |
-| `app/api/**` | **An overlap, not a gap.** `app/**` is frontend's, but the route handlers are backend-shaped and devops is the one exercising them against a build |
-
-Until a row exists, these follow the first rule: **stop and ask.** An agent that needs to
-write one of them returns the question rather than assuming the nearest owner.
+**A dash means "does not apply". UNOWNED, spelled out, means "decided that nobody writes
+it". They are different and the table says which.** Conflating them is what produced this
+audit in the first place.
 
 ---
 
