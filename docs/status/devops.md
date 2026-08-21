@@ -80,9 +80,10 @@ Moataz and pushed as someone else. Fetch still works; only write is denied.
 URL, or adding a token are all decisions about credentials and about which identity owns this
 history. None of them is mine to take. **Returned to the orchestrator for Moataz.** The
 unblocking step is his, in this session: `! gh auth login` as `moatazmustaphaweb` (or
-`gh auth switch` if that account is already stored), then `git push origin main` — **six**
-commits are waiting on `main`: the four above, the correction below them, and `fb21da9` from
-task `014210826`, which was already unpushed before this task began.
+`gh auth switch` if that account is already stored), then `git push origin main` — which will
+carry every commit above `c448f9d`: the four named at the top of this entry, the corrections to
+this entry, and `fb21da9` from task `014210826`, which was already unpushed before this task
+began.
 
 **One stale claim to flag, not mine to fix:** the CURRENT STATE section of `docs/status.md` says
 `git log origin/main..HEAD` returns 0. That was true when it was written and is now wrong by six.
@@ -98,14 +99,21 @@ task `014210826`, which was already unpushed before this task began.
 - **No `Co-Authored-By` and no `Generated with` trailer** on any of the four commits, confirmed
   by reading `%an <%ae>%n%b` back out of the log. `.claude/settings.json` sets no
   `attribution.commit`.
-- `git log origin/main..HEAD` lists **six** commits, not five, and the earlier version of this
-  entry said five. **`fb21da9` — `chore(agents): the five-agent structure, the permission
-  boundary, the task-id scheme`, task `014210826`, 2026-08-21 15:57 — was already unpushed
-  before this task started.** It is not mine, nothing is wrong with it, and it was left exactly
-  as it is. It was in my own `git log origin/main..HEAD` output at session start and again after
-  committing, and I read past it both times; the orchestrator caught it. A push, when it
-  succeeds, will therefore deliver **six** commits to GitHub, and the sha count has to reconcile
-  against that number. `git status --porcelain` is clean.
+- `git log origin/main..HEAD` is **not empty**, so the brief's completion check is not met.
+  **This entry deliberately does not state the number**, because two earlier versions of it did
+  and both were wrong within minutes — each correction to this entry is itself a commit and
+  raises the count by one. The stable statement is the set, not the tally: `origin/main` is
+  `c448f9d`, and **everything on `main` after it is unpushed** — `fb21da9`, plus every commit
+  from this task including the ones carrying these corrections. Read the live number from
+  `git log origin/main..HEAD --oneline`; it is not a figure a file inside the count can keep
+  accurate.
+- **`fb21da9` — `chore(agents): the five-agent structure, the permission boundary, the task-id
+  scheme`, task `014210826`, 2026-08-21 15:57 — was already unpushed before this task started**,
+  and a successful push delivers it too. It is not mine, nothing is wrong with it, and it was
+  left exactly as it is: not amended, not reordered. The brief stated `main` was level with
+  `origin/main`; it was not. It sat in my own `git log origin/main..HEAD` output at session start
+  and again after committing, and I read past it both times. The orchestrator caught it, not me.
+- `git status --porcelain` clean.
 - `origin/main` is `c448f9d`, confirmed against the remote itself with `git ls-remote` and not
   only against the local tracking ref. The remote is reachable; read works, write does not.
   Other branches exist there (`identity-rewrite`, `backup/main-old`, `claude/branch-count-3d6akh`)
