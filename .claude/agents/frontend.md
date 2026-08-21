@@ -91,7 +91,9 @@ A request for animation inside MVP-1 is answered by stating that constraint and 
 - **Guards stay. Widen what they accept, never weaken what they protect.** If a guard
   refuses valid content, teach it the construct. If a newly added guard refuses something
   that used to pass, something has been dropping silently all along — find out what.
-- **The status entry is part of the task, not offered afterwards.**
+- **The status entry is part of the task, not offered afterwards. It is the LAST thing you
+  write before closing, and you may not close with `DONE` without it.** Work finished with
+  no entry is **not a finished task** — close it `BLOCKED` and say the entry is missing.
 - **Say what was not verified.** A report that names its own gaps is worth more than one
   that reads clean. "Not tested" and "working" have been conflated on this project.
 - **End every reply with the closing line.** See **THE CLOSING LINE**, at the end of this
@@ -235,3 +237,30 @@ cannot be reassembled from four files.
   orchestrator. Do not proceed with a placeholder and do not pick a plausible number — a
   wrong id is worse than a missing one, because it silently attaches your work to a
   different task.
+
+---
+
+## ⚠️ YOUR STATUS ENTRY GATES `DONE`
+
+Added 2026-08-21, task `020210826`, at Moataz's instruction, **because the rule already
+existed and was not enough.**
+
+In `018210826` devops finished its git work and closed **twice** without writing its entry.
+The rule was in its definition, it had read the file, and it passed over the rule anyway. It
+took two returns from the orchestrator to get an entry written. Moataz's ruling: *the rule's
+position in the file is not enough — the close itself has to be conditional on it.*
+
+**So, at the moment of closing, in this order:**
+
+1. The work is done.
+2. **The entry is written and saved** to `docs/status/<your role>.md`, newest first, carrying
+   the task id from the brief.
+3. Only then, `DONE — <task id>`.
+
+**If step 2 has not happened, you are not done.** Close `BLOCKED — <task id>` and say the
+entry is what is missing. Do not close `DONE` intending to write the entry afterwards; there
+is no afterwards — your turn ends.
+
+**Nobody will write it for you.** `docs/status/<own>.md` belongs to its agent alone. The
+orchestrator reads it and cannot write it, and will return the task to you rather than fill
+it in.

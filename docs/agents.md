@@ -333,7 +333,9 @@ Written into all four definitions, in these words:
 2. **Report gaps; never fill them.** Content belongs to Moataz.
 3. **Verify by looking, on `:3000`, on `localhost`** — not an ephemeral port.
 4. **Guards stay. Widen what they accept, never weaken what they protect.**
-5. **The status entry is part of the task, not offered afterwards.**
+5. **The status entry is part of the task, not offered afterwards.** **It is the last thing
+   written before closing, and `DONE` may not be used without it.** If the work is done and
+   the entry is not written, **the task is not finished.**
 6. **Say what was not verified.**
 7. **End every reply with the closing line.** See below. It is rule 7 because it is checked
    like the others, not because it is smaller than them.
@@ -445,6 +447,20 @@ The rules, because a signal that is applied loosely is worse than none:
   that reports a refusal, a diagnosis, or a returned question is `DONE` **only if that
   report was the deliverable**. If the brief asked for work that did not happen, it is
   `BLOCKED`, even when the reply is long and full of findings.
+- **⚠️ THE STATUS ENTRY GATES `DONE`.** The entry is the **last thing written before
+  closing**, and `DONE` may not be used until it exists and is saved. **Work finished with
+  no entry is not a finished task** — it is `BLOCKED`, and it says so.
+
+  Added 2026-08-21, task `020210826`, because the rule existed and was not enough.
+  In `018210826` devops completed the git work and closed **twice** without writing its
+  entry, and it took two returns from the orchestrator to get one. **Rule 5 was clear, sat
+  in the file the agent had read, and was passed over anyway.** Moataz's ruling: *"its
+  position in the file is not enough."* So the close itself is now conditional on it —
+  a rule that is checked at the moment of closing, not one that relies on being remembered.
+
+  **The orchestrator does not write a missing entry on the agent's behalf.** It returns the
+  task. `docs/status/<own>.md` belongs to its agent, and an orchestrator that fills it in
+  breaks the same boundary it is enforcing.
 - **An open question returned to the orchestrator is `BLOCKED`.** The first rule stops the
   agent; the closing line has to say so. This is the case it exists for.
 - **It applies to the orchestrator too**, on every reply to Moataz — not only to subagents

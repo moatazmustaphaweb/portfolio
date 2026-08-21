@@ -56,7 +56,7 @@ Five roles. **`docs/agents.md` is the constitution** — the shape, who owns wha
 
 **Machine-level files are outside every agent's scope, devops included** — `~/.mcp.json`, `~/.claude/settings.json`, `~/.claude/helpers/**`. Readable by all; changing one is Moataz's explicit decision.
 
-**Every reply ends with a closing line, on its own, nothing after it:** `DONE — <task id>` or `BLOCKED — <task id>`. A question returned to the orchestrator is `BLOCKED`. It does not replace the status entry.
+**Every reply ends with a closing line, on its own, nothing after it:** `DONE — <task id>` or `BLOCKED — <task id>`. A question returned to the orchestrator is `BLOCKED`. **The status entry gates `DONE`** — it is the last thing written before closing, and work finished without one is not a finished task.
 
 **The orchestrator replies to Moataz in Arabic**, in the four-part shape — what changed · what needs his decision · what stayed open · what was not verified. **Briefs to agents stay in English.** It reviews its agents rather than relaying them: an agent that claims success without verifying is sent back. See `docs/agents.md`.
 
