@@ -134,7 +134,8 @@ writer or says **UNOWNED** in full.
 | `docs/status/<own>.md` | read | **write** | **write** | **write** | **write** |
 | `docs/status.md` · `TASKS.md` · `docs/agents.md` · `docs/workflows.md` | **write** | — | — | — | — |
 | `.vscode/` | **UNOWNED — nobody writes it** | **UNOWNED** | **UNOWNED** | **UNOWNED** | **UNOWNED** |
-| `app/api/**` | *(pending — see below)* | *(pending)* | *(pending)* | *(pending)* | *(pending)* |
+| `app/api/contact/**` · `app/api/events/**` | read | read | **write** | read | read |
+| `app/api/revalidate/**` | read | read | read | **write** | read |
 | every other file in `docs/` | read | read | `schema.md`, `sync-contract.md` | read | audit reports, `ui-strings-review.md` |
 
 ### `docs/learn.md` — append, by anyone, never restructure
@@ -174,30 +175,30 @@ an interested party can edit is not one.
 These fall under the same explicit exception below: **the orchestrator writes them itself
 rather than routing them.**
 
-### `app/api/**` — DELIBERATELY UNFILLED, awaiting Moataz
+### `app/api/**` — split by what the handler touches, not by where it sits
 
-**Not a gap and not an oversight.** It is an overlap, and it is the one row Moataz declined
-to settle by analogy. Until he rules, it follows the first rule: **stop and ask.** The
-orchestrator's proposal and the argument for it are in `docs/status.md`, task `018210826`.
+**Ruled by Moataz 2026-08-21, task `020210826`**, on the orchestrator's proposal. It was the
+one row he declined to settle by analogy, and it was right not to: it is an overlap rather
+than a gap, and the two need different reasoning.
 
-### `.claude/**` — why it splits three ways
+**The imports decided it. None of the three handlers imports a component or renders
+anything**, so frontend's claim rested entirely on the path `app/**` and not on the
+contents:
 
-Added 2026-08-21, task `017210826`, after task 016 hit the gap by routing into it.
+| handler | imports | owner |
+|---|---|---|
+| `app/api/contact/**` | `supabaseServer`, `lib/content/ui`, `lib/notify` | **backend** |
+| `app/api/events/**` | `supabaseServer`, `lib/content/types` | **backend** |
+| `app/api/revalidate/**` | `revalidatePath`, `LOCALES` — nothing from Supabase | **devops** |
 
-- **`.claude/agents/*.md` → the orchestrator.** *An agent editing its own definition is a
-  closed loop — rewriting the rules it is judged against.* The structure describing itself
-  belongs to the layer above it, not to the layer it describes.
-- **`.claude/skills/**` → the orchestrator.** The four skills govern all four agents. No
-  one agent may change them on the other three's behalf.
-- **`.claude/settings*.json`, `.mcp.json`, hook configuration → devops.** Environment,
-  which devops already owns. Note that `.claude/settings.local.json` is gitignored, so a
-  change there is real but produces no commit — devops says so rather than reporting a
-  commit that does not exist.
+**The decisive argument was that the split ratifies something already written**, rather than
+inventing a rule: `.claude/agents/devops.md` and the devops role description both already
+name *"ISR and `/api/revalidate` against a real build"* as devops's work. The table had
+simply never caught up with the definition.
 
-**`~/.mcp.json`, `~/.claude/settings.json` and `~/.claude/helpers/**` are outside the
-repository and outside every agent's write scope, devops included.** They are machine-level
-and affect every project run from the home directory. Any agent may read them; changing one
-is Moataz's decision, taken explicitly, never a side effect of a task.
+**The principle this sets, and it generalises:** on this project **ownership follows what a
+file is, not where it sits.** `i18n/**` and `fonts/**` went to frontend on that basis;
+`app/api/**` splits three ways under the same rule. A directory is not a unit of ownership.
 
 ### ⚠️ THE ONE EXPLICIT EXCEPTION TO "THE ORCHESTRATOR DOES NOT DO THE WORK"
 
@@ -477,7 +478,7 @@ the exact failure this structure already has a rule against.
 
 Opened in task `017210826`, which found `.claude/**` by walking into it and then swept the
 repository for the same class of gap rather than waiting to hit the next one.
-**Closed in task `018210826`.** Kept here because the sweep is the method, not the result —
+**Closed in task `018210826`; the last open row, `app/api/**`, ruled in `020210826`.** Kept here because the sweep is the method, not the result —
 a new top-level path is a new row, and the absence of one is a bug.
 
 | Path | Resolved to | On what argument |
@@ -492,7 +493,8 @@ a new top-level path is a new row, and the absence of one is a bug.
 | `Image mapping/` | content | A Notion-side inventory |
 | `i18n/**` · `fonts/**` | frontend | Transcription — already assigned in `CLAUDE.md` and `frontend.md`, missing from the table by a copying error |
 | `.vscode/` | **UNOWNED, deliberately** | Editor preference, not project state. Written in full rather than left as dashes, so the next sweep reads it as decided rather than missed |
-| **`app/api/**`** | **STILL OPEN** | An overlap, not a gap. The one row Moataz declined to settle by analogy — see above |
+| `app/api/contact/**` · `app/api/events/**` | backend | Supabase writers. Ruled `020210826` |
+| `app/api/revalidate/**` | devops | ISR and cache; already named in devops's own definition. Ruled `020210826` |
 
 **A dash means "does not apply". UNOWNED, spelled out, means "decided that nobody writes
 it". They are different and the table says which.** Conflating them is what produced this
