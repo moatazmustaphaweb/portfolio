@@ -81,6 +81,18 @@ Appended under the new append rule; nothing restructured, reordered or rewritten
 
 `CLAUDE.md` carries the summary of both new rules so the front door does not lag the constitution again.
 
+### 5 — devops caught two defects in the orchestrator's own work. Both were real.
+
+**Reported, not fixed by it** — both files are the orchestrator's — and both were correct.
+
+**A section was destroyed and nobody noticed.** Replacing the `app/api/**` section sliced from its heading to the *next* heading it could find, and the `### .claude/** — why it splits three ways` section sat between the two. It was deleted. **The orchestrator's own entry for this task did not mention it, because the orchestrator did not know.** Restored from `12cc4d3^` rather than retyped, so it is the original text and not a reconstruction of it.
+
+**The PART 8 lesson did not join its table.** A blank line between the table and the appended row terminates the table in Markdown: the row rendered as a separate one-row table with its own text as the header, losing the claim/correction pairing that makes it readable. Corrected — this is repair of a broken append made minutes earlier in the same task, not an edit to Moataz's shaping of the file.
+
+**devops was right to report rather than fix**, and said so in the correct terms: correcting an existing line is not appending, and `learn.md`'s shape is not its to change.
+
+**A fourth lesson went into `learn.md` PART 5 as a result** — *replacing a span between two anchors deletes whatever else lives between them.* It is invisible at the point of edit: the assertions pass, the file parses, the remaining headings all look right, nothing fails. **It was caught by an agent reading the staged diff, not by the author.** That is the argument for the review layer, and this is the first time it has paid out against the orchestrator rather than an agent.
+
 ---
 
 ## 018210826 — 2026-08-21 17:38 — Both contradictions closed, every remaining path owned, and one row deliberately left open

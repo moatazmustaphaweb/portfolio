@@ -16,6 +16,69 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 020210826 — 2026-08-21 18:24 — the two findings, fixed by the orchestrator, committed and pushed
+
+**Brief:** Follow-up on the same task. Commit and push the orchestrator's fixes for the two
+defects reported in the entry below — the destroyed `.claude/**` section and the PART 8 row
+that did not join its table — verifying the restoration is the original text and not a
+rewrite. Report the exact error and stop if the push were refused.
+
+**Commits — three, as the brief suggested, no regrouping:**
+
+| sha | subject | carries |
+|---|---|---|
+| `422eea2` | fix(agents): restore the `.claude/**` ownership section deleted by a span replacement | `docs/agents.md` — orchestrator's work |
+| `63b96f5` | docs(learn): rejoin the PART 8 row to its table, and a fourth lesson in PART 5 | `docs/learn.md` — orchestrator's work |
+| this one | docs(status): the 020210826 follow-up record | `docs/status.md` — orchestrator's · this entry — mine |
+
+`fix(agents):` rather than `docs(agents):` because it repairs a deletion; it adds no
+documentation that did not already exist.
+
+**Verified before committing — the point of the task, since the subject is a silent deletion:**
+
+- **Heading list diffed, `HEAD` against the working tree.** `### ` count 14 → 15. The full
+  full heading list diffs to exactly one added line, the `.claude/**` heading.
+  **Nothing else moved, nothing else vanished.**
+- **The restored section is the original, not a reconstruction.** Extracted the span from
+  `12cc4d3^:docs/agents.md` and from the working tree and compared: 1168 bytes each, sha256
+  `0bc5d1b7…39d62b` on both, `diff` empty.
+- **It sits where it sat.** Between the `app/api/**` section and
+  THE ONE EXPLICIT EXCEPTION — the same neighbours it had in `12cc4d3^`.
+- **PART 8 is one continuous table again** — `docs/learn.md` lines 317–329, no blank line
+  inside it. The only removal in the diff is that blank line.
+- **The fourth lesson landed in PART 5**, line 245, inside 199–267. It is not a duplicate of
+  the three the orchestrator appended earlier.
+- **Full staged diff read before each commit.** Secret scan over the diff for key, token,
+  password, service-role, `eyJ`, `sk-` and PEM headers: no hits. Docs only, no NDA material.
+- **No `Co-Authored-By`, no "Generated with Claude Code"** on any of the three.
+- **`docs/status.md`'s `020210826` header reads 18:12**, behind these commits at 18:22–18:24.
+  No entry is dated ahead of its commit.
+
+**Pushed:** yes — `origin/main`, `5aeb9dc..63b96f5`, carrying `422eea2` and `63b96f5`.
+Confirmed by reading the output, not assumed: `git log origin/main..HEAD` returned **0**,
+`git ls-remote --heads origin main` returned `63b96f56…af00ff`, equal to `git rev-parse HEAD`.
+The third commit — this entry and `docs/status.md` — is pushed immediately after it, in a
+second push whose result is in the report to the orchestrator. **An entry cannot verify the
+push of the commit that contains it**; that is the one claim here I hand off rather than make.
+
+**Deployed:** no. There is still no Vercel project, and nothing in this task deployed anything.
+
+**Not verified:** nothing was rendered or loaded. These are three documentation files — no
+build, no typecheck, no dev server, no browser. **Committed and pushed is not built, and it
+is certainly not deployed.** I also did not re-read the orchestrator's new `docs/status.md`
+section 5 for factual accuracy against anything beyond the two findings it describes.
+
+**Third defect:** none found. The heading diff, the byte comparison and the table check all
+came back clean, and I looked for a third rather than assuming two was the count.
+
+**`docs/learn.md`:** appended nothing. The orchestrator's fourth lesson already names both
+the bug class and the diff-reading defence, in better terms than a second entry would. This
+follow-up taught nothing the file does not now carry.
+
+**Open questions:** none.
+
+---
+
 ## 020210826 — 2026-08-21 18:18 — five commits split by rule, pushed; two findings in a file I do not own
 
 **Brief:** Commit the eight-file tree — all of it written by the orchestrator — split by
