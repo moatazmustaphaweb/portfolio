@@ -37,6 +37,85 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-26 (later) — ANSWERED, NOT BUILT: the h1 swap. And a correction — the two "not done" items shipped
+
+**No code changed.** Two questions were asked before building; both are answered below.
+
+### ⚠️ The two items from the previous brief ARE done
+
+They shipped in **`9600b6f`**, and the entry is in this file at **line 323**, dated `2026-08-24 (evening)`. Verified on disk rather than from memory:
+
+- `[chapter]/page.tsx:293` reads `font-mono text-section uppercase text-fg-dim` — the OBJECTIVE label carries the token.
+- `Breadcrumb.tsx:45` reads `className="mb-8"` — 24px → 32px, rendered gap 32px → 40px.
+- CONTEXT, DECISION, EVIDENCE and RESULT were checked and reported: **only OBJECTIVE was missed.** The others already carry `text-section` through `ChapterSections`; the three `text-label` copies at lines 367/420/439 are the unreachable fallback branch.
+- The breadcrumb tightness **was** in the shared layout, was named as such, and was fixed once for all nine pages that render one.
+
+**Why it looked missing:** the entry is buried under three newer-dated entries — `2026-08-26`, `2026-08-25`, `2026-08-24 (night)` — written by a **parallel session** whose commits interleave with this one's:
+
+```
+9600b6f 08-21 12:10  OBJECTIVE takes text-section; breadcrumb mb-6 -> mb-8   ← this session
+e4775fb 08-21 11:34  TRIAL — the objective drops from title size to statement size
+17ed320 08-21 01:27  revert — the two-size h1 comes out
+030cd5e 08-21 01:10  TRIAL — a long objective splits at its first punctuation
+7eebdb0 08-21 01:10  fix(ar) — an inline inside an Arabic heading keeps the heading's face
+57c99c3 08-21 00:27  remove the aspect rule                                   ← this session
+```
+
+Those entries carry dates ahead of their commit times, so they sort above a change made after them. **This session did not run the statement-size trial** — `e4775fb` did. Recorded so neither session claims the other's work.
+
+### Q1 · Does the objective keep its OBJECTIVE label as an h2?
+
+**Yes, and the reason is consistency rather than the label itself.** Once the objective is an `h2` beneath the chapter title, it becomes a section like CONTEXT, EVIDENCE and RESULT — and every one of those carries its label. Dropping OBJECTIVE would make it the only unlabelled section on the page, which reads as an omission rather than a decision.
+
+**But the label cannot simply stay where it is.** It currently shares one flex row with the progress indicator:
+
+```
+<div className="flex flex-wrap items-center justify-between gap-4">
+  OBJECTIVE                    Chapter 1 of 4  ———
+```
+
+If the objective moves below a new `h1`, its label moves with it and **that row breaks**. `Chapter 1 of 4` then needs a home — most naturally beside the case-file eyebrow above the title, which is the other piece of "where am I" metadata. That is a layout decision inside this change, not a consequence of it, and it is the part worth seeing before it is built.
+
+### Q2 · The Arabic chapter title duplication — named, and larger than described
+
+Read from the database, all four Egypt chapters:
+
+| | EN title | AR title |
+|---|---|---|
+| onboarding | `Onboarding Journey` | `الفصل الأول · رحلة فتح الحساب` |
+| workflow | `Application Workflow` | `الفصل الثاني · نظام مراجعة الطلبات (Application Workflow)` |
+| portal | `Customer Portal & Notifications` | `الفصل الثالث · بوابة العميل والإشعارات (Customer Portal & Notifications)` |
+| fulfilment | `Fulfilment & AOF` | `الفصل الرابع · التحقق الميداني ونموذج فتح الحساب (Fulfilment & AOF)` |
+
+**There are two duplications, not one.**
+
+1. **The ordinal, as anticipated.** Every Arabic title opens `الفصل [ordinal] ·`, so an `h1` would put `الفصل الثاني` directly above `الفصل 2 من 4` — the chapter number stated twice, once spelled and once numeric. All four chapters, Arabic only. **English titles carry no number at all**, so this is a one-language problem.
+
+2. **The English name in parentheses, which was not anticipated.** Three of the four Arabic titles end with the English chapter name — `(Application Workflow)`, `(Customer Portal & Notifications)`, `(Fulfilment & AOF)`. `onboarding` does not. In an `h1` the Arabic line would carry the number, the Arabic name **and** the English name, running roughly three times the length of the English `h1`.
+
+Both are content and both are Moataz's. Named rather than touched.
+
+### ⚠️ The Arabic breadcrumb at 390 — measured, and it is an overflow, not a wrap
+
+At a 390px viewport on `/ar/work/egypt-acquisition/workflow`, three of the four breadcrumb lines run to **x=389 of 390** — flush to the viewport edge, past the 24px page gutter.
+
+```
+line 1: x76..389   314px   OVERFLOWS
+line 2: x120..389  270px   OVERFLOWS
+line 4: x106..389  284px   OVERFLOWS
+```
+
+**The cause:** the last crumb is a single flex item about 60 characters long. `flex-wrap` wraps *between* items, never inside one, so a crumb wider than the container cannot break — it overflows. The `(Application Workflow)` parenthetical is what pushes it over, which makes this the **same string** as duplication 2 above.
+
+**What it would take, not done here:**
+1. **Content** — shorten the Arabic titles by dropping the parenthetical, the ordinal prefix, or both. This fixes the breadcrumb *and* both `h1` duplications in one edit, and it is the only fix that addresses the cause.
+2. **Code, minimal safety net** — let a long crumb break inside itself: `min-w-0` on the `<li>` plus `break-words` on the text. Stops the overflow at any title length, on every page, without touching content.
+3. **Code, design** — drop or truncate the current-page crumb below a breakpoint. It names the page you are already on, so it carries the least.
+
+I would do **2 regardless**, because it makes the overflow structurally impossible whatever anyone writes later, and **1** as the real fix.
+
+---
+
 ## 2026-08-26 — TRIAL: the objective at statement size. It stops being a wall, and the page loses its anchor without gaining a title
 
 **A trial, awaiting a ruling.** One class changed on one line. `text-title` → `text-statement` on the chapter h1. The element, the `OBJECTIVE` label, the breadcrumb, the progress dashes and everything below are untouched, and no heading was added.
