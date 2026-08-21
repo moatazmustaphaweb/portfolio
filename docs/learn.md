@@ -326,6 +326,7 @@ Recorded so the same error is not repeated by a fresh session.
 | Making the repo public would allow reading it | GitHub blocks automated access regardless. The step was wasted |
 | The Egypt thesis was one unsplit paragraph in Notion | It was already five. The loss was at render, not at source |
 | The Arabic child-page naming pattern was the sync bug | It was three unrelated matcher bugs. The hypothesis was wrong and saying so first mattered |
+| A rule broken twice needs a mechanism, not a third mention | The orchestrator future-dated its own status entry in `020210826`, noted it, wrote a lesson about it, and **did it again in `021210826`**. Writing the timestamp before the work is finished guarantees it. **Read the clock at the moment of writing the heading** — `date '+%H:%M'` — rather than estimating when the entry will be done |
 | Writing a rule protects the writer from breaking it | The orchestrator codified *"entries are dated to match the commit time, never ahead of it"* and then, **in the same task**, dated its own entry twenty minutes in the future. It resolved only because the clock caught up — nothing was corrected. **Authorship confers no immunity;** check your own output against the rule you just wrote |
 
 **The pattern in most of these:** a conclusion drawn from a document rather than from the system it describes. `status.md` is a narrative and is behind in places. When a fact is checkable, check it.
