@@ -397,6 +397,36 @@
     letter-spacing: normal;
   }
 
+  /*
+   * ── ENGLISH FALLBACK PROSE ALIGNS WITH THE ARABIC AROUND IT ──────────────
+   *
+   * Decision 053 marks English fallback `dir="ltr" lang="en"` so its trailing
+   * punctuation resolves correctly — without it a full stop lands at the START
+   * of the line. That is kept, untouched: `dir` still governs bidi here.
+   *
+   * What it also did was left-align those blocks inside a right-aligned page,
+   * which breaks the reading flow. Direction and ALIGNMENT are separate
+   * properties, and `text-align` takes no part in bidi resolution, so the two
+   * can be set independently.
+   *
+   * ⚠️ `text-align: match-parent` IS THE TEXTBOOK ANSWER AND IS UNSUPPORTED
+   * HERE. It resolves start/end against the PARENT's direction, which is
+   * exactly this problem. `CSS.supports("text-align", "match-parent")` returns
+   * **false** in this Chrome — measured, not assumed: the declaration is
+   * dropped and the computed value stays `start`. Do not reach for it again
+   * without re-testing support first.
+   *
+   * `end` is not a physical value in disguise. When an LTR element sits inside
+   * an RTL page, that element's own `end` IS the page's `start` — the same
+   * edge, by construction, every time. The selector is scoped to RTL pages, so
+   * on an English page it cannot match and every block stays at `start`.
+   *
+   * Covers prose, captions and headings alike — anything 053 marks.
+   */
+  :root[dir="rtl"] [dir="ltr"] {
+    text-align: end;
+  }
+
   h1,
   h2,
   h3,
