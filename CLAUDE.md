@@ -4,6 +4,18 @@ You are building Moataz Mustapha's portfolio. Read this file fully before acting
 
 ---
 
+## ⚠️ THE FIRST RULE, AND IT GOVERNS EVERYTHING BELOW
+
+**Do not start work, and do not write a prompt or issue an instruction to anyone, until Moataz has answered your open questions.**
+
+If something is genuinely undecided, stop and ask. Never a question and a prompt in the same message — he sends prompts verbatim, so a question left open above one means he sends it without knowing whether it was answered.
+
+This outranks the seven rules below, the skill precedence, and every scoping instruction in a brief. A guess that keeps the session moving costs more than the pause.
+
+**It applies to agents too.** A subagent does not talk to Moataz: it returns the question to the orchestrator and stops. The orchestrator does not answer it to keep moving — it asks Moataz, in a message with no prompt in it, and waits. See `docs/agents.md`.
+
+---
+
 ## THE PROJECT IN ONE PARAGRAPH
 
 A bilingual (English/Arabic, full RTL) portfolio for a senior product designer with ~10 years in fintech, banking, and IoT. It is not a conventional portfolio: the content is fully dynamic, the site documents its own design system, and later phases add an adaptive visitor-intake ("the Door"), a RAG assistant, articles, and comments. MVP-1 ships the classic portfolio — gallery plus four case files — on the full architecture, so nothing is rebuilt later.
@@ -19,6 +31,30 @@ A bilingual (English/Arabic, full RTL) portfolio for a senior product designer w
 5. **Secrets never enter the repo.** `.env.local` is gitignored. Service-role key is server-side only.
 6. **NDA discipline.** No client screens or files in this repo, ever — assets live in Cloudinary, and git history is permanent. **The NDA treatment is a signal, not concealment** (amendment 036, which supersedes 027): the Mashreq screens are design files carrying dummy data Moataz wrote himself, so there is nothing to hide. NDA work renders full grayscale via a live Cloudinary transform, driven by `case_files.nda` — never by baking the treatment into the pixels, and never by a per-image flag a call site can forget. `media.redacted` stays `false`.
 7. **No fabricated content.** Never invent metrics, outcomes, project details, or copy. If content is missing, stop and ask.
+
+---
+
+## THE AGENT STRUCTURE
+
+Five roles. **`docs/agents.md` is the constitution** — the shape, who owns what, the permission boundary, the task-id scheme and the standing rules. **`docs/workflows.md` is the procedure** — every known workflow and the handoffs inside it. Read both before briefing or accepting a brief.
+
+| Role | Owns | Writes |
+|---|---|---|
+| **orchestrator** | routing, briefs, review, correction, reporting to Moataz | `docs/status.md`, `TASKS.md`, `docs/agents.md`, `docs/workflows.md` |
+| **frontend** | components, tokens, layout, RTL, rendering | files only — never git |
+| **backend** | Supabase, migrations, the sync script, `lib/content/*` | files only — never git |
+| **devops** | git commit and push, Vercel, Cloudinary, cache warming | **the only agent that writes to git history** |
+| **content** | Notion, writing, Arabic, content integrity | never code, never the database |
+
+**Reading is open; writing is scoped.** Any agent may read anything so it understands what it is touching. An agent writes only inside its own area.
+
+**Only devops commits or pushes.** frontend and backend write files and stop — two sessions committing in parallel interleaved this history last week and made `status.md` sort wrongly.
+
+**The orchestrator does not do the work itself when an agent exists for it.**
+
+**Every status entry carries a nine-digit task id** — `014210826` is task 014, day 21, month 08, year 26; the number resets daily. The orchestrator assigns it and passes it in the brief, and every agent that touches that task writes it in its entry. **Entries are dated to match the commit time, never ahead of it.**
+
+**Visual verification is Moataz's.** No agent owns it. Agents produce screenshots and report measurements; he looks. A visual-review agent is a planned addition, recorded in `docs/agents.md` so the gap is deliberate.
 
 ---
 
@@ -72,7 +108,9 @@ docs/                 all project documentation
 | Styling anything | `docs/design/tokens.md` |
 | Animating anything | `docs/design/motion-system.md` (post-launch Motion Layer; MVP-1 has no animation per decision 023) |
 | Reviewing or correcting Arabic copy | `docs/ui-strings-review.md` |
-| Asking where the build stands | `docs/status.md` |
+| Asking where the build stands | `docs/status.md` (the orchestrator's), plus `docs/status/{frontend,backend,devops,content}.md` |
+| **Routing work, or briefing an agent** | **`docs/agents.md`** — the five roles, the permission boundary, the task-id scheme, what a brief must carry |
+| A task that crosses more than one agent | `docs/workflows.md` — the known workflows, the handoffs, and the ledger |
 | Designing or implementing redaction | `docs/redaction-brief.md` |
 
 ---
@@ -111,7 +149,7 @@ docs/                 all project documentation
 - **No accessibility audit.** No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised.
 - **The contact form has never been submitted through a browser.** Four route branches tested with `curl`; the rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once.
 - **ISR has never been observed working in production**, and `/api/revalidate` has never been called against a production build.
-- **No deploy.** No Vercel project, no git remote, 45 local commits. Nothing has ever run on Vercel's runtime.
+- **No deploy.** No Vercel project. Nothing has ever run on Vercel's runtime. *(Corrected 2026-08-21, task `001210826`: the "no git remote, 45 local commits" half of this was stale. `origin` is `github.com/moatazmustaphaweb/portfolio.git` and `main` is level with it — `git log origin/main..HEAD` returns 0.)*
 
 **Known broken or half-done:**
 

@@ -37,6 +37,64 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001210826 — 2026-08-21 15:57 — The five-agent structure, the permission boundary, and the task-id scheme
+
+**Task id `001210826`.** Orchestrator only; no agent existed to route to yet. Numbering starts here — work done earlier today predates the scheme and is not retrofitted with ids.
+
+### What was built
+
+| File | |
+|---|---|
+| `.claude/agents/frontend.md` | components, tokens, layout, RTL, rendering. Writes files only |
+| `.claude/agents/backend.md` | Supabase, migrations, the sync script, `lib/content/*`. Writes files only |
+| `.claude/agents/devops.md` | git commit and push, Vercel, Cloudinary, cache warming, the dev server. **The only agent that writes to git history** |
+| `.claude/agents/content.md` | Notion, writing, Arabic, content integrity. Never code, never the database |
+| `docs/agents.md` | the constitution — the shape, ownership, the permission boundary, the task-id scheme, the standing rules |
+| `docs/workflows.md` | the procedure — eight known workflows, their handoffs, and the ledger |
+| `docs/status/{frontend,backend,devops,content}.md` | one log per agent, seeded, no entries yet |
+| `CLAUDE.md` | the first rule at the top, an agent-structure section, three rows in the doc table, one stale claim corrected |
+
+### The first rule is in all six places
+
+> **Do not start work, and do not write a prompt or issue an instruction to anyone, until Moataz has answered your open questions.** If something is genuinely undecided, stop and ask. Never a question and a prompt in the same message.
+
+Verbatim in each of the four agent definitions, at the top of `CLAUDE.md` above the seven rules, and at the top of both new docs. For a subagent it resolves to: **you do not talk to Moataz — return the question to the orchestrator and stop.** For the orchestrator: **a brief is an instruction**, so no brief is written while a question is open, and `docs/workflows.md` W8 makes a returned question halt the workflow rather than let the next agent start "in the meantime".
+
+### The permission boundary
+
+**Reading is open. Writing is scoped.** Any agent may read anything — frontend cannot render correctly without seeing what `lib/content` hands it, and asking about every file wastes a round trip. Writing stays inside each agent's own area, and a finding outside it is reported by path and line rather than reached into.
+
+**Only devops commits or pushes.** frontend and backend write files and stop. The reason is on the record: two sessions committing in parallel interleaved this history last week and made `status.md` sort wrongly. One serialisation point removes the failure mode instead of managing it.
+
+The consequence is planned for rather than discovered: when frontend and backend both finish, one working tree holds two agents' uncommitted work. The orchestrator hands both to devops in a single brief, and devops splits it by logical change — not one commit per agent.
+
+### The task id
+
+`014210826` = task 014, day 21, month 08, year 26. The number resets daily. The orchestrator assigns it at the start and passes it in the brief; every agent that touches the task writes the same id. **The id belongs to the task, not the agent** — three agents on one task all write one id, and a task that is briefed and then refused still consumes its number. Entries are dated to match the commit time, never ahead of it.
+
+### Two documents corrected, both verified before correcting
+
+- **The ports note at the foot of this file** said an older build holds `:3000` so verification runs on `3100`. The standing rule is now the opposite: verify on `:3000`, on `localhost`. The stale server is real — `next-server` v16.3.0 is holding `:3000` and answers `/en` with a 200 — but that is the trap `docs/learn.md` Part 6 names, not a reason to move. **Free the port and run `npm run dev` on it.** A green check on 3100 is true about code nobody is looking at.
+- **`CLAUDE.md` said "no git remote, 45 local commits."** Stale. `origin` is `github.com/moatazmustaphaweb/portfolio.git` and `main` is level with it: `git log origin/main..HEAD` returns 0. The "no Vercel project, nothing has run on Vercel's runtime" half stands.
+
+### Visual verification stays with Moataz, deliberately
+
+No agent owns it. Agents produce screenshots and report **measurements** — *"the prose column measures 836px at 1440 in `/ar`"* — and are forbidden a verdict. `docs/agents.md` records a visual-review agent as a **planned addition** with its prerequisites, so the gap reads as a decision rather than an oversight. It is not buildable while the browser cannot reach the local server, which is the longest-standing untested claim on this project and what let a 404 be reported as working for weeks.
+
+### The skills and `docs/learn.md` stay project-wide
+
+Checked rather than assumed: every one of the four skills is loaded by more than one agent. `rtl-guard` is frontend, backend (translation resolution, `fieldLocales`) and content (Arabic typography). `metric-integrity` is content, backend (the parser and the enums) and frontend (status pills, count-up). `perf-budget` splits per-frame from per-request. Only `motion-system` is close to single-agent, and it gates a future layer rather than one agent's files. Splitting any of them into a definition would create a second copy that drifts.
+
+`docs/learn.md` is read in full by all four, every time. Parts are **emphasised** per agent, not partitioned — the index-pairing bug class has already appeared in the sync, in the query layer and in rendered components, and an agent that had not read it would have shipped it in all three.
+
+### Not verified
+
+- **No agent has been run.** `.claude/agents/*.md` loads at session start, so none of the four exists until Claude Code is restarted. Nothing here has been exercised — the descriptions have not been tested against a real routing decision, and the briefing checklist in `docs/agents.md` has not yet survived a brief.
+- **The founding commit was made by the orchestrator**, because devops did not exist until it landed. Recorded in `docs/agents.md` as the single exception so it is not read as precedent.
+- No code changed. No page was opened. Nothing was deployed.
+
+---
+
 ## 2026-08-21 14:35 — 053 finished everywhere, English fallback aligns with the Arabic, and the Neobiz cover is unfrozen
 
 Four items, all shipped. Nothing touched the paragraph-count gate.
@@ -8269,4 +8327,6 @@ npm run build               # production build
 
 **Note on local dev:** use `npm run dev` for content review — changes appear on refresh in under a second. `npm start` serves a production build where routes are prerendered; they now carry `revalidate = 300`, so a change appears within five minutes or instantly via `/api/revalidate`. Only a code change requires a rebuild.
 
-**Note on ports:** something outside these sessions serves an older build on **port 3000**. Verification runs use **3100** to avoid touching it.
+**Note on ports — CORRECTED 2026-08-21, task `001210826`.** This used to read: *"something outside these sessions serves an older build on port 3000; verification runs use 3100 to avoid touching it."* That is now reversed by a standing rule: **verify on `:3000`, on `localhost`, never an ephemeral port.**
+
+The stale server is real — a `next-server` (v16.3.0) is holding `:3000` right now and answers `/en` with a 200, which is exactly the trap `docs/learn.md` Part 6 names: source changes never appear, and verification passes on a port nobody is watching. **The fix is to free `:3000` and run `npm run dev` there**, not to move to 3100. Moataz watches `:3000`; a green check on 3100 is true about code nobody is looking at.
