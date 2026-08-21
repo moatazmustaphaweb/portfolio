@@ -89,31 +89,50 @@
   --text-statement: calc(clamp(20px, 2.6vw, 26px) * var(--type-scale));
 
   /*
-   * A SECTION HEADING above prose. Takes the BODY factor, and that is the
-   * whole decision (053... see decisions.md 054).
+   * A SECTION LABEL above prose — `THESIS`, `MY ROLE`, `OBJECTIVE`. It is a
+   * LABEL, not a heading, and that reclassification is the whole of this
+   * token's history.
    *
-   * Measured at 1440px, both factor choices:
-   *   with --type-scale-display   20px en / 20.0px ar  → 1.09x Arabic body
-   *   with --type-scale           20px en / 23.0px ar  → 1.25x Arabic body
+   * ⚠️ THIS DELIBERATELY REVERSES THE RULE THE TOKEN WAS BUILT ON. The
+   * previous note argued the size "must stay VISIBLY larger than the
+   * 16px/18.4px prose beneath it" and chose 18px on that basis. Moataz's
+   * call on 2026-08-21: at 13px it is SMALLER than body and that is correct.
+   * Uppercase, mono and dim, it reads as a label, and a small label above
+   * prose is a normal pattern — this site used exactly that at 11px for
+   * months. Do not restore the old ratio; it was an overshoot, corrected.
    *
-   * Brought down to 18px / 20.7px on 2026-08-23: 1.25x read as too large.
-   * The window is narrow and has a hard floor — the heading must stay
-   * VISIBLY larger than the 16px/18.4px prose beneath it, and 1.09x was
-   * judged not to read as a heading at all. Measured candidates:
-   *   17px → 1.06x   below the failure point
-   *   18px → 1.12x   chosen
-   *   19px → 1.19x   the fallback if 18 does not hold in Arabic
-   * Checked by looking at the Arabic, not by trusting the ratio.
+   * The size ran 11px → 18px → 13px. 11 was too small, 18 too far.
    *
-   * `:lang(ar) h2` forces weight 400 with `font-synthesis-weight: none`,
-   * because LANTX ships one weight. Arabic therefore has NO weight axis and
-   * hierarchy is size alone — nine per cent above the body it introduces is
-   * not a heading. The body factor holds the ratio at 1.25x in both languages.
+   * ── IT TAKES --type-scale-small, WHICH IS A CHANGE ─────────────────────
    *
-   * This is the rule stated two lines below for lead and statement: a size
-   * that sits in the reading flow takes the body factor, however large it is.
+   * It took --type-scale (1.15) while it was a heading in the reading flow.
+   * At label size it joins --text-label and --text-micro on the small factor
+   * (1.30), which exists because below about 11.5px the Arabic dots stop
+   * resolving. 13 x 1.30 = 16.9px, well clear of that floor — verified by
+   * looking at Arabic at 390 and 1440, not by trusting the arithmetic.
+   *
+   * 12px was measured alongside (15.6px Arabic, also clear). In English the
+   * two are near-indistinguishable; in Arabic 16.9 is the more comfortable,
+   * so 13 was taken. Note it makes --text-section numerically equal to
+   * --text-meta in English, though not in Arabic (16.9 vs 14.95) — they
+   * differ in face, weight and factor, and are not interchangeable.
+   *
+   * ── NO CLAMP ──────────────────────────────────────────────────────────
+   *
+   * The fluid range went with the heading. Every other small size here is
+   * fixed, and a label that grew with the viewport was only ever justified
+   * by the ratio rule above.
+   *
+   * ⚠️ IT IS NOT TRACKED, AND IN ENGLISH THAT IS NOW WORTH RE-EXAMINING.
+   * `section` carries no letterSpacing in tailwind.config.ts, for the reason
+   * recorded there: 0.12em "at 20px sets the words far too wide". At 13px
+   * that reason no longer applies, and 0.12em is what makes --text-label
+   * read as a label. Left untracked here because the size was the ask and
+   * tracking is a separate ruling. Arabic is unaffected either way —
+   * `:lang(ar) .font-mono` forces the Arabic body face at letter-spacing
+   * normal, since tracked-out uppercase is meaningless in Arabic script.
    */
-  --text-section: calc(clamp(16px, 1.4vw, 18px) * var(--type-scale));
+  --text-section: calc(13px * var(--type-scale-small, var(--type-scale)));
 
   --text-body: calc(16px * var(--type-scale));
   --text-body-sm: calc(15px * var(--type-scale));
