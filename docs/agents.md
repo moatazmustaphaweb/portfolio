@@ -104,17 +104,60 @@ it is handed; reading `components` is how backend knows whether a return value i
 
 **Writing is scoped. An agent writes only inside its own area.**
 
-| | frontend | backend | devops | content |
-|---|---|---|---|---|
-| `components/**`, `app/**`, `globals.css`, `tailwind.config.ts` | **write** | read | read | read |
-| `lib/**`, `supabase/migrations/**`, `scripts/**` | read | **write** | read | read |
-| the Supabase database | read | **write** | read | — |
-| Notion | read | read | — | **read; write only on an approved, verbatim edit** |
-| git history | — | — | **write** | — |
-| Vercel · Cloudinary · `:3000` | read | read | **write** | — |
-| `docs/status/<own>.md` | **write** | **write** | **write** | **write** |
-| `docs/status.md` · `TASKS.md` · `docs/agents.md` · `docs/workflows.md` | — | — | — | — |
-| every other file in `docs/` | read | `schema.md`, `sync-contract.md` | read | audit reports, `ui-strings-review.md` |
+**The orchestrator is a column now.** It was not before, and that absence is what produced
+the `.claude/**` gap: a row of four dashes was ambiguous between *"the orchestrator owns
+this"* and *"nobody owns this"*, and the two are not the same thing. Every row now names a
+writer or says **UNOWNED** in full.
+
+| | orchestrator | frontend | backend | devops | content |
+|---|---|---|---|---|---|
+| `components/**`, `app/**`, `globals.css`, `tailwind.config.ts`, `i18n/**`, `fonts/**` | read | **write** | read | read | read |
+| `lib/**`, `supabase/migrations/**`, `scripts/**` | read | read | **write** | read | read |
+| the Supabase database | read | read | **write** | read | — |
+| Notion | read | read | read | — | **read; write only on an approved, verbatim edit** |
+| git history | — | — | — | **write** | — |
+| Vercel · Cloudinary · `:3000` | read | read | read | **write** | — |
+| **`.claude/agents/*.md`** | **write** | read | read | read | read |
+| **`.claude/skills/**`** | **write** | read | read | read | read |
+| **`.claude/settings*.json`, `.mcp.json`, hook config** | read | read | read | **write** | read |
+| `docs/status/<own>.md` | read | **write** | **write** | **write** | **write** |
+| `docs/status.md` · `TASKS.md` · `docs/agents.md` · `docs/workflows.md` | **write** | — | — | — | — |
+| every other file in `docs/` | read | read | `schema.md`, `sync-contract.md` | read | audit reports, `ui-strings-review.md` |
+
+### `.claude/**` — why it splits three ways
+
+Added 2026-08-21, task `017210826`, after task 016 hit the gap by routing into it.
+
+- **`.claude/agents/*.md` → the orchestrator.** *An agent editing its own definition is a
+  closed loop — rewriting the rules it is judged against.* The structure describing itself
+  belongs to the layer above it, not to the layer it describes.
+- **`.claude/skills/**` → the orchestrator.** The four skills govern all four agents. No
+  one agent may change them on the other three's behalf.
+- **`.claude/settings*.json`, `.mcp.json`, hook configuration → devops.** Environment,
+  which devops already owns. Note that `.claude/settings.local.json` is gitignored, so a
+  change there is real but produces no commit — devops says so rather than reporting a
+  commit that does not exist.
+
+**`~/.mcp.json`, `~/.claude/settings.json` and `~/.claude/helpers/**` are outside the
+repository and outside every agent's write scope, devops included.** They are machine-level
+and affect every project run from the home directory. Any agent may read them; changing one
+is Moataz's decision, taken explicitly, never a side effect of a task.
+
+### ⚠️ THE ONE EXPLICIT EXCEPTION TO "THE ORCHESTRATOR DOES NOT DO THE WORK"
+
+**The orchestrator writes `.claude/agents/*.md` and `.claude/skills/**` itself. It does not
+route them.**
+
+This is written down so it is not read later as the boundary eroding. The general rule —
+*the orchestrator does not do the work itself when an agent exists for it* — still holds
+everywhere else, and it is exactly as load-bearing as it was. But there is no agent to route
+these two paths to that would not be editing its own constitution, and routing "update all
+four agent definitions" to one of the four is the closed loop the rule above exists to
+prevent.
+
+The exception is **narrow and it is a list, not a principle**: those two paths, nothing else.
+It does not extend to `.claude/settings*.json` (devops), and it grants no general licence to
+do agent work directly.
 
 **Only devops commits or pushes.** frontend and backend write files and stop. This is
 deliberate and it is not a style preference: **two sessions committing in parallel
@@ -208,6 +251,35 @@ Written into all four definitions, in these words:
 4. **Guards stay. Widen what they accept, never weaken what they protect.**
 5. **The status entry is part of the task, not offered afterwards.**
 6. **Say what was not verified.**
+
+---
+
+## PATHS WITH NO OWNER — THE STANDING AUDIT
+
+Task `017210826` closed `.claude/**` and then swept the rest of the repository for the same
+class of gap, because it was found by walking into it rather than by looking. **Recorded
+here rather than silently filled: assigning an owner is Moataz's decision, and a table that
+invents one is worse than a table with a hole in it, because the hole is visible.**
+
+**Transcribed, not decided** — already assigned elsewhere and merely missing from the table,
+now added above: `i18n/**` and `fonts/**` → frontend. Both are named in `CLAUDE.md` and in
+`.claude/agents/frontend.md`; their absence from the table was a copying error, not an open
+question.
+
+**Genuinely unowned, awaiting a decision:**
+
+| Path | The problem |
+|---|---|
+| `docs/learn.md` | **A live contradiction.** The table says every file in `docs/` other than the named ones is read-only to all four agents. `CLAUDE.md` and this file both say `learn.md` *"is appended to as part of the task… by whoever learned the thing."* The table forbids what the prose requires |
+| `docs/decisions.md` | No writer. `CLAUDE.md` makes it the tie-breaker when documents disagree and requires the conflicting document be corrected *in the same session* — so something must write it |
+| `CLAUDE.md` | No owner. It was edited in task `014210826` with no rule permitting it |
+| root config — `package.json`, `tsconfig.json`, `next.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`, `.gitignore`, `.env.example`, `proxy.ts` | Absent entirely. `tailwind.config.ts` is the only root file in the table |
+| `supabase/**` outside `migrations/` | The table grants `supabase/migrations/**`; the rest of the directory is unlisted |
+| `designs/`, `Image mapping/`, `.vscode/` | Tracked directories, no row |
+| `app/api/**` | **An overlap, not a gap.** `app/**` is frontend's, but the route handlers are backend-shaped and devops is the one exercising them against a build |
+
+Until a row exists, these follow the first rule: **stop and ask.** An agent that needs to
+write one of them returns the question rather than assuming the nearest owner.
 
 ---
 
