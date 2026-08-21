@@ -737,6 +737,57 @@ It is also the rule `globals.css` already states for `--text-lead` and `--text-s
 
 ---
 
+## 055 — `@claude-flow/memory` is not installed, and the session-start warning is the guard
+
+**Decided 2026-08-21, task `017210826`.** Investigated under task `016210826`.
+
+**Every session opens with this, and it is not a bug to be silenced:**
+
+```
+[AutoMemory] @claude-flow/memory not resolvable from /Users/moatazmustapha — self-learning imports are DISABLED.
+             Fix: npm i -D @claude-flow/memory   (or re-run: npx ruflo@latest init, then npx ruflo@latest doctor --fix)
+```
+
+**Do not run that fix.** The warning names its own remedy and the remedy is the hazard.
+
+**Why.** `~/.claude/helpers/auto-memory-hook.mjs` resolves `PROJECT_ROOT` as
+`join(__dirname, '../..')`. The helper lives in `~/.claude/helpers`, so that path resolves
+to **`~`** — the home directory — not to the project. With `@claude-flow/memory` installed,
+`curateIndex()` becomes live and is pointed at a **home-scoped** store, with permission to
+**rewrite `MEMORY.md`**.
+
+That is a process outside this repository, running on every `Stop` event, editing a memory
+index shared across every project on the machine — `dabbler`, `dabbler-admin`, `ruflo`,
+`Design System`, `Moataz Portfolio` — on the strength of a path resolution that is almost
+certainly a bug in the helper rather than an intention.
+
+**Measured, not assumed** (task `016210826`): the pattern stores are currently **per-project**
+— `.claude-flow/data/` here at 396K, `dabbler` 112K, `ruflo` 4K, `Design System` 8K — and
+`~/.claude-flow/data/` is **empty**. There is no cross-project contamination today. Installing
+the package is the thing that would introduce a home-scoped writer where none exists.
+
+**So the warning is load-bearing.** It is the only reason `importFromAutoMemory`,
+`syncToAutoMemory` and `curateIndex` bail before doing anything. Silencing it by installing
+the package removes the guard; it does not fix anything.
+
+**What is actually lost:** nothing this project uses. The `[INTELLIGENCE]` patterns that
+appear at session start come from a **different** mechanism — `hook-handler.cjs` and the
+per-project store — which works today and is unaffected. No project file, script, doc, agent
+definition or skill references `@claude-flow/memory`.
+
+**If it is ever wanted**, the precondition is a fix upstream or a local override that makes
+`PROJECT_ROOT` resolve to the project, verified by observing where `curateIndex()` writes —
+not by reading the code and expecting it. Until then the package stays absent.
+
+**Related:** the `claude-flow` MCP server is defined in `~/.mcp.json`, outside this repo, and
+fails on cold-start install latency past the 30s handshake. Nothing here depends on it. Left
+alone deliberately — it is machine-level and Moataz's call. See `docs/status.md` `015210826`
+and `016210826`.
+
+**Status:** ACTIVE
+
+---
+
 ## OPEN — NOT YET DECIDED
 
 | # | Question | Blocks |
