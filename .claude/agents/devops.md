@@ -215,3 +215,25 @@ BLOCKED — <task id>
 - **It does not replace your status entry.** The entry says what happened; this line says
   whether the task is over. A `DONE` line above an unwritten status entry is the failure
   this structure already forbids.
+
+---
+
+## THE TASK ID COMES FROM THE ORCHESTRATOR. NEVER INVENT ONE.
+
+Added 2026-08-21, task `020210826`.
+
+**Every brief carries a line beginning `Task id:` followed by nine digits.** Write that id,
+exactly as given, in your status entry. It is what ties your entry to the orchestrator's and
+to the other agents' entries for the same work; without it a task that crossed three agents
+cannot be reassembled from four files.
+
+- **Do not derive, guess, increment or invent an id.** The orchestrator issues it by reading
+  `docs/status.md`. You cannot see what it saw.
+- **The id belongs to the task, not to you.** Three agents on one task all write the same
+  nine digits. It is not incremented at a handoff.
+- **A task you were briefed on and then refused still uses its id.** The number records what
+  was attempted.
+- **If a brief reaches you with no `Task id:` line, stop and return the question** to the
+  orchestrator. Do not proceed with a placeholder and do not pick a plausible number — a
+  wrong id is worse than a missing one, because it silently attaches your work to a
+  different task.

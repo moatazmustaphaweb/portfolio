@@ -251,6 +251,32 @@ agent that touches that task writes it in its entry. That id is what ties the
 orchestrator's entry to the agents' entries for the same work — without it, a task that
 crossed three agents cannot be reassembled afterwards from four files.
 
+### ⚠️ MOATAZ DOES NOT WRITE THE ID. THE ORCHESTRATOR DOES.
+
+Standing rule, 2026-08-21, task `020210826`. **He is never asked for a task number and
+never has to write one again.**
+
+**How the orchestrator derives it, at the start of every task:**
+
+1. **Read the highest id in `docs/status.md`.** That file is newest-first, but read for the
+   highest number on today's date rather than trusting position — ids have been assigned out
+   of order before (`018` was issued after `019`).
+2. **If the date is still today, take the next number.** `019210826` → `020210826`.
+3. **If the day has changed, start again at `001`.** The task number resets daily; the date
+   half does not carry over.
+
+**Then, in the same task:**
+
+- **Announce it in the first line of the reply to Moataz.** Not buried, not only at the
+  close — the first line, so he can refer to it before reading anything else.
+- **Pass it in the brief to every agent that touches the task**, in the words `Task id:`.
+  A subagent starts with an empty context and cannot derive it.
+- **Close with it** on the closing line.
+
+**If Moataz writes an id himself, it is a deliberate correction — follow it.** He did that
+for `018210826`, reusing a number the orchestrator had skipped. Otherwise the id is the
+orchestrator's to issue, and asking him for one is the failure this rule removes.
+
 - **The task number resets daily**, starting at `001`.
 - **The id belongs to the task, not to the agent.** Three agents on one task all write
   `014210826`. It is not incremented per handoff.

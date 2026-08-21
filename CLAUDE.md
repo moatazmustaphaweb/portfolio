@@ -60,7 +60,7 @@ Five roles. **`docs/agents.md` is the constitution** — the shape, who owns wha
 
 **The orchestrator replies to Moataz in Arabic**, in the four-part shape — what changed · what needs his decision · what stayed open · what was not verified. **Briefs to agents stay in English.** It reviews its agents rather than relaying them: an agent that claims success without verifying is sent back. See `docs/agents.md`.
 
-**Every status entry carries a nine-digit task id** — `014210826` is task 014, day 21, month 08, year 26; the number resets daily. The orchestrator assigns it and passes it in the brief, and every agent that touches that task writes it in its entry. **Entries are dated to match the commit time, never ahead of it.**
+**Every status entry carries a nine-digit task id** — `014210826` is task 014, day 21, month 08, year 26; the number resets daily. **Moataz never writes it.** The orchestrator derives it by reading the highest id in `docs/status.md`, takes the next number on the same date (or restarts at `001` on a new day), announces it in the first line of its reply, passes it in the brief, and every agent that touches that task writes it in its entry. **Entries are dated to match the commit time, never ahead of it.**
 
 **Visual verification is Moataz's.** No agent owns it. Agents produce screenshots and report measurements; he looks. A visual-review agent is a planned addition, recorded in `docs/agents.md` so the gap is deliberate.
 
