@@ -22,6 +22,10 @@ He reads the file, not the terminal. An unchanged `status.md` is indistinguishab
 
 **So: the entry is written as part of the task, not offered afterwards.** If a change seems too small to log, log it in two lines. If a task ends without an entry — a refusal, a question answered, a diagnosis — say so explicitly in the reply, so the silence is legible as deliberate.
 
+**And a rule written in a file that is read at session start is not a guarantee.** In `018210826` devops finished its git work and closed **twice** without writing its entry. The rule was in its own definition, it had read the file, and it went past the rule anyway; it took two returns from the orchestrator to get an entry. **The guarantee is to make the close itself conditional on the rule** — the status entry is the last thing written, and `DONE` may not be used without it — rather than to state the rule more emphatically in a place the agent has already read and skimmed.
+
+Generalises past this one rule: **if a standing rule is being violated, adding words to it is the weakest available fix.** Attach it to a step that cannot be skipped.
+
 ## One prompt at a time, and never below an open question
 
 He sends prompts to Claude Code verbatim. A question left open above a prompt means he sends the prompt without knowing whether it was answered.
@@ -238,6 +242,16 @@ Generalises: when two things must agree — a grid and its rail, a flag and its 
 
 ---
 
+## Ambiguity in a permissions table is a vulnerability, not an editorial detail
+
+The ownership table in `docs/agents.md` used a dash for two different facts: *"this agent does not touch this"* and *"nobody owns this at all."* Reading a row of dashes, both look like a decision. **One of them was a hole**, and it stayed invisible until a task routed straight into it — `.claude/**` had no owner, and that was only discovered by needing to write there.
+
+**A table that grants permissions has to distinguish "does not apply" from "unassigned",** and say the second one in words. The fix was to write `UNOWNED` in full wherever it is true, so the next sweep reads it as decided rather than missed, and to give the table a column for the orchestrator — whose absence was the actual cause, since a row of four dashes could not distinguish *"the orchestrator owns this"* from *"nobody does."*
+
+**The generalisation: in any table that governs what may be written, silence is not a value.** Every cell means something, and a blank that could mean two things means neither.
+
+---
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.
@@ -300,5 +314,7 @@ Recorded so the same error is not repeated by a fresh session.
 | Making the repo public would allow reading it | GitHub blocks automated access regardless. The step was wasted |
 | The Egypt thesis was one unsplit paragraph in Notion | It was already five. The loss was at render, not at source |
 | The Arabic child-page naming pattern was the sync bug | It was three unrelated matcher bugs. The hypothesis was wrong and saying so first mattered |
+
+| Writing a rule protects the writer from breaking it | The orchestrator codified *"entries are dated to match the commit time, never ahead of it"* and then, **in the same task**, dated its own entry twenty minutes in the future. It resolved only because the clock caught up — nothing was corrected. **Authorship confers no immunity;** check your own output against the rule you just wrote |
 
 **The pattern in most of these:** a conclusion drawn from a document rather than from the system it describes. `status.md` is a narrative and is behind in places. When a fact is checkable, check it.
