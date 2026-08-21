@@ -16,6 +16,73 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 018210826 — 2026-08-21 18:03 — the push ran; fourteen commits landed on `origin/main`
+
+**Brief:** The 403 is gone — push `main` to `origin`. Push only; no amend, no rebase, no
+force, no other branch, no re-authentication, no file content edited. Verify by running
+commands afterwards rather than assuming, then write this entry.
+
+**Command:** `git push origin main` — one command, run once.
+
+```
+To https://github.com/moatazmustaphaweb/portfolio.git
+   c448f9d..1c2adba  main -> main
+```
+
+**What it delivered:** the fourteen commits between `c448f9d` and `1c2adba`, spanning tasks
+`014210826` through `019210826` — the five-agent structure and the four `.claude/agents/*.md`
+definitions, `docs/agents.md` and `docs/workflows.md`, decision 055, the `CLAUDE.md` update,
+the two `learn.md` traps, and every status file including the three corrections to my own
+`017210826` entry. Fifteen files, 2495 insertions. Several of those commits correct earlier
+mistakes; nothing was squashed, reordered or tidied — the untidiness is the record.
+
+**Verification, after the push, read from the four commands (not assumed):**
+
+| Check | Result |
+|---|---|
+| `git log origin/main..HEAD --oneline \| wc -l` | **0** |
+| `git ls-remote --heads origin main` | `1c2adba81e7c3ac4227453ddc2a46d3ef0c7c9fa` |
+| `git rev-parse HEAD` | `1c2adba81e7c3ac4227453ddc2a46d3ef0c7c9fa` — **equal to the remote** |
+| `git status --porcelain` | empty; `git check-ignore .env.local` returns the path |
+
+**Pushed:** yes — `main` → `origin/main` at `github.com/moatazmustaphaweb/portfolio.git`.
+`main` only. `identity-rewrite`, `backup/main-old` and `claude/branch-count-3d6akh` were not
+touched, not fetched into, not read.
+
+**Deployed:** no. There is still no Vercel project. Nothing in this push has run anywhere but
+this machine and GitHub's object store.
+
+**What unblocked it, precisely:** an identity mismatch, resolved by **Moataz authenticating
+interactively as `moatazmustaphaweb`** — not by anything I changed. `gh auth status` now
+reports `moatazmustaphaweb` active and `dabblersport` stored but inactive. I did not
+re-authenticate, did not switch accounts, did not touch the remote URL or the credential
+helper. The refusal recorded in the `017210826` entry was correct at the time and stands.
+
+**The diff, read before pushing:** all fifteen files are `docs/**`, `.claude/agents/**`,
+`CLAUDE.md` and `TASKS.md`. No secrets, no `.env*`, no client screens, no NDA assets, no
+image binaries. `docs/status/*.md` timestamps in the pushed set are at or behind their own
+commit times.
+
+**Not verified — and these are the honest gaps:**
+
+- **Nothing was loaded in a browser.** No dev server was started for this task; `:3000` was
+  not touched. This task was git only.
+- **The remote's *contents* were not inspected.** I verified the sha the remote holds equals
+  local `HEAD`; I did not fetch the tree back and diff it, and I did not open the repository
+  on github.com to look at it.
+- **No build, typecheck or test was run** — nothing in this push is code.
+- **GitHub Actions / branch protection:** not checked. If a workflow runs on push to `main`,
+  I do not know its outcome.
+
+**learn.md:** nothing appended. PART 6 already carries both traps from this task — the stale
+git fact and `gh` as the wrong account — and the resolution here is exactly what that second
+row already prescribes (`gh auth status` names the account actually in use). Adding a third
+row would duplicate them.
+
+**Open questions:** none. The push was the last outstanding step of `018210826`; it is done.
+
+---
+
 ## 018210826 — 2026-08-21 17:38 — four files, six commits; the push not attempted, and a future-dated entry waited out rather than edited
 
 **Brief:** Commit the four uncommitted files spanning tasks `018210826` and `019210826`.
