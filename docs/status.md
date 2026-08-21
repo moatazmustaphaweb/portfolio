@@ -37,6 +37,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 020210826 — 2026-08-21 18:12 — The orchestrator issues the id, the close is gated on the entry, and the last open ownership row is ruled
+
+**Id derived, not requested.** `019210826` was the highest in this file, the day had not changed, so this task is `020`. That derivation is now the standing rule rather than a one-off.
+
+### 1 — Moataz does not write task numbers
+
+Into `docs/agents.md` and all four agent definitions. The orchestrator reads the highest id in this file, takes the next number on the same date, and restarts at `001` when the day changes. It announces the id **in the first line of the reply** — not only at the close — passes it in every brief as `Task id:`, and closes with it.
+
+**Read for the highest number, not the topmost entry.** This file is newest-first, but ids have already been issued out of order: `018210826` was assigned after `019210826`, at Moataz's direction. Position and sequence are not the same thing here.
+
+**An id Moataz writes himself is a deliberate correction and is followed.** Otherwise the number is the orchestrator's to issue, and asking for one is the failure the rule removes.
+
+**The agents got the mirror of it:** never derive, guess, increment or invent an id — it arrives in the brief. **A brief with no `Task id:` line is a returned question, not a judgement call.** A wrong id is worse than a missing one, because it silently attaches work to a different task.
+
+### 2 — `app/api/**` ruled: split by what the handler touches
+
+Moataz took the recommendation. `contact` and `events` → backend; `revalidate` → devops.
+
+**The argument he singled out is the one that matters: the split ratifies something already written rather than inventing a rule.** `.claude/agents/devops.md` and the devops role description both already named *"ISR and `/api/revalidate` against a real build"* as devops's. The table had never caught up with the definition.
+
+**The principle it sets, recorded because it generalises: ownership follows what a file is, not where it sits.** None of the three handlers imports a component or renders anything, so frontend's claim rested on the path `app/**` alone. `i18n/**` and `fonts/**` went to frontend on the same basis. **A directory is not a unit of ownership.**
+
+**The standing audit is now closed with no open rows.**
+
+### 3 — The status entry gates `DONE`
+
+Into all four definitions and into `docs/agents.md`, as Moataz ruled — **all four, not devops alone.**
+
+The reasoning is the point and it is written into the rule: **the rule already existed and was not enough.** In `018210826` devops finished its git work and closed twice without writing its entry. Rule 5 was in its own definition, it had read the file, and it went past the rule anyway. Two returns were needed.
+
+So the close is now conditional: the work is done · the entry is written and saved · only then `DONE`. **Work finished with no entry closes `BLOCKED`, and says the entry is what is missing.** Written into the agents in the second person, at the moment of closing, rather than as a principle stated earlier in the file — because being stated earlier in the file is precisely what failed.
+
+**And the boundary is restated inside the rule:** nobody writes a missing entry for the agent. The orchestrator returns the task. An orchestrator that fills in `docs/status/<own>.md` breaks the boundary it is enforcing — Moataz's instruction was explicit that returning it was the correct handling.
+
+### 4 — Three lessons into `docs/learn.md`, each in the section it belongs to
+
+Appended under the new append rule; nothing restructured, reordered or rewritten.
+
+- **PART 1**, into the `status.md` subsection it concerns: **a rule written in a file read at session start is not a guarantee.** The generalisation is the useful half — *if a standing rule is being violated, adding words to it is the weakest available fix.* Attach it to a step that cannot be skipped.
+- **PART 8**, as a row: **writing a rule confers no immunity from it.** The orchestrator codified *"never dated ahead of the commit"* and then, in the same task, dated its own entry twenty minutes into the future. It resolved because the clock caught up, not because anything was corrected.
+- **PART 5**, as a bug class: **ambiguity in a permissions table is a vulnerability, not an editorial detail.** A dash meant both "does not apply" and "nobody owns this", and the second was invisible until a task routed into it. In any table that governs what may be written, **silence is not a value.**
+
+`CLAUDE.md` carries the summary of both new rules so the front door does not lag the constitution again.
+
+---
+
 ## 018210826 — 2026-08-21 17:38 — Both contradictions closed, every remaining path owned, and one row deliberately left open
 
 *Task `018` was assigned after `019`; it is filed here by time, newest first, as the file requires. The id is Moataz's.*
