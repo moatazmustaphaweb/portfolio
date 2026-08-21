@@ -337,6 +337,76 @@ page rather than a missing translation. This is a gap, not a decision.
 
 ---
 
+## ⚠️ KNOWN LIMITATION — `--dry-run` IS BLIND TO PAIRING FAILURES
+
+**A clean dry run does not mean the Arabic will be written.** It has never
+meant that, and the gap is large: **109 chapter paragraphs** of finished Arabic
+prose, plus roughly half the `media` alt/captions, are dropped on every real
+sync while `--dry-run` reports nothing wrong.
+
+### Why
+
+Both section writers return their summary line and stop before doing any work:
+
+| function | returns at | what sits after it |
+|---|---|---|
+| `writeChapterSections` | `scripts/sync-notion.ts:1115` | the whole paragraph-pairing loop |
+| `writeCoverSections` | (same shape, same pattern) | its paragraph pairing |
+
+```ts
+if (DRY_RUN) return shape;   // ← everything below is unreachable in a dry run
+```
+
+The count check that decides whether Arabic pairs — and the `notice()` that
+reports it when it does not — both live *after* that line. A dry run therefore
+prints the English shape (`slots [thesis(5¶+ar) · role(3¶+ar)]`) and the `+ar`
+means only **that an Arabic section was found**, never that its paragraphs will
+be accepted.
+
+**What the dry run DOES catch** is everything decided before the return:
+classification, slot resolution and its refusals, outcome/target parsing,
+entry-handle pointers, and section-count mismatches at page level. The Neobiz
+alias failure and the accessibility page's 8-vs-14 both showed up correctly.
+It is specifically **paragraph-level pairing, inside a matched section**, that
+is invisible.
+
+### How it was found
+
+Not from the sync. From the database: section *headings* were translated while
+their paragraphs were not — 6 of 7 headings and 5 of 41 paragraphs on
+`egypt-acquisition/workflow` — which cannot happen if the Arabic page were
+missing. The Arabic page for that chapter is complete.
+
+### What it would take to fix (NOT built)
+
+The honest fix is to separate *deciding* from *writing*, so a dry run can run
+the whole decision path and skip only the database calls:
+
+1. Split each writer in two — a pure function that takes the English and Arabic
+   block trees and returns a plan (`{slot, position, arabicAccepted, reason}[]`
+   plus the notices it would raise), and a thin writer that executes the plan.
+2. Move the `DRY_RUN` check from the top of the writer to the point of each
+   `insert`/`upsert`, or have the dry run simply not call the executor.
+3. Report the plan: the dry run prints per-slot `en ¶ / ar ¶ / paired?` and
+   every notice the real run would emit.
+
+The cost is real — it is a restructure of the two largest functions in the
+script, and their current shape is what makes the delete-and-replace semantics
+easy to follow. The cheaper interim is a `--explain` flag that runs the pairing
+comparison and prints its verdict without writing, duplicating the count logic
+in one place rather than restructuring. **Duplicated logic is exactly how these
+two paths drifted apart in the first place**, so it is a stopgap and should be
+labelled one.
+
+### Until then
+
+**Verify Arabic coverage against the database, not against a dry run.** The
+per-entity query is in `docs/status.md` (2026-08-21 14:15). The tell for this
+failure is always the same: a section heading with Arabic sitting above
+paragraphs without it.
+
+---
+
 ## KNOWN DATA ISSUES (resolve in Notion before the first real sync)
 
 1. **Route collision** — two rows claim `/[locale]/work/cervello`: `Case File Cover — Cervello` (old) and `Case File Cover — Cervello Cloud (IoT)` (current). The sync will create duplicates or overwrite unpredictably.

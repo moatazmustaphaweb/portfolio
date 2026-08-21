@@ -37,6 +37,167 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 14:35 — 053 finished everywhere, English fallback aligns with the Arabic, and the Neobiz cover is unfrozen
+
+Four items, all shipped. Nothing touched the paragraph-count gate.
+
+## 1 — English fallback aligns to the page's inline start
+
+```css
+:root[dir="rtl"] [dir="ltr"] { text-align: end; }
+```
+
+`dir="ltr"` still governs bidi, so 053's punctuation fix is untouched — this
+only moves the ragged edge to the side the Arabic is on.
+
+**⚠️ `text-align: match-parent` is the textbook answer and it does not work
+here.** It resolves start/end against the *parent's* direction, which is exactly
+this problem, but `CSS.supports("text-align","match-parent")` returns **false**
+in this Chrome: the declaration is dropped and the computed value stays `start`.
+Measured, not assumed, and recorded on the rule in `app/globals.css` so it is
+not reached for again without re-testing support.
+
+`end` is not a physical value wearing a logical name. **When an LTR element sits
+inside an RTL page, that element's own `end` IS the page's `start`** — the same
+edge, by construction, every time.
+
+## 2 — 053 finished, and it was five surfaces, not two
+
+The audit found more than the two named. The type change is what flushed them
+out: making `paragraphs` carry its own language turned every unmarked call site
+into a compile error rather than something to remember to look for.
+
+| surface | before | now |
+|---|---|---|
+| `ChapterSections` | complete | unchanged |
+| `CoverSections` | captions only | prose, headings, captions |
+| `ProseSections` | **nothing** | intro, headings, bodies, tables |
+| `/work/[caseFile]/all` | nothing | opening prose, role, decisions, chapter titles |
+| contact · about · philosophy · systems | nothing | headings and bodies |
+| `LivingMap`, case-file page | nothing | objectives, page titles |
+
+**27 render sites** now carry `lang` + `dir` from the field's own locale.
+
+### Why ProseSections never got it, which is the interesting part
+
+`withFields` has **always** returned `fieldLocales`. The `PageSection` type
+simply did not declare it. The data was arriving at the component and TypeScript
+said it was not there, so nobody looked. One missing line in a type definition
+is why the accessibility page spent months rendering
+
+> `.claims and open claims are separated below`
+
+with the full stop at the start of the line. **Verified fixed** — it now reads
+`claims and open claims are separated below.` and sits right-aligned, on both
+themes.
+
+### The plumbing
+
+`CoverSection.paragraphs` went from `string[]` to `CoverParagraph[]`
+(`{text, lang}`). Deliberately **not** a parallel array of languages: two arrays
+indexed together are two things free to disagree, and a paragraph rendered under
+the wrong `lang` is the exact bug 053 exists to prevent. `resolveMany` →
+`resolveManyDetailed` on `cover_section`, `cover_paragraph`, `chapter` and
+`case_file` — same round trips, the detail was already computed and discarded.
+`fieldLocales` added to the `PageSection`, `Decision`, `Chapter`,
+`ChapterWithDecisions`, `CaseFile` and `Target` types.
+
+## 3 — The Neobiz cover is unfrozen
+
+**⚠️ It was not a missing alias. It was a STALE one.**
+
+Migration 0032 already carried `('ولماذا يهم رغم أنه لم يُبنَ', 'why-it-matters',
+'Neobiz (ar)')`. The heading was reworded in Notion — *"even though it was not
+built"* became *"even though it has not been implemented yet"* — and the alias
+stopped matching.
+
+That distinction matters. The other three gaps were spellings nobody had mapped
+yet. **This one was mapped, and ordinary copy-editing broke it.** Aliases decay
+whenever prose is edited, which no amount of seeding prevents.
+
+Migration `0043`, applied. The old row is kept — one row, still a true statement
+about a heading this cover once carried.
+
+**Verified against Notion, not asserted:** the dry run went from `failed 1` to
+`failed 0`, exit 1 to exit 0, and the cover now resolves
+`thesis(3¶+ar) · what-it-is(4¶+ar) · status(2¶+ar) · why-it-matters(1¶+ar)`.
+It updates from Notion again.
+
+### Can the alias table fail more usefully? Yes — what it would take
+
+It currently reports the heading, its normalised form, and the eight known
+slots. It does not say **which** slot it nearly matched.
+
+The cheapest version that would have caught this one: on refusal, score the
+normalised heading against every `heading_norm` already in the table by
+**token overlap** — shared words over total distinct words. `ولماذا يهم رغم أنه
+لم يتم تطبيقه حتى الآن` against `ولماذا يهم رغم أنه لم يُبنَ` shares
+`ولماذا · يهم · رغم · أنه · لم` — five of six tokens on the shorter side. Above
+a threshold, the refusal becomes:
+
+> matches no slot. **Closest: `why-it-matters`** via `ولماذا يهم رغم أنه لم يُبنَ`
+> (5 of 6 words shared) — did this heading get reworded? Add the new spelling to
+> `cover_slot_aliases`.
+
+That reads as *"your alias went stale"* rather than *"unknown heading"*, which
+is the actual diagnosis and the thing that took a session to work out.
+
+**Cost:** one pure function, roughly 20 lines, in `lib/sync/cover-slots.ts`,
+called only on the refusal path so it costs nothing on the happy path. It needs
+the alias table in memory at refusal time, which the resolver already has.
+
+**What it must not do:** auto-accept a near match. A heading 80% similar to
+`what it is` and 80% similar to `thesis` is exactly the Neobiz case 0032 warns
+about — aliasing those two would silently overwrite a thesis with a component
+description. It suggests; a person still writes the row. **Not built.**
+
+## 4 — `CLAUDE.md` corrected
+
+It claimed 46 `page_sections` and 12 `entry_handles` had no Arabic and that
+About, Philosophy, Systems and Contact were English-only. **Wrong in both
+directions.** Measured: About 7/7, Philosophy 5/5, Contact 5/5, Systems 5/5,
+`entry_handles` 24/24 — the static pages are done. What remains is 109 of 248
+chapter paragraphs and about half the media alt/captions, most of it written in
+Notion and dropped by the sync. "Arabic for the static pages and entry handles"
+also came off the content-blocked list.
+
+## ⚠️ The dry-run blindness is now written down
+
+`docs/sync-contract.md` has a new section: **`--dry-run` IS BLIND TO PAIRING
+FAILURES.** Both section writers return their shape string before the pairing
+loop (`sync-notion.ts:1115`), so the count check and its `notice()` are
+unreachable in a dry run. Every clean dry run has been blind to 109 dropped
+Arabic paragraphs.
+
+It records what the dry run *does* still catch (classification, slot refusals,
+outcome parsing, page-level count mismatches — the Neobiz failure and the
+accessibility 8-vs-14 both surfaced correctly), how it was found (headings
+translated above untranslated paragraphs, which cannot happen if the Arabic were
+missing), and what the fix would take: split each writer into a pure planner and
+a thin executor, move the `DRY_RUN` check down to the inserts, print the plan.
+The cheap `--explain` alternative is named **and labelled a stopgap**, because
+duplicating the count logic is how these two paths drifted apart in the first
+place. **Not built.**
+
+Until then: verify Arabic coverage against the database, never against a dry run.
+
+## Not in this task
+
+The 109 paragraphs and the count gate — untouched, as instructed.
+
+## Verified
+
+`:3000` on localhost. Eight surfaces × both locales × 390 and 1440:
+
+- Every LTR block on an Arabic page computes `text-align: end`; every block on
+  an English page stays `start`. No horizontal overflow anywhere.
+- **Zero unmarked Latin prose on any Arabic page.** The elements still without
+  an explicit `dir` are all predominantly Arabic and correctly inherit the page.
+- The accessibility page's full stop, photographed on light and dark.
+- `tsc --noEmit`, `eslint .` and `next build` all clean.
+
+---
+
 ## 2026-08-21 14:15 — REPORTED, NOT FIXED: Arabic written in Notion that never reaches the site, and 053's punctuation bug still live on two surfaces
 
 Both items from the previous brief. Nothing was changed — both were
