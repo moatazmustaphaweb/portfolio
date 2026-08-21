@@ -37,6 +37,95 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 018210826 — 2026-08-21 17:38 — Both contradictions closed, every remaining path owned, and one row deliberately left open
+
+*Task `018` was assigned after `019`; it is filed here by time, newest first, as the file requires. The id is Moataz's.*
+
+**Written by the orchestrator directly.** `CLAUDE.md` and `docs/decisions.md` became orchestrator-owned in this task, which is what finally authorised the `CLAUDE.md` edit refused in `017210826`.
+
+### 1 — `docs/learn.md`: the prose won
+
+The table forbade what `CLAUDE.md` and `agents.md` both require. **The table changed, not the prose** — appending to `learn.md` is the file's entire purpose. All five may **append**; none may do anything else.
+
+The constraint is the load-bearing half: **append to the section the lesson belongs in — never restructure, rewrite, reorder, tidy or deduplicate.** Its shape is Moataz's, it is written the way he wants to read it, and an agent reorganising it destroys the property that makes it useful. **Correcting an existing line is not appending** — a wrong line is reported and left.
+
+Qualifies: a bug class · a preference discovered by being corrected · an environment trap that cost a session · a rule that turned out to have an exception. Does not: a decision, a session outcome, anything true of only one file. The test stands — *would reading it beforehand have saved time?*
+
+### 2 — `CLAUDE.md` is the orchestrator's, and is now level
+
+Same argument as `.claude/agents/`: it describes the structure, so it belongs above the layer it describes. It was three rules behind. Now carries the closing line, the Arabic reply protocol, the machine-level exclusion, the learn.md exception, and an ownership table that matches `agents.md` — with a pointer saying `agents.md` is the authority, so the two cannot silently diverge again.
+
+**Its stale git claim is gone, and the replacement is written so it cannot go stale.** The line said *"`main` is level with it — `git log origin/main..HEAD` returns 0"*. It now records that the push is refused and says: **do not restate a commit count here; run the command.** A number in a document outlives its truth.
+
+### 3 — The remaining holes, filled on the reasoning already established
+
+`docs/decisions.md` → orchestrator (a tie-breaker an interested party can edit is not one) · root config → devops · `supabase/**` outside `migrations/` → backend · `designs/` → frontend · `Image mapping/` → content · `.vscode/` → **UNOWNED, spelled out**.
+
+**A dash and UNOWNED now mean different things, and the table says which.** A dash is *"does not apply"*; UNOWNED written in full is *"decided that nobody writes it"*. Conflating them is precisely what produced this audit, so `.vscode/` is written out rather than left as five dashes that the next sweep would read as an oversight.
+
+### 4 — `app/api/**` — NOT filled. The proposal, and the evidence for it
+
+Left open as instructed. **The imports settle it**, and they say the row is not really about `app/**` at all:
+
+| handler | imports | shape |
+|---|---|---|
+| `app/api/contact/route.ts` | `supabaseServer`, `lib/content/ui`, `lib/notify` | backend |
+| `app/api/events/route.ts` | `supabaseServer`, `lib/content/types` | backend |
+| `app/api/revalidate/route.ts` | `revalidatePath`, `LOCALES` — **nothing from Supabase** | cache control |
+
+**None of the three imports a component or renders anything.** Frontend's claim rests entirely on the path `app/**`, not on the contents. Ownership on this project has followed what a file *is*, not where it sits — `i18n/**` and `fonts/**` went to frontend on that basis, not on their position.
+
+**Proposal: split by what the handler touches.** `contact` and `events` → **backend**, because they are Supabase writers and backend owns both the database and `lib/content`. `revalidate` → **devops**, because it is ISR and cache invalidation and can only be tested against a real build.
+
+**The strongest argument is that this is already written down.** `.claude/agents/devops.md` and the devops role description both name *"ISR and `/api/revalidate` against a real build"* as devops's. The split ratifies an existing claim rather than inventing one.
+
+**The alternative, stated fairly:** all of `app/api/**` → backend, with devops exercising `revalidate` without owning it. Simpler, avoids a three-way split inside one directory, and one directory with one owner is easier to hold in the head. It is the better choice if the split's precision is not worth the extra rule. **Not recommended, because it contradicts devops's own definition** — but it is close, and it is Moataz's call.
+
+### 5 — The stale push, recorded as a failure rather than a fact
+
+**`fb21da9` was reported as pushed and was not.** The mechanism: `status.md` recorded *"`main` is level with origin"* — true when written — and that sentence was **read as current two days later, quoted into a brief as an established fact, and used to reason about what still needed pushing.** The correction only surfaced because the number was checked against the command instead of the document.
+
+**This is the same failure that cost three exchanges last week**, and it is the failure the whole `status.md` discipline exists to prevent — with the twist that here the document was not stale through neglect but through *time*: it was accurate, and accuracy expired.
+
+**Appended to `docs/learn.md`, PART 6, under the new append rule** — two traps, not one:
+
+- **A status line that states a git fact.** A git fact goes stale the moment the next commit lands. Never carry one forward from a document; run the command. And never write a count into a doc that outlives it — write how to get the count.
+- **`gh` authenticated as the wrong account.** `push` returns 403 while `fetch` works normally, which reads as a broken remote when the remote is fine. The credential helper serves whatever account is stored regardless of `user.email`, so commits are authored as one identity and pushed as another. `gh auth status` names the account actually in use.
+
+### Still blocked
+
+**The push is unchanged and was re-checked, not assumed** — `git push --dry-run` still returns 403. Eight commits stranded, and this task's changes are not yet among them. `main` is **not** level with `origin/main`, and will not be until Moataz authenticates as `moatazmustaphaweb`.
+
+---
+
+## 019210826 — 2026-08-21 17:20 — Arabic to Moataz, English to the agents, and a reply shape that is a decision surface rather than a narration
+
+**Written by the orchestrator directly** — `docs/agents.md` is its file, and the orchestrator's definition lives inside it.
+
+**Three rules, into `docs/agents.md` and into the orchestrator's own section:**
+
+1. **Arabic to Moataz. English to the agents.** Every reply to him is Arabic; every brief to a subagent stays English. The agent definitions, the skills, `docs/`, the code and the commit messages are all English, and a brief in Arabic would be the one Arabic document in an English chain, translated twice before it reaches a file. **The translation boundary sits at the orchestrator, deliberately.** Identifiers — task ids, paths, shas, commands, decision numbers — are never translated inside an Arabic sentence.
+
+2. **The reply is four parts, in order, and it is not a narration.** What actually changed, in two or three lines · what needs his decision, with options and a recommendation · what stayed open and the proposed next step · what was not verified. Then the closing line. His wording is preserved verbatim in the file, because it is the specification rather than a paraphrase of one.
+
+   Two things pinned so they are not read as soft: **part 2 is answered even when the answer is "no decision needed"** — silence there is indistinguishable from an omission — and **part 4 is not a formality.** *"Do not tell me something works when you have not opened it."* On this project "not tested" and "working" have been conflated repeatedly, and a 404 was reported as working for weeks on exactly that confusion.
+
+3. **Review the agent; do not relay it.** The orchestrator's report is its own and it is answerable for it. **If an agent claims something succeeded and did not verify it, it goes back to the agent** — not softened, not quietly verified by the orchestrator instead, not passed on with a caveat. Load-bearing claims are spot-checked by looking. An agent's report is evidence, not a finding.
+
+   Plus the cut rule: **a number, filename, sha or count that does not change a decision does not go in the reply.** It goes here. Keep the command he has to run, the choice he has to make, the thing that is broken. Cut how many lines changed, which files were touched, how the work was split, and every measurement that merely demonstrates the work happened.
+
+**Where it went, and why not a new file.** Into the standing rules as rule 8 (orchestrator-only), into `### orchestrator — this session` as part of the definition, and as a full section, `HOW THE ORCHESTRATOR REPLIES TO MOATAZ`. **No `.claude/agents/orchestrator.md` was created** — the orchestrator is this session, not a subagent, and it has never had a definition file. Its definition is the section in this document. Creating a fifth agent file to hold one rule would imply a fifth spawnable agent that does not exist.
+
+**The devops case this rule is aimed at, checked rather than assumed.** In `017210826` devops wrote *"Pushed: yes"* into its status entry **before attempting the push**, which then failed. Under rule 3 that is exactly the claim that gets returned. **It is not being returned, because devops caught it itself** — before reporting to the orchestrator — and corrected it in a new commit rather than amending the wrong claim out of history. The rule is satisfied; the correction happened at the right layer.
+
+**But the root cause is untouched and it is worth a decision:** devops wrote the outcome into the entry *before performing the action*. Self-correction worked this time and cost three commits of churn. **A one-line rule in `.claude/agents/devops.md` — never write an outcome before the action that produces it — would remove the class.** Not written: `.claude/agents/*.md` is orchestrator-owned as of `017210826`, so the orchestrator may write it, but it is a change to how an agent works and that is Moataz's call, not a side effect of a formatting task.
+
+**Unchanged and still blocking:** the push. `origin/main` is unmoved and eight commits are stranded behind a GitHub identity mismatch — the only authenticated account has no write access to the repository. Nothing in this task touched it.
+
+**`CLAUDE.md` still lags**, now on three counts: the closing line, the ownership table, and this reply protocol. It remains unowned, which is one of the seven paths in the standing audit above.
+
+---
+
 ## 017210826 — 2026-08-21 16:52 — `.claude/**` owned, the rest of the gaps found, and a closing line on every reply
 
 **Written by the orchestrator directly, and that is now legal.** `.claude/agents/*.md` and `.claude/skills/**` became orchestrator-owned in this task, so editing them is the newly-recorded exception rather than the boundary eroding. Everything else went to devops for the commit.
@@ -85,6 +174,36 @@ Recorded with the reasoning, so nobody installs it later to silence the warning 
 Into `docs/agents.md` as standing rule 7 with its own section, and into all four agent definitions. `DONE — <task id>` or `BLOCKED — <task id>`, on its own, nothing after it.
 
 The cases worth pinning down, and now pinned: **a returned question is `BLOCKED`, not `DONE`** — that is the case the line exists for. **A report is `DONE` when the report was the deliverable**, however long. And it **does not replace the status entry** — the line says whether the task is over, the entry says what happened. A `DONE` line above an unwritten entry is the failure this structure already forbids.
+
+### 5 — THE PUSH IS BLOCKED. Four commits landed; none of them reached GitHub
+
+devops committed cleanly and **correctly refused to work around the failure**, returning it here. Verified independently rather than relayed:
+
+```
+remote: Permission to moatazmustaphaweb/portfolio.git denied to dabblersport.
+fatal: The requested URL returned error: 403
+```
+
+**It is an identity mismatch, not a git fault.** `gh auth status` reports exactly one account — **`dabblersport`** (active, scopes `gist, read:org, repo, workflow`), served to `github.com` by the osxkeychain helper. `origin` is `moatazmustaphaweb/portfolio`. The repo's `user.email` is `315330096+moatazmustaphaweb@users.noreply.github.com`, so **commits are authored as Moataz and pushed as someone else.** Fetch works; only write is denied. `git push --dry-run` reproduces it.
+
+**Eight commits are unpushed**, `origin/main` still at `c448f9d`:
+
+| sha | carries |
+|---|---|
+| `8e407e8` | the ownership table — orchestrator column, three `.claude/**` rows, `i18n/**` + `fonts/**`, the exception, the unowned audit |
+| `534d1f1` | standing rule 7 and `THE CLOSING LINE`, in `agents.md` and all four agent definitions |
+| `fbcf0ab` | decision 055 |
+| `93a5ea4` | the status records for 015, 016 and 017 |
+| `bf5de94` · `b3d4ba8` · `b03710c` | devops correcting its own entry after the refusal |
+| `fb21da9` | task `014210826`'s structure commit — **already unpushed before this task began** |
+
+**The unblocking step is Moataz's**, because it is a credentials decision and a question of which identity owns this history: `! gh auth login` as `moatazmustaphaweb` (or `gh auth switch` if that account is already stored), then `git push origin main`.
+
+**This supersedes the claim in the `001210826` entry above** that "`main` is level with it: `git log origin/main..HEAD` returns 0." That was true when written. It is not true now, and `CLAUDE.md`'s CURRENT STATE section still carries it. The `001` entry is left standing as the record it is; the correction lives here.
+
+**Three things devops did right, worth keeping.** It **split `docs/agents.md` across two commits by content rather than by file** — the ownership table and the closing line are independent rules — and verified the halves sum to the original diff (127 insertions, 11 deletions), so nothing was invented in the split. It **caught that this entry was dated `16:52` while the clock read `16:48`** — four minutes in the future — and rather than edit a file it does not own, ordered the work commits first so the earliest landed at `16:52:46` and no entry sits ahead of its commit. And when the push failed **after** it had written "Pushed: yes", it **corrected the claim in a new commit rather than amending history**, leaving the wrong claim visible with its correction attached. Three commits of churn for one line, and that is the right trade.
+
+**One discrepancy it found and correctly did not reconcile:** the `016210826` entry reads `16:38` here and `16:33` in `docs/status/devops.md`. Neither is future-dated; both are records. Left as-is.
 
 **Not touched:** `CLAUDE.md`, which also summarises the agent structure and now lags `agents.md` on the closing line and the ownership table. It is one of the unowned files above, so I did not edit it. Flagged rather than fixed.
 
