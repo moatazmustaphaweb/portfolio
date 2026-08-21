@@ -37,7 +37,144 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
-## 2026-08-26 (later) — ANSWERED, NOT BUILT: the h1 swap. And a correction — the two "not done" items shipped
+## 2026-08-21 12:50 — Take stock: one session attached, nothing half-applied, and the dates in this file were fiction
+
+Two sessions had been committing to this repo in parallel. The mobile one is
+closed. This entry is the audit, the breadcrumb fix, and a correction to this
+file itself.
+
+### One session is attached
+
+`pgrep` finds one `next dev` (PID 61899) and one `next-server` (61900); one
+listener on :3000; `git worktree list` shows one checkout; no stash, no
+`index.lock`. Nothing else is holding this repo.
+
+### Nothing to secure
+
+`git status --porcelain` was **empty** and `HEAD` == `origin/main` == `0ad9fca`.
+No uncommitted work, nothing unpushed, so there was nothing at risk from the
+second session. Rules 5 and 6 were not at issue because no file was pending.
+
+### What the chapter page renders at the top, read from the code and the browser
+
+Measured at 390px against the running server, not inferred from the source:
+
+| | English | Arabic |
+|---|---|---|
+| `h1` | the **objective**, 20px, weight 500 | the objective, 23px, weight 400 |
+| `OBJECTIVE` label | 16px mono | 18.4px, mono falls back to the Arabic face |
+| breadcrumb → first content | 32px | 32px |
+
+The `h1` is the objective at `--text-statement`, which is where it should be.
+The label is at `--text-section`. The gap is `mb-8` on the shared `Breadcrumb`.
+
+### The three pieces of work are present and consistent
+
+- **The aspect-rule removal (`57c99c3`) held.** No `isLandscape`, no width/height
+  read anywhere in `CoverSections`' live code. The only surviving mention is the
+  do-not-rebuild note at line 273, which is the point of it.
+- **The section-image work is intact.** 0041 (`cover_sections.media_id`, both
+  triggers, `lead_media_id` retired) and 0042 (the journey diagram on `map`) are
+  in place, and `CoverSections` renders `section.media` through the one `lead`
+  preset.
+- **`--text-section` is applied to the mono family only** — eight call sites,
+  every one `font-mono … uppercase`. No drift onto body copy.
+
+**Nothing was applied twice, and neither session reverted the other.** The two
+files both sessions touched are `app/globals.css` and the chapter page, and in
+both cases the edits are sequential rather than overlapping: the Arabic
+inline-in-heading fix (`7eebdb0`) landed after `--text-section`, and the
+`OBJECTIVE` label change (`9600b6f`) landed after the statement-size trial
+(`e4775fb`). Both are present.
+
+Two leftovers from the reverted split-heading trial: `lib/utils/` is an empty
+directory, and **`scripts/screenshot.mjs` survived the revert.** The empty
+directory is noise. The script is not — see below.
+
+### The h1 swap is dropped
+
+No two-size heading, no title above the objective, no relocation of
+"Chapter N of M", no Arabic ordinal change. The objective stays the `h1` at
+`--text-statement`. Nothing was built for this and nothing was changed.
+
+### `scripts/screenshot.mjs` is kept, deliberately
+
+It arrived in a trial that was reverted, and it is the first thing on this
+project that makes the visual pass repeatable. It also documents the trap that
+cost two earlier passes: `--window-size` on a headless Chrome command line sizes
+the **capture** and not the layout viewport, so a "390px" shot is a desktop
+layout cropped — which looks exactly like a broken responsive rule. It sets the
+viewport over the DevTools protocol instead. Every measurement in this entry
+came from it.
+
+### The Arabic breadcrumb: what was actually wrong
+
+The reported symptom was that the Arabic breadcrumb "breaks". It does, at 320px,
+and **not for the reason the fix was written against.**
+
+There is no overflow. Across all nine breadcrumb routes × two locales × 320 and
+1440 — 28 combinations — `scrollWidth` never exceeds `clientWidth`. The crumb
+`الاستحواذ في الخدمات المصرفية للشركات — مصر` is 272px at 320 and wraps to two
+lines on its own.
+
+The defect is that when it wraps, the `li` is `flex items-center`, so the `/`
+separator is centred against a two-line block and floats in the gap between the
+lines, belonging to neither. English never reaches it — every English crumb fits
+on one line at 320.
+
+**`min-w-0` + `break-words`, as briefed, does not fix that.** It guards a
+different failure: a single unbreakable token that cannot wrap, which no crumb
+in the content hits today. It is applied, because it is a real guard and cheap,
+but on its own it changes nothing on screen.
+
+What fixes the visible defect is `items-start` on the `li`, so the separator
+aligns to the first line. A single-line crumb is unaffected — at one line,
+`center` and `start` are the same box.
+
+Shipped together on `components/layout/Breadcrumb.tsx`:
+`flex min-w-0 items-start gap-2` on the `li`, `break-words` on both the linked
+and the current-page crumb.
+
+Verified after the change: Arabic at 320 on both themes shows the `/` on the
+first line; the 28-combination sweep reports zero misaligned separators and zero
+overflow; `tsc --noEmit` exits 0.
+
+### The breadcrumb gap: `mb-8` landed, and it is enough
+
+32px in both locales at both widths, confirmed as computed style and as the
+measured distance from the nav's bottom edge to the next element. Unchanged.
+
+### ⚠️ The dates in this file were wrong, and that is what caused the confusion
+
+Seventeen entries were dated between 2026-08-22 and 2026-08-26. **Every one of
+them was committed on 08-20 or 08-21.** Twenty hours of real work — 08-20 21:02
+through 08-21 12:20 — had been spread across six days that had not happened yet.
+
+The consequence was concrete rather than cosmetic: the `OBJECTIVE` and
+breadcrumb entry (`9600b6f`, committed 08-21 **12:10**) carried the heading
+"2026-08-24 (evening)" and therefore sorted *below* two entries from 01:10 and
+01:27 the same morning. In a newest-first file, finished work sat where unstarted
+work belongs. That is the whole of the "it looks like it never ran" effect.
+
+All seventeen headings are now rewritten to the timestamp of the commit that
+introduced them, found per-heading with `git log -S`, not inferred from position
+— an entry count of 88 against 60 commits means position proves nothing. One
+section was physically out of order and has been moved. The rest of the sequence
+was already right; only the dates were invented.
+
+Headings now carry `HH:MM`. Several of these entries land on the same day, and a
+day-granular heading cannot sort them.
+
+### Not done
+
+- `lib/utils/` is still an empty directory. Untracked by git, harmless, left
+  alone rather than swept up inside an unrelated commit.
+- Entries below 2026-08-20 21:02 were not audited. The drift was confined to a
+  contiguous run at the top and stops cleanly there.
+
+---
+
+## 2026-08-21 12:20 — ANSWERED, NOT BUILT: the h1 swap. And a correction — the two "not done" items shipped
 
 **No code changed.** Two questions were asked before building; both are answered below.
 
@@ -116,7 +253,64 @@ I would do **2 regardless**, because it makes the overflow structurally impossib
 
 ---
 
-## 2026-08-26 — TRIAL: the objective at statement size. It stops being a wall, and the page loses its anchor without gaining a title
+## 2026-08-21 12:10 — `OBJECTIVE` joins the set. The breadcrumb gap is one shared class, fixed once
+
+### 1 · The objective label
+
+| | EN | AR | × body |
+|---|---|---|---|
+| **Before** (`--text-label`) | 11.0px | 14.3px | 0.69× / 0.78× |
+| **After** (`--text-section`) | **18.0px** | **20.7px** | **1.12×** |
+
+**Only `OBJECTIVE` was missed.** The other labels of that role on the chapter page are already correct — extracted from the rendered page, `Context`, `Evidence`, `What I designed`, `The interface`, `The fight I lost` and `Result` all carry `text-section` through `ChapterSections`. `OBJECTIVE` was the one left behind, because it sits in the label row above the `h1` rather than inside a section, and was classified as an eyebrow.
+
+There are three more `text-label` headings in that file — CONTEXT at 367, EVIDENCE at 420, RESULT at 439 — and they are **unreachable**. They belong to the fallback field branch, and every chapter now has sections, so `hasSections` is always true. They render on nothing.
+
+Correctly left alone: `Chapter 1 of 4` (progress metadata), the `DECISION` accent pill, the case-file eyebrow, and the `text-micro` labels.
+
+### ⚠️ I did NOT step the size down, and this is the one thing to overrule if you disagree
+
+The instruction asked for two things that cannot both hold: **take the same token as every other section heading**, and **come down a step or two from where that lands**.
+
+At 18px `OBJECTIVE` and `CONTEXT` are peers, which is what parity means and what the screenshot shows. The steps below are measured:
+
+| | EN | AR | × body |
+|---|---|---|---|
+| `--text-body-sm` | 15.0px | 17.2px | 0.94× |
+| `--text-ui` | 14.0px | 16.1px | 0.88× |
+
+Both are **below body size**, and both would make `OBJECTIVE` smaller than every other section heading — reintroducing exactly the mismatch this task exists to fix, one label over. There is no step between 16 and 18 on the scale.
+
+So parity was kept and the size was not reduced. If it still reads large in place, the honest options are to move the whole token down (which moves covers, chapters and contact together) or to accept that this label is deliberately not a peer — not to make this one heading an exception silently.
+
+### 2 · The breadcrumb gap — shared, and fixed once
+
+**It is one class in the shared component**: `Breadcrumb.tsx` carried `className="mb-6"`. That is the gap on **every page that renders a breadcrumb**, which is nine of them — `work`, the case file, the chapter, `results`, `all`, the accessibility page, `about`, `about/philosophy`, `systems` and `contact`.
+
+Fixed once, there, rather than per page.
+
+| | Token | Rendered gap |
+|---|---|---|
+| **Before** | `mb-6` = **24px** | **32px** |
+| **After** | `mb-8` = **32px** | **40px** |
+
+One step up the scale. `mb-10` (40px) was the alternative and opens a gap rather than letting the page breathe. The rendered gap exceeds the margin by the breadcrumb's descender space and the label's leading, which is why 24 → 32 reads as 32 → 40.
+
+Measured by temporarily restoring `mb-6`, screenshotting, restoring `mb-8`, and comparing pixel bands — not computed from the token.
+
+### Verified on localhost:3000
+
+**20 route-locale combinations across all nine breadcrumb pages: every one 200, every one carrying `mb-8`.**
+
+**32 screenshots — 4 surfaces × 2 locales × 2 widths × 2 themes** (chapter, cover, results table, accessibility document page), each verified for the theme it was meant to be and its dimensions. All 32 correct. Both themes were pinned via `data-theme` and reverted; `git diff` on `layout.tsx` is empty.
+
+⚠️ **Worth recording: headless Chrome's default `prefers-color-scheme` changed mid-session.** Earlier captures came back dark; later ones came back light with no code change and no `data-theme` in the served HTML. A screenshot's theme is not something to assume from the harness — it has to be pinned, and the background checked against what was pinned. That check is what caught it.
+
+`tsc` clean · `eslint` 0/0 · `next build` 63/63.
+
+---
+
+## 2026-08-21 11:34 — TRIAL: the objective at statement size. It stops being a wall, and the page loses its anchor without gaining a title
 
 **A trial, awaiting a ruling.** One class changed on one line. `text-title` → `text-statement` on the chapter h1. The element, the `OBJECTIVE` label, the breadcrumb, the progress dashes and everything below are untouched, and no heading was added.
 
@@ -199,7 +393,7 @@ One thing that partly covers it by accident: on `cervello/method` the first sect
 
 ---
 
-## 2026-08-25 — The two-size h1 is reverted. The chapter h1 is byte-identical to its pre-trial state, and a claim made last session was wrong
+## 2026-08-21 01:27 — The two-size h1 is reverted. The chapter h1 is byte-identical to its pre-trial state, and a claim made last session was wrong
 
 Moataz looked at the trial and ruled against it. The chapter h1 is one size again, with no split and no span.
 
@@ -261,7 +455,7 @@ The server is `npm run dev` on **localhost:3000**, and it is this working tree: 
 
 ---
 
-## 2026-08-24 (night) — TRIAL: the two-size chapter h1. It works typographically and the rule cuts three of eight objectives in the wrong place
+## 2026-08-21 01:10 — TRIAL: the two-size chapter h1. It works typographically and the rule cuts three of eight objectives in the wrong place
 
 **This is a trial, awaiting a ruling.** It is built, it renders, and it is committed so it can be looked at. Nothing about it is settled.
 
@@ -399,64 +593,7 @@ Against `npm run dev` on **localhost:3000**, which is this working tree — prov
 
 ---
 
-## 2026-08-24 (evening) — `OBJECTIVE` joins the set. The breadcrumb gap is one shared class, fixed once
-
-### 1 · The objective label
-
-| | EN | AR | × body |
-|---|---|---|---|
-| **Before** (`--text-label`) | 11.0px | 14.3px | 0.69× / 0.78× |
-| **After** (`--text-section`) | **18.0px** | **20.7px** | **1.12×** |
-
-**Only `OBJECTIVE` was missed.** The other labels of that role on the chapter page are already correct — extracted from the rendered page, `Context`, `Evidence`, `What I designed`, `The interface`, `The fight I lost` and `Result` all carry `text-section` through `ChapterSections`. `OBJECTIVE` was the one left behind, because it sits in the label row above the `h1` rather than inside a section, and was classified as an eyebrow.
-
-There are three more `text-label` headings in that file — CONTEXT at 367, EVIDENCE at 420, RESULT at 439 — and they are **unreachable**. They belong to the fallback field branch, and every chapter now has sections, so `hasSections` is always true. They render on nothing.
-
-Correctly left alone: `Chapter 1 of 4` (progress metadata), the `DECISION` accent pill, the case-file eyebrow, and the `text-micro` labels.
-
-### ⚠️ I did NOT step the size down, and this is the one thing to overrule if you disagree
-
-The instruction asked for two things that cannot both hold: **take the same token as every other section heading**, and **come down a step or two from where that lands**.
-
-At 18px `OBJECTIVE` and `CONTEXT` are peers, which is what parity means and what the screenshot shows. The steps below are measured:
-
-| | EN | AR | × body |
-|---|---|---|---|
-| `--text-body-sm` | 15.0px | 17.2px | 0.94× |
-| `--text-ui` | 14.0px | 16.1px | 0.88× |
-
-Both are **below body size**, and both would make `OBJECTIVE` smaller than every other section heading — reintroducing exactly the mismatch this task exists to fix, one label over. There is no step between 16 and 18 on the scale.
-
-So parity was kept and the size was not reduced. If it still reads large in place, the honest options are to move the whole token down (which moves covers, chapters and contact together) or to accept that this label is deliberately not a peer — not to make this one heading an exception silently.
-
-### 2 · The breadcrumb gap — shared, and fixed once
-
-**It is one class in the shared component**: `Breadcrumb.tsx` carried `className="mb-6"`. That is the gap on **every page that renders a breadcrumb**, which is nine of them — `work`, the case file, the chapter, `results`, `all`, the accessibility page, `about`, `about/philosophy`, `systems` and `contact`.
-
-Fixed once, there, rather than per page.
-
-| | Token | Rendered gap |
-|---|---|---|
-| **Before** | `mb-6` = **24px** | **32px** |
-| **After** | `mb-8` = **32px** | **40px** |
-
-One step up the scale. `mb-10` (40px) was the alternative and opens a gap rather than letting the page breathe. The rendered gap exceeds the margin by the breadcrumb's descender space and the label's leading, which is why 24 → 32 reads as 32 → 40.
-
-Measured by temporarily restoring `mb-6`, screenshotting, restoring `mb-8`, and comparing pixel bands — not computed from the token.
-
-### Verified on localhost:3000
-
-**20 route-locale combinations across all nine breadcrumb pages: every one 200, every one carrying `mb-8`.**
-
-**32 screenshots — 4 surfaces × 2 locales × 2 widths × 2 themes** (chapter, cover, results table, accessibility document page), each verified for the theme it was meant to be and its dimensions. All 32 correct. Both themes were pinned via `data-theme` and reverted; `git diff` on `layout.tsx` is empty.
-
-⚠️ **Worth recording: headless Chrome's default `prefers-color-scheme` changed mid-session.** Earlier captures came back dark; later ones came back light with no code change and no `data-theme` in the served HTML. A screenshot's theme is not something to assume from the harness — it has to be pinned, and the background checked against what was pinned. That check is what caught it.
-
-`tsc` clean · `eslint` 0/0 · `next build` 63/63.
-
----
-
-## 2026-08-24 (later) — The aspect rule is removed. A layout computed from pixels cannot know what an image is for
+## 2026-08-21 00:27 — The aspect rule is removed. A layout computed from pixels cannot know what an image is for
 
 ### What changed
 
@@ -502,7 +639,7 @@ All eight cover route-locale combinations **200**. `tsc` clean · `eslint` 0/0 �
 
 ---
 
-## 2026-08-24 — `MY ROLE` joins the set. The distinction it rested on did not survive being looked at
+## 2026-08-21 00:00 — `MY ROLE` joins the set. The distinction it rested on did not survive being looked at
 
 ### Before and after
 
@@ -558,7 +695,7 @@ The only `text-label` left on a cover is the eyebrow pill (`Case file · Banking
 
 ---
 
-## 2026-08-23 (night) — 18px shipped, the aspect rule shipped, the diagram now readable
+## 2026-08-20 23:34 — 18px shipped, the aspect rule shipped, the diagram now readable
 
 ### Before and after, per surface, both languages
 
@@ -631,7 +768,7 @@ Sweep across 24 route-locale combinations: all **200**. `about`, `philosophy`, `
 
 ---
 
-## 2026-08-23 (later) — MEASURED AND AUDITED, NOT BUILT: the aspect rule, and every heading of that role
+## 2026-08-20 23:16 — MEASURED AND AUDITED, NOT BUILT: the aspect rule, and every heading of that role
 
 **No code changed.** Both halves were asked for before building.
 
@@ -696,7 +833,7 @@ Nothing was built, so there is nothing to verify on :3000. The site is as it was
 
 ---
 
-## 2026-08-23 — An image belongs to a cover SECTION. `lead_media_id` retired, `cover_sections` upserted
+## 2026-08-20 23:00 — An image belongs to a cover SECTION. `lead_media_id` retired, `cover_sections` upserted
 
 ### The sync now upserts, and why that was the right call over preserve-by-slot
 
@@ -763,7 +900,7 @@ Three ways forward, none taken:
 
 ---
 
-## 2026-08-22 (evening) — SHAPE PROPOSED, NOT BUILT: an image per cover section
+## 2026-08-20 22:46 — SHAPE PROPOSED, NOT BUILT: an image per cover section
 
 **No code changed, no migration written.** The shape was asked for and waited on.
 
@@ -809,7 +946,7 @@ Nothing was built, so there is nothing to verify on :3000. The four covers are a
 
 ---
 
-## 2026-08-22 (later) — `docs/learn.md` read and wired in. One rule in it contradicts the content
+## 2026-08-20 22:21 — `docs/learn.md` read and wired in. One rule in it contradicts the content
 
 ### Wired in
 
@@ -865,7 +1002,7 @@ No other claim contradicts what is in the code. The bug classes in PART 5 and th
 
 ---
 
-## 2026-08-22 — The Egypt lead image becomes a cut-out. Alpha survives every transform in the path
+## 2026-08-20 22:11 — The Egypt lead image becomes a cut-out. Alpha survives every transform in the path
 
 ### Verified before anything was written
 
@@ -928,7 +1065,7 @@ Unchanged, and checked rather than assumed: the same two cards in the same arran
 
 ---
 
-## 2026-08-21 (night) — The role card's text fills the band. The Arabic line is not the longest one
+## 2026-08-20 21:47 — The role card's text fills the band. The Arabic line is not the longest one
 
 ### The measure cap is gone
 
@@ -996,7 +1133,7 @@ I would take **1**. It is the smallest change, it needs no conditional, and it m
 
 ---
 
-## 2026-08-21 (evening) — BUILT: `--text-section` and the full-width role card. Two predictions of mine were wrong
+## 2026-08-20 21:34 — BUILT: `--text-section` and the full-width role card. Two predictions of mine were wrong
 
 ### 1 · Section headings — before and after, measured
 
@@ -1055,7 +1192,7 @@ The `splitCoverSections` half is provably inert on those three: the cover grid i
 
 ---
 
-## 2026-08-21 (later) — MEASURED, NOT BUILT: the scale has no section-heading step. Two recommendations awaiting a ruling
+## 2026-08-20 21:19 — MEASURED, NOT BUILT: the scale has no section-heading step. Two recommendations awaiting a ruling
 
 **No code changed. Nothing committed but this entry.** Both requests resolve to a decision that is not mine to make.
 
@@ -1134,7 +1271,7 @@ Nothing was built, so there is nothing to verify on :3000. Egypt's prose still w
 
 ---
 
-## 2026-08-21 — The Egypt cover's lead image. The dormant container wakes up
+## 2026-08-20 21:02 — The Egypt cover's lead image. The dormant container wakes up
 
 ### The asset resolves — verified before a row was written
 
