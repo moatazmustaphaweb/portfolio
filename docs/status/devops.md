@@ -16,6 +16,116 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 020210826 — 2026-08-21 18:18 — five commits split by rule, pushed; two findings in a file I do not own
+
+**Brief:** Commit the eight-file tree — all of it written by the orchestrator — split by
+content, then push `main`. Stop and report the error text if the push were refused rather
+than retrying or going around it. Check the `020210826` entry's timestamp against the real
+commit time.
+
+**Commits — five, and the grouping is one off the brief's plan:**
+
+| sha | subject | carries |
+|---|---|---|
+| `de476da` | `docs(agents): the orchestrator issues the task id, moataz never writes one` | `docs/agents.md` hunk 3 · the `THE TASK ID` section in all four definitions · the `CLAUDE.md` task-id line |
+| `56a7bbb` | `docs(agents): the status entry gates DONE` | `docs/agents.md` rule 5 + the closing-line bullet · the `GATES DONE` section and the rule-5 rewrite in all four definitions · the `CLAUDE.md` closing-line sentence |
+| `12cc4d3` | `docs(agents): app/api splits three ways; the standing audit closes` | `docs/agents.md` table rows, the replaced section, the audit ledger |
+| `e009dfe` | `docs(learn): three lessons -- the weak fix, the writer's immunity, the ambiguous table` | `docs/learn.md` |
+| `8528713` | `docs(status): the 020210826 record -- the id, the gate, and the last ownership row` | `docs/status.md` |
+
+All five carry the orchestrator's work. I wrote none of these files and edited none of them.
+
+**The deviation, and why.** The plan had `CLAUDE.md` as its own sixth commit. Its diff is two
+independent sentences — one summarising each new rule — so each went with the rule it
+summarises. A reader running `git log -p` for the `DONE` gate now sees every place it was
+written: constitution, four definitions, front door. The `740e210` precedent for a standalone
+`CLAUDE.md` commit was a different case — the front door was three rules *behind*, so
+catching it up was itself the change. Here it is not behind.
+
+**The halves sum, and I ran the arithmetic rather than asserting it.** `docs/agents.md` and
+the four definitions each carry two independent rules and were split by content across
+`de476da` and `56a7bbb`:
+
+| | `docs/agents.md` | each definition | `CLAUDE.md` |
+|---|---|---|---|
+| `de476da` | +26 −0 | +22 −0 | +1 −1 |
+| `56a7bbb` | +17 −1 | +30 −1 | +1 −1 |
+| `12cc4d3` | +24 −22 | — | — |
+| **sum** | **+67 −23 = 90** | **+52 −1 = 53** | **+2 −2 = 4** |
+| **original working diff** | **90** | **53** | **4** |
+
+`git diff --stat f145ab7 HEAD` returns **339 insertions, 29 deletions across 8 files** —
+identical, file by file, to the `git diff --stat` taken before the first commit. And
+`git status --porcelain` was **empty** after `8528713`, which is the stronger proof: the five
+commits reconstruct the working tree byte for byte. Method: the working files were checksummed
+and set aside, `docs/agents.md` was reset to `HEAD` and rebuilt hunk by hunk with `git apply`,
+and the final file was confirmed at sha `b790753…`, equal to the copy taken before I started.
+
+**Pushed:** yes. `git push origin main` — `f145ab7..8528713  main -> main` at
+`github.com/moatazmustaphaweb/portfolio.git`. `main` only; `identity-rewrite`,
+`backup/main-old` and `claude/branch-count-3d6akh` were not touched or fetched into. No
+refusal — the 403 stayed gone. One command, run once, not retried.
+
+**Verified, by running the four commands after the push and reading the output:**
+
+| Check | Result |
+|---|---|
+| `git log origin/main..HEAD --oneline \| wc -l` | **0** |
+| `git ls-remote --heads origin main` | `8528713d933c3f42ea6787ceb6cd559866d55c57` |
+| `git rev-parse HEAD` | `8528713d933c3f42ea6787ceb6cd559866d55c57` — **equal to the remote** |
+| `git status --porcelain` | empty |
+| `git check-ignore .env.local` | returns the path |
+| `git log -8` for `Co-Authored-By` / `Generated with` | **none** |
+
+**The timestamp check, which is my standing job.** The `020210826` entry in `docs/status.md`
+is dated **18:12**; its commit `8528713` is at **18:17:51**. The entry is 5m51s *behind* its
+commit, which is the rule. The orchestrator's self-correction before handover holds. No entry
+in this tree is dated ahead of the commit carrying it.
+
+**Deployed:** no. Still no Vercel project. Nothing in these five commits has run anywhere but
+this machine and GitHub's object store.
+
+**Not verified:** nothing was built, typechecked, linted or rendered. Eight markdown files,
+no code path touched — but *"documentation only"* is a reason to expect a green build, not
+evidence of one, and I did not produce that evidence. Nothing was loaded on `:3000`. The
+remote sha was read from `git ls-remote`; I did not open the repository on GitHub.
+
+### Two findings in files I do not own. Both reported, neither fixed.
+
+**1 — `docs/agents.md` lost a section the brief did not mention.** The brief listed three
+changes to that file. There is a fourth: the replacement of the `app/api/**` section also
+deleted the whole `### .claude/** — why it splits three ways` section beneath it, and the
+orchestrator's own `020210826` entry does not mention it either. Committed as it stood in
+`12cc4d3`, with the deletion named in that commit's body rather than passed over silently.
+
+What went with it: the closed-loop rationale for `.claude/agents/*.md` and
+`.claude/skills/**`; the note that `.claude/settings.local.json` is gitignored, **so a change
+there is real but produces no commit** — a devops-operational line with no other home; and the
+paragraph placing `~/.mcp.json`, `~/.claude/settings.json` and `~/.claude/helpers/**` outside
+every agent's write scope, devops included.
+
+**No rule left the project.** The ownership rows survive in the table (`docs/agents.md:126-127`)
+and in the audit ledger (`:486-487`), and the machine-level exclusion survives verbatim in
+`CLAUDE.md:57`. But the constitution now says less than the front door that names it as the
+authority — which is the divergence the same task's `CLAUDE.md` change was written to prevent.
+Restoring it is the orchestrator's call and its file; I did not touch it.
+
+**2 — the `docs/learn.md` PART 8 row does not join its table.** `docs/learn.md:317` is blank,
+between the table ending at `:316` and the new row at `:318`. Markdown reads the blank line as
+a table terminator, so the row renders as a separate one-row table and its text becomes a
+header — the claim/correction pairing that makes the table readable is lost for that row. The
+content is right; one blank line is wrong. Not fixed: correcting an existing line is not
+appending, and `learn.md`'s shape is Moataz's.
+
+**`docs/learn.md`:** nothing appended by me. This task taught nothing that was not already in
+the three lessons the orchestrator added in the same tree, and duplicating them would be
+worse than silence.
+
+**Open questions:** none returned. Both findings above are reports, not questions — neither
+needed an answer before the commit could be made.
+
+---
+
 ## 018210826 — 2026-08-21 18:03 — the push ran; fourteen commits landed on `origin/main`
 
 **Brief:** The 403 is gone — push `main` to `origin`. Push only; no amend, no rebase, no
