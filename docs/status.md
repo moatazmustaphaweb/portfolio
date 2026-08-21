@@ -37,6 +37,113 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-21 13:50 — The section labels come down to 13px. They are labels now, not headings, and the old ratio rule is retired
+
+`--text-section` ran 11px → 18px → **13px**. 18 was an overshoot, corrected.
+One token, seven call sites, all moved together. No call site was touched.
+
+### Before and after
+
+| | English | Arabic | vs body |
+|---|---|---|---|
+| **Before** @390 | 16px | 18.4px | **1.00x** en · **1.00x** ar |
+| **Before** @1440 | 18px | 20.7px | 1.13x en · 1.13x ar |
+| **After** (all widths) | **13px** | **16.9px** | **0.81x** en · **0.92x** ar |
+
+Body prose is 16px English / 18.4px Arabic. On the contact page prose is
+`--text-body-sm` (15px / 14.95px), so the ratios there are 0.87x and 1.13x.
+
+⚠️ **The rule this token was built on already failed before this change.** It
+was created to be "visibly larger than the prose beneath it", and at 390px it
+was 1.00x — exactly equal to body. The constraint only ever held at 1440.
+
+### The reclassification is the point
+
+These are labels — `THESIS`, `MY ROLE`, `OBJECTIVE` — uppercase, mono and dim.
+Moataz's call: below body is correct for a label, and a small label above prose
+is a normal pattern; this site used exactly that at 11px for months. The
+comment on the token now says so, and says explicitly that the old ratio is not
+to be restored.
+
+### It moved onto `--type-scale-small`, which is a change worth naming
+
+It took `--type-scale` (1.15) while it was a heading in the reading flow. At
+label size it joins `--text-label` and `--text-micro` on `--type-scale-small`
+(1.30), which is what `tailwind.config.ts` already documents as the mono-label
+factor. All seven call sites are `font-mono … uppercase`; they were always
+labels wearing a heading's token.
+
+This is also what makes the Arabic arithmetic come out at 16.9px rather than
+14.95px.
+
+### The Arabic floor: confirmed by looking, not by trusting the ratio
+
+`--type-scale-small` is 1.30 because below about 11.5px the dots stop resolving.
+13 × 1.30 = **16.9px**, and 12 would have given 15.6px. Both clear the floor by
+a wide margin, and both were photographed at 390 and 1440 rather than assumed.
+`الأطروحة` resolves cleanly at both — dots, hamza and the ة all hold, on both
+themes.
+
+### 12 vs 13 — 13 taken, and they are not quite indistinguishable
+
+In **English** the two are near-indistinguishable: one pixel, and `THESIS` in
+Geist Mono uppercase reads the same either way.
+
+In **Arabic** they are distinguishable, because the Arabic factor multiplies the
+difference — 15.6px against 16.9px, and against 18.4px prose that is 0.85x
+versus 0.92x. At 15.6 the label starts to read as fine print next to the
+paragraph; at 16.9 it sits as a label. 13 is the better size, and it was also
+the safer end you named.
+
+One cost: at 13px `--text-section` is numerically equal to `--text-meta` in
+English. They differ in Arabic (16.9 vs 14.95), and in face, weight and factor,
+so they are not interchangeable — but the collision is now in the file and the
+comment records it.
+
+### Do they read as labels in Arabic? Yes — but not for the reason assumed
+
+**They are not tracked in English either.** `tailwind.config.ts` gives `section`
+no `letterSpacing`, deliberately, with the reason recorded there: 0.12em "at
+20px sets the words far too wide". So the tracking that distinguishes
+`--text-label` was never on this token.
+
+In Arabic tracking is unavailable regardless: `:lang(ar) .font-mono` forces the
+Arabic body face at `letter-spacing: normal`, because tracked-out uppercase is
+meaningless in Arabic script. Uppercase does nothing there either.
+
+So an Arabic section label is carried by **size and colour alone** — 16.9px
+against 18.4px prose, at `--color-fg-dim`. Looked at on both themes at both
+widths: it does read as a label rather than as small text, but the margin is
+thinner than in English, and it rests entirely on the dim colour. At 12px
+(15.6px) that margin would have been thin enough to matter. This is the
+strongest single reason 13 was taken over 12.
+
+### ⚠️ Two things found, not fixed, both needing a ruling
+
+1. **Tracking.** The documented reason for `section` carrying no `letterSpacing`
+   was that 0.12em is too wide *at 20px*. At 13px that reason has expired, and
+   0.12em is precisely what makes `--text-label` read as a label. English would
+   benefit; Arabic is unaffected either way. Not applied — the size was the ask
+   and this is a separate call.
+
+2. **Arabic weight is inconsistent across call sites.** The `<h2>` sites
+   (contact ×2, the comparison pages) render at weight **400**, because
+   `:lang(ar) h2` forces 400 with `font-synthesis-weight: none`. The `<span>`
+   sites (covers, chapters) render at **500**. English is 500 everywhere.
+   Checked for the obvious hazard: Meral Sans ships real 400/500/600/700 files,
+   so the 500 is a genuine weight and nothing is being synthesized — no smeared
+   outlines. It is an inconsistency, not a defect, and it predates this change.
+
+### Verified
+
+32 combinations — eight surfaces (contact, four case-file covers, two chapters,
+one comparison page) × two locales × 390 and 1440. Every one reports 13px
+English / 16.9px Arabic, uniform across all seven call sites, `scrollWidth`
+never exceeding `clientWidth`. Both themes photographed at 1440 in both locales.
+`tsc --noEmit` and `next build` both clean.
+
+---
+
 ## 2026-08-21 12:50 — Take stock: one session attached, nothing half-applied, and the dates in this file were fiction
 
 Two sessions had been committing to this repo in parallel. The mobile one is
