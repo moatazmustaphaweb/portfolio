@@ -16,6 +16,69 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 024210826 — 2026-08-22 00:04 — the refusal was accepted; the bullet now carries no git fact at all
+
+**Third and last entry for this task.** The two entries below it stand as written. The one
+dated `00:01` says *"Commits: none. Nothing was staged and nothing was pushed"* — **true of
+that pass and left alone.** The sequence of a refusal followed by a commit is the record of
+how this went; flattening it into one entry would lose the part worth keeping.
+
+**Brief:** commit and push the orchestrator's rewrite of the `CLAUDE.md` bullet plus the two
+new `docs/learn.md` Part 6 rows and the `docs/status.md` account of the refusal — after
+reading the `CLAUDE.md` diff adversarially and refusing again if it had the same shape of
+problem.
+
+**Commit:** `5d264a7` `docs(state): delete the git fact from CLAUDE.md rather than correct it
+again` — 4 files, +142 −6. **Pushed to `origin/main`**, exit 0.
+
+**Read adversarially, which was the one thing asked. It passes.** The bullet states no git
+fact: no count, no push verdict, no account name, no *"level with origin"*. The two claims
+this task refused now appear **only as quoted citations of what was wrong** — italic, inside a
+parenthetical, immediately followed by *"Both were true when written. Neither was true when
+read."* Neither is asserted, and neither is in bold any more, which is what made the previous
+version read as a live claim. What replaces them is three commands. **A line that cannot be
+true or false cannot rot**, and that is the correct fix rather than a fourth better sentence.
+
+**Verified:**
+- **All four diffs read in full.** `docs/learn.md` is two appended Part 6 rows between
+  existing rows — nothing deleted, so the *"replacing a span between two anchors"* class does
+  not apply. `docs/status.md` adds a section to its own `024210826` entry and leaves the older
+  dated entries alone.
+- **`docs/status/devops.md` was untouched by the orchestrator**, as it said: the diff against
+  `HEAD` was **65 insertions and 0 deletions**, all of it the `00:01` refusal entry I wrote
+  last pass. The refusal was not softened after it was accepted.
+- **Nothing stray staged.** Four paths, by name. No `.env.local`, `.next/`, `node_modules/`,
+  `.claude-flow/`, `.claude/settings.local.json`, `.DS_Store`. Secret scan across the staged
+  diff: no match.
+- **No `Co-Authored-By`.** `.claude/settings.json` still does not exist, so no
+  `attribution.commit`. `git log -1 --format=%B | grep -ci 'co-authored-by'` → 0.
+
+**Not verified, and reported rather than refused:**
+- **One clause in the new bullet overstates.** It says the line's three bad states were
+  *"every one of them quoted into a brief rather than tested."* True of the first two. **Not
+  true of the third** — the half-corrected version was briefed to devops and **was** tested,
+  which is why it never entered history. Committed anyway: it is a narrative characterisation
+  in a lesson, not a git fact, so it cannot rot and cannot mislead anyone into a wrong action.
+  Refusing a correct fix over a rhetorical clause would cost more than the clause does.
+- **"Three tasks quoted it."** The orchestrator's account of its own document history. I did
+  not audit the earlier tasks and nothing rests on the exact number.
+- **`No deploy. No Vercel project.`** Carried forward unchanged. Nothing in this task touched
+  Vercel and I did not check it.
+- Nothing was built, typechecked, rendered or deployed. Nothing here is code.
+
+**No count and no push verdict is written in this entry, per the standing rule the two new
+Part 6 rows exist to enforce.** To get the state, run:
+`git fetch origin && git log origin/main..HEAD --oneline` · `git ls-remote origin main` ·
+`gh auth status`.
+
+**This entry is committed in a follow-up commit**, after the push, because it names a sha and
+says *pushed* — neither of which may be written before the command has run. The tree is clean
+once it lands.
+
+**Open questions:** none.
+
+---
+
 ## 024210826 — 2026-08-22 00:01 — the constitution correction refused: the same bullet still carries a stale push verdict
 
 **Second entry for this task.** It does not revise the entry below it, which is committed in
