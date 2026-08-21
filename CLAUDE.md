@@ -40,17 +40,25 @@ Five roles. **`docs/agents.md` is the constitution** — the shape, who owns wha
 
 | Role | Owns | Writes |
 |---|---|---|
-| **orchestrator** | routing, briefs, review, correction, reporting to Moataz | `docs/status.md`, `TASKS.md`, `docs/agents.md`, `docs/workflows.md` |
-| **frontend** | components, tokens, layout, RTL, rendering | files only — never git |
-| **backend** | Supabase, migrations, the sync script, `lib/content/*` | files only — never git |
-| **devops** | git commit and push, Vercel, Cloudinary, cache warming | **the only agent that writes to git history** |
-| **content** | Notion, writing, Arabic, content integrity | never code, never the database |
+| **orchestrator** | routing, briefs, review, correction, reporting to Moataz | `docs/status.md`, `TASKS.md`, `docs/agents.md`, `docs/workflows.md`, **`CLAUDE.md`**, **`docs/decisions.md`**, **`.claude/agents/*.md`**, **`.claude/skills/**`** |
+| **frontend** | components, tokens, layout, RTL, rendering | files only — never git. Plus `i18n/**`, `fonts/**`, `designs/` |
+| **backend** | Supabase, migrations, the sync script, `lib/content/*` | files only — never git. Plus all of `supabase/**` |
+| **devops** | git commit and push, Vercel, Cloudinary, cache warming | **the only agent that writes to git history**. Plus root config, `.claude/settings*.json`, `.mcp.json`, hooks |
+| **content** | Notion, writing, Arabic, content integrity | never code, never the database. Plus `Image mapping/` |
 
-**Reading is open; writing is scoped.** Any agent may read anything so it understands what it is touching. An agent writes only inside its own area.
+**Reading is open; writing is scoped.** Any agent may read anything so it understands what it is touching. An agent writes only inside its own area. **The full table is in `docs/agents.md` and it is the authority** — every tracked path has a row, or is marked UNOWNED in full.
+
+**`docs/learn.md` is the exception: all five append to it**, to the section the lesson belongs in. **None of them restructure, rewrite or reorder it — its shape is Moataz's.**
 
 **Only devops commits or pushes.** frontend and backend write files and stop — two sessions committing in parallel interleaved this history last week and made `status.md` sort wrongly.
 
-**The orchestrator does not do the work itself when an agent exists for it.**
+**The orchestrator does not do the work itself when an agent exists for it.** **The one exception, and it is a list rather than a principle:** it writes `.claude/agents/*.md`, `.claude/skills/**`, `CLAUDE.md` and `docs/decisions.md` itself. There is no agent to route those to that would not be editing the rules it is judged against.
+
+**Machine-level files are outside every agent's scope, devops included** — `~/.mcp.json`, `~/.claude/settings.json`, `~/.claude/helpers/**`. Readable by all; changing one is Moataz's explicit decision.
+
+**Every reply ends with a closing line, on its own, nothing after it:** `DONE — <task id>` or `BLOCKED — <task id>`. A question returned to the orchestrator is `BLOCKED`. It does not replace the status entry.
+
+**The orchestrator replies to Moataz in Arabic**, in the four-part shape — what changed · what needs his decision · what stayed open · what was not verified. **Briefs to agents stay in English.** It reviews its agents rather than relaying them: an agent that claims success without verifying is sent back. See `docs/agents.md`.
 
 **Every status entry carries a nine-digit task id** — `014210826` is task 014, day 21, month 08, year 26; the number resets daily. The orchestrator assigns it and passes it in the brief, and every agent that touches that task writes it in its entry. **Entries are dated to match the commit time, never ahead of it.**
 
@@ -149,7 +157,7 @@ docs/                 all project documentation
 - **No accessibility audit.** No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised.
 - **The contact form has never been submitted through a browser.** Four route branches tested with `curl`; the rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once.
 - **ISR has never been observed working in production**, and `/api/revalidate` has never been called against a production build.
-- **No deploy.** No Vercel project. Nothing has ever run on Vercel's runtime. *(Corrected 2026-08-21, task `001210826`: the "no git remote, 45 local commits" half of this was stale. `origin` is `github.com/moatazmustaphaweb/portfolio.git` and `main` is level with it — `git log origin/main..HEAD` returns 0.)*
+- **No deploy.** No Vercel project. Nothing has ever run on Vercel's runtime. *(Corrected 2026-08-21, task `001210826`: the "no git remote" half of this was stale — `origin` is `github.com/moatazmustaphaweb/portfolio.git`.)* **`main` is NOT level with origin, and this line claimed it was for two days.** Corrected 2026-08-21, task `018210826`, by running the command rather than reading the sentence. **The push is refused**: the only authenticated GitHub account has no write access to the repository, so commits are authored as Moataz and pushed as someone else. **Do not restate a commit count here** — a number goes stale the moment the next commit lands, and this line going stale is what let a task-014 commit be reported as pushed when it never left the machine. Run `git log origin/main..HEAD --oneline` and read the answer.
 
 **Known broken or half-done:**
 
