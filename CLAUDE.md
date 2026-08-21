@@ -115,6 +115,7 @@ docs/                 all project documentation
 | Asking who this is for / what success means | `docs/brief.md` |
 | Styling anything | `docs/design/tokens.md` |
 | Animating anything | `docs/design/motion-system.md` (post-launch Motion Layer; MVP-1 has no animation per decision 023) |
+| **Writing, reviewing or auditing any content — read this first** | **`docs/content-brief.md`** — how Notion actually behaves, the writing conventions that settled in both languages, the editorial decisions and their reasoning, and where the previous content conversation was wrong. **content's file; it appends, never restructures.** An operating manual, **not a source of truth about content state** — the live page and the database win when they disagree with it |
 | Reviewing or correcting Arabic copy | `docs/ui-strings-review.md` |
 | Asking where the build stands | `docs/status.md` (the orchestrator's), plus `docs/status/{frontend,backend,devops,content}.md` |
 | **Routing work, or briefing an agent** | **`docs/agents.md`** — the five roles, the permission boundary, the task-id scheme, what a brief must carry |

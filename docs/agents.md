@@ -131,6 +131,7 @@ writer or says **UNOWNED** in full.
 | root config — `package.json`, `tsconfig.json`, `next.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`, `.gitignore`, `.env.example`, `proxy.ts` | read | read | read | **write** | read |
 | `CLAUDE.md` · `docs/decisions.md` | **write** | read | read | read | read |
 | **`docs/learn.md`** | **append** | **append** | **append** | **append** | **append** |
+| **`docs/content-brief.md`** | read | read | read | read | **append** |
 | `docs/status/<own>.md` | read | **write** | **write** | **write** | **write** |
 | `docs/status.md` · `TASKS.md` · `docs/agents.md` · `docs/workflows.md` | **write** | — | — | — | — |
 | `.vscode/` | **UNOWNED — nobody writes it** | **UNOWNED** | **UNOWNED** | **UNOWNED** | **UNOWNED** |
@@ -163,6 +164,21 @@ environment trap that cost a session · a rule that turned out to have an except
 
 **The test is unchanged: would reading it beforehand have saved time?** If no, it does not
 belong there.
+
+### `docs/content-brief.md` — the content agent's, append only
+
+Added 2026-08-21, task `021210826`. Written by the conversation that worked the Notion content
+for weeks, **before this structure existed** — its accumulated operating knowledge, written for
+an agent starting from an empty context.
+
+**content owns it and appends what it learns.** The other four read it: frontend to know why a
+caption exists, backend to know what shape the writing takes before parsing it. **Append only,
+to the section the learning belongs in — never restructured, never reordered.** Same rule as
+`docs/learn.md`, same reason: its shape is Moataz's.
+
+**It is an operating manual, not a source of truth about content state.** Its own opening
+section says so, and says why: measured in task `021210826`, several of its status claims were
+already false. **The live page and the database win when they disagree with it.**
 
 ### `CLAUDE.md` and `docs/decisions.md` — the orchestrator, for the same reason as `.claude/agents/`
 

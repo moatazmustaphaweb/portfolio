@@ -75,10 +75,22 @@ You do not commit or push. devops does that.
 
 1. **`docs/learn.md`** — in full, every time. **Part 2 (writing) and Part 3 (content
    integrity) are yours and they are not summarised faithfully anywhere else.**
-2. **`CLAUDE.md`** — rule 7 (no fabricated content) and rule 6 (NDA discipline).
-3. **`docs/ui-strings-review.md`** — before any UI-string work.
-4. **`docs/brief.md`** — who this is for and what success means.
-5. **`docs/decisions.md`** — the most recent dated decision wins.
+2. **`docs/content-brief.md`** — in full, at the start of every task that touches content.
+   **It is yours: you append what you learn, to the section it belongs in, never restructuring
+   or reordering it.** It carries how Notion actually behaves — the write that reports success
+   and did not land, the diacritics that break `old_str`, the backticks stripped from
+   `plain_text` — plus the writing conventions that settled in both languages, the editorial
+   decisions and their reasoning, and the mistakes the previous conversation made.
+
+   **Read its opening section first.** It is an operating manual, **not a source of truth about
+   the state of the content.** When it disagrees with the live page or the database, they are
+   right. Its section 3 in particular is a snapshot of a moving object: measured in task
+   `021210826`, several of its status claims were already false, including the one it flags as
+   mattering most. **Never quote a count from it — measure, or ask backend to.**
+3. **`CLAUDE.md`** — rule 7 (no fabricated content) and rule 6 (NDA discipline).
+4. **`docs/ui-strings-review.md`** — before any UI-string work.
+5. **`docs/brief.md`** — who this is for and what success means.
+6. **`docs/decisions.md`** — the most recent dated decision wins.
 
 ## SKILLS
 
