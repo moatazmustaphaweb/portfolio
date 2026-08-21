@@ -273,6 +273,11 @@ The Arabic type scale is the standing example. Measured, not inferred:
 
 A later instance, from the two-size h1 trial. The expectation was that Arabic carries more punctuation than English for the same meaning, so a rule that cuts a sentence at its first mark would cut **earlier** in Arabic. Measured across ten chapter objectives it is the opposite on six of them: Arabic strings clauses with `و` where English uses commas, so `submitted, verified, machine-readable` is `مُقدَّم ومُتحقَّق منه ومقروء آليًا` — three adjectives and no mark at all. On one chapter the two languages swap places entirely, the Arabic giving the best cut of the ten and the English the worst.
 
+From the objective-size trial, two more, both of which decide token choices:
+
+- **A size token cannot change the register in Arabic.** `:lang(ar) h1` binds the LANTX display face to the ELEMENT, not to the size, so an Arabic heading shrunk to 23px is still a heading — a smaller one. In English, Geist runs the whole page, so size and weight alone move a line from "heading" to "opening statement". Any "make this read as X rather than Y" decision that rests on size will half-work: it lands in English and does nothing in Arabic. Changing the element is the only thing that moves it there.
+- **Two tokens that differ at 1440 can be identical at 390.** `--text-statement` and `--text-lead` both floor at 20px, so below roughly 770px they are the same number — and in Arabic they are identical in every property, since `:lang(ar) h1` overrides both the line-height and the weight. A comparison run only at a desktop width will report a difference that does not exist on a phone. Measure both ends of the clamp.
+
 The generalisation: **in a bilingual system, the intuition formed in one language is often inverted in the other.** Measure.
 
 ---

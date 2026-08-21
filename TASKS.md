@@ -21,6 +21,7 @@
 | ~~Analytics retention~~ | **Resolved** — 180 days + indefinite monthly aggregates, `pg_cron` enabled (decision 031) | — |
 | Arabic review — 8 new strings | Consent banner + the four privacy claims. `npm run export:ui-strings` regenerates the review doc | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
+| **Objective at statement size — TRIAL, awaiting a ruling** | Live on chapter pages, one class, no flag. Takes the h1 from 39–72% of the screen down to 10–28%. **It also removes the page's only dominant element without adding a title**, and the breadcrumb cannot carry that job — least of all in Arabic, where it wraps to four lines at 390. Keep · keep and add the chapter-name h1 (the next question) · revert. Screenshots in `~/Desktop/objective-size-trial/`, account in `docs/status.md` 2026-08-26 | Moataz |
 
 *Resolved 2026-08-11 by the decisions logged as 018–024: visual language, light+dark, interim Arabic face, content sourcing, rebuild-not-migrate, plain MVP-1, and Results Table enums.*
 

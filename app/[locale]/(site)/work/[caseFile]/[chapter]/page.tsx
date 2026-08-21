@@ -314,7 +314,33 @@ export default async function Chapter({
             ) : null}
           </div>
 
-          <h1 className="mt-5 max-w-measure text-title text-fg">{headline}</h1>
+          {/*
+            TRIAL, 2026-08-25 — the objective at statement size instead of
+            title size. Size only; the element, the OBJECTIVE label above it
+            and everything else on the page are unchanged.
+
+            `--text-statement` over `--text-lead`, measured rather than
+            reasoned. At 390 the two are THE SAME NUMBER — 20px in English,
+            23px in Arabic, both sitting on their clamp floor — and in Arabic
+            they are identical in every property, because `:lang(ar) h1` sets
+            the leading and forces weight 400 for both. So the choice is made
+            at wide widths and by weight: at 1440 statement is 26px/500 to
+            lead's 28px/400, which is three lines against four on the longest
+            objective in both languages, and at 390 lead's 400 is the same
+            weight as the prose beneath it while statement's 500 is not.
+
+            It also matches `result` at the foot of this page, which the design
+            already sets as a statement. The two ends of the same argument.
+
+            ⚠️ This does NOT read the same way in both languages, and no token
+            can make it. `:lang(ar) h1` gives an Arabic heading the LANTX
+            display face whatever its size, so in Arabic the objective still
+            reads as a heading, only a smaller one. In English, Geist is one
+            family and 26px/500 genuinely changes the register. Making the
+            Arabic read as a statement means making it not a heading, which is
+            a structural change and a separate question.
+          */}
+          <h1 className="mt-5 max-w-measure text-statement text-fg">{headline}</h1>
 
           {/*
             THE SLOT MODEL, WHERE IT EXISTS (migration 0035).

@@ -37,6 +37,89 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 2026-08-26 — TRIAL: the objective at statement size. It stops being a wall, and the page loses its anchor without gaining a title
+
+**A trial, awaiting a ruling.** One class changed on one line. `text-title` → `text-statement` on the chapter h1. The element, the `OBJECTIVE` label, the breadcrumb, the progress dashes and everything below are untouched, and no heading was added.
+
+Screenshots, before and after, both locales, 390 and 1440, dark:
+**`~/Desktop/objective-size-trial/`** — `before|after`-`en|ar`-`<chapter>`-`390|1440.png`, 32 files. These are **viewport shots from the top of the page**, not h1 crops, because the question is what the top of the page looks like now.
+
+### Both candidates, measured
+
+Measured in the browser on `egypt-acquisition/workflow`, which is the longest objective.
+
+| | EN 390 | EN 1440 | AR 390 | AR 1440 |
+|---|---|---|---|---|
+| `--text-title` (today) | 38px / 39.14 / 600 | 60px / 61.8 / 600 | 38px / **55.1** / 400 | 60px / **87** / 400 |
+| `--text-statement` | **20px** / 28 / 500 | **26px** / 36.4 / 500 | **23px** / 33.35 / 400 | **29.9px** / 43.36 / 400 |
+| `--text-lead` | **20px** / 26 / 400 | **28px** / 36.4 / 400 | **23px** / 33.35 / 400 | **32.2px** / 46.69 / 400 |
+| `--text-h3`, for scale | 22px | 28px | 22px | 28px |
+| body prose | 16px | 16px | 18.4px | 18.4px |
+
+### Three things the Arabic scale does that the English does not
+
+**1. At 390 the two candidates are the same number, and in Arabic they are the same in every respect.** Both `statement` and `lead` sit on their clamp floor at 20px, ×1.15 = 23px in Arabic. In Arabic they also share a line-height, because `:lang(ar) h1` sets 1.45 and beats both tokens, and they share a weight, because the same rule forces 400. **On a phone, in Arabic, the two options are indistinguishable.** The choice is decided entirely at wide widths and by English weight.
+
+**2. Neither candidate is smaller than a heading in Arabic.** In English `statement` at 1440 is 26px, comfortably below `--text-h3` at 28px — it is smaller than the smallest heading on the site. In Arabic it is 29.9px and `lead` is 32.2px, both **above** h3, because the reading ramp takes `--type-scale` (1.15) and the display ramp takes `--type-scale-display` (1.00). The relationship to the heading scale inverts between the languages, and no token choice fixes it.
+
+**3. The one that actually matters: in Arabic, size does not change the register.** `:lang(ar) h1` gives any Arabic heading the LANTX display face whatever its size. Shrunk to 23px the objective is still LANTX, so it still reads as **a heading, only a smaller one**. In English, Geist is one family across the whole page, so 26px/500 genuinely reads as an opening statement.
+
+**So this trial produces a different kind of result in each language.** In English the objective changes what it *is*. In Arabic it only changes how big it is. Making the Arabic read as a statement means making it not a heading — a structural change, and the next question rather than this one.
+
+### The pick: `--text-statement`
+
+- At 390, where this problem actually lives, `lead` and `statement` **are the same size**, so nothing is given up.
+- At 1440 `statement` is the smaller and tighter of the two: 26px to lead's 28px in English, 29.9 to 32.2 in Arabic, and on the longest objective that is **three lines against four in both languages**.
+- English weight decides the rest. `lead` is 400 — the same weight as the prose beneath it — so at 20px it reads as an enlarged paragraph. `statement` is 500 and separates. Side by side at 390 this is the clearest difference between them.
+- `result`, at the foot of this same page, is already a statement, and the design's note says so explicitly. The objective and the result are the two ends of one argument; setting them at one size is coherent.
+- Against it, stated plainly: **`statement`'s 500 exists only in English.** `:lang(ar) h1` forces 400 with `font-synthesis-weight: none`. Half of the reason for the choice does not apply to half of the site. It costs nothing — in Arabic the two are identical at 390 anyway — but it is not symmetric.
+
+`--text-lead` had the stronger claim on paper: `CoverSections` records it as "correct for a one-sentence lede and how every other page uses it", and an objective is exactly that. Measured, it loses on all three counts above.
+
+### What it buys
+
+| Chapter | | 390 before → after | 1440 before → after |
+|---|---|---|---|
+| egypt/workflow | en | 509px (60% of screen) → **196px (23%)** | 433 (48%) → **109 (12%)** |
+| egypt/workflow | ar | 606px (**72%**) → **233px (28%)** | 522 (58%) → **130 (14%)** |
+| egypt/onboarding | en | 509 (60%) → 196 (23%) | 433 (48%) → 109 (12%) |
+| egypt/onboarding | ar | 441 (52%) → 167 (20%) | 435 (48%) → 130 (14%) |
+| uae/onboarding | en | 548 (**65%**) → 196 (23%) | 494 (55%) → 146 (16%) |
+| uae/onboarding | ar | 496 (59%) → 200 (24%) | 435 (48%) → 130 (14%) |
+| cervello/method | en | 391 (46%) → 140 (17%) | 371 (41%) → 109 (12%) |
+| cervello/method | ar | 331 (39%) → 133 (16%) | 348 (39%) → **87 (10%)** |
+
+Between **60% and 75% off** every one of them. On the Egypt workflow at 390 the objective, the rule beneath it, the `CONTEXT` heading and the first two paragraphs of the chapter are all on the first screen; before, the objective alone did not finish on it in Arabic.
+
+Note the row that has not been said out loud before: **the Arabic problem was worse than the English one.** Same 38px, but `:lang(ar) h1` runs 1.45 leading against 1.03, so the same sentence took 606px to English's 509 — 72% of a phone screen.
+
+### What it costs: yes, the page loses its bearings
+
+Asked directly, and answered from the screenshots rather than from expectation.
+
+**There is exactly one thing on the page that names the chapter, and it is the breadcrumb.** `Home / Work / Egypt Acquisition (Web) / Application Workflow`, at 13px in `text-fg-muted`. `Chapter 2 of 4` and the progress dashes say *where* you are in a sequence but never *what* the chapter is. Nothing else on the page carries the title at all.
+
+That was already true before this trial. What changes is that it used to not matter. **The title-size objective was the page's anchor** — it did not name the chapter, but it was unmistakably the thing the page was about, and the eye had somewhere to land. At statement size nothing on the page is dominant: the objective at 20px sits 4px above the prose beneath it, and the loudest element on a 390 screen becomes the site name in the header. The page now opens the way a paragraph opens.
+
+**In Arabic it is worse, and specifically so.** At 390 the Arabic breadcrumb runs to **four lines**, and the chapter crumb — `الفصل الثاني · نظام مراجعة الطلبات (Application Workflow)` — wraps mid-parenthesis, `(Application` ending one line and `Workflow)` starting the next. As a title substitute it is not merely quiet, it is broken across lines. It also duplicates the progress indicator: the Arabic title already begins `الفصل الثاني`, and `الفصل 2 من 4` sits directly beneath it.
+
+So: **this is the argument for the h2 split.** Not because the smaller objective reads badly — it reads well, and the top of the page is far better for it — but because taking the weight out of the objective leaves a hole where the page's identity was, and the breadcrumb cannot fill it, least of all in Arabic. The two changes want to ship together or not at all.
+
+One thing that partly covers it by accident: on `cervello/method` the first section heading is `WHY THIS CHAPTER EXISTS`, which orients the reader immediately. On `egypt/workflow` the first heading is `CONTEXT`, which does not. That is content, not structure, and it is not a mechanism to rely on.
+
+### Verified
+
+`npm run dev` on **localhost:3000**. Both locales, 390 and 1440, all four chapters, dark. Every measurement above read from `getComputedStyle` and `getBoundingClientRect` on the running page rather than computed from the token definitions. `tsc` clean · `eslint .` 0/0 · `next build` 63/63, exit 0.
+
+### Not verified
+
+- **Light theme.** All 32 shots are dark. The change is a font-size token and carries no colour, but it was not looked at.
+- **The other six chapters.** Same code path, same token, and their objectives are shorter, so they can only do better than these four. Not shot.
+- **The document branch** — comparison and accessibility pages — is untouched by this and was not re-checked; their h1 is a title, not an objective, and takes a different branch.
+- **No screen-reader or heading-outline check.** The element is unchanged, so the outline is unchanged, but making a page's only h1 visually quiet is the sort of thing that should be heard before it ships.
+
+---
+
 ## 2026-08-25 — The two-size h1 is reverted. The chapter h1 is byte-identical to its pre-trial state, and a claim made last session was wrong
 
 Moataz looked at the trial and ruled against it. The chapter h1 is one size again, with no split and no span.
