@@ -37,6 +37,126 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 017210826 — 2026-08-21 16:52 — `.claude/**` owned, the rest of the gaps found, and a closing line on every reply
+
+**Written by the orchestrator directly, and that is now legal.** `.claude/agents/*.md` and `.claude/skills/**` became orchestrator-owned in this task, so editing them is the newly-recorded exception rather than the boundary eroding. Everything else went to devops for the commit.
+
+### 1 — The permission gap is closed, and the table now has an orchestrator column
+
+`.claude/**` splits three ways, as instructed:
+
+| Path | Owner | Why |
+|---|---|---|
+| `.claude/agents/*.md` | **orchestrator** | An agent editing its own definition is a closed loop — rewriting the rules it is judged against. The structure describing itself belongs to the layer above it |
+| `.claude/skills/**` | **orchestrator** | The four skills govern all four agents; no one agent may change them on the others' behalf |
+| `.claude/settings*.json`, `.mcp.json`, hook config | **devops** | Environment, which devops already owns |
+
+**The table gained an orchestrator column** — it had none. That absence is the *cause* of the gap, not an incidental detail: a row of four dashes was ambiguous between "the orchestrator owns this" and "nobody owns this", and those are different facts. Every row now names a writer or says UNOWNED in full. This was not in the brief; it is recorded here as a judgement, and it is reversible.
+
+**The exception is written down as a list, not a principle**: those two paths, nothing else. It does not extend to `.claude/settings*.json`, and it grants no general licence to do agent work directly. The general rule stands exactly as load-bearing as before.
+
+**Also recorded:** `~/.mcp.json`, `~/.claude/settings.json` and `~/.claude/helpers/**` are outside the repo and outside every agent's write scope, **devops included**. Readable by all; changing one is Moataz's explicit decision, never a side effect.
+
+### 2 — The rest of the holes, swept rather than waited for
+
+The brief asked for the remaining unowned paths now rather than one at a time. **Reported, not filled** — assigning an owner is Moataz's decision, and a table that invents one is worse than a table with a visible hole.
+
+**Transcribed, not decided** (already assigned in `CLAUDE.md` and `frontend.md`, merely missing from the table — a copying error, not an open question): `i18n/**` and `fonts/**` → frontend. Added.
+
+**Genuinely unowned, awaiting decisions:**
+
+- **`docs/learn.md` — a live contradiction.** The table makes every unnamed `docs/` file read-only to all four agents. `CLAUDE.md` *and this file* both say `learn.md` is appended to as part of the task by whoever learned the thing. **The table forbids what the prose requires.** This one is not a gap, it is a conflict, and it is the sharpest of the seven.
+- **`docs/decisions.md`** — no writer, yet `CLAUDE.md` makes it the tie-breaker and requires the conflicting document be corrected in the same session.
+- **`CLAUDE.md`** — no owner; edited in task `014210826` with no rule permitting it.
+- **Root config** — `package.json`, `tsconfig.json`, `next.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`, `.gitignore`, `.env.example`, `proxy.ts`. Absent entirely; `tailwind.config.ts` is the only root file in the table.
+- **`supabase/**` outside `migrations/`** · **`designs/`, `Image mapping/`, `.vscode/`** — tracked, no row.
+- **`app/api/**` — an overlap, not a gap.** `app/**` is frontend's, the route handlers are backend-shaped, and devops is the one exercising them.
+
+Until a row exists these follow the first rule: **stop and ask.**
+
+### 3 — Decision 055: `@claude-flow/memory` is not installed
+
+Recorded with the reasoning, so nobody installs it later to silence the warning — which is exactly how it would happen, since the warning prints its own "fix" every session.
+
+`auto-memory-hook.mjs` resolves `PROJECT_ROOT` to **`~`**, not the project. Installing the package makes `curateIndex()` live against a home-scoped store with permission to rewrite `MEMORY.md` — a process outside this repo, running on every `Stop`, editing an index shared across five projects, on a path resolution that is almost certainly an upstream bug. **The warning is the guard.** Nothing this project uses is lost; the `[INTELLIGENCE]` patterns come from a different mechanism that works today.
+
+### 4 — The closing line
+
+Into `docs/agents.md` as standing rule 7 with its own section, and into all four agent definitions. `DONE — <task id>` or `BLOCKED — <task id>`, on its own, nothing after it.
+
+The cases worth pinning down, and now pinned: **a returned question is `BLOCKED`, not `DONE`** — that is the case the line exists for. **A report is `DONE` when the report was the deliverable**, however long. And it **does not replace the status entry** — the line says whether the task is over, the entry says what happened. A `DONE` line above an unwritten entry is the failure this structure already forbids.
+
+**Not touched:** `CLAUDE.md`, which also summarises the agent structure and now lags `agents.md` on the closing line and the ownership table. It is one of the unowned files above, so I did not edit it. Flagged rather than fixed.
+
+---
+
+## 016210826 — 2026-08-21 16:38 — The dangling MCP key removed; the hook system audited and found to be advisory noise, not a rival router
+
+**Routed to devops.** One edit, two investigations. The edit was trivial; the hook audit was the point.
+
+**Boundary gap surfaced by routing this:** `docs/agents.md`'s permission table **has no row for `.claude/**`** — not the agent definitions, not the skills, not `settings.local.json`, not `proven-config.json`. devops was chosen on the "environment and tooling" reading. That is a judgement, not a rule, and `.claude/agents/*.md` in particular is the structure describing itself, which is arguably the orchestrator's. **Returned to Moataz as a decision, not decided here.**
+
+### The edit
+
+`.claude/settings.local.json` — `"enabledMcpjsonServers": ["claude-flow"]` removed, four lines, nothing else. `JSON.parse` succeeds; `permissions.allow` still 43 entries; `enableAllProjectMcpServers` still `true`. The file is gitignored (`.gitignore:12`) and untracked, so there is nothing to commit for it.
+
+**`/Users/moatazmustapha/.mcp.json` was not touched** — verified independently, mtime still `Jul 1 09:11`, still defines `claude-flow`. That was the one hard prohibition in the brief and it held.
+
+### `proven-config.json` — read, but not by anything on this machine's hot path
+
+Read by `@claude-flow/cli` at adoption time, which copies its `params` into `~/.claude-flow/harness-active-policy.json` (present, 349 bytes, written 2026-08-19) for the MCP server's reranking weights. **Nothing on the Claude Code hook path reads it** — zero hits across `~/.claude/helpers/` and the repo. The `"ruflo": ">=3.24.0"` constraint is checked only when a champion config is adopted; installed ruflo is 3.38.12 and satisfies it, and an unsatisfied constraint skips adoption silently rather than erroring. **The two version strings are inert here.** Since the MCP server does not connect, the weights they produce are never consumed either.
+
+### The hooks — verified independently, not taken on report
+
+Four claims mattered enough to check myself rather than relay:
+
+1. **The router never reads `.claude/agents/`.** Confirmed: `~/.claude/helpers/router.js:16-45` holds a hardcoded eight-name table — `coder`, `tester`, `reviewer`, `researcher`, `architect`, `backend-dev`, `frontend-dev`, `devops` — matched by keyword regex. `grep` for `.claude/agents` across every helper returns **nothing**. The `[INTELLIGENCE]`/`Primary Recommendation` block prepended to every prompt is **advisory text with no control weight**. It recommended `reviewer` for tasks 015 and 016; `reviewer` is not one of the five. Where its names *do* collide with ours — `devops`, and the near-misses `frontend-dev`/`backend-dev` — the collision is coincidental, matched on `deploy|docker|ci|cd|pipeline|infrastructure`, not on anything this project defines.
+
+2. **Six of the twelve registered subcommands are no-ops.** Ran each directly: `pre-edit`, `post-bash`, `compact-manual`, `compact-auto`, `status`, `notify` all fall through to a generic `[OK] Hook: <name>`. `SubagentStart` is one of them — **nothing fires around a subagent on entry.**
+
+3. **No hook can reach `auto-commit.sh`.** The script exists in `~/.claude/helpers/`; zero references from `~/.claude/settings.json` or any module the handler loads. `.git/hooks/` holds only samples and `core.hooksPath` is unset. **The one-writer-to-git rule is intact** — the thing most likely to have broken the structure did not.
+
+4. **The pattern store is per-project, and does not leak.** `.claude-flow/data/` here (396K, gitignored); `dabbler` 112K, `ruflo` 4K, `Design System` 8K, each separate; `~/.claude-flow/data/` is **empty**. Cross-project contamination was the loud risk and it is not present.
+
+**Cost is real but small:** 62–66ms per hook, against a 54ms bare `node -e 0` baseline — almost entirely node startup, not hook work. It fires on every Bash call, every edit and every prompt.
+
+**Not verified, and named as such:** that exit code 1 from `pre-bash` does not deny a tool call (the code is measured; the harness's response to it is from the documented contract, not an end-to-end test). `session-restore` was deliberately not run — it spawns detached `npx @claude-flow/cli` processes that call `ensureDaemonRunning`, and starting a token-spending daemon to time a hook is not a trade worth making. **No daemon is running now** (`daemon-state.json` says `"running": false`, last active 2026-08-19; `ps` clean). Concurrent-subagent corruption of `ranked-context.json` is real by construction — `writeFileSync`, non-atomic, shared `sessions/current.json` — but was not forced.
+
+**Incidental, and recorded because it is a real mutation:** timing `session-end` rewrote all five files in `.claude-flow/data/` (consolidation, 52 entries / 1177 edges). Gitignored, idempotent, no project state touched.
+
+### Verdict
+
+**Not interfering. Mostly inert, partly useful, one thing worth deciding.** The router does not compete with the five-agent structure because it cannot see it — it is a keyword matcher printing a suggestion into the prompt, and the orchestrator has been ignoring it correctly for two tasks running. Half the hooks do nothing at all.
+
+**The one live question, returned unanswered:** `auto-memory-hook.mjs` resolves `PROJECT_ROOT` to `~` — `join(__dirname, '../..')` from `~/.claude/helpers` — not to the project. Installing `@claude-flow/memory` to clear the session-start warning would therefore point `curateIndex()` at a **home-scoped** store and let it rewrite `MEMORY.md`. **The warning is currently protecting us from that.** Whether to leave the package uninstalled is Moataz's call. Nothing changed.
+
+**Uncommitted:** `docs/status.md`, `docs/status/devops.md`. Nothing pushed, nothing deployed.
+
+---
+
+## 015210826 — 2026-08-21 16:20 — `.mcp.json` audit: the file is empty, and `claude-flow` is not ours
+
+**Read-only. Nothing was changed.** Moataz asked what is in `.mcp.json` before removing anything from it.
+
+**The project's `.mcp.json` defines nothing.** It is `{"mcpServers": {}}` — 22 bytes. It once held one server: the Supabase HTTP endpoint, added in `b3dd756` and emptied in `04dea2f` ("apply the Layer 0 schema"), presumably when Supabase moved to the account-level `claude.ai Supabase` connector. Every MCP server this session can see comes from somewhere else:
+
+| Server | Defined in | Scope |
+|---|---|---|
+| 13 `claude.ai *` connectors (Supabase, Notion, Vercel, Slack, Drive, Gmail, Miro, Webflow, Higgsfield, Indeed, Wispr, n8n, Microsoft 365) | the Anthropic account | not a file in this repo |
+| `plugin:figma:figma` | the `figma@claude-plugins-official` plugin, enabled in `~/.claude/settings.json` | user |
+| `pencil` | `~/.claude.json` top-level `mcpServers` | user |
+| `claude-flow` | **`/Users/moatazmustapha/.mcp.json`** — the *home directory's* `.mcp.json`, not this repo's | loaded because `$HOME` is an additional working directory |
+
+**`claude-flow` is the ruflo MCP server** (`npx -y ruflo@latest mcp start`, npm `ruflo@3.38.12`) — swarm/agent orchestration, memory, hooks and routing tools. **It fails on a cold start, not on a bug.** `npx -y …@latest` re-resolves the package on every launch; a cold install runs past Claude Code's 30-second MCP handshake timeout. Warm, it reaches `Starting in stdio mode` in **3s**. Its stdout is clean JSON-RPC (logs go to stderr), so the protocol is fine — the failure is install latency.
+
+**Nothing in this project depends on it.** No import, script, doc, agent definition or skill references `claude-flow`, `ruflo` or any `mcp__claude-flow__*` tool. The only hits repo-wide are `/.claude-flow` in `.gitignore` and two lines in `.claude/proven-config.json`. The five project agents (`frontend`, `backend`, `devops`, `content`) reference no MCP tool at all. **What does depend on ruflo is the hook chain in `~/.claude/settings.json`** — nine hook events calling `~/.claude/helpers/hook-handler.cjs` and `auto-memory-hook.mjs`. Those are a **separate mechanism** from the MCP server: they run whether or not it connects, which is why the `[INTELLIGENCE] Loaded 52 patterns` line still appears. The `@claude-flow/memory not resolvable` warning at session start is a third, unrelated gap — that package is installed nowhere on this machine.
+
+**One real defect found:** `.claude/settings.local.json` has `"enabledMcpjsonServers": ["claude-flow"]` — a **dangling reference**. It enables a server from this project's `.mcp.json`, which no longer defines one. Harmless, but misleading: it is why `claude-flow` reads as project-scoped when it is not.
+
+**The answer to the question asked:** there is nothing to remove from this repo's `.mcp.json`. Removing `claude-flow` means editing `~/.mcp.json`, which is outside the repo and affects every project run from the home directory. Not done — not asked for, and it is a machine-level decision.
+
+---
+
 ## 001210826 — 2026-08-21 15:57 — The five-agent structure, the permission boundary, and the task-id scheme
 
 **Task id `001210826`.** Orchestrator only; no agent existed to route to yet. Numbering starts here — work done earlier today predates the scheme and is not retrofitted with ids.
