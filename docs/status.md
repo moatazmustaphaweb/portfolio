@@ -89,6 +89,20 @@ which a replacement is one signed call with `public_id` unchanged, `overwrite=tr
 **The CDN caveat holds either way:** `invalidate=true` is required and takes minutes to propagate,
 so the old image can survive a successful replace for a while.
 
+**Amended the same evening, after he invoked the `cloudinary-next` skill.** It confirms the
+diagnosis in the project's own words rather than mine — `destroy` "requires `api_secret`",
+`invalidate: true` is named as "one of the most common follow-up bug reports", and unsigned presets
+are the browser-upload path. **Nothing above needed correcting**, and two details are now exact:
+
+- **The canonical variable names are `NEXT_PUBLIC_CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET`**,
+  the second server-only. The skill is explicit that the secret must never appear under
+  `NEXT_PUBLIC_*`.
+- **`next-cloudinary` (^6.18.8) is installed; the Node SDK v2 `cloudinary` is not.** That is the
+  package `upload` and `destroy` would normally come from — **and it is not needed.** A Cloudinary
+  signature is `sha1` over the sorted params plus the secret, so a replacement can be signed and
+  sent with `curl`. **No dependency is added to this project for an occasional maintenance task**,
+  which is also what `perf-budget` would ask for.
+
 ### Two defects found while verifying, neither fixed
 
 Reported rather than repaired — they are outside what was asked.
