@@ -37,6 +37,93 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 002230826 — 2026-08-23 03:20 — the Arabic is written; the sync is eating it. 99 against 10
+
+Routed to the content agent as an audit-only brief: read Notion, read the database, report per
+chapter which missing Arabic is **not written** and which is **written and dropped**. Its full entry
+is in `docs/status/content.md`.
+
+### The two numbers
+
+| | |
+|---|---|
+| **`WRITTEN BUT NOT SYNCED`** | **99** |
+| **`NOT WRITTEN`** | **10** |
+
+**91%, not "most".** `CLAUDE.md` has carried that claim as an unverified inference for weeks; it is
+now measured per chapter, and it understated it.
+
+The 10 are one section appearing twice — **`The interface`** on `egypt/onboarding` and
+`egypt/workflow`, 5 ¶ each. **Nothing else on the site is unwritten.**
+
+### Verified before briefing anyone, because a relayed finding is not a finding
+
+The audit's headline cause is the trailing cross-chapter pointer. I ran it myself:
+
+```sql
+select cf.slug||'/'||c.slug, count(*) filter (where t.locale='en'), count(*) filter (where t.locale='ar')
+from chapters c join case_files cf on cf.id=c.case_file_id
+join chapter_sections cs on cs.chapter_id=c.id and cs.slot='result'
+join chapter_paragraphs cp on cp.chapter_section_id=cs.id
+join translations t on t.entity_id=cp.id group by 1;
+```
+
+**Every `result` slot on the site is 0 Arabic — except `uae-acquisition/onboarding` at 4/4, the one
+English chapter with no pointer line.** 32 English paragraphs, 8 chapters. The mechanism is not
+inferred; the exception proves it.
+
+### Ranked causes, from the audit
+
+1. **The Arabic splits or joins a paragraph — 53 ¶, 6 chapters.** Both languages are correct and the
+   counts differ. **Not a bug.**
+2. **The trailing pointer — 32 ¶, 8 chapters.** Off by exactly one, every time, and the one is that
+   line. No editorial judgement needed.
+3. **One English paragraph with no Arabic counterpart — 14 ¶.** `egypt/onboarding`'s *"Nine features
+   carry the journey…"*. **One missing sentence discards 13 finished Arabic paragraphs.**
+4. **Never written — 10 ¶.**
+
+### It corrected me, and it was right
+
+I told him **"33 of 65 images have no Arabic alt"**. Measured: 65 en, 32 ar, **17 carry both** — so
+the figure is **48**, not 33. I subtracted two totals without checking the overlap, which is the
+same arithmetic error that produces a wrong number from a right query.
+
+And **26 of those 48 are not a gap at all** — the Arabic pages reference their own `/Arabic/…`
+screens, exactly the case `docs/sync-contract.md` Step 6 says must not be reported as a missing
+translation.
+
+### A larger finding the alt framing was hiding
+
+**23 public IDs authored in Notion have no `media` row at all** — those images render in *neither*
+language. Twelve are the Accessibility page, which carries **33 `[cld]` tags and produced zero
+media rows**: the `page_section` write path appears not to implement Step 6 at all.
+
+### Routed
+
+**Three bugs to backend** (`003230826`): the pointer, `[cld]` tags under a `Decision ·` heading
+landing in the preceding slot, and the `page_section` media path. Told explicitly **not** to touch
+the paragraph-count gate.
+
+**Nothing to frontend.** The audit found no rendering problem — everything is upstream of the page.
+
+### With Moataz
+
+- **The count gate itself.** Loosening it would recover 53 ¶ and would also let wrong Arabic pair
+  with wrong English. **A decision, not a repair.**
+- **`The interface` ×2.** Asked whether it is an *exclusion* rather than an omission: both sections
+  are screenshot galleries built on Notion-uploaded images the sync skips structurally, so
+  translating them would produce Arabic prose around no images.
+
+### Not verified
+
+The audit did not open Notion for **four** chapters it marked SYNCED — `cervello/method`,
+`egypt/web-vs-mobile-portal`, `uae/onboarding`, `uae/application-tracking` — it matched on exact
+Supabase EN=AR counts instead. **Nothing was rendered on `:3000`.** And it reports
+`docs/content-brief.md` §3 as stale again: the six image tags it lists as *"absent and never
+re-added"* are all present in Notion; their slots simply do not pair.
+
+---
+
 ## 001230826 — 2026-08-23 02:11 — `cv_url` retired; the launch gate re-measured without it
 
 He said the `cv_url` blocker is obsolete — the CV download became a **request** — and asked what is

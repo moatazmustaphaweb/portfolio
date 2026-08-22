@@ -16,6 +16,117 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 002230826 — 2026-08-23 03:20 — Per-chapter audit: 99 of the 109 missing Arabic paragraphs are written in Notion and dropped by the sync; 10 were never written
+
+**Brief:** Audit only, report only, touch no code and no database beyond reading. Establish,
+chapter by chapter, whether each missing Arabic paragraph is `NOT WRITTEN`, `WRITTEN BUT NOT
+SYNCED`, or `SYNCED` — and for every dropped one, say why. Same treatment, more briefly, for the
+image `alt` gap. `CLAUDE.md`'s claim that *most of that Arabic is written in Notion and is being
+dropped by the sync* had never been verified per chapter.
+
+**Read:**
+- Supabase `cidxctilamdxbzjjzppb`, read-only: per-slot EN/AR paragraph counts for all 13 published
+  chapters, `translations` totals by `entity_type`, `page_sections` per page, `media` alt/caption
+  coverage joined to the chapter that references each row, and the full text of every English
+  `result` slot.
+- Notion, read-only, no page opened for editing: the data source `collection://7a8ab2e1-08d1-4286-a4df-f2e87b85c219`
+  (all 67 rows, properties only) · English + Arabic child page for **egypt/onboarding**,
+  **egypt/workflow**, **egypt/fulfilment**, **egypt/portal** (AR only), **egypt/web-vs-mobile-onboarding**,
+  **neobiz/onboarding**, **neobiz/portal**, **cervello/on-premises-to-cloud** (AR only),
+  **cervello/permission-architecture** (AR only), and the **Accessibility** page in both languages ·
+  a title search returning the 24 pages carrying `النسخة العربية`.
+
+**Found:**
+
+*Chapter paragraphs — 262 en / 153 ar in Supabase, 109 missing. Split:*
+- **`WRITTEN BUT NOT SYNCED`: 99.**
+- **`NOT WRITTEN`: 10** — the section `The interface`, on egypt/onboarding (5 ¶) and egypt/workflow
+  (5 ¶). Both Arabic pages have no counterpart section at all. Nothing else on any page is unwritten.
+- **`SYNCED` in full: 4 of 13 chapters** — cervello/method 25/25, egypt/web-vs-mobile-portal 9/9,
+  uae/onboarding 21/21, uae/application-tracking 14/14.
+
+*Ranked causes of the 99:*
+1. **The Arabic splits or joins a paragraph the English does not — 53 ¶**, across 6 chapters. Largest
+   single slot: egypt/workflow `context` (11), egypt/fulfilment `context` (15), egypt/workflow
+   `what-v1-got-wrong` (10).
+2. **The trailing cross-chapter pointer paragraph — 32 ¶**, across 8 chapters. Every English chapter
+   ends with an italic `*Next chapter: …*` or `*This completes the … case file.*` line after the final
+   `---`; the sync counts it as a `result` paragraph. **No Arabic page has one.** This is the sole cause
+   of every failing `result` slot in the project — each is off by exactly one, and the one is the pointer.
+   The only `result` that pairs, uae/onboarding, is the only English chapter with no pointer line.
+3. **One English paragraph with no Arabic counterpart — 14 ¶.** egypt/onboarding `what-i-designed`:
+   the English line *"Nine features carry the journey: signup · company documents and OCR · …"* is not
+   on the Arabic page. 14 vs 13, so 13 finished Arabic paragraphs are discarded for one missing sentence.
+4. **Never written — 10 ¶.** As above.
+
+*One structural finding that is not a count:* the `[cld]` tags authored under a `Decision ·` heading
+are written into the **preceding** slot. egypt/workflow's `context` holds 4 prose + **7 image**
+paragraphs, 6 of which are authored under `Decision`. egypt/fulfilment's `context` holds 5 prose + 10
+images from three Decision sections. This inflates `context` on exactly the chapters whose Arabic
+splits its prose differently, and it is why the two largest single-slot losses are both `context`.
+
+*Media — the brief's "33 of 65" does not hold.* 80 `media` rows: 65 carry an English `alt`, 32 an
+Arabic one, **17 carry both**. So the EN-without-AR figure is **48**, not 33 (65−32 subtracts an
+overlap that isn't there), and 15 rows are Arabic-only. Of the 48: **20 `WRITTEN BUT NOT SYNCED`**
+(egypt/workflow 10, egypt/fulfilment 10 — both Arabic pages carry Arabic `[alt]` and `[caption]` on the
+same English-folder public IDs, because those are internal bank tools with no Arabic UI); **26 NOT A
+GAP** (egypt/onboarding 12, egypt/portal 14 — the Arabic pages reference their own `/Arabic/…` screens,
+which `docs/sync-contract.md` Step 6 says not to report); **2 unclassified** cover assets.
+
+*A larger media finding the alt framing hides:* **23 public IDs authored in Notion have no `media` row
+at all**, so those images render nowhere in either locale. 10 Arabic-only screens on the egypt/onboarding
+Arabic page and 1 on egypt/portal (they sit in slots that fail to pair, and the media write sits inside
+the same gate); and **12 on the Accessibility page, in both languages** — that page carries 18 English
+and 15 Arabic `[cld]` tags and produced **zero** `media` rows, including its four EN↔AR parity pairs.
+
+*The `page_section` gap is one page.* 68 en / 41 ar; about 7/7, philosophy 5/5, contact 5/5, systems 5/5
+are complete, and **all 27 missing fields are the Accessibility page**. Cause: the English page splits
+`What shipped` into a heading plus six numbered `### 1 ·` … `### 6 ·` sub-sections; the Arabic keeps one
+`## ما صدر عن هذا القرار` with the same six as bold inline paragraphs. English also has a separate
+`The design system contribution` section the Arabic folds into `مكتبة المكونات`. 14 sections against 8.
+**The Arabic page is complete prose covering the same argument** — it is a section-structure difference,
+not missing content.
+
+*Contradicting `docs/content-brief.md` §3, which is the section it warns about itself:* the six image
+tags listed as "absent and never re-added" are **all present in Notion now** — `36-exception-trail` on the
+Arabic workflow page, `57-group-app-overview-with-queries` on the Arabic portal page, and four parity
+pairs on the Arabic accessibility page. They are not missing; their slots do not pair.
+
+**Gaps reported, not filled:**
+- `The interface` has no Arabic on egypt/onboarding and egypt/workflow. **Not written by me. This may be
+  an exclusion rather than an omission** — both English sections are screenshot galleries built on
+  Notion-uploaded images, which the sync skips structurally anyway. Whether the Arabic should have one
+  is Moataz's call.
+- The English line *"Nine features carry the journey: …"* has no Arabic counterpart. Reported, not written.
+- No Arabic page carries a closing cross-chapter pointer line. Reported, not written — and the fix here is
+  almost certainly the parser, not the Arabic.
+
+**Belongs to someone else — all of it, and none of it is content's:**
+- **backend.** (a) The `result` pointer paragraph: 32 ¶ recoverable by excluding a trailing italic
+  pointer from the `result` slot, or by pairing on something other than count. (b) `[cld]` tags under
+  `Decision ·` landing in the preceding slot. (c) The `page_section` writer creating no `media` rows —
+  the Accessibility page's 33 tags produce nothing in either locale. (d) The paragraph-count gate itself,
+  which is correct in principle and is discarding 99 finished paragraphs; widening it is a decision, not
+  a repair.
+- Nothing for frontend. Nothing for devops beyond committing this entry.
+
+**Not verified:**
+- Four chapters were **not opened in Notion** — cervello/method, egypt/web-vs-mobile-portal,
+  uae/onboarding, uae/application-tracking. They are marked `SYNCED` on an exact per-slot EN=AR match in
+  Supabase, not on a Notion read.
+- The English pages for egypt/portal, cervello/on-premises-to-cloud and cervello/permission-architecture
+  were not opened; their English paragraph counts come from Supabase and from the `result`-slot text dump.
+- **Nothing was verified on `:3000`.** This audit is Notion against the database; no page was rendered.
+- The exact arithmetic of the Accessibility 14-vs-8 notice (whether the intro block and the table are
+  counted) was not reproduced from the script — the two structural causes above are read off the pages.
+- The private child page `مرجع الـ Accessibility — اللي عملته واسمه إيه` is still under the English
+  Accessibility page. Its title does not open with `النسخة العربية`, so the current matcher skips it.
+  Confirmed by title only; the script was not read.
+
+**Open questions:** none returned. The brief asked for a report; the report is above and in the reply.
+
+---
+
 ## 021210826 — 2026-08-21 23:03 — `docs/content-brief.md` checked against Notion and against `learn.md`
 
 **Brief:** Read `docs/content-brief.md` (284 lines, untracked, written from memory by an earlier
