@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-23 00:31 — "not reflected on the website" — it is; the browser is holding an immutable copy
+
+Twelfth entry, same task. He replaced an image, saw it change on Cloudinary and not on the page,
+and reported it as not replaced. **It is replaced. Nothing downstream is stale except his browser.**
+
+### Measured before diagnosing
+
+Not the raw asset this time — **the derived transform the page actually requests**:
+
+```
+…/e_grayscale/c_limit,w_2000/f_auto/q_auto/v1/00.%20UAE%20NEOBIZ…/44-track-dashboard-application-submitted
+```
+
+`200`, `image/webp`, **2000 × 2000** — the new square mockup. Cloudinary is serving the new image
+on the exact URL the page uses, and `last-modified` is today.
+
+### The cause is one header
+
+```
+cache-control: private, no-transform, immutable, max-age=2592000
+```
+
+**`immutable` means the browser will not revalidate at all** — no conditional request, so `ETag`
+and `Last-Modified` never get consulted. `max-age=2592000` is **30 days**. A normal reload will not
+fetch it; a cache-bypassing reload will.
+
+**`invalidate=true` did its whole job and could not have helped.** It purges Cloudinary's CDN — it
+did, immediately — and has no reach into a cache on someone else's machine.
+
+### The structural cause, and why it will recur on every replace
+
+`components/media/CloudinaryImage.tsx` builds URLs with `getCldImageUrl`, which emits a **fixed
+`/v1/` placeholder**, not the asset's real version. So the URL is byte-identical before and after a
+replace. An `immutable` response at a stable URL is a promise the bytes will never change, and
+replacing in place breaks that promise silently.
+
+**Written up in `docs/learn.md` Part 5.** The part worth keeping is which way it fails: **the person
+who has never opened the page sees the new image; the person who has been watching it sees the old
+one for a month.** The more attention someone has paid, the staler their view — so the author
+reviewing his own work is the single most likely person to be misled by it, and the least likely to
+suspect a cache.
+
+### Not fixed, because it is a decision
+
+Putting the real version in the URL means storing it on `media` at sync time and passing it to
+`getCldImageUrl` — schema, sync and component. Options put to him rather than chosen.
+
+---
+
 ## 001220826 — 2026-08-23 00:14 — Cloudinary write access, and the first asset replaced
 
 Eleventh entry, same task. He supplied API credentials and the replace path works end to end.

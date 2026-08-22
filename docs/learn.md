@@ -363,6 +363,37 @@ The ownership table in `docs/agents.md` used a dash for two different facts: *"t
 
 **The generalisation: in any table that governs what may be written, silence is not a value.** Every cell means something, and a blank that could mean two things means neither.
 
+## Replacing a Cloudinary asset in place cannot reach a browser that already has it
+
+Learned 2026-08-23, task `001220826`, from a replace that succeeded everywhere and appeared nowhere.
+
+An asset was overwritten at the same `public_id` with `overwrite=true` and `invalidate=true`. Every check passed: the version moved, the raw delivery URL served the new bytes, and the **derived** transform the page actually uses — `e_grayscale/c_limit,w_2000/f_auto/q_auto` — returned a 2000×2000 WebP, which is the new image. The page still showed the old one.
+
+**The answer is in one response header:**
+
+```
+cache-control: private, no-transform, immutable, max-age=2592000
+```
+
+**`immutable` means the browser does not revalidate.** It will not send a conditional request, so there is nothing for an `ETag` or `Last-Modified` to answer. `max-age=2592000` is **30 days**. A normal reload does not help; only a cache-bypassing reload does.
+
+**And `invalidate=true` cannot fix this.** It purges Cloudinary's CDN — which worked, and worked immediately. It has no reach into caches on other people's machines.
+
+**The structural cause is the URL.** `components/media/CloudinaryImage.tsx` builds it with `getCldImageUrl`, which emits a fixed `/v1/` placeholder rather than the asset's real version:
+
+```
+…/f_auto/q_auto/v1/<public id>
+```
+
+So the URL is **byte-identical before and after a replace**. An immutable response at a stable URL is a promise that the bytes will never change — and replacing in place breaks that promise silently, for every visitor who already loaded the page.
+
+**Two consequences worth holding on to:**
+
+- **A replace is not visible until the URL changes.** Verify it with `curl` against the derived URL, never by reloading a page you have already opened — your own browser is the least reliable observer in the chain.
+- **This is invisible in exactly the wrong direction.** The person who has never seen the page gets the new image; the person who has been watching it — the author, reviewing his own work — gets the old one for a month. The more attention someone has paid, the staler what they see.
+
+**The fix, when it is taken, is to put the real version in the URL** — store it on `media` at sync time and pass it to `getCldImageUrl`. That crosses schema, sync and component, so it is a decision rather than a repair.
+
 ---
 
 # PART 6 — ENVIRONMENT TRAPS
