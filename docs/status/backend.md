@@ -16,6 +16,132 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 003230826 — 2026-08-23 03:51 — 24 Arabic paragraphs recovered: a chapter section now splits at its closing divider
+
+**Brief:** three reported bugs in the sync. (A) an English-only pointer line after the final
+`---` makes every `result` slot off by one and discards the Arabic; (B) `[cld]` tags under a
+`Decision ·` heading land in the preceding slot and inflate its count; (C) the `page_section`
+path writes no `media` rows. Confirm each before changing anything. Do not touch the
+paragraph-count gate. Report measured before/after per chapter, from the database.
+
+**Files:** `scripts/sync-notion.ts` · `docs/sync-contract.md` · `docs/learn.md` · this entry.
+**No migration.** No schema change. **Nothing committed — devops owns git.** Three temporary
+probe scripts were written under `scripts/` and deleted; `git status` should show only the
+three files above.
+
+### (A) CONFIRMED AND FIXED
+
+`readOrderedBlocks` discarded `divider` blocks, so the parser could not see that the pointer
+sits *after* the section's closing rule. It now records them, and a chapter section splits at
+its **last** divider into `body` and `tail`. The two are counted as separate pairing groups.
+**The gate is untouched** — what changed is what it counts.
+
+The test is position, not italics. An all-italic paragraph is ordinary content here: four
+sections end with one *before* their divider, and `the-fight-i-lost` is 5¶/5¶ and pairs on it.
+Dumped all 17 chapter pages in both locales: exactly **8 blocks** have anything after their
+closing divider and all 8 are the pointers. Zero false positives.
+
+Nothing is dropped either way — the tail is still written, same slot, same `sort_order`. The
+split decides only what is counted against what, so a misread costs one paragraph's Arabic and
+does not remove it from the page.
+
+**Measured, `result` slot, Arabic paragraph translations, before → after:**
+
+| chapter | en | ar before | ar after |
+|---|---|---|---|
+| cervello/on-premises-to-cloud | 4 | 0 | **3** |
+| cervello/permission-architecture | 4 | 0 | **3** |
+| egypt-acquisition/fulfilment | 4 | 0 | **3** |
+| egypt-acquisition/onboarding | 5 | 0 | **4** |
+| egypt-acquisition/portal | 5 | 0 | **4** |
+| egypt-acquisition/workflow | 4 | 0 | **3** |
+| neobiz-mobile/onboarding | 3 | 0 | **2** |
+| neobiz-mobile/portal | 3 | 0 | **2** |
+| uae-acquisition/onboarding (control) | 4 | 4 | 4 |
+
+**+24 rows — 20 Arabic prose paragraphs and 4 Arabic image references.** Total
+`chapter_paragraph` Arabic bodies **153 → 177**. `media` **80 → 83**. The remaining `en − ar`
+of 1 per chapter is the pointer, which has no Arabic; each is reported by name on every run.
+Every other slot in the full per-slot table is byte-identical before and after — no regression.
+
+### (B) CONFIRMED REAL, AND IT IS NOT THE CAUSE — NOT CHANGED
+
+Decision-heading images do attach to the preceding section (`resolveChapterSections`, the
+`isDecisionHeading` branch), and it is deliberate and documented there. But the brief's
+inference does not hold: it inflates **both** locales, not just English, so it is not why
+those two chapters fail. Traced item by item:
+
+- `workflow/context` — EN 5¶ + 6 borrowed = 11. AR 7¶ + 6 borrowed = 13. Remove the borrowing
+  entirely and it is **5 vs 7**: still refused.
+- `fulfilment/context` — EN 5¶ + 10 = 15. AR 6¶ + 10 = 16. Without borrowing, **5 vs 6**.
+- `onboarding/context` (8+2 vs 8+2) and `portal/context` (4+7 vs 4+7) pair today and would
+  still pair if the groups were separated.
+
+So separating them recovers **zero** Arabic. The real cause on both chapters is that the
+Arabic prose genuinely splits differently — and on `workflow`, one English decision is three
+in Arabic. That is the bucket the brief reserved for Moataz. **Left alone.**
+
+It is still a latent instance of the index-pairing class. Naming it, not fixing it.
+
+### (C) CONFIRMED — STEP 6 IS NOT IMPLEMENTED ON THAT PATH AT ALL. DIAGNOSIS ONLY
+
+Not a bug in the write: `readOrderedBlocks` puts tags in `items`, and `parsePageSections`
+reads only `heading` / `lines` / `tables`. **It never looks at `items`.** And `page_sections`
+has one `body` text column per section — no paragraph list, so there is nowhere a
+`[image:<uuid>]` could sit.
+
+Measured on the accessibility page: **18 usable tags EN, 18 AR** (17 usable, 1 malformed).
+Of **19 distinct public IDs, 14 have no `media` row**; the 5 that do got them from chapter
+pages referencing the same screens.
+
+**The fix is not to teach `page_sections` about media** — it is to finish the slot-model
+migration, which implements Step 6 already. Blocked by exactly one Notion paragraph, named
+by the sync on every run: the Arabic tag
+`…/Arabic/Post-Submit/Scheduling visit/application-submitted-arabic-verification-choice`
+shares its block with the prose `وقد طرحت دعم RTL بوصفه متطلبًا على مستوى النظام لا التفافًا…`.
+**Splitting that into two blocks is content's, in Notion.** Nothing built. Reported, per brief.
+
+### Also changed — the chapter pass had no dry run at all
+
+`docs/sync-contract.md` said both writers return early in a dry run. It was worse: for a
+chapter row the dry run **never called `writeChapterSections`**. The one pass carrying the
+whole bilingual pairing was the one pass `--dry-run` could not preview. It now resolves and
+prints, as the cover pass already did, and the shape line carries the Arabic counts —
+`result(4¶+1tail/2img ↔ar 4¶)` — so a pairing mismatch is visible before anything is written.
+That is also what surfaced (C)'s malformed tag in a dry run for the first time.
+
+**Measured:** `npm run sync:notion -- --dry-run` · `npm run sync:notion` (applied) ·
+`npx tsc --noEmit` 0 errors · `npm run lint` 0 · `npm run test:sync` all pass ·
+`npm run verify:content` all pass · `npm run check:seed-drift` no drift ·
+`npm run build` exit 0. Sync exits 1 on the accessibility tag — **pre-existing**, and it
+refuses that page's sections before any delete, so nothing was lost.
+
+**Verified by looking**, `localhost:3000`, dev server, both locales:
+`/ar/work/egypt-acquisition/onboarding` renders النتيجة with `dir=rtl`, `lang=ar`, two Arabic
+paragraphs and two Arabic figure captions, then the English pointer as the last line. The
+figures resolve to the *Arabic* Cloudinary IDs (`…/Arabic/…/application-submitted-arabic-
+verification-choice`, `…/branch-selection-arabic`) where the English page resolves to the
+English ones — the positional pairing doing the thing it exists for. `/en/…` is unchanged.
+Screenshot: `#result` clipped at 1200px.
+
+**Not verified:** only `egypt-acquisition/onboarding` was opened in a browser; the other seven
+chapters are confirmed from the database and the sync log, not by looking. No production
+build was exercised beyond `next build` — nothing deployed. No accessibility or visual audit.
+The 8 pointer lines were not reviewed for whether they *should* stay (see below).
+
+**Open questions — returned to the orchestrator, unanswered:**
+
+1. **Should the pointer stay in `result` at all?** Every chapter page already renders a
+   `Next chapter` / `الفصل التالي` navigation block, from data, correctly in both languages,
+   directly beneath this paragraph. The prose pointer duplicates it — in English, on the
+   Arabic page. Removing it is an editorial call on published copy and is Moataz's; I kept it
+   because dropping it would delete a line currently on eight English pages.
+2. If it stays, should it become its own field (`chapter_sections.tail` or a
+   `kind='pointer'` paragraph) so the frontend can render it as a coda rather than as body
+   prose? That crosses schema, sync and components — a decision, not a repair.
+
+---
+
 ## 021210826 — 2026-08-21 23:03 — MEASURED, NOT FIXED: `docs/content-brief.md` checked against Supabase and the repo
 
 **Brief:** verify the checkable claims in the new untracked `docs/content-brief.md` — a file

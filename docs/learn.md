@@ -309,6 +309,22 @@ Instances found: Arabic entry handles pairing under the wrong English handle; Sy
 
 **The remedy:** compare what was *found* against what was *kept*, and refuse when they differ. Better still, remove the positional relationship — bind by slug, by id, by anything that is not an array index.
 
+### And sometimes the two lists are not supposed to be the same length
+
+Learned 2026-08-23, task `003230826`, from the largest single instance of this class found so far: **32 finished Arabic paragraphs discarded on every sync, across eight chapters, by a guard doing exactly what it was written to do.**
+
+Every English chapter closes its `Result` with a pointer to the next chapter, after a horizontal rule. No Arabic page has one. So every `result` slot was off by exactly one, the count gate refused the pair, and the whole Arabic section was dropped. Every `result` slot on the site had zero Arabic except the one English chapter with no pointer.
+
+**The reflex is to widen the guard, and it is wrong.** The counts genuinely differed; a guard that accepted them would have attached the wrong Arabic to the wrong paragraph and, with figures in the sequence, the wrong screenshot. The guard was right. **The list was wrong** — it contained an item the other list is not supposed to have.
+
+**So the question to ask of a length mismatch is not "how do I make the counts match" but "are these two lists the same kind of thing?"** Here they were two: a body and a coda. Splitting them into two groups counted separately fixed it with the gate untouched.
+
+**Corollaries worth keeping:**
+
+- **Find the split in the structure, not in the styling.** The pointer is all-italic, and reading italics as "pointer" would have been the obvious fix and a wrong one: an all-italic paragraph is ordinary content here, and four sections end with one *before* their divider. The divider position was the real signal, and it had zero false positives across all seventeen chapter pages in both locales.
+- **Make the rule cost nothing when it misfires.** The split decides only what is *counted against what*; both halves are still written, in the same slot, in the same order. A paragraph the rule misreads loses its Arabic and stays on the page — it does not vanish. **A structural heuristic is safe exactly to the degree that being wrong about it is cheap**, and that property is worth designing for rather than discovering.
+- **The corpus is the specification.** Every one of these decisions was settled by dumping all seventeen pages' block structure and looking, not by reasoning about what the writing probably does. The italic false-positives would not have been predicted; they were visible in one grep.
+
 ## Silent success
 
 A write returning success is not evidence it landed.

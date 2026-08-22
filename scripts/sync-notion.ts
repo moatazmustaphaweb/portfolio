@@ -618,6 +618,18 @@ type BodyItem =
    * table is the page, so putting it back in the wrong place is not a detail.
    */
   | { kind: "table"; grid: string[][] }
+  /*
+   * A horizontal rule, kept because it is STRUCTURE rather than decoration.
+   *
+   * Every section in this corpus closes with one, so a divider is where the
+   * section ends — and the eight `Result` sections that carry a cross-chapter
+   * pointer put it AFTER that closing divider. That position is the only thing
+   * distinguishing the pointer from the section's last paragraph, and the
+   * distinction is load-bearing: see `splitAtClosingDivider`.
+   *
+   * It is never content. Nothing renders it and no consumer writes it.
+   */
+  | { kind: "divider" }
   | { kind: "invalid"; problems: string[]; cld: string | null };
 
 type OrderedBlock = {
@@ -920,8 +932,56 @@ type ChapterParagraph =
 type ChapterSection = {
   slot: ChapterSlot;
   heading: string;
+  /** Everything up to the section's closing divider. */
   paragraphs: ChapterParagraph[];
+  /** Everything after it. See `splitAtClosingDivider`. */
+  tail: ChapterParagraph[];
 };
+
+/**
+ * Split a section's items into its BODY and its TAIL, at the last divider.
+ *
+ * ⚠️ THIS IS WHY 32 FINISHED ARABIC PARAGRAPHS WERE BEING DISCARDED.
+ *
+ * Every section in this corpus closes with a horizontal rule. Eight English
+ * `Result` sections then add one more paragraph AFTER that rule — a pointer to
+ * the next chapter, or to the sibling case file:
+ *
+ *   Result
+ *     …three paragraphs and two figures…
+ *     ───────────────────────────────────
+ *     Next chapter: Application Workflow — the same application, seen from
+ *     inside the bank.
+ *
+ * No Arabic page has one. So every one of those eight `result` slots was off by
+ * exactly one, the paragraph-count gate refused the pair — correctly, on the
+ * information it had — and the whole Arabic section was skipped. Measured
+ * before this split: every `result` slot on the site had 0 Arabic paragraphs
+ * except `uae-acquisition/onboarding`, the only English chapter with no pointer.
+ *
+ * **The position is the whole test, and it is structural.** Not the italics: an
+ * all-italic paragraph is ordinary content here, and four sections end with one
+ * BEFORE their divider — `The argument I lost, in two countries` is 5¶ in both
+ * languages and pairs correctly today. Reading italics as "pointer" would break
+ * those. Measured across all seventeen chapter pages in both locales, exactly
+ * eight blocks have anything after their closing divider, and all eight are the
+ * pointers.
+ *
+ * ⚠️ AND NOTHING IS DISCARDED EITHER WAY. The tail is written exactly as it is
+ * written today — same slot, same order, same row. The split decides only which
+ * paragraphs are COUNTED AGAINST WHICH when the two languages are paired. So a
+ * paragraph this rule misreads loses its Arabic and stays on the page; it does
+ * not vanish. That is the guarantee that makes a structural test safe here.
+ */
+function splitAtClosingDivider(items: readonly BodyItem[]): {
+  body: BodyItem[];
+  tail: BodyItem[];
+} {
+  let cut = items.length;
+  for (const [i, item] of items.entries()) if (item.kind === "divider") cut = i;
+  const keep = (xs: BodyItem[]) => xs.filter((x) => x.kind !== "divider");
+  return { body: keep(items.slice(0, cut)), tail: keep(items.slice(cut)) };
+}
 
 /**
  * The sections of one chapter, resolved to slots.
@@ -998,29 +1058,48 @@ function resolveChapterSections(
     }
     seen.set(r.slot, block.heading);
 
-    const paragraphs: ChapterParagraph[] = [];
-    for (const item of block.items) {
-      if (item.kind === "prose") {
-        const text = item.text.trim();
-        if (text) paragraphs.push({ kind: "prose", text });
-      } else if (item.kind === "image") {
-        paragraphs.push({ kind: "image", tag: item.tag });
-      } else if (item.kind === "table") {
-        paragraphs.push({ kind: "table", grid: item.grid });
-      } else {
-        // GUARD 3 — an unusable tag fails the chapter. See invalidTagMessage:
-        // a media row with no alt renders as nothing at all, silently.
-        failures.push(
-          invalidTagMessage(chapterTitle, {
-            kind: "invalid",
-            cld: item.cld,
-            problems: item.problems,
-          }),
-        );
-      }
-    }
+    /*
+     * The section splits at its closing divider. `body` is the section; `tail`
+     * is whatever the writing put after the rule — in this corpus, always the
+     * cross-chapter pointer, and only ever on an English `Result`.
+     *
+     * Both halves are carried and both are written. The split exists so the
+     * two languages are counted against each other correctly; it is not a
+     * filter. See `splitAtClosingDivider`.
+     */
+    const { body, tail } = splitAtClosingDivider(block.items);
 
-    sections.push({ slot: r.slot, heading: block.heading, paragraphs });
+    const collect = (items: readonly BodyItem[]): ChapterParagraph[] => {
+      const out: ChapterParagraph[] = [];
+      for (const item of items) {
+        if (item.kind === "prose") {
+          const text = item.text.trim();
+          if (text) out.push({ kind: "prose", text });
+        } else if (item.kind === "image") {
+          out.push({ kind: "image", tag: item.tag });
+        } else if (item.kind === "table") {
+          out.push({ kind: "table", grid: item.grid });
+        } else if (item.kind === "invalid") {
+          // GUARD 3 — an unusable tag fails the chapter. See invalidTagMessage:
+          // a media row with no alt renders as nothing at all, silently.
+          failures.push(
+            invalidTagMessage(chapterTitle, {
+              kind: "invalid",
+              cld: item.cld,
+              problems: item.problems,
+            }),
+          );
+        }
+      }
+      return out;
+    };
+
+    sections.push({
+      slot: r.slot,
+      heading: block.heading,
+      paragraphs: collect(body),
+      tail: collect(tail),
+    });
   }
 
   return { sections, failures };
@@ -1101,14 +1180,38 @@ async function writeChapterSections(opts: {
   if (offered === 0 || prose.length === 0) return null;
 
   const countImages = (ss: readonly ChapterSection[]) =>
-    ss.reduce((n, s) => n + s.paragraphs.filter((p) => p.kind === "image").length, 0);
+    ss.reduce(
+      (n, s) =>
+        n +
+        [...s.paragraphs, ...s.tail].filter((p) => p.kind === "image").length,
+      0,
+    );
 
+  /*
+   * The tail is printed — `result(4¶+1tail↔ar 4¶+0tail)` — and so is what the
+   * Arabic offered against it.
+   *
+   * "Absence is invisible" is the bug class this line exists against: decision
+   * 013 makes a missing translation normal, so a systematic drop and "not
+   * written yet" produce identical output. A tail that appears where none
+   * should be, or an Arabic count that stops matching, has to show up as a
+   * line that CHANGED rather than as nothing at all.
+   */
+  const arShapeBySlot = new Map(ar.sections.map((s) => [s.slot, s]));
   const shape =
     `slots [${prose
       .map((s) => {
         const imgs = s.paragraphs.filter((p) => p.kind === "image").length;
         const tbl = s.paragraphs.filter((p) => p.kind === "table").length;
-        return `${s.slot}(${s.paragraphs.length}¶${imgs ? `/${imgs}img` : ""}${tbl ? `/${tbl}tbl` : ""})`;
+        const a = arShapeBySlot.get(s.slot);
+        const tail = s.tail.length > 0 ? `+${s.tail.length}tail` : "";
+        const arPart = a
+          ? `↔ar ${a.paragraphs.length}¶${a.tail.length > 0 ? `+${a.tail.length}tail` : ""}`
+          : "↔ar —";
+        return (
+          `${s.slot}(${s.paragraphs.length}¶${tail}` +
+          `${imgs ? `/${imgs}img` : ""}${tbl ? `/${tbl}tbl` : ""} ${arPart})`
+        );
       })
       .join(" · ")}] images en:${countImages(en.sections)} ar:${countImages(ar.sections)}`;
 
@@ -1197,23 +1300,59 @@ async function writeChapterSections(opts: {
      * match. Where they differ the Arabic is skipped and reported rather than
      * attached one row off — which, with images in the sequence, would put an
      * Arabic screenshot under an English paragraph about a different screen.
+     *
+     * THE GATE IS UNCHANGED. What changed is what it counts.
+     *
+     * The section's body and its tail are two independent groups, counted
+     * separately, because they vary independently: eight English `Result`
+     * sections carry a pointer after their closing divider and no Arabic page
+     * has one. Counting them together made every one of those slots off by
+     * exactly one, and the gate — correctly, on the information it had —
+     * refused 32 finished Arabic paragraphs. See `splitAtClosingDivider`.
+     *
+     * A tail with no Arabic counterpart is a real gap and is reported as one.
+     * It is not filled here: an English pointer on an Arabic page is decision
+     * 013's normal fallback, and writing an Arabic one would be inventing copy.
      */
-    const pair =
-      arSection !== undefined &&
-      arSection.paragraphs.length > 0 &&
-      arSection.paragraphs.length === section.paragraphs.length;
+    const pairGroup = (
+      enParas: readonly ChapterParagraph[],
+      arParas: readonly ChapterParagraph[],
+      what: "body" | "tail",
+    ): (ChapterParagraph | undefined)[] => {
+      const paired = arParas.length > 0 && arParas.length === enParas.length;
 
-    if (arSection && arSection.paragraphs.length > 0 && !pair) {
-      notice(rowTitle,
-        `${rowTitle}: slot "${section.slot}" has ${section.paragraphs.length} paragraph(s) ` +
-          `in English and ${arSection.paragraphs.length} in Arabic. Arabic skipped for ` +
-          "this slot — pairing by position across different counts would attach the " +
-          "wrong paragraph, and with figures in the sequence it would also show the " +
-          "wrong screenshot. The heading still synced.",
-      );
-    }
+      if (arParas.length > 0 && !paired) {
+        notice(rowTitle,
+          `${rowTitle}: slot "${section.slot}" ${what} has ${enParas.length} paragraph(s) ` +
+            `in English and ${arParas.length} in Arabic. Arabic skipped for this ` +
+            "group — pairing by position across different counts would attach the " +
+            "wrong paragraph, and with figures in the sequence it would also show " +
+            "the wrong screenshot. The heading still synced.",
+        );
+      }
+      if (what === "tail" && enParas.length > 0 && arParas.length === 0) {
+        notice(rowTitle,
+          `${rowTitle}: slot "${section.slot}" closes with ${enParas.length} paragraph(s) ` +
+            "after its divider and the Arabic page has none. Those stay English on " +
+            "the Arabic page — a content gap, reported rather than filled.",
+        );
+      }
+      return enParas.map((_, k) => (paired ? arParas[k] : undefined));
+    };
 
-    for (const [j, para] of section.paragraphs.entries()) {
+    /*
+     * One flat list, body first, so `sort_order` and the rendered page are
+     * byte-identical to what they were before the split. Only the Arabic
+     * attached to each row changes.
+     */
+    const arBody = pairGroup(section.paragraphs, arSection?.paragraphs ?? [], "body");
+    const arTail = pairGroup(section.tail, arSection?.tail ?? [], "tail");
+    const units: { para: ChapterParagraph; arPara: ChapterParagraph | undefined }[] = [
+      ...section.paragraphs.map((para, k) => ({ para, arPara: arBody[k] })),
+      ...section.tail.map((para, k) => ({ para, arPara: arTail[k] })),
+    ];
+
+    for (const [j, { para, arPara: arCounterpart }] of units.entries()) {
       const { data: paraRow, error: paraError } = await (await db())
         .from("chapter_paragraphs")
         .insert({
@@ -1237,7 +1376,7 @@ async function writeChapterSections(opts: {
        * Arabic prose into a grid cell.
        */
       if (para.kind === "table") {
-        const arPara = pair && arSection ? arSection.paragraphs[j] : undefined;
+        const arPara = arCounterpart;
         const arGrid = arPara?.kind === "table" ? arPara.grid : null;
 
         if (arPara && arPara.kind !== "table") {
@@ -1295,13 +1434,12 @@ async function writeChapterSections(opts: {
         await upsertTranslations("chapter_paragraph", paraRow.id, "en", { body: enBody });
       }
 
-      if (pair && arSection) {
-        const arPara = arSection.paragraphs[j];
+      if (arCounterpart) {
         // A prose position must not take an Arabic table.
-        if (arPara.kind !== "table") {
-          const arBody = await bodyFor(arPara, "ar");
-          if (arBody !== null) {
-            await upsertTranslations("chapter_paragraph", paraRow.id, "ar", { body: arBody });
+        if (arCounterpart.kind !== "table") {
+          const arText = await bodyFor(arCounterpart, "ar");
+          if (arText !== null) {
+            await upsertTranslations("chapter_paragraph", paraRow.id, "ar", { body: arText });
           }
         }
       }
@@ -1406,6 +1544,17 @@ async function readOrderedBlocks(pageId: string): Promise<OrderedBlock[]> {
         continue;
       }
 
+      /*
+       * A divider is recorded in `items` and NOWHERE else. It stays out of
+       * `lines`, so the cover pass and `parsePageSections` see exactly what
+       * they saw before — neither has any use for it, and a phantom entry in
+       * their prose lists would change section counts on every static page.
+       */
+      if (b.type === "divider") {
+        blocks[blocks.length - 1].items.push({ kind: "divider" });
+        continue;
+      }
+
       const prose =
         b.paragraph?.rich_text ??
         b.bulleted_list_item?.rich_text ??
@@ -1441,7 +1590,18 @@ async function readOrderedBlocks(pageId: string): Promise<OrderedBlock[]> {
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
   } while (cursor);
 
-  return blocks.filter((b) => b.heading || b.lines.length > 0 || b.items.length > 0);
+  /*
+   * A block holding only a divider is still empty. Counting it as content
+   * would resurrect blocks that have always been filtered out here, and
+   * `parsePageSections` would then record each one as a DROP — which makes
+   * every static page report drops, which makes the sync skip its Arabic.
+   */
+  return blocks.filter(
+    (b) =>
+      b.heading ||
+      b.lines.length > 0 ||
+      b.items.some((i) => i.kind !== "divider"),
+  );
 }
 
 /**
@@ -1711,6 +1871,26 @@ async function main() {
     if (DRY_RUN) {
       console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}`);
       updated.push(`chapter ${caseFile}/${slug}`);
+
+      /*
+       * Chapter slots ARE resolved in a dry run, exactly as cover slots are
+       * above and for the same reason: an unrecognised heading, a slot that
+       * stopped pairing, or a tail appearing where none belongs should surface
+       * BEFORE anything is written.
+       *
+       * This was missing, so the one pass a dry run could not preview was the
+       * one carrying the whole bilingual pairing. `writeChapterSections`
+       * returns its shape before it writes, so this stays read-only.
+       */
+      const dryArabic = await findArabicChild(row.id);
+      const dryShape = await writeChapterSections({
+        rowTitle: row.title,
+        chapterId: `dry-run:${caseFile}/${slug}`,
+        enBlocks: await readOrderedBlocks(row.id),
+        arBlocks: dryArabic ? await readOrderedBlocks(dryArabic.id) : null,
+        aliases: chapterAliases,
+      });
+      if (dryShape) console.log(`      sections ${dryShape}`);
       continue;
     }
 

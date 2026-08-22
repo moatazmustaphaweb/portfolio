@@ -81,6 +81,46 @@ The script reads the Notion page body and maps headings to fields.
 | `Milestone` / `Close` | `milestone` |
 | `Features` **(table or list)** | one `features` row per item; item text → `label` |
 
+### A divider closes a section. What follows it is the section's tail
+
+*Rule added 2026-08-23, task `003230826`.*
+
+Every section in this corpus ends with a horizontal rule. **A chapter section
+therefore splits in two at its LAST divider** — the `body` before it, the `tail`
+after it.
+
+In practice the tail is the cross-chapter pointer, and only ever on an English
+`Result`:
+
+```
+Result
+  …three paragraphs and two figures…
+  ────────────────────────────────────
+  Next chapter: Application Workflow — the same application, seen from
+  inside the bank.
+```
+
+**Both halves are written. The split is not a filter.** The tail becomes an
+ordinary paragraph in the same slot, in the same order, exactly as before the
+rule existed. What the split changes is only **which paragraphs are counted
+against which** when the two languages are paired — see Step 4.
+
+**The test is position, never italics.** An all-italic paragraph is ordinary
+content here: four sections end with one *before* their divider, and
+`The argument I lost, in two countries` is 5¶ in both languages and pairs on it.
+Measured across all seventeen chapter pages in both locales, exactly eight
+blocks have anything after their closing divider, and all eight are pointers.
+
+**Why it matters:** no Arabic page has a pointer, so every one of those eight
+`result` slots was off by exactly one, the pairing gate refused the pair, and
+**32 finished Arabic paragraphs were discarded** — every `result` slot on the
+site had zero Arabic except `uae-acquisition/onboarding`, the only English
+chapter with no pointer.
+
+**A tail with no Arabic counterpart is reported, not filled.** The English line
+stays on the Arabic page under decision 013's fallback. Writing an Arabic one
+would be inventing copy.
+
 ### Case file covers
 
 | Notion heading | Field |
@@ -183,6 +223,19 @@ Every such notice prints **both heading lists**, so "not translated yet" (Moataz
 work) can be told apart from "the parser split it differently" (a bug). Those need
 opposite responses and are indistinguishable from a count alone.
 
+**A chapter section is counted as two groups, not one** — its body and its tail,
+split at the closing divider (see Step 3). They vary independently: eight English
+`Result` sections carry a pointer after their divider and no Arabic page has one.
+Counting them together made every one of those slots off by exactly one and the
+gate refused 32 finished Arabic paragraphs. **The gate itself is unchanged.** What
+changed is what it counts.
+
+> This is the project's most productive bug class in its exact form: two lists
+> zipped by position, guarded by equal length, where **equal length was never the
+> question**. The English list contained an item the Arabic list is not supposed
+> to have. Widening the guard would have been the wrong repair; separating the
+> groups was the right one.
+
 ### The rest
 
 - English body → `translations` rows with `locale = 'en'`
@@ -258,6 +311,40 @@ not there. A paragraph is a tag when its first code span opens with `[cld]`.
 English and Arabic pages do **not** reference the same public IDs. Chapter One shares only 4 of 16: the two paper AOF pages, and the two Arabic screens the English prose discusses. The other 24 appear in one locale only — an Arabic page shows Arabic screenshots.
 
 **Consequence:** a `media` row carries alt and caption for the locales that reference it, which is often one, not both. This is not a missing translation and must not be reported as one. Positional pairing (Step 4) does **not** apply to image tags: each locale's body carries its own sequence, and there is nothing to pair.
+
+### ⚠️ THE `page_sections` PATH IMPLEMENTS NONE OF THIS
+
+*Established 2026-08-23, task `003230826`. Diagnosis only — nothing was built.*
+
+**Step 6 exists on the chapter-section path and nowhere else.** A page written
+through `page_sections` writes **zero** `media` rows, for every tag on it, in
+both languages. This is structural rather than a bug in the write:
+
+- `readOrderedBlocks` keeps image tags out of `lines` and puts them in `items`.
+- `parsePageSections` reads `heading`, `lines` and `tables`. **It never looks at
+  `items`**, so a tag is not skipped by a rule — it is never seen.
+- `page_sections` has one `body` text column per section. There is no paragraph
+  list to hold a figure's position, so there is nowhere for `[image:<uuid>]` to
+  mean anything even if it were written.
+
+**Measured on the accessibility page** — the only MVP-1 page still on this path:
+18 usable `[cld]` tags in English, 18 in Arabic (17 usable, 1 malformed). Of the
+19 distinct public IDs, **14 have no `media` row**; the 5 that do got them from
+chapter pages that reference the same screens.
+
+**The fix is not to teach `page_sections` about media.** It is to finish moving
+this page onto the slot model, which already implements Step 6 in full and is
+the reason the comparison pages migrated. That migration is blocked by exactly
+one thing, and the sync already names it on every run:
+
+```
+Accessibility — … (ar): image tag "…/Arabic/Post-Submit/Scheduling visit/
+application-submitted-arabic-verification-choice" is unusable and was NOT written:
+  - the paragraph also contains prose ("وقد طرحت دعم RTL بوصفه متطلبًا …")
+```
+
+One Arabic paragraph in Notion holds a tag and a sentence together. Splitting it
+into two blocks is a **content** change, in Notion, and it is the whole blocker.
 
 ### Images uploaded into Notion are ignored
 
@@ -337,38 +424,62 @@ page rather than a missing translation. This is a gap, not a decision.
 
 ---
 
-## ⚠️ KNOWN LIMITATION — `--dry-run` IS BLIND TO PAIRING FAILURES
+## ⚠️ KNOWN LIMITATION — `--dry-run` DOES NOT RAISE PAIRING NOTICES
 
-**A clean dry run does not mean the Arabic will be written.** It has never
-meant that, and the gap is large: **109 chapter paragraphs** of finished Arabic
-prose, plus roughly half the `media` alt/captions, are dropped on every real
-sync while `--dry-run` reports nothing wrong.
+**Narrowed 2026-08-23, task `003230826`. Two of the three things this section
+described are fixed; the third stands. Read the corrections before the rest.**
+
+**CORRECTION 1 — the chapter pass was not previewed at all.** This section
+described `writeChapterSections` returning early in a dry run. It was worse than
+that: for a chapter row the dry run **never called it**, and printed only
+`chapter egypt-acquisition/onboarding` with no shape line. The one pass carrying
+the whole bilingual pairing was the one pass a dry run could not see. It now
+resolves and prints, exactly as the cover pass already did.
+
+**CORRECTION 2 — the shape line now carries the Arabic counts.** It reads
+`result(4¶+1tail/2img ↔ar 4¶)`, so **whether a chapter slot's paragraphs will
+pair is now visible in a dry run**, before anything is written. The claim below
+that `+ar` means only "an Arabic section was found" is still true of
+`writeCoverSections`, which is unchanged.
+
+**WHAT STANDS:** both writers still return before the pairing loop, so the
+`notice()` text explaining a refusal is not emitted by a dry run. For chapters
+you can now read the mismatch off the counts; you do not get the sentence.
+
+**And do not carry a number out of this document.** It said "109 chapter
+paragraphs", which was true when written and is not now. Run the query:
+
+```sql
+select cf.slug||'/'||c.slug as ch, cs.slot,
+ count(*) filter (where t.locale='en') as en,
+ count(*) filter (where t.locale='ar') as ar
+from chapters c join case_files cf on cf.id=c.case_file_id
+join chapter_sections cs on cs.chapter_id=c.id
+join chapter_paragraphs cp on cp.chapter_section_id=cs.id
+left join translations t on t.entity_id=cp.id
+  and t.entity_type='chapter_paragraph' and t.field='body'
+group by 1,2 order by 1,2;
+```
 
 ### Why
 
-Both section writers return their summary line and stop before doing any work:
-
-| function | returns at | what sits after it |
-|---|---|---|
-| `writeChapterSections` | `scripts/sync-notion.ts:1115` | the whole paragraph-pairing loop |
-| `writeCoverSections` | (same shape, same pattern) | its paragraph pairing |
+Both section writers return their summary line and stop before doing any work —
+search `if (DRY_RUN) return shape;` in `writeChapterSections` and
+`writeCoverSections`:
 
 ```ts
 if (DRY_RUN) return shape;   // ← everything below is unreachable in a dry run
 ```
 
-The count check that decides whether Arabic pairs — and the `notice()` that
-reports it when it does not — both live *after* that line. A dry run therefore
-prints the English shape (`slots [thesis(5¶+ar) · role(3¶+ar)]`) and the `+ar`
-means only **that an Arabic section was found**, never that its paragraphs will
-be accepted.
+The `notice()` that explains a refused pairing lives *after* that line.
 
 **What the dry run DOES catch** is everything decided before the return:
 classification, slot resolution and its refusals, outcome/target parsing,
-entry-handle pointers, and section-count mismatches at page level. The Neobiz
-alias failure and the accessibility page's 8-vs-14 both showed up correctly.
-It is specifically **paragraph-level pairing, inside a matched section**, that
-is invisible.
+entry-handle pointers, section-count mismatches at page level, invalid image
+tags, and — since this task — every chapter slot's `en ¶ / ar ¶ / tail` counts.
+The Neobiz alias failure, the accessibility page's 8-vs-14 and its one
+malformed Arabic tag all show up correctly. What remains invisible is the
+**wording** of a pairing refusal, not the fact of one.
 
 ### How it was found
 

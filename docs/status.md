@@ -37,6 +37,70 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 003230826 — 2026-08-23 04:02 — the pointer fix lands: every `result` slot pairs, +24 Arabic paragraphs
+
+Backend's three-bug brief. **Measured by me against the database, not read from its report** — which
+had not arrived when this was written.
+
+### The result, per chapter
+
+Every `result` slot on the site was **0 Arabic**. After:
+
+| chapter | en | ar |
+|---|---|---|
+| cervello/on-premises-to-cloud | 4 | **3** |
+| cervello/permission-architecture | 4 | **3** |
+| egypt-acquisition/fulfilment | 4 | **3** |
+| egypt-acquisition/onboarding | 5 | **4** |
+| egypt-acquisition/portal | 5 | **4** |
+| egypt-acquisition/workflow | 4 | **3** |
+| neobiz-mobile/onboarding | 3 | **2** |
+| neobiz-mobile/portal | 3 | **2** |
+| uae-acquisition/onboarding | 4 | 4 *(was already paired)* |
+
+**Eight for eight.** And the English counts are **unchanged** — the pointer was not deleted to make
+the numbers agree, which was the failure mode I named in the brief. It is still on the page; it is
+simply no longer counted against an Arabic paragraph that was never meant to exist.
+
+Sitewide: **153 → 177 Arabic chapter paragraphs.** `media` 80 → 83, Arabic `alt` 32 → 36.
+
+### A number in the audit that needs correcting, and it is mine to carry
+
+The audit said **"32 finished Arabic paragraphs are discarded"** and I repeated it. **24 were.**
+The 32 is the count of *English* paragraphs in those eight slots — eight of which are the pointers
+themselves, which have no Arabic counterpart by design. The recovery is 24 and that is exactly what
+landed. **Same arithmetic slip as my "33 of 65": a difference between two lists reported without
+checking what is actually in the overlap.** Twice in one night, in opposite directions.
+
+### The part of its solution worth keeping
+
+It did **not** identify the pointer by its italics. From its `learn.md` entry: an all-italic
+paragraph is ordinary content here, and **four sections end with one before their divider** — so
+the obvious rule would have silently deleted real content, which is precisely the risk the brief
+told it to avoid. It used the **position relative to the final `---`**, and reports zero false
+positives across all seventeen chapter pages in both locales.
+
+And it framed the class better than the brief did: *"the question to ask of a length mismatch is not
+how do I make the counts match, but are these two lists the same kind of thing?"* Here they were a
+body and a coda. **The gate was never touched.**
+
+### Verified
+
+`npm run test:sync` — all checks pass · `tsc --noEmit` clean · `eslint` clean. 272 lines changed in
+`scripts/sync-notion.ts`, with `docs/sync-contract.md` updated to match and a `docs/learn.md` entry.
+
+### Still open on this task
+
+**(B)** `[cld]` under `Decision ·` and **(C)** the `page_section` media path — status unknown.
+`media` gained 3 rows and 4 Arabic alts, so something moved, but **the Accessibility page still has
+0 Arabic `page_sections` and its 33 image tags still produce nothing.** Asked; not yet answered.
+
+**85 chapter paragraphs still have no Arabic**, down from 109. Of those, 53 are the split/join count
+mismatch — **Moataz's decision, deliberately untouched** — 14 are the one missing English sentence
+on `egypt/onboarding`, and 10 were never written.
+
+---
+
 ## 002230826 — 2026-08-23 03:20 — the Arabic is written; the sync is eating it. 99 against 10
 
 Routed to the content agent as an audit-only brief: read Notion, read the database, report per
