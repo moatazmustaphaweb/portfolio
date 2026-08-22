@@ -37,6 +37,71 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 23:34 — the missing card description, and a straight no on Cloudinary
+
+Tenth entry, same task. He read the UAE cover, saw a chapter card with a title and nothing under
+it, and asked two things.
+
+### 1 — The card description
+
+**Cause, not guess.** `components/case-file/LivingMap.tsx:82` renders `chapter.fields.objective`.
+Measured on the two UAE chapters: `onboarding` carries `title` · `objective` · `context` ·
+`result`; `application-tracking` carried **`title` and nothing else**. Its headings are all
+slot-style — `What never changes`, `What the mobile app changes`, `The one-line version` — and none
+of them is `Objective`, which is the heading that writes the flat field the card reads.
+
+**This is not specific to this chapter.** Egypt's two comparison pages have the same shape, so
+their cards are in the same state wherever they are listed. Not touched here — reported.
+
+An `Objective` section was added to both language pages, above the first heading:
+
+> Take the customer portal that already worked on the web and put it inside the mobile app — so
+> applying and tracking happen in the same place.
+
+> أن نأخذ بوابة العميل التي تعمل بالفعل على الويب ونضعها داخل التطبيق، فيصير التقديم والمتابعة في مكان واحد.
+
+**Written, not interviewed, and that is worth naming.** Every element is his — the portal existed on
+web, the brief was to bring it to mobile, applying and tracking share one place — and the shape
+deliberately mirrors the sibling chapter's objective, which opens `Take a business account
+application that already worked on the web…` / `أن نأخذ رحلة فتح حساب شركة تعمل بالفعل على الويب…`.
+It is a summary of text he has already approved, not a new claim. **Still his to overrule.**
+
+Re-synced, `failed 0`. Both cover pages now render it under the chapter title, in their own
+language.
+
+### 2 — Can Cloudinary images be replaced at the same public ID? No, not from here
+
+Answered by looking rather than by assuming:
+
+- **No Cloudinary tool exists in this session.** A search returned upload tools for Figma, Miro,
+  Webflow and Higgsfield, and nothing for Cloudinary. What he connected on claude.ai is not
+  exposed to Claude Code — different environments.
+- **`.env.local` carries `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and nothing else.** No API key, no
+  secret.
+- The index sheet names the preset `Claude (unsigned)`, and **an unsigned upload cannot overwrite
+  an existing `public_id`.** That is a Cloudinary security property, not a setting to flip.
+
+**Either of two things makes it possible**, and both are his to do: put `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` in `.env.local` — which is where they belong and is gitignored — after
+which a replacement is one signed call with `public_id` unchanged, `overwrite=true` and
+`invalidate=true`; or connect a Cloudinary MCP server to Claude Code itself.
+
+**The CDN caveat holds either way:** `invalidate=true` is required and takes minutes to propagate,
+so the old image can survive a successful replace for a while.
+
+### Two defects found while verifying, neither fixed
+
+Reported rather than repaired — they are outside what was asked.
+
+1. **The sibling-case-files note opens with a stray full stop**, on the UAE cover in both locales:
+   `". Same bank, same regulatory requirement, a market without the identity infrastructure, and a
+   very different answer."`
+2. **And on `/ar` that same note renders in English.** So does the Arabic page's
+   `<meta name="description">`, which carries the English objective — an Arabic page describing
+   itself to search engines and share cards in English.
+
+---
+
 ## 001220826 — 2026-08-22 23:06 — published, and it renders in both languages
 
 Ninth entry, same task. He went looking for the chapter on the UAE cover and found one entry
