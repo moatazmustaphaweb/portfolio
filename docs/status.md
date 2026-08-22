@@ -37,6 +37,44 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001230826 — 2026-08-23 01:52 — Cervello restored and confirmed rendering; the database row was only half the fix
+
+He asked for Cervello back before anything else.
+
+### Restoring the row was not enough
+
+`case_files.status` was set back to `published` in the previous entry, and the **gallery listed all
+four case files immediately**. So the fix looked complete. It was not:
+
+| route | before restart | after |
+|---|---|---|
+| `/en/work` gallery | lists Cervello | lists Cervello |
+| `/en/work/cervello` | **404** | **200** |
+
+**`dynamicParams = false` on the `[caseFile]` route.** The route list comes from
+`generateStaticParams`, which the dev server had resolved while Cervello was still `draft` — so the
+slug was not a known param and the page 404'd no matter what the database said. **The gallery
+renders from a query and updated instantly; the page renders from a fixed param list and did not.**
+
+Restarting the server re-ran `generateStaticParams`. Verified after: cover **en 200 · ar 200**,
+`/cervello/method` **200**, `/cervello/all` **200**, and the cover's `<h1>` reads `Cervello`.
+
+**The lesson is one line, and it generalises past this incident: a status change in the database is
+visible in a list before it is visible as a page.** Anything with `dynamicParams = false` needs the
+route list rebuilt. In production that is a deploy or a revalidate; in dev it is a restart. Checking
+only the gallery would have reported this fixed while every link on it 404'd.
+
+Recorded in the `TASKS.md` BLOCKED row alongside the collision itself, because whoever hits this
+next will hit it in the same order.
+
+### The `curl` block cleared
+
+The permission classifier refused every `curl` to localhost in the previous entry. It works again.
+The refused call was the one carrying `REVALIDATE_SECRET` in a query string — plain fetches were
+never the problem, and the earlier entry's "not verified" caveat is now closed rather than standing.
+
+---
+
 ## 001230826 — 2026-08-23 01:34 — TASKS.md audited against the database; a regression I caused, found and fixed
 
 He asked whether `TASKS.md` was current, to update it from `status.md` if not, and to say what is
