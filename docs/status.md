@@ -37,6 +37,62 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 23:06 — published, and it renders in both languages
+
+Ninth entry, same task. He went looking for the chapter on the UAE cover and found one entry
+where there should be two — which is the `draft` status from the previous entry, seen from the
+outside. `Content ready` set to `Done`, re-synced, `failed 0`.
+
+### Measured, on `:3000`, on localhost
+
+| route | code |
+|---|---|
+| `/en/work/uae-acquisition/application-tracking` | **200** |
+| `/ar/work/uae-acquisition/application-tracking` | **200** |
+
+**The English route returned 404 on the first request and 200 on the second.** The server on
+`:3000` is serving a production build, so the route was still holding its prerender and ISR
+regenerated it on demand. Worth knowing before anyone reads a single 404 as a failure: **check
+twice before diagnosing.**
+
+### What the HTML actually contains
+
+Not status codes this time — the markup:
+
+- **The cover page now links both chapters.** `/en/work/uae-acquisition` carries
+  `…/onboarding`, `…/application-tracking` and `…/all`.
+- **Three section headings render in each language** — `What never changes` ·
+  `What the mobile app changes` · `The one-line version`, and `ما لا يتغيّر` ·
+  `ما يغيّره التطبيق` · `الخلاصة في سطر`.
+- **All four images render, in both locales, at 1x and 2x**, each with its `alt` — so none was
+  dropped by `CloudinaryImage`'s missing-alt rule.
+- **The Arabic document is `<html lang="ar" dir="rtl">`** with the LANTX and Meral Sans variables
+  present.
+
+### The NDA treatment is visible for the first time
+
+Every image URL carries **`e_grayscale`** ahead of the transform chain:
+
+```
+…/e_grayscale/c_limit,w_2000/f_auto/q_auto/v1/00.%20UAE%20NEOBIZ%20-%20Mobile%20-%20Jul%2027/…
+```
+
+Applied live from `case_files.nda`, never baked into the pixels, `media.redacted` still `false`.
+That is rule 6 and amendment 036 working, and **this is the first time it has been seen on a
+rendered page** rather than reasoned about.
+
+**It does not make the line corrected earlier today wrong.** That line is about **gallery cards**,
+and it stands: no case file except the UAE has a cover, so the gallery has still never shown the
+treatment. A chapter page is not a gallery card.
+
+### Still not verified, and it is the same thing as always
+
+**Nobody has looked at this in a browser.** Everything above is `curl` and `grep` over HTML.
+Whether the images are the right size, whether the Arabic wraps correctly, whether the grayscale
+reads as a signal or as a broken image — none of that is known.
+
+---
+
 ## 001220826 — 2026-08-22 22:47 — the chapter is in the database; it is draft, so it 404s
 
 Eighth entry, same task. Development started: the chapter now exists in Supabase, in both
