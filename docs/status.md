@@ -37,6 +37,81 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 003230826 — 2026-08-23 04:24 — backend's report, checked; (B) was not a cause, and I had said it was
+
+Its full report arrived after the previous entry. **Two of its findings correct things I told
+Moataz**, and one of them is mine.
+
+### (B) is real and recovers nothing — I briefed it as a bug to fix
+
+I passed on the audit's finding that `[cld]` tags under a `Decision ·` heading land in the preceding
+slot, and framed it as a cause of the `context` mismatches. Backend **tested it instead of
+accepting it**:
+
+| slot | with borrowed images | without them |
+|---|---|---|
+| `workflow/context` | 11 vs 13 | **5 vs 7** — still refused |
+| `fulfilment/context` | 15 vs 16 | **5 vs 6** — still refused |
+
+**The borrowing inflates both locales equally, so separating them recovers zero Arabic.** The real
+cause on both chapters is that the Arabic prose splits differently. It left the behaviour alone and
+named it as a latent index-pairing hazard rather than fixing something that would have moved
+nothing. **That is the right call and it is the opposite of what my brief implied.**
+
+### (C) is one Notion paragraph, and I reproduced the error
+
+```
+✗ image tag "…/Arabic/Post-Submit/Scheduling visit/application-submitted-arabic-verification-choice"
+  is unusable and was NOT written:
+  - the paragraph also contains prose ("وقد طرحت دعم RTL بوصفه متطلبًا على مستوى النظام لا التفافًا ")
+```
+
+One block in Notion mixes a tag with prose, and **the whole Accessibility page's media is refused**
+— deliberately, because partial media is worse than none. The deeper cause is that
+`parsePageSections` never reads `items`, where tags live, so a tag on that path is not skipped by a
+rule — **it is never seen**. Backend's judgement: don't teach `page_sections` about media, finish
+the slot-model migration, which already implements Step 6. **Blocked by that one paragraph.**
+
+### The remaining gap, exactly
+
+The dry run now prints per-slot bilingual pairing — `result(3¶+1tail ↔ar 3¶)`,
+`the-interface(5¶ ↔ar —)` — which **did not exist before tonight**. Backend found that
+`--dry-run` never called `writeChapterSections` at all: *the one pass carrying the whole bilingual
+pairing was the one pass the dry run could not see.* Twelve slots still fail:
+
+| | |
+|---|---|
+| Arabic **written and held back** by the count gate | **75 ¶** across 10 slots |
+| **Never written** — `the-interface` ×2 | **10 ¶** |
+| **Total still missing** | **85 ¶** |
+
+So of the original 109: **24 recovered, 75 written and blocked by a decision, 10 unwritten.**
+
+**The reframing that matters: the writing task is 10 paragraphs and one sentence. Everything else is
+structural.**
+
+### It verified by looking, which nothing else in this project does
+
+`/ar/work/egypt-acquisition/onboarding` on `:3000`: النتيجة renders `dir=rtl lang=ar`, two Arabic
+paragraphs, two Arabic figure captions, English pointer last — and the figures resolve to the
+**Arabic** Cloudinary IDs where `/en/` resolves to English ones. Seven of the eight chapters are
+confirmed from the database only.
+
+### Its two questions, both good, both Moataz's
+
+1. **Should the pointer be in `result` at all?** Every chapter already renders a `Next chapter` /
+   `الفصل التالي` nav block **from data, correctly in both languages, directly beneath it**. The
+   prose pointer duplicates it — in English, on the Arabic page.
+2. If it stays, should it be its own field or `kind='pointer'` so it renders as a coda rather than
+   body prose? Schema + sync + components.
+
+### Verified here
+
+`test:sync` pass · `tsc` clean · `eslint` clean. Sync exits 1 on the accessibility tag —
+**pre-existing**, and it refuses that page's sections before any delete, so nothing was lost.
+
+---
+
 ## 003230826 — 2026-08-23 04:02 — the pointer fix lands: every `result` slot pairs, +24 Arabic paragraphs
 
 Backend's three-bug brief. **Measured by me against the database, not read from its report** — which
