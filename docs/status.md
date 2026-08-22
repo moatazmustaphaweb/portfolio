@@ -37,6 +37,73 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 22:04 — four image tags authored; two counts in CLAUDE.md were wrong
+
+Sixth entry, same task. He asked for the screens to be taken from Figma and put into Notion in
+both languages.
+
+### What "put them in Notion" actually means here, and it is not pasting images
+
+`docs/sync-contract.md` Step 6 is explicit and it is worth restating because the instruction reads
+the other way round: **"Images are not synced from Notion. The binary is uploaded to Cloudinary by
+hand; Notion carries only the reference."** And below it: **"Images uploaded into Notion are
+ignored"** — a Notion `image` block is an author's working preview whose URL is signed and expires
+in **300 seconds**, and `readBody` skips image blocks structurally.
+
+So pasting the PNGs into the page would have produced **nothing on the site and no error**. What
+was authored instead is the tag the parser actually reads: one paragraph, three inline code spans,
+`[cld]` · `[alt]` · `[caption]`, as a sibling of the prose.
+
+### Four screens, both pages, one set of public IDs
+
+`44-track-dashboard-application-submitted` · `59-exception-detail-moa-not-clear` ·
+`38-withdraw-reason-default` · `01-welcome-three-doors`, all under
+`00. UAE NEOBIZ - Mobile - Jul 27/English/…` — the prefix follows the convention actually in the
+database, where the top folder is the Figma file name.
+
+**Both locales reference the same IDs, and that is the rule, not an exception.** He said the app is
+English-only so the same screens serve both pages; `Image mapping/cloudinary-tags-inventory.md`
+already states exactly that for the English-only journeys — *"نفس المعرّف في الصفحتين"*. Alt and
+caption are written per locale, which is what Step 6 expects.
+
+### Looking at the screens corrected the page twice more
+
+**The exception screen carries a free-text response field** next to the upload area — so an
+exception is answerable in prose, not only by attaching a file. The caption says so.
+
+**No camera control is visible on it.** It reads `Upload document` and `Add document`, with a 5MB
+cap. The page's claim that *"the camera replaced the scanner"* rests on **his word**, which is a
+fine source — but no image was captioned as showing a camera, because none does.
+
+### Not done, and it cannot be done from here
+
+**The binaries are not in Cloudinary.** The four PNGs are exported to
+`~/Desktop/uae-tracking-screens/`, each named exactly as its public ID leaf so the upload is
+mechanical. Uploading is devops'. **Recorded in the Notion page's `Blockers` field**, because four
+tags now name IDs that do not resolve, and a sync run before the upload would write four `media`
+rows pointing at nothing.
+
+**They are 1x.** Figma's renderer returned the nodes at their natural canvas size — 397px wide —
+and asking for 2400 did not change that. Fine for review, probably not for shipping.
+
+**Nothing entered the repository**, per rule 6. The exports sit on the Desktop, the scratch copies
+were deleted.
+
+### Two counts in CLAUDE.md were wrong, and the fix is not to update them
+
+The launch-gate line read: *"Cover images (`media` has **0 rows**; **0 of 4** case files have a
+cover, so the NDA grayscale treatment is also still invisible)"*.
+
+Measured: **`media` has 76 rows**, and **`uae-acquisition` has a cover**. Both halves were true when
+written; neither was re-tested before being quoted.
+
+**This is the same failure the git bullet in the same file is already a case study for**, so it got
+the same treatment rather than a corrected number: the line now carries the two queries that
+produce the answer, and keeps only the part that cannot rot — no case file **other than** the UAE
+has a cover, so the NDA grayscale treatment has still never been seen on a gallery card.
+
+---
+
 ## 001220826 — 2026-08-22 21:58 — the divergence was never a defect; the rule moved into the skill
 
 Fifth entry, same task, and it **corrects the fourth one**.

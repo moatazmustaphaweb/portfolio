@@ -195,7 +195,14 @@ docs/                 all project documentation
 
 **Blocked on content, not code — Moataz owns these:**
 
-Cover images (`media` has **0 rows**; 0 of 4 case files have a cover, so the NDA grayscale treatment is also still invisible) · `settings.og_image` · `settings.cv_url` · **dates, employers and job titles** — the About design has had a career timeline component since before the site existed, the component was never built because there was nothing to put in it, and the read test named this gap first · Arabic review of the 11 strings written from English · mini case files in or cut (open question B) · domain + Vercel account.
+Cover images — **and this line no longer states how many there are.** It said `media` has **0 rows** and that **0 of 4** case files have a cover. Measured 2026-08-22, task `001220826`: `media` has **76**, and `uae-acquisition` **has** a cover. Both halves were true when written and neither was re-tested before being quoted into a brief, which is the failure `docs/learn.md` Part 6 already names for git facts. So, the same fix as that one — run it:
+
+```sql
+select count(*) from media;
+select slug, cover_media_id is not null as has_cover from case_files where status = 'published';
+```
+
+What is still true and is not a count: **no case file except the UAE has a cover, so the NDA grayscale treatment has still never been seen on a gallery card.** · `settings.og_image` · `settings.cv_url` · **dates, employers and job titles** — the About design has had a career timeline component since before the site existed, the component was never built because there was nothing to put in it, and the read test named this gap first · Arabic review of the 11 strings written from English · mini case files in or cut (open question B) · domain + Vercel account.
 
 The read test's sharpest finding is a **content** one and no amount of building answers it: across four case files, one is live with real users, one was never built, one is in controlled release, one is five years old with no metrics — and three of the four are the same account-opening programme at the same bank.
 
