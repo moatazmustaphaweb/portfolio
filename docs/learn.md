@@ -157,6 +157,33 @@ What he had just cut is about **credit**: which parts he authored and which he i
 
 Corollary, same session: **a sibling-case-file comparison belongs where the case file sets it up, not inside a chapter.** The UAE draft closed on the Egypt contrast; he removed it, and the contrast already lives in that case file's `result` section, once, where a reader arriving at it has the context to use it.
 
+## "Original, not translated" applies to the imagery, not only the sentences
+
+Learned 2026-08-22, task `001220826`, from his rewrite of an Arabic page that had been written to the convention and still came back changed in fifteen places.
+
+**Almost every change removed an image that had been carried across from the English:**
+
+| written | rewritten to | what was carried |
+|---|---|---|
+| `وبباب للعودة بعده` | `واحتمالية العودة بعده` | *a way back in* |
+| `ثلاثة أبواب` | `ثلاثة مسارات` | *three doors* — and the English kept **doors** |
+| `في صندوق وارد` | `في البريد الإلكتروني` | *an inbox* |
+| `ملف يقبع على جهاز` | `ملف موجود على جهاز` | *a file sitting on a machine* |
+| `الاستفسار له بنية` | `الاستفسار منظم` | *is structured* |
+| `رفع عقد التأسيس` | `تقديم عقد التأسيس` | *upload* |
+
+**This is not "no metaphor in Arabic", and reading it that way would be the wrong lesson.** His own Arabic is full of them, and they are better than the English: `الويب أعطى المنتظر نافذة يطل منها؛ والموبايل أعطى البنك جرس باب يقرعه` · `الطلب والكاميرا والأوراق في الدرج — كلها في غرفة واحدة`.
+
+The difference is where the image came from. **His images are invented in Arabic. Mine were the English images wearing Arabic words** — `inbox` became the calque `صندوق وارد` rather than what an Arabic speaker actually says, and `door` was used twice on one page in two unrelated senses because the English happened to use it twice.
+
+`portfolio-voice` says the Arabic is an original text, not a translation, and that where the two languages explain, each explains to its own reader. **The same is true one level down: the objects that anchor the abstraction are chosen per language.** An image that survives translation intact is usually an image that was never chosen for Arabic at all.
+
+**Two smaller findings from the same rewrite, both worth keeping:**
+
+**He adds the fact over the rhythm.** `على الموبايل يصل.` — three words, deliberately the shortest line on the page — came back as `على الموبايل يصل فورًا.` The point was immediacy, and the rhythm was mine, not his. This is the Arabic case of the rule already in this file: never manufacture a short line.
+
+**He names who, where the English can stay vague.** `حتى ينتبه إليه أحد` became `حتى ينتبه إليه العميل`; `الانسحاب` became `سحب الطلب`. English tolerates an unnamed agent in a way his Arabic does not.
+
 ---
 
 # PART 3 — CONTENT INTEGRITY

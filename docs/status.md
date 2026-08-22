@@ -37,6 +37,53 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 20:42 — his Arabic rewrite read back; the imagery lesson
+
+Third entry, same task. He rewrote the Arabic page and asked for the same treatment the
+English got.
+
+### Fifteen changes, and almost all of them remove a carried image
+
+The Arabic had been written to every convention in `portfolio-voice` — `الاستفسار` not
+`الاستثناء`, tanween before the alif, Arabic punctuation, headings matched to the Egypt Arabic
+comparison page — and it still came back changed throughout. The pattern is not the conventions.
+**It is that the objects were English objects wearing Arabic words:**
+`وبباب للعودة` → `واحتمالية العودة` · `ثلاثة أبواب` → `ثلاثة مسارات` · `صندوق وارد` →
+`البريد الإلكتروني` · `يقبع` → `موجود` · `له بنية` → `منظم` · `رفع` → `تقديم`.
+
+`ثلاثة أبواب` is the clearest case: **the English still says "three doors" and he left it there.**
+The image is fine in English and wrong in Arabic, where `باب` was also doing unrelated work two
+paragraphs earlier because the English happened to use the word twice.
+
+**Written up in `docs/learn.md` Part 2 as *"Original, not translated" applies to the imagery, not
+only the sentences*.** His own Arabic is full of metaphor and better at it than the English —
+`جرس باب يقرعه`, `الأوراق في الدرج` — so the lesson is not restraint. It is that the anchoring
+object is chosen per language, and an image that survives translation intact was probably never
+chosen for Arabic at all.
+
+Two smaller findings kept in the same entry: **he adds the fact over the rhythm** — the
+deliberately three-word `على الموبايل يصل.` came back as `على الموبايل يصل فورًا.` — and **he
+names the agent** where the English tolerates a vague one (`أحد` → `العميل`, `الانسحاب` →
+`سحب الطلب`).
+
+### Content diverged between the languages, on purpose or not
+
+The English still reads `one product under two names`. His Arabic now reads `تطبيق واحد` — the
+naming observation is gone from one language and not the other. **Not reconciled**, because
+reconciling it means choosing which language is right and that is his call. Flagged to him.
+
+### Five orthographic slips corrected, and two grammar points left alone
+
+Corrected in his new text, spelling only: `احتماليه العوده` → `احتمالية العودة` ·
+`رحله` → `رحلة` · `الاليكتروني` → `الإلكتروني` · `فوراً` and `فوررا` → `فورًا`, which is both the
+site's own form at 448 against 92 and the typographically correct one.
+
+**Not touched, because they are grammar and grammar edges into editing:** `بوابة العميل ومتابعة
+الطلب **هو** تطبيق واحد` takes a singular pronoun for two subjects, and `وحلّ الإشعارات` takes a
+masculine singular verb for a broken plural. Both reported to him instead.
+
+---
+
 ## 001220826 — 2026-08-22 20:14 — his edits read back, three lessons written, the Arabic page created
 
 Second entry for the same task. Moataz edited the Notion page himself and asked for the
