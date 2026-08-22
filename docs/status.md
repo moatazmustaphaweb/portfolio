@@ -37,6 +37,51 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 21:31 — the Desktop Redirect is refused, not missing
+
+Fourth entry, same task. **This entry exists because a refusal with its reasoning is a result,
+and this one closes an item that two previous entries in this same task listed as open.**
+
+### The ruling
+
+`49 — Exceptions List + Desktop Redirect` — the screen that tells a customer mid-journey to
+*"visit the Mashreq NEO BIZ website on desktop"* — **will never appear in the portfolio.** Not the
+screen, not the story, not a passing mention.
+
+His reasons, in his words: it is **the design tribe lead's decision, not his**; he argued against
+it; he considers it the worst decision in the design; and telling a customer who has already
+downloaded and started an application to go and finish somewhere else is the worst thing the
+journey can do.
+
+**Recorded in the Notion page's `Blockers` field so a future session cannot reopen it**, since the
+first two entries for this task both name it as the page's clearest gap and a later reader would
+otherwise go looking.
+
+### Where the two rounds went
+
+It was reported as an open gap, then called **"the clearest gap in the page"**, then put to him a
+second time with three hypotheses about its trigger — because *"it is in the design file and not on
+the page"* was read as an omission. It was a judgement, and one question earlier would have found
+that out.
+
+**Written up in `docs/learn.md` Part 3 as *An absence may be an exclusion. Check before calling it
+a gap*.** The entry also records the boundary, because the obvious reading of this ruling is wrong:
+he is not hiding what he opposed. He has a published section called **"The argument I lost, in two
+countries"**. An argument he lost is his work and shows how he thinks; another person's bad
+decision is not his work, and narrating it is either blame or endorsement.
+
+### Housekeeping
+
+The two screenshots pulled from the client file were deleted from local scratch. Nothing from that
+file has ever entered the repository, per rule 6.
+
+### What (أ) still has open
+
+Images for the page · **the English and Arabic still disagree** on `one product under two names`
+versus `تطبيق واحد`, and that is his call, not a reconciliation to be made for him.
+
+---
+
 ## 001220826 — 2026-08-22 20:42 — his Arabic rewrite read back; the imagery lesson
 
 Third entry, same task. He rewrote the Arabic page and asked for the same treatment the

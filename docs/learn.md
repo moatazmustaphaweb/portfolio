@@ -220,6 +220,27 @@ An independent read test called the labelling *"the single best thing about the 
 
 It also found the one place it leaks: `Achieved` carries both *live in production for eighteen months* and *ten people in a usability lab*. The label is accurate and the evidence line is right there, but a gallery card shows the label without the evidence.
 
+## An absence may be an exclusion. Check before calling it a gap
+
+Learned 2026-08-22, task `001220826`, after pushing twice on something that was never missing.
+
+A screen in the UAE design file — `49 — Exceptions List + Desktop Redirect`, which tells a customer mid-journey to *"visit the Mashreq NEO BIZ website on desktop"* — was absent from the chapter. It was reported as an open gap, then named **"the clearest gap in the page"**, then put to him a second time with three hypotheses about what triggered it.
+
+His answer closed it in one line. It is the **design tribe lead's** decision, he argued against it, he considers it the worst decision in the design, and it will never appear in his portfolio — not the screen, not the story, not a mention.
+
+**The two rounds spent on it were spent because "this is in the design file and not on the page" was read as an omission.** It was a judgement.
+
+**And the boundary is not "he hides what he opposed" — it is sharper than that, and the sharper version is the useful one.**
+
+He has a published chapter section called **"The argument I lost, in two countries"**. He narrates a proposal he made, argued for, and lost, twice. That is his judgement on display, and it is one of the strongest things on the site.
+
+The difference:
+
+- **An argument he lost is his work.** He made the proposal. The outcome went against him. Showing it shows how he thinks.
+- **Somebody else's bad decision is not his work.** Narrating it is either blame or endorsement, and he wants neither in a portfolio.
+
+**So, operationally: before treating something in a source file as missing content, ask whether it was excluded.** The question is not *"why isn't this on the page?"* but *"is this yours?"* — and if the answer is no, there is nothing further to write, no note explaining the absence, and no passing reference. An exclusion that gets a footnote is not an exclusion.
+
 ---
 
 # PART 4 — HOW HE WANTS CODE BUILT
