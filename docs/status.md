@@ -37,6 +37,70 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001230826 — 2026-08-23 01:34 — TASKS.md audited against the database; a regression I caused, found and fixed
+
+He asked whether `TASKS.md` was current, to update it from `status.md` if not, and to say what is
+left for MVP-1. **It was not current in twelve places, and one of them was hiding a live regression
+from earlier tonight.**
+
+### The regression: Cervello fell out of the gallery, and I did it
+
+`published` case files read **3**, not 4. Cervello was `published` when this session started.
+
+**Cause, traced not guessed.** Two Notion pages claim `/[locale]/work/cervello`: the live
+`Cervello Cloud (IoT)`, and a **blank** page marked `Content ready: Not started`,
+`Build Layer: Layer 3`, whose own Notes say *"SUPERSEDED … Removed from MVP-1 to clear the route
+collision."*
+
+**Decision 040 cleared that collision by taking the parked page out of MVP-1 — which only works
+while the sync is MVP-1-scoped.** Every `--all` run tonight (needed for the Layer 2 chapter) pulled
+it back in and wrote `draft` over the published row.
+
+**Content survived** — 4 cover sections, 11 paragraphs, 3 handles, 3 published chapters — so it was
+one field. Restored by hand; `published` reads 4 again. **It will recur on the next `--all`**, and
+the real fix is Moataz's: archive the parked page, change its `Route`, or teach the sync to refuse
+a blank page overwriting a published row. Logged as **REOPENED** in the BLOCKED table.
+
+### What TASKS.md claimed, and what is true
+
+Measured 2026-08-23. Each of these was true when written:
+
+| claim | measured |
+|---|---|
+| "`media` is empty" | **80 rows**; 1 of 4 published case files has a cover |
+| "static pages have no Arabic child pages" | About, Philosophy, Systems, Contact **all carry Arabic** |
+| "no Arabic cover carries a handles block" | **24 Arabic translations across 12 handles** |
+| "`uae-acquisition` Arabic cover title — no H1" | **present** |
+| "`egypt/workflow` — 1 EN, 3 AR, skipped" | Arabic prose is in |
+| 🔴 "Retention — awaiting confirmation" | `pg_cron` **installed**; the BLOCKED table already said resolved. **The file contradicted itself** |
+| "404 — BROKEN, not 'real'" | fixed for unmatched URLs; only in-route `notFound()` remains |
+| "Upload the first real assets" | done — the four UAE screens render with `e_grayscale` |
+| "Verify body→field mapping (untested)" | the sync has run clean repeatedly |
+
+Also corrected: the retention row said **180 days**; the migration is named
+`0014_retention_360_days.sql`.
+
+### The launch gate, rewritten
+
+The old Phase 2 list was fourteen unordered lines mixing "never tested" with "not designed". It is
+now five groups by **who can clear it**, and **every number carries the query that reproduces it**
+— the fix `CLAUDE.md` already applies to its own git and media claims.
+
+What is actually blocking, measured: `og_image` and `cv_url` still `NULL` · **3 of 4 case files
+have no cover** · dates/employers/job titles · the Cervello collision · **109 of 262 chapter
+paragraphs and 33 of 65 image alts have no Arabic** · `features` has 0 rows · `gallery_intro` is
+absent · and the whole 🔵 block — the visual pass, the accessibility audit, the contact form in a
+browser, ISR in production — **none of which has been tested once, in any environment.**
+
+### Not verified
+
+**The gallery was not re-rendered after the fix.** `curl` to localhost is now refused by the
+permission classifier — it worked earlier in the session and stopped. The restore is confirmed by
+SQL (`published` = 4) and the gallery query filters on exactly that column, but **the rendered page
+has not been re-read**.
+
+---
+
 ## 001230826 — 2026-08-23 01:06 — chapter figures: full width on a phone, 600px tall on a desktop
 
 Same task, continued. Asked for chapter images to keep full width on small screens and be capped at
