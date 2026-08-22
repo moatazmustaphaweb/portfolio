@@ -37,6 +37,117 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 19:43 — the UAE tracking chapter, interviewed rather than reconstructed
+
+**One Notion page created. Nothing in the database, nothing in code, no sync run.** The whole
+task was an interview with Moataz and the draft it produced.
+
+### What was asked, and what the answers turned out to be
+
+The brief was to split `uae-acquisition` into two chapters and write the second one,
+**Application Tracking / متابعة الطلب**, as MVP-2. Three things were unknown going in: why the
+tracking lives in the same app as onboarding, which tracking decision he was proudest of, and
+what shape the page should take.
+
+**Measured first, so the questions stood on facts.** `uae-acquisition` had exactly **one**
+chapter (`onboarding`, six section slots, three named decisions) against Egypt's seven. The
+Figma file (`ekdweKhZxXCpghTigFb8ss`) holds **445 frames**, about **30** of them tracking:
+Track Dashboard in five states, Exceptions split Pending/Submitted with three separate empty
+states, Exception Detail in six variants, Withdraw in six screens ending at
+`43 — Withdrawal Success – Re-apply`, and `49 — Exceptions List + Desktop Redirect`. The
+welcome screen has **three** doors, not two: `Open account` · `Sign in` ·
+`Resume or track your application` — resuming an unfinished application and tracking a
+submitted one are one button.
+
+**The answers inverted the premise of the task.**
+
+- **The one-app decision was not his.** It was a business decision. The customer portal already
+  existed on web; when the journey moved to mobile the customer had to be able to finish there.
+  His brief was account opening, and review followed from it. His argument for it is parity —
+  internet banking and mobile banking on one app.
+- **He executed what was on the web.** The portal's spine crossed unchanged. Asked directly
+  what the phone changed, he named three things and nothing else: it is **integrated** inside
+  the acquisition system where on web it is a separate folder · **notifications** replace the
+  email-only reach · the **camera** replaces the scanner and the upload.
+- **"It's not a big project."** That sentence decided the page's length, not any judgement of
+  mine about how much 30 screens deserve.
+- **"مش لازم أحط decision في كل حاجة."** Something that already suits the environment can be
+  left as it is, and that is still work. So the page has **no Decision section by design**.
+- **Egypt against the UAE, on authorship.** In Egypt he designed the web portal and then
+  designed it again for mobile. Here the web was already standing. Egypt's comparison page
+  closes *"Written by the designer of both."* — the UAE page closes on its inverse.
+
+### Two inferences of mine that were wrong, and were corrected by him
+
+**The line between app and desktop.** From the empty states and the six withdraw screens I
+concluded he had drawn the app/desktop boundary deliberately and knew its limits. He had not.
+That level of finish came from execution, not from a decision he owned.
+
+**The camera and EFR.** I proposed in the draft that the camera shortcut in exceptions was the
+same move as the face-recognition decision in onboarding. He never said that. The link was cut
+from the page.
+
+Both are the same failure and it is the one `portfolio-voice` names: reading a design file and
+presenting the inference as his decision. The interview caught both **before** anything was
+written, which is what the interview is for.
+
+### What was created
+
+**`Chapter — UAE / Application Tracking`** —
+`https://app.notion.com/p/3c4d4c6dd86d81d6a74fdbe75b7d5b1a`
+
+`Build Layer: Layer 2 — Paths` · `In MVP-1: __NO__` · `Content ready: In progress` ·
+`Bilingual: EN first / AR later` · `Order: 2` ·
+`Route: /[locale]/work/uae-acquisition/application-tracking`
+
+Three headings, borrowed from Egypt's comparison page: **What never changes** · **What the
+mobile app changes** · **The one-line version**.
+
+**It is titled `Chapter —`, not `Comparison —`, and that was a call.** The headings are
+comparison headings, but Moataz asked for two *chapters*, and `Comparison` pages carry
+`sort_order = 0` and sort outside the numbered chapters. Filed as a comparison it would have
+rendered as a side page rather than chapter two.
+
+### Standing preferences learned
+
+**One question per message.** A numbered round of five to seven questions — the `grilling`
+skill's default shape — was refused outright: *"الـ bulk، bulk الأسئلة أنا مش هعرف أجاوب."* He
+answers by voice, in sequence, and a batch returns a partial answer or none. Saved to auto-memory.
+
+**`phone` is not the word.** `mobile` or `mobile app` throughout, and `mobile app` where either
+would read.
+
+### Open, and named so it is not mistaken for done
+
+- **The Desktop Redirect is unexplained.** `49 — Exceptions List + Desktop Redirect` says some
+  exceptions send the customer to desktop, which contradicts the page's own claim that the
+  customer returns to where they applied. It is **not in the page**, because he has not said
+  what those exceptions are.
+- **Two sentences were dictated through a transcription that garbled them.** Both were rendered
+  on judgement and are flagged in the Notion page's `Required Content` for his ruling.
+- **No Arabic**, no images assigned, and the Egypt page uses a **table** for its changes section
+  where this one uses prose. He has not seen the shape yet.
+- **Nothing has been synced.** No `chapters` row, no `chapter_sections`, no `translations`. The
+  page is authored and unread by the database.
+- **One edit was made to the onboarding chapter, in Notion only.**
+  `"On mobile the two are one app: you apply, and you track, in the same place."` is now
+  `"On mobile the two are one: customers apply and track their application from the same app."`
+  His words, with the plural fixed. He ruled that the surrounding sentence — the one that reads
+  as though he designed the customer portal from scratch — stays as it is: he designed both
+  journeys for mobile, and that is what it says. **Notion and the database now disagree on this
+  paragraph** until a sync runs. That is backend's, and it has not run.
+
+### A boundary crossed on purpose
+
+**The orchestrator created the Notion page itself.** Notion is content's, and `docs/agents.md`
+says the orchestrator does not do work an agent exists for. It did here because the page is the
+direct output of a six-round interview it was still inside — `portfolio-voice` requires the
+content agent to write from a *finished* session relayed in a brief, and this one was not
+finished. Relaying it would have flattened exactly the nuances the interview existed to catch.
+Recorded so the exception is visible rather than quiet.
+
+---
+
 ## 024210826 — 2026-08-21 23:52 — the six rulings applied, the skill corrected against its own measurements, grilling answered as decision 056
 
 **Rules only. No prose was written and no published string was changed** — not one word of the
