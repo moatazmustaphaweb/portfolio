@@ -52,6 +52,18 @@ This was breached once: an audit that was scoped to *report only* produced promp
 
 If the question is "which one", answer with one. A table of options in response to a request for a recommendation is an evasion, and he will say so.
 
+## One question per message, not a round
+
+Learned 2026-08-22, task `001220826`, by being told outright: *"إحنا اتفقنا الـ bulk، bulk الأسئلة أنا مش هعرف أجاوب. سؤال سؤال وواضح، كل message بسؤال."*
+
+The `grilling` skill's default shape is a numbered **round** — compute the frontier, ask all of it, wait. That shape does not work with him. He answers by voice, in sequence; a batch of five asks him to hold five open threads at once, and what comes back is an answer to one of them or none.
+
+**Compute the frontier the same way. Send it one question at a time**, recommendation included, and wait. Each message should require exactly one action from him.
+
+**Fact-finding is not one of his actions.** Reading a file, querying Supabase, opening the Figma file — do all of it silently and fold the finding into the question. The one-action rule counts only what he has to decide.
+
+This tightens `CLAUDE.md`'s rule that a question and a prompt never share a message; it does not replace it.
+
 ---
 
 # PART 2 — WRITING
@@ -121,6 +133,29 @@ Consequences that have come up repeatedly:
 ## Writing to Moataz in Arabic
 
 Egyptian colloquial mixed with formal Arabic is hard to follow. Pick a register and hold it. When the sentence is technical, plain modern Arabic with the Latin terms left in Latin is clearest.
+
+## He cuts the credit, not the concession
+
+Learned 2026-08-22, task `001220826`, from what he deleted rather than from what he said.
+
+A chapter draft was returned with four cuts, and every one of them was a sentence about **authorship**:
+
+- *"None of that is mine. Both journeys were decided on the web. I designed both of them for mobile."*
+- *"The portal was not redesigned. It was moved."*
+- *"In Egypt I designed the web portal, then designed it again for mobile. Here the web was already standing when the brief reached me."*
+- *"Written by the designer of the mobile one."*
+
+The last of those was the draft's strongest idea — the deliberate inverse of the Egypt page's *"Written by the designer of both."* It went too. His reason, given plainly: **"This information is not important for the reader."**
+
+**This looks like it contradicts the `portfolio-voice` line that he concedes things nobody asked him to concede. It does not, and the distinction is the lesson.**
+
+What he concedes is about **the work**: an argument he lost, a compromise that shipped, a proposal he would make again. Those are findings, and they make the rest believable.
+
+What he had just cut is about **credit**: which parts he authored and which he inherited. That is internal accounting. Put on the page it turns a description of a product into a defence of a designer, and it asks the reader to hold a question they never had.
+
+**The test is not "is it honest" — the draft's version was honest. The test is "is it for the reader."** A true sentence that only settles a question about the author's standing is not a concession. It is a footnote about him, in the middle of a page about the work.
+
+Corollary, same session: **a sibling-case-file comparison belongs where the case file sets it up, not inside a chapter.** The UAE draft closed on the Egypt contrast; he removed it, and the contrast already lives in that case file's `result` section, once, where a reader arriving at it has the context to use it.
 
 ---
 
@@ -347,3 +382,15 @@ Recorded so the same error is not repeated by a fresh session.
 | Writing a rule protects the writer from breaking it | The orchestrator codified *"entries are dated to match the commit time, never ahead of it"* and then, **in the same task**, dated its own entry twenty minutes in the future. It resolved only because the clock caught up — nothing was corrected. **Authorship confers no immunity;** check your own output against the rule you just wrote |
 
 **The pattern in most of these:** a conclusion drawn from a document rather than from the system it describes. `status.md` is a narrative and is behind in places. When a fact is checkable, check it.
+
+## A garbled word may be a real word; a design file is not a source
+
+Learned 2026-08-22, task `001220826`. Two errors in one draft, in opposite directions, and they are the same error.
+
+**A real word was thrown away as transcription noise.** Dictating an edit by voice, he said the sentence should read *"an answerable question rather than a **blind** rejection."* It reached me as `Blindly,` at the head of the next sentence, where it made no sense, so I dropped it and flagged it as unintelligible. He put it back in Notion, in its correct place. It was never noise — it was one word that landed in the wrong slot.
+
+**A detail he never gave was imported from Figma.** The same paragraph said a customer can *"replace a file that came back **too large**."* Nobody said that. It came from a frame named `62 — Exception Detail – Emirates ID File Size Error`. He corrected it to *"came back **unclear**"*, and separately corrected *"its own folder"* to *"its own system"* — a word that had been his own, in speech, and was still wrong on the page.
+
+**Both are the same failure: trusting the artefact over the person.** The design file is evidence of what was built. It is not evidence of why, of what it was called, or of what mattered. A frame name is a designer's filing label, not a claim about the product — and treating one as content is how inference gets published in his voice.
+
+**So: when a dictated word does not parse, assume it is a real word in the wrong place before assuming it is noise.** Ask where it belongs. And **never let a screen name become a sentence** — if the detail did not come from him, it is a question, not a fact.

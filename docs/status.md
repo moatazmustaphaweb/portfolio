@@ -37,6 +37,72 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 20:14 — his edits read back, three lessons written, the Arabic page created
+
+Second entry for the same task. Moataz edited the Notion page himself and asked for the
+diff to be read rather than accepted, then for the Arabic.
+
+### What he changed, and the one pattern under it
+
+Eight edits. **Four of them delete the same kind of sentence** — every sentence in the draft
+that was about **who authored what**:
+
+- *"None of that is mine. Both journeys were decided on the web. I designed both of them for mobile."*
+- *"The portal was **not redesigned**. It was moved."*
+- *"In Egypt I designed the web portal, then designed it again for mobile. Here the web was already standing when the brief reached me."*
+- *"**Written by the designer of the mobile one.**"*
+
+The last was the draft's best idea and its whole close — the deliberate inverse of Egypt's
+*"Written by the designer of both."* His reason: **"This information is not important for the reader."**
+
+**Written up in `docs/learn.md` Part 2 as *He cuts the credit, not the concession*.** It is not a
+retreat from the concession move that `portfolio-voice` describes — he concedes about *the work*
+(an argument lost, a compromise shipped) and refuses to litigate *credit*. A true sentence that
+only settles the author's standing is a footnote about him inside a page about the product.
+
+### Two errors of mine that his edits caught
+
+**`blind` was a real word and I threw it away.** He dictated *"rather than a **blind** rejection"*;
+the transcription put `Blindly,` at the head of the wrong sentence, so it was dropped as noise and
+flagged as unintelligible. He restored it. It was one word in the wrong slot, not garbage.
+
+**`too large` was never his.** The draft said a customer can *"replace a file that came back too
+large"* — lifted from the Figma frame `62 — Exception Detail – Emirates ID File Size Error`.
+He corrected it to **`unclear`**, and corrected `its own folder` to **`its own system`** — a word
+that had been his in speech and was still wrong on the page.
+
+**Both are one failure: trusting the artefact over the person.** Written up in `learn.md` Part 8 as
+*A garbled word may be a real word; a design file is not a source*.
+
+### Also written to learn.md
+
+**Part 1 — *One question per message, not a round*.** The `grilling` skill's numbered-round shape
+was refused outright. He answers by voice in sequence; a batch returns one answer or none.
+
+### The Arabic page
+
+**`النسخة العربية — متابعة الطلب`** —
+`https://app.notion.com/p/3c4d4c6dd86d81c7be7cc92a1ed4fefa`
+
+Created as a child of the English page, per `docs/sync-contract.md` Step 4. Headings match the
+Egypt Arabic comparison page exactly — `ما لا يتغيّر` · `ما يغيّره التطبيق` · `الخلاصة في سطر`.
+Written to his final English, not to the draft he cut, so **none of the four deleted sentences
+have an Arabic counterpart**. `exception` renders as `الاستفسار` per the standing convention, never
+`الاستثناء`. `Bilingual` moved to `EN + AR full`.
+
+**The English subtitle still reads *"the portal that was already standing"*, which carries the exact
+framing he deleted from the body.** It sits above the first heading, so the sync never reads it —
+it is a Notion-only label. The Arabic subtitle deliberately does not mirror it: it reads
+`الاستحواذ في الإمارات — البوابة داخل التطبيق`. Left for him rather than changed unasked.
+
+### Still open
+
+The **Desktop Redirect** is still unexplained and still absent from the page · no images · **nothing
+synced**, so neither page exists in the database · Notion and the database still disagree on the
+onboarding paragraph edited in the first pass.
+
+---
+
 ## 001220826 — 2026-08-22 19:43 — the UAE tracking chapter, interviewed rather than reconstructed
 
 **One Notion page created. Nothing in the database, nothing in code, no sync run.** The whole
