@@ -37,6 +37,66 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-23 00:14 — Cloudinary write access, and the first asset replaced
+
+Eleventh entry, same task. He supplied API credentials and the replace path works end to end.
+
+### The mechanism, and it added nothing to the project
+
+`NEXT_PUBLIC_CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` are in `.env.local`, which
+`.gitignore` covers at `.env*`. **The Node SDK was not installed and was not needed** — a Cloudinary
+signature is `sha1` over the alphabetically sorted signed params plus the secret, so the helper is
+a shell script in scratch that signs `invalidate` · `overwrite` · `public_id` · `timestamp` and
+POSTs with `curl`. **No dependency was added, no file was written into the repository**, and the
+script reads credentials from `.env.local` without ever printing them.
+
+**A read-only probe came first** — `/ping` returned `{"status":"ok"}` and a resource fetch returned
+the real asset's metadata — so authentication was proven before anything was written.
+
+### One thing was broken and repaired
+
+Appending the two variables to `.env.local` **concatenated the API key onto the end of
+`CONTACT_NOTIFY_FROM`**, because the file did not end in a newline. The line was split back apart
+and the file normalised: 13 keys, no duplicates, `CONTACT_NOTIFY_FROM` a well-formed address again.
+Repaired in his checkout and in the worktree copy. **Append to a dotfile with `printf '\n…'` or
+check the final byte first.**
+
+### The replace
+
+`44-track-dashboard-application-submitted`, from `designs/images/`. **Backed up first** to scratch,
+because an overwrite destroys what was there.
+
+| | before | after |
+|---|---|---|
+| version | `1787174286` | **`1787425340`** |
+| dimensions | 794 × 1668 | **4322 × 4323** |
+| bytes | 104,713 | **1,680,391** |
+
+**Proven by the version number changing, not by the request returning without an error.** The
+delivery URL served the new bytes immediately — `invalidate=true` did not need the minutes it
+usually needs.
+
+### Two consequences he needs to see, not read
+
+**The image is no longer a flat screen. It is an angled device mockup on a black background**, and
+it is square where the old one was tall. The page transform is `e_grayscale/c_limit,w_2000`, so
+this now renders as a **2000 × 2000** figure between two paragraphs where a portrait screen used to
+sit. **Grayscale leaves black black**, so the NDA treatment now covers a large dark square rather
+than a screenshot. Whether that reads as intended is a visual judgement and nobody has looked.
+
+**The alt text still describes the screen** — four stages, the application under review, the
+withdraw link — which remains true of what is in the mockup. It says nothing about a device frame.
+Left as written.
+
+### Rule 6 exposure, reported not fixed
+
+**`designs/` is not in `.gitignore`.** The client screen now sitting in `designs/images/` is
+untracked but one `git add .` away from permanent history, and rule 6 says client screens never
+enter this repo, ever. **Not changed** — `.gitignore` is devops', and adding a rule that hides a
+directory frontend owns is a decision, not a tidy-up.
+
+---
+
 ## 001220826 — 2026-08-22 23:34 — the missing card description, and a straight no on Cloudinary
 
 Tenth entry, same task. He read the UAE cover, saw a chapter card with a title and nothing under
