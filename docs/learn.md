@@ -157,32 +157,35 @@ What he had just cut is about **credit**: which parts he authored and which he i
 
 Corollary, same session: **a sibling-case-file comparison belongs where the case file sets it up, not inside a chapter.** The UAE draft closed on the Egypt contrast; he removed it, and the contrast already lives in that case file's `result` section, once, where a reader arriving at it has the context to use it.
 
-## "Original, not translated" applies to the imagery, not only the sentences
+## The two languages are allowed to say different things
 
-Learned 2026-08-22, task `001220826`, from his rewrite of an Arabic page that had been written to the convention and still came back changed in fifteen places.
+**The rule now lives in the `portfolio-voice` skill**, under *What "original, not translated" means in practice*. It is not restated here, for the reason the em-dash entry above gives. What is kept here is the session that produced it, because the mistake is easy to repeat.
 
-**Almost every change removed an image that had been carried across from the English:**
+Learned 2026-08-22, task `001220826`, across two corrections in one page.
 
-| written | rewritten to | what was carried |
+**First: an Arabic page written to every convention still came back rewritten in fifteen places.** `الاستفسار` not `الاستثناء`, tanween before the alif, Arabic punctuation, headings matched to the Egypt Arabic page — all correct, and almost every change he made removed an image that had been carried across from the English:
+
+| written | rewritten to | carried from |
 |---|---|---|
 | `وبباب للعودة بعده` | `واحتمالية العودة بعده` | *a way back in* |
-| `ثلاثة أبواب` | `ثلاثة مسارات` | *three doors* — and the English kept **doors** |
+| `ثلاثة أبواب` | `ثلاثة مسارات` | *three doors* |
 | `في صندوق وارد` | `في البريد الإلكتروني` | *an inbox* |
-| `ملف يقبع على جهاز` | `ملف موجود على جهاز` | *a file sitting on a machine* |
+| `ملف يقبع على جهاز` | `ملف موجود على جهاز` | *sitting on a machine* |
 | `الاستفسار له بنية` | `الاستفسار منظم` | *is structured* |
-| `رفع عقد التأسيس` | `تقديم عقد التأسيس` | *upload* |
 
-**This is not "no metaphor in Arabic", and reading it that way would be the wrong lesson.** His own Arabic is full of them, and they are better than the English: `الويب أعطى المنتظر نافذة يطل منها؛ والموبايل أعطى البنك جرس باب يقرعه` · `الطلب والكاميرا والأوراق في الدرج — كلها في غرفة واحدة`.
+**`ثلاثة أبواب` is the one to remember: he left `three doors` standing in the English and replaced it in the Arabic.** The image was not wrong. It was wrong *there*.
 
-The difference is where the image came from. **His images are invented in Arabic. Mine were the English images wearing Arabic words** — `inbox` became the calque `صندوق وارد` rather than what an Arabic speaker actually says, and `door` was used twice on one page in two unrelated senses because the English happened to use it twice.
+**Second, and this was the worse error: a difference between the two languages was reported to him as a defect.** The English said `one product under two names`; the Arabic said `تطبيق واحد`. It went into `status.md` as "not reconciled, because reconciling it means choosing which language is right and that is his call" — which sounds careful and is the wrong frame. His answer:
 
-`portfolio-voice` says the Arabic is an original text, not a translation, and that where the two languages explain, each explains to its own reader. **The same is true one level down: the objects that anchor the abstraction are chosen per language.** An image that survives translation intact is usually an image that was never chosen for Arabic at all.
+> الذي يهم القارئ الإنجليزي غير الذي يهم القارئ العربي… عادي جدًا إن الإنجليزي يبقى بيعبر عن حاجة والعربي بيعبر عن حاجة تانية.
 
-**Two smaller findings from the same rewrite, both worth keeping:**
+**Two different sentences in the same slot is the design working, not a bug awaiting a ruling.** Ask which language is wrong only where the difference touches a claim, a number, or a caveat.
 
-**He adds the fact over the rhythm.** `على الموبايل يصل.` — three words, deliberately the shortest line on the page — came back as `على الموبايل يصل فورًا.` The point was immediacy, and the rhythm was mine, not his. This is the Arabic case of the rule already in this file: never manufacture a short line.
+**Two smaller findings from the same rewrite, both about Arabic specifically:**
 
-**He names who, where the English can stay vague.** `حتى ينتبه إليه أحد` became `حتى ينتبه إليه العميل`; `الانسحاب` became `سحب الطلب`. English tolerates an unnamed agent in a way his Arabic does not.
+**He adds the fact over the rhythm.** `على الموبايل يصل.` — three words, deliberately the shortest line on the page — came back as `على الموبايل يصل فورًا.` The point was immediacy; the rhythm was mine.
+
+**He names the agent.** `حتى ينتبه إليه أحد` became `حتى ينتبه إليه العميل`; `الانسحاب` became `سحب الطلب`. English tolerates an unnamed agent in a way his Arabic does not.
 
 ---
 

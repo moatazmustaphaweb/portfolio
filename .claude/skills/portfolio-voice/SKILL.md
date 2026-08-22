@@ -229,6 +229,18 @@ The Philosophy page adds `الإعلان` to a list the English renders as graph
 
 Where the two languages must say the same thing — a claim, a number, a caveat — they say the same thing. Where they are explaining, each explains to its own reader.
 
+**Divergence between the two is the normal state, not a defect awaiting a ruling.** Added 2026-08-22, task `001220826`, in his words:
+
+> الذي يهم القارئ الإنجليزي غير الذي يهم القارئ العربي. القارئ العربي باللغة العربية يفهم السياق، بينما القارئ الإنجليزي يركز على الكلمات. عادي جدًا إن الإنجليزي يبقى بيعبر عن حاجة والعربي بيعبر عن حاجة تانية.
+
+**The English reader reads the words. The Arabic reader reads the context.** So English often has to state a relation that Arabic can leave for the reader to carry, and a sentence that earns its place in one language can be dead weight in the other.
+
+The case that produced this: the English opened `one product under two names` — a naming explanation. The Arabic dropped it to `تطبيق واحد`, because in Arabic the two names do not read as two things needing reconciliation. Reported here as a divergence to be reconciled and a ruling requested; **the framing was the error.** The Arabic was right, and his fix was to rewrite the English to `two features in one app` — still doing work the Arabic does not need to do, and still not a translation of it.
+
+**So do not flag a divergence as a defect, and never quietly reconcile one.** Ask which language is wrong only when the difference touches a claim, a number, or a caveat — the things that must match. Everywhere else, two different sentences in the same slot is the design working.
+
+**And the same is true one level below the sentence: the objects are chosen per language too.** An abstraction is anchored in something physical in both, but the something is picked for the reader in front of it — an English image translated into Arabic words is not an Arabic image. `صندوق وارد` is the English `inbox` in Arabic clothes; `جرس باب يقرعه` is an Arabic image, and it is the better one. Measured against his own rewriting of a page in task `001220826`, where almost every change removed a carried image.
+
 ---
 
 ## Before writing anything new

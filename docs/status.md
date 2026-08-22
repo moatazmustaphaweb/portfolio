@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 21:58 — the divergence was never a defect; the rule moved into the skill
+
+Fifth entry, same task, and it **corrects the fourth one**.
+
+### What entry four got wrong
+
+It closed by listing as open: *"the English and Arabic still disagree on `one product under two names`
+versus `تطبيق واحد`, and that is his call, not a reconciliation to be made for him."*
+
+Not touching it was right. **Filing it as a defect awaiting a ruling was not.** His answer:
+
+> الذي يهم القارئ الإنجليزي غير الذي يهم القارئ العربي. القارئ العربي باللغة العربية يفهم السياق،
+> بينما القارئ الإنجليزي يركز على الكلمات. عادي جدًا إن الإنجليزي يبقى بيعبر عن حاجة والعربي بيعبر
+> عن حاجة تانية.
+
+**The English reader reads the words; the Arabic reader reads the context.** English often has to
+state a relation Arabic can leave standing. Two different sentences in the same slot is the design
+working — the question "which one is right" only applies where a claim, a number or a caveat is at
+stake.
+
+He rewrote the English himself: `Customer portal and the application tracking are **two features in
+one app**.` Still doing work the Arabic does not need to do, and still not a translation of it.
+
+### Where the rule now lives
+
+**`.claude/skills/portfolio-voice/SKILL.md`**, under *What "original, not translated" means in
+practice* — the section that already held the `تصميم` and `الإعلان` cases. It now carries the
+divergence rule in his words, and the finding from the Arabic rewrite earlier today: **the anchoring
+objects are chosen per language too.** `صندوق وارد` is the English `inbox` wearing Arabic; `جرس باب
+يقرعه` is an Arabic image, and it is the better one.
+
+**`docs/learn.md` was rewritten to point at the skill rather than restate it**, the same way the
+em-dash entry does. What it keeps is the evidence and the session — the table of carried images,
+and the fact that `ثلاثة أبواب` was replaced in the Arabic while `three doors` was left standing in
+the English. Two entries written today were merged into one to do this; nothing was dropped.
+
+### Housekeeping on the page
+
+A stray space in `one app .` corrected. `Purpose` and `Required Content` were still quoting the
+superseded line and were updated. `Notes` now says the two languages deliberately do not mirror
+each other in the opening line, **so that a later session does not read it as drift and fix it.**
+
+### (أ) is down to one item
+
+**Images.** Everything else in it is closed: the Desktop Redirect refused, the Arabic written and
+reviewed by him, the opening line settled in both languages.
+
+---
+
 ## 001220826 — 2026-08-22 21:31 — the Desktop Redirect is refused, not missing
 
 Fourth entry, same task. **This entry exists because a refusal with its reasoning is a result,
