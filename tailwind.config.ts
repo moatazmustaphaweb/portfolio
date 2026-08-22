@@ -224,6 +224,10 @@ const config: Config = {
         "control-h": "var(--control-h)",
         "control-h-sm": "var(--control-h-sm)",
       },
+      maxHeight: {
+        // Chapter figures on md and up — see --figure-max-h in globals.css.
+        figure: "var(--figure-max-h)",
+      },
     },
   },
   plugins: [],

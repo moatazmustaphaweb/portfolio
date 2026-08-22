@@ -163,6 +163,16 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
  * The image carries no frame — no border, no rounding, no background. Screens
  * sit directly on the page (2026-08-23, task `001230826`).
  *
+ * Sizing is two rules, not one. Below `md` the image takes the full column and
+ * its height follows its aspect ratio. From `md` up the HEIGHT is capped at
+ * `--figure-max-h` and the width becomes `auto`, so the aspect ratio is kept
+ * and a square mockup stops being a thousand-pixel wall between two paragraphs.
+ *
+ * `me-auto` and not `mr-auto`: once the image is narrower than its column it
+ * has to hug the inline start, which is the left in English and the right in
+ * Arabic. `block` is what makes that margin apply at all — an inline image
+ * would take its position from the ancestor's `text-align` instead.
+ *
  * The NDA grayscale is NOT applied here. It rides on `media.nda`, stamped by
  * the content layer from `case_files.nda`, and is applied inside
  * `CloudinaryImage` — so this component cannot forget it and cannot override
@@ -184,7 +194,7 @@ function ChapterFigure({ media }: { media: Media | null }) {
       <CloudinaryImage
         media={media}
         preset="gallery"
-        className="h-auto w-full max-w-full"
+        className="me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
       />
       {caption ? (
         <figcaption

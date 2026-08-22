@@ -169,6 +169,20 @@
   --gutter: 24px;
   --header-h: 56px;
 
+  /*
+   * The tallest a chapter figure may stand on a wide screen. Below `md` it does
+   * not apply at all: a phone gets the full column width and whatever height
+   * the aspect ratio asks for.
+   *
+   * It exists because a figure's height is set by its aspect ratio, and the
+   * aspect ratio is whatever the design file happened to export. A square
+   * device mockup at full column width is over a thousand pixels tall on a
+   * desktop — it fills the viewport, and the prose either side of it stops
+   * being one argument the reader can hold. Capping the HEIGHT rather than the
+   * width is what makes a tall image and a wide one occupy comparable space.
+   */
+  --figure-max-h: 600px;
+
   /* --- Form: one stroke weight, three radii, one blur --- */
   --radius-control: 6px;
   --radius-panel: 12px;

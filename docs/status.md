@@ -37,6 +37,66 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001230826 — 2026-08-23 01:06 — chapter figures: full width on a phone, 600px tall on a desktop
+
+Same task, continued. Asked for chapter images to keep full width on small screens and be capped at
+600px **high** on the web.
+
+### Height, not width — and that is the whole idea
+
+A figure's height today is set by its aspect ratio, and the aspect ratio is whatever the design file
+exported. The mockup replaced an hour ago is **4322 × 4323**: at full column width on a desktop it
+stands over a thousand pixels tall, so the paragraphs either side of it can never be read as one
+argument. **Capping the height is what makes a tall image and a wide one take comparable space** —
+capping the width does nothing for a square.
+
+```
+me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto
+```
+
+Below `md` (768px): full column, height follows the ratio. From `md` up: height capped, `w-auto`, so
+the ratio is preserved and the square becomes a 600 × 600 figure rather than a wall.
+
+### Three details that were decisions, not defaults
+
+**A token, not `max-h-[600px]`.** `spacing` is replaced wholesale in `tailwind.config.ts`, and
+**there is not one arbitrary `[…]` value anywhere in this codebase.** So `--figure-max-h: 600px`
+sits in `globals.css` beside `--header-h` and `--control-h`, and `maxHeight.figure` maps to it —
+the same shape every other size token here has.
+
+**`me-auto` and `block`, per `rtl-guard`.** Once the image is narrower than its column it has to hug
+the inline start — left in English, **right in Arabic**. `me-auto` compiles to
+`margin-inline-end: auto` and mirrors itself. `block` is what makes the margin apply at all: an
+inline image takes its position from an ancestor's `text-align`, which is not something this
+component should depend on.
+
+**Scoped to chapter figures only.** He said "images in topic". Cover section images, the case-file
+lead image and gallery cards are **untouched** and still uncapped.
+
+### Verified, including the failure this project has been bitten by
+
+The utility being *written* proves nothing here — a class outside the replaced scale compiles to
+nothing at all and looks identical in the HTML. So the generated stylesheet was read:
+
+```css
+@media (min-width: 768px) {
+  .md\:max-h-figure { max-height: var(--figure-max-h); }
+  .md\:w-auto       { width: auto; }
+}
+```
+
+with `--figure-max-h: 600px` present in `:root`, and `.me-auto { margin-inline-end: auto }`
+confirmed in the same file. `eslint` clean · `tsc` clean · `next build` **exit 0, 55 pages**. Both
+locales render the class list.
+
+### Not verified
+
+**No page has been looked at.** In particular: 600px is a number he gave and nobody has seen what it
+does to the rhythm of a chapter, and the `md` breakpoint at 768px means a tablet in portrait gets
+the desktop treatment. Both are one-line changes if wrong.
+
+---
+
 ## 001230826 — 2026-08-23 00:47 — images lose their frames, site-wide
 
 New day, new task id. He asked for every image on the site to lose its border and sit directly on
