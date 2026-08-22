@@ -37,6 +37,57 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 22:19 — the real public IDs, from the index he produced
+
+Seventh entry, same task, and it **replaces the four IDs written in the sixth**.
+
+### The images were already on Cloudinary
+
+He produced `docs/Cloudinary_Index_UAE_NEOBIZ_Mobile.xlsx` — 442 screens, one row each, carrying
+the Cloudinary public ID, a resolvable URL, the Figma node id and the pixel size. Root folder
+`00. UAE NEOBIZ - Mobile - Jul 27`, cloud `vewhrkzj`. **Everything the previous entry listed as
+blocked on a devops upload was already uploaded**, at 786px — twice what the Figma MCP returns,
+which caps at the node's natural canvas size whatever `maxDimension` asks for.
+
+### The four IDs, corrected and verified
+
+| screen | public ID |
+|---|---|
+| Track dashboard | `00. UAE NEOBIZ - Mobile - Jul 27/Pre-Submition/44-track-dashboard-application-submitted` |
+| Exception detail | `…/Pre-Submition/59-exception-detail-moa-upload-empty` |
+| Withdraw reason | `…/Pre-Submition/38-withdraw-reason-default` |
+| Welcome | `…/Signup and Onboarding/01-welcome` |
+
+**All four verified by request, not by reading the sheet** — HTTP 200 with real payloads
+(104KB · 94KB · 81KB · 269KB). Both language pages updated. The local 1x exports were deleted.
+
+**`Pre-Submition` is misspelled in Cloudinary and the misspelling is part of the ID.** Egypt has the
+same thing in `Exceptians`. Step 6 of the sync contract says public IDs are used verbatim, so
+correcting either spelling breaks the image. Recorded in the page's `Blockers` field.
+
+### The inference was wrong in three of four, and the index did not exist when it was made
+
+The IDs in entry six were derived from the naming pattern of the rows already in `media`. That was
+not carelessness — the six index files in `Image mapping/` are all Egypt's, and this file did not
+exist yet: **it was created at 21:45, about ten minutes after the tags were written.**
+
+The derivation was still wrong three ways: the group folder is `Pre-Submition`, not a name drawn
+from the site's own prose; the leaf is the Figma frame's name (`59-exception-detail-moa-upload-empty`)
+rather than a description of what the screen says (`…-moa-not-clear`); and there is no `/English/`
+segment at all for an English-only app.
+
+**Written up in `docs/learn.md` Part 7 as *A Cloudinary public ID is never derived. It is looked up,
+then requested*.** The operational half is one line: **a `[cld]` ID that has not returned HTTP 200
+is a guess** — and the check is a single `curl`.
+
+### The chapter is content-complete
+
+English and Arabic prose, both reviewed by him. Four images, both languages, IDs verified.
+**Nothing is open on this page.** It has never been synced, which is correct — it is `Layer 2 —
+Paths`, `In MVP-1: __NO__`.
+
+---
+
 ## 001220826 — 2026-08-22 22:04 — four image tags authored; two counts in CLAUDE.md were wrong
 
 Sixth entry, same task. He asked for the screens to be taken from Figma and put into Notion in

@@ -411,6 +411,32 @@ From the objective-size trial, two more, both of which decide token choices:
 
 The generalisation: **in a bilingual system, the intuition formed in one language is often inverted in the other.** Measure.
 
+## A Cloudinary public ID is never derived. It is looked up, then requested
+
+Added 2026-08-22, task `001220826`.
+
+Four `[cld]` tags were authored for the tracking chapter with public IDs **inferred from the naming pattern of the rows already in `media`**. There was reason to think that was the only option: the six index files in `Image mapping/` are all Egypt's, and no UAE index existed anywhere at the time. The inference was careful and it was still **wrong in three of the four**:
+
+| inferred | actual |
+|---|---|
+| `…/English/Application tracking/44-track-dashboard-application-submitted` | `…/**Pre-Submition**/44-track-dashboard-application-submitted` |
+| `…/English/Exceptions/59-exception-detail-moa-**not-clear**` | `…/Pre-Submition/59-exception-detail-moa-**upload-empty**` |
+| `…/English/Onboard/01-welcome-**three-doors**` | `…/**Signup and Onboarding**/01-welcome` |
+
+Three separate ways to be wrong: **the group folder is not the one the site's prose would suggest**, the leaf is the Figma frame's own name rather than a description of it, and there is no `/English/` segment at all for an English-only app. The convention held; every value under it was different.
+
+**`Pre-Submition` is misspelled and that spelling is part of the ID.** Egypt's `Exceptians` is the same. `docs/sync-contract.md` Step 6 says public IDs are used verbatim, never slugified — so a tidy-minded correction of either one breaks the image.
+
+**The operational rule, and it is short: a `[cld]` ID that has not returned HTTP 200 is a guess.**
+
+```
+curl -s -o /dev/null -w '%{http_code}\n' -L "https://res.cloudinary.com/<cloud>/image/upload/<public id>.png"
+```
+
+Each journey has an index — `Image mapping/*.xlsx`, and `docs/Cloudinary_Index_UAE_NEOBIZ_Mobile.xlsx` for this one — carrying the exact ID, the Figma node, the pixel dimensions and a resolvable URL per screen. **Ask whether one exists before deriving anything**, and if the answer is no, ask whether one is coming. Deriving is what you do after both answers are no, and even then the request is what settles it.
+
+**A related waste worth avoiding:** four screens were also exported from Figma by hand, to be uploaded later. They were already on Cloudinary at 786px, twice the resolution the Figma MCP returns, which caps at the node's natural canvas size no matter what `maxDimension` asks for.
+
 ---
 
 # PART 8 — WHERE THE MODEL WAS WRONG AND WAS CORRECTED
