@@ -37,6 +37,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001230826 — 2026-08-23 02:11 — `cv_url` retired; the launch gate re-measured without it
+
+He said the `cv_url` blocker is obsolete — the CV download became a **request** — and asked what is
+left apart from images.
+
+### `cv_url` was not just stale, it was contradicted inside its own file
+
+Verified in code before touching any list. `CvRequestPanel` renders **unconditionally** in both
+places it appears, composing a mail to `settings.email`. The Contact page says so in a comment:
+*"No longer gated on `settings.cv_url`, because there is no file to point at."*
+
+**`components/layout/SiteFooter.tsx` disagreed with itself.** Its doc comment said the CV link *"does
+not render"* because `cv_url` is *"NULL (a launch-gate blocker)"* — and sixty lines below, the same
+file renders `CvRequestPanel` with no condition on it. Comment corrected in place, with what it used
+to claim, since a comment that contradicts its own file is worse than none.
+
+Removed from `TASKS.md` (BLOCKED row, the 0.3 checklist, the launch gate, and the "next three
+things" list) and from `CLAUDE.md`'s blocked-on-content line. **The `cv_url` key stays in `settings`
+as an unused column** — nothing reads it. Historical `status.md` entries were left alone: they were
+true when written and the log is the record.
+
+### Re-measured, so the remaining list is not inherited
+
+| checked | result |
+|---|---|
+| UI strings missing Arabic | **0 of 91.** The Arabic gap is *review quality*, not absence — 19 strings were written from English by me |
+| `settings` genuinely empty | **`og_image` only.** `name`/`tagline`/`intro`/`description` show NULL `value` **by design** — they are localised and live in `translations`, one row per locale, all four present |
+| privacy strings rendered anywhere | **No.** `privacy_no_ip`, `privacy_no_tracking`, `privacy_location`, `privacy_title` are referenced by **zero** components |
+| `features` | **0 rows**, no chapter carries the heading |
+| `gallery_intro` | absent from `ui_strings` |
+| chapter paragraphs | **262 en / 153 ar** — 109 with no Arabic |
+| image alt text | **65 en / 32 ar** — 33 with no Arabic |
+
+**The correction worth keeping: four `settings` rows read NULL and are not gaps.** A `count(*) where
+value is null` on that table returns 6 and means almost nothing — localised settings keep their text
+in `translations`. Anyone auditing that table by its own column will invent four blockers.
+
+### The largest remaining item is a bug, not a content gap
+
+`CLAUDE.md` records that most of the 109 untranslated paragraphs **are written in Arabic in Notion
+and are being dropped by the sync**. That makes the biggest number on the list something to
+diagnose rather than something to wait for — and it is the one substantial thing that needs nothing
+from Moataz. Proposed as the next step; not started.
+
+---
+
 ## 001230826 — 2026-08-23 01:52 — Cervello restored and confirmed rendering; the database row was only half the fix
 
 He asked for Cervello back before anything else.
@@ -124,7 +170,8 @@ The old Phase 2 list was fourteen unordered lines mixing "never tested" with "no
 now five groups by **who can clear it**, and **every number carries the query that reproduces it**
 — the fix `CLAUDE.md` already applies to its own git and media claims.
 
-What is actually blocking, measured: `og_image` and `cv_url` still `NULL` · **3 of 4 case files
+What is actually blocking, measured: `og_image` still `NULL` (**`cv_url` was listed here too and
+should not have been — see the 01:52 entry: the CV is a request, not a download**) · **3 of 4 case files
 have no cover** · dates/employers/job titles · the Cervello collision · **109 of 262 chapter
 paragraphs and 33 of 65 image alts have no Arabic** · `features` has 0 rows · `gallery_intro` is
 absent · and the whole 🔵 block — the visual pass, the accessibility audit, the contact form in a

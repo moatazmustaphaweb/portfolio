@@ -10,10 +10,16 @@ import { Nav } from "./Nav";
 /**
  * Site footer — nav, contact links, name.
  *
- * Every link is conditional on its setting existing. `cv_url` is still NULL
- * (a launch-gate blocker), so the CV link simply does not render rather than
- * pointing at "#" — a dead link is worse than an absent one, and "no dead
- * ends" is a non-negotiable.
+ * Every link is conditional on its setting existing, so a missing setting
+ * produces an absent link rather than one pointing at "#" — a dead link is
+ * worse than an absent one, and "no dead ends" is a non-negotiable.
+ *
+ * ⚠️ This comment used to say the CV link does not render because
+ * `settings.cv_url` is NULL and a launch-gate blocker. **Both halves are
+ * wrong and were wrong in this file's own code, sixty lines below.** The CV
+ * became a *request* rather than a download: `CvRequestPanel` renders
+ * unconditionally off `settings.email`, and `cv_url` is read by nothing.
+ * Corrected 2026-08-23, task `001230826`.
  */
 export async function SiteFooter({
   locale,
