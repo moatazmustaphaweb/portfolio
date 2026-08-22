@@ -37,6 +37,81 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001230826 — 2026-08-23 00:47 — images lose their frames, site-wide
+
+New day, new task id. He asked for every image on the site to lose its border and sit directly on
+the background — *"طايرة كده من غير أي border حواليها، تبقى ماشية مع الخلفية"*.
+
+### What was framing an image, measured not guessed
+
+A sweep of every `CloudinaryImage` call site plus `app/globals.css`. **There is no global `img`
+rule** — every frame was a class on a call site. Four places, one of them dead:
+
+| file | was | note |
+|---|---|---|
+| `case-file/ChapterSections.tsx:185` | `rounded-card border border-DEFAULT` | the chapter figures he is looking at |
+| `case-file/CoverSections.tsx:355` | `rounded-panel border border-DEFAULT` | cover section images |
+| `gallery/ProjectCard.tsx` ×2 | `border-b border-DEFAULT` | **judgement call, see below** |
+| `media/RedactedEvidence.tsx:38` | `overflow-hidden rounded-panel border` + `bg-nda`/`bg-surface` | **rendered nowhere** — no call site exists |
+
+### Two things done beyond the literal words, both deliberate
+
+**Rounding went with the border.** He said "border", and `rounded-card` / `rounded-panel` are not
+borders. They are the other half of the frame, and a clipped corner on an image that now has a
+black background reads as damage rather than styling. Removed — **and easy to put back if that
+overshoots.**
+
+**The gallery card's seam went too.** `border-b` under a card's cover is a divider inside a card,
+not a frame around a photo, and he was looking at a chapter page when he asked. But he said **every
+image on the site**, so it went. **This is the one to revert first if the gallery looks wrong** —
+the card's own border is untouched.
+
+### What was deliberately left alone
+
+**The NDA signal is unaffected.** `RedactedEvidence` lost its `border-nda`/`bg-nda` box, and the
+signal never lived there — it is the Cloudinary grayscale plus the badge, exactly as
+`ProjectCard`'s own comment says of decision 050. Both survive. `isNda` is still read for the badge.
+
+Every remaining border in those files is on something that is not an image: the sticky header, the
+section dividers, the reflective-passage cards, the pills, and the gallery card itself.
+
+### Verified
+
+`eslint` clean · `tsc --noEmit` clean · `next build` **exit 0, 55 static pages**.
+
+Against a dev server serving **this worktree** on `:3000`, every `<img>` on all four surfaces:
+
+| page | img classes |
+|---|---|
+| `/en/work/uae-acquisition/application-tracking` | `h-auto w-full max-w-full` |
+| `/ar/…/application-tracking` | `h-auto w-full max-w-full` |
+| `/en/work` (gallery) | `h-auto w-full` |
+| `/en/work/uae-acquisition` (cover) | `h-auto w-full` |
+
+Nothing else. No `border`, no `rounded`, no wrapping `<figure>` with a frame.
+
+### The build environment, and a mistake made and undone
+
+**A git worktree has no `node_modules`**, so `next build` failed on it. `npm ci --prefer-offline`
+installs in **7 seconds** against a warm cache — that is the answer, and it is cheap.
+
+**The mistake: symlinking `node_modules` to the main checkout.** Turbopack rejects it outright —
+*"Symlink [project]/node_modules is invalid, it points out of the filesystem root"* — and the dev
+server died on boot. Removed.
+
+**`:3000` now serves this worktree.** The `next-server` that held it was the stale production build
+`docs/learn.md` Part 6 names by hand: it answers 200 and never shows a source change. Freeing it is
+what that entry prescribes. `npm run dev`, ready in 304ms.
+
+### Not verified
+
+**Nobody has looked at a page.** All of the above is `curl` and `grep` over HTML. Whether an
+unframed screenshot on a black background reads as intended — especially the new 2000×2000 mockup,
+grayscaled, with no edge between it and the page — is exactly the judgement no amount of this
+proves.
+
+---
+
 ## 001220826 — 2026-08-23 00:31 — "not reflected on the website" — it is; the browser is holding an immutable copy
 
 Twelfth entry, same task. He replaced an image, saw it change on Cloudinary and not on the page,

@@ -156,10 +156,12 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
  *
  * `CloudinaryImage` already omits an image whose `alt` translation is missing,
  * so an unlabelled screen cannot ship. Rendering an empty <figure> around that
- * omission would leave a caption floating under nothing, or a bordered box
- * around blank space — both of which look like a broken page rather than an
- * absent one. The whole figure is the unit, so the whole figure is what is
- * withheld.
+ * omission would leave a caption floating under nothing, which looks like a
+ * broken page rather than an absent one. The whole figure is the unit, so the
+ * whole figure is what is withheld.
+ *
+ * The image carries no frame — no border, no rounding, no background. Screens
+ * sit directly on the page (2026-08-23, task `001230826`).
  *
  * The NDA grayscale is NOT applied here. It rides on `media.nda`, stamped by
  * the content layer from `case_files.nda`, and is applied inside
@@ -182,7 +184,7 @@ function ChapterFigure({ media }: { media: Media | null }) {
       <CloudinaryImage
         media={media}
         preset="gallery"
-        className="h-auto w-full max-w-full rounded-card border border-DEFAULT"
+        className="h-auto w-full max-w-full"
       />
       {caption ? (
         <figcaption

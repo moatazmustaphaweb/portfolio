@@ -35,12 +35,12 @@ export function RedactedEvidence({
 
   return (
     <figure className="flex flex-col gap-3">
-      <div
-        className={[
-          "overflow-hidden rounded-panel border",
-          isNda ? "border-nda bg-nda" : "border-DEFAULT bg-surface",
-        ].join(" ")}
-      >
+      {/*
+        No frame — no border, no rounding, no background. Screens sit directly
+        on the page (2026-08-23, task `001230826`). The NDA signal is unaffected:
+        it is the grayscale transform plus the badge below, never this box.
+      */}
+      <div>
         <CloudinaryImage
           media={media}
           preset={media.redacted ? "redacted" : "gallery"}

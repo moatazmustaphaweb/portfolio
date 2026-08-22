@@ -57,11 +57,9 @@ export function ProjectCard({
           carries the signal here (decision 050).
         */}
         {caseFile.cover_kind === "component" && caseFile.cover_component ? (
-          <div className="border-b border-DEFAULT">
-            {resolveCover(caseFile.cover_component, "card")}
-          </div>
+          <div>{resolveCover(caseFile.cover_component, "card")}</div>
         ) : caseFile.cover ? (
-          <div className="border-b border-DEFAULT">
+          <div>
             {/*
               `coverCard` when a hand-made 1.6:1 crop exists, otherwise the
               cover itself. The card slot crops with `c_fill`, so a square

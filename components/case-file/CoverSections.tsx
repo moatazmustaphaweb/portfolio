@@ -352,7 +352,7 @@ function SectionImage({ media }: { media: NonNullable<CoverSection["media"]> }) 
       <CloudinaryImage
         media={media}
         preset="lead"
-        className="h-auto w-full rounded-panel border border-DEFAULT"
+        className="h-auto w-full"
       />
       {caption ? (
         <figcaption
