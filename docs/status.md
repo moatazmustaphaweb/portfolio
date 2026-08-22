@@ -37,6 +37,80 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220826 — 2026-08-22 22:47 — the chapter is in the database; it is draft, so it 404s
+
+Eighth entry, same task. Development started: the chapter now exists in Supabase, in both
+languages, with its images. It does not render, and that is a status flag, not a fault.
+
+### What was run
+
+`npm run sync:notion -- --all --only=uae-acquisition/application-tracking`, dry first.
+
+**`--all` was necessary and it is wider than it sounds.** The chapter is `Layer 2 — Paths` with
+`In MVP-1: __NO__`, and `isMvp()` gates the sync on exactly those two fields, so without `--all`
+the row is never considered. `--only=` does **not** narrow the sync — it narrows only the chapter
+**section** pass, which is what kept nine other chapters from failing loudly on headings that are
+not this task's problem.
+
+**The consequence, stated because it is not what was asked for: `--all` created six chapter rows,
+not one.** `uae-acquisition/application-tracking` plus five Cervello chapters — `website` ·
+`horizontal-apps` · `design-system` · `platform` · `alarm`. **All six are `draft`**, so none of them
+renders and nothing user-visible changed. They were always going to appear on the first `--all`
+run; this task is simply when it happened.
+
+### The first run failed on three headings, correctly
+
+> `heading "ما لا يتغيّر" matches no chapter slot. The section was NOT written — nothing is
+> discarded silently.`
+
+Three refusals: `what the mobile app changes`, `ما لا يتغيّر`, `ما يغيّره التطبيق`. This is 0035 and
+0036's design working — the guard names the heading, prints the known slots, and offers both fixes.
+
+**`supabase/migrations/0044_uae_application_tracking_slot_aliases.sql` takes the alias half, and the
+choice matters.** The other half is to rename the headings to Egypt's, and that would undo two of
+his own rulings from the same day: `mobile app` over bare `mobile`, and Arabic that is allowed to be
+shorter than the English rather than a mirror of it. **The slot is the structural name; the heading
+is prose. This table exists so the prose does not have to bend.**
+
+**A trap recorded in the migration:** `heading_norm` keeps the shadda. `يتغيّر` here and `يتغير` in
+0036 are different keys, and neither shadows the other. Tidying one to match the other silently
+unmaps a live heading.
+
+### After the aliases: clean
+
+`failed 0`, exit 0. Verified against the database rather than the log:
+
+- **3 sections** — `what-never-changes` · `what-mobile-changes` · `the-one-line-version`
+- **13 paragraphs, every one with both `en` and `ar`.** No fallback anywhere on this page.
+- **4 `media` rows**, all four with `alt` **and** `caption` in **both** locales, `redacted = false`
+  per amendment 036.
+- The `[image:<uuid>]` substitution landed in all four positions in the Arabic body.
+- `npm run check:seed-drift` — *"Parsed 91 strings from migrations, 91 in the database. No drift."*
+
+### Why it still 404s, and it is the only thing left
+
+`lib/content/chapters.ts` line 22: *"A chapter is only reachable when it AND its parent case file
+are published."* `Content ready: In progress` syncs to `status = 'draft'`.
+
+Measured against the server already running on `:3000`:
+
+| route | code |
+|---|---|
+| `/en/work/uae-acquisition/onboarding` | **200** |
+| `/en/work/uae-acquisition/application-tracking` | **404** |
+
+The control is the point: the same case file, the same route shape, one published and one not.
+
+**Publishing it is a content decision and it is his** — it puts an MVP-2 chapter into the live
+case file's chapter list, `/all`, prev/next and the sitemap. Asked, not assumed.
+
+### Not verified
+
+**Nothing has been looked at in a browser.** Everything above is HTTP status codes and SQL. The
+longest-standing untested claim on this project is still untested.
+
+---
+
 ## 001220826 — 2026-08-22 22:19 — the real public IDs, from the index he produced
 
 Seventh entry, same task, and it **replaces the four IDs written in the sixth**.
