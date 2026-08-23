@@ -149,7 +149,7 @@ export default async function About({
         descriptive line, and no such content exists.
       */}
       {onward.length > 0 ? (
-        <nav className="mt-18 border-t border-DEFAULT pt-10">
+        <nav aria-label={ui.t("nav_onward")} className="mt-18 border-t border-DEFAULT pt-10">
           <ul className="grid gap-3 sm:grid-cols-2">
             {onward.map((link) => (
               <li key={link.href}>

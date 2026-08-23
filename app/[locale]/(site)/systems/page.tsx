@@ -260,7 +260,7 @@ export default async function Systems({
         </section>
       ) : null}
 
-      <nav className="mt-18 flex flex-wrap gap-6 border-t border-DEFAULT pt-8">
+      <nav aria-label={ui.t("nav_onward")} className="mt-18 flex flex-wrap gap-6 border-t border-DEFAULT pt-8">
         {[
           { label: ui.t("page_work"), href: `/${l}/work` },
           { label: ui.t("page_philosophy"), href: `/${l}/about/philosophy` },

@@ -37,6 +37,63 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 013230826 — 2026-08-23 10:04 — every landmark has a name; `landmark-unique` is gone
+
+His three labels, approved verbatim. Migration `0047` seeds them; seven `<nav>` elements now carry
+one.
+
+| | en | ar |
+|---|---|---|
+| header menu | `Main navigation` | `التنقل الرئيسي` |
+| onward links, ×5 | `Continue` | `تابع القراءة` |
+| chapter prev/next | `Chapter navigation` | `التنقل بين الفصول` |
+
+**Three strings, not seven.** Five of the seven do the same job — the onward block at the foot of
+About, Philosophy, Systems, `/all` and `/results`. Seven near-identical translations to review
+would buy nothing for the person listening. The chapter block is separate because it moves
+*between* chapters rather than onward from a page.
+
+**`Nav` already accepted an `ariaLabel` and the header simply never passed one**, so that fix was a
+prop.
+
+### Result
+
+`landmark-unique` **24 → 18 → 0**. The whole site now has **one** axe violation left:
+`document-title`, on the two 404 pages.
+
+Verified in both locales — `aria-label="Main navigation"` / `"التنقل الرئيسي"`, and the breadcrumb's
+own `"مسار التنقل"` was already there. `eslint` clean · `tsc` clean · `next build` exit 0, **65/65**.
+
+### The drift check caught me, and this is the entry's real content
+
+I wrote `0047` in the shape of `0023` — a `with k as (insert …)` form. It applied cleanly, the sync
+ran, the build passed, and the pages rendered correct Arabic labels. **Everything looked finished.**
+
+`npm run check:seed-drift` said:
+
+> `nav_main: in the database but NOT in any migration file — a rebuild would lose it`
+
+**Two reasons, both mine.** The parser reads one shape — `with strings(key, context, en, ar) as
+(values …)` — and it reads a **hardcoded list** of files, which the new one was not on. So the
+migration existed, was correct SQL, was applied, and was **invisible to the only check that asks
+whether migrations still reproduce the database.**
+
+Rewritten in the parsed shape and added to `SEED_FILES`. **94 parsed, 94 in the database, no drift.**
+
+**The lesson is the one that file's own header states and I proved again:** a migration that no
+longer reproduces the database is worse than no migration, because it gets trusted. The build
+cannot see this. The rendered page cannot see this. **Only the guard can, and a guard with a
+hardcoded file list silently stops covering anything added after it** — so the note is now in
+`0047` itself, where the next person writing a seed will be standing.
+
+### Boundary
+
+Migration, seed and seven component edits, done here rather than routed to backend and frontend.
+The task was three strings and one prop; two briefs and two reports would have cost more than the
+work. **Recorded so the crossing is visible.**
+
+---
+
 ## 012230826 — 2026-08-23 09:37 — the footer stops being a second header; and the landmark finding was bigger than I said
 
 ### His ruling

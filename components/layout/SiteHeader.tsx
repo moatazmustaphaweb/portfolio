@@ -41,6 +41,10 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
         <Nav
           items={items}
           locale={locale}
+          // Named so a screen-reader landmark list can tell this apart from
+          // the onward-links block at the foot of the page. See migration 0047
+          // and docs/accessibility-audit.md finding 4.
+          ariaLabel={ui.t("nav_main")}
           className="flex flex-wrap items-center gap-5"
           linkClassName="tap-target-44 text-meta text-fg-muted transition-colors hover:text-fg sm:text-ui"
         />

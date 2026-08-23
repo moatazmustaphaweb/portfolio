@@ -259,7 +259,7 @@ export default async function ResultsTable({
         </section>
       ) : null}
 
-      <nav className="mt-18 flex flex-wrap items-center justify-between gap-4 border-t border-DEFAULT pt-8">
+      <nav aria-label={ui.t("nav_onward")} className="mt-18 flex flex-wrap items-center justify-between gap-4 border-t border-DEFAULT pt-8">
         <Link
           href={`/${l}/work/${caseFile}`}
           className="text-ui text-fg-muted transition-colors hover:text-fg"

@@ -476,7 +476,7 @@ export default async function Chapter({
         dead ends" is a non-negotiable and the design's header back-button is
         our breadcrumb.
       */}
-      <nav className="mt-18 flex flex-col gap-6 border-t border-DEFAULT pt-8">
+      <nav aria-label={ui.t("nav_chapter")} className="mt-18 flex flex-col gap-6 border-t border-DEFAULT pt-8">
         {detail.next ? (
           <Link
             href={`/${l}/work/${caseFile}/${detail.next.slug}`}

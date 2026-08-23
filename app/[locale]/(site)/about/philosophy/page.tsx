@@ -167,7 +167,7 @@ export default async function Philosophy({
         </section>
       ) : null}
 
-      <nav className="flex flex-wrap gap-6 border-t border-DEFAULT pt-8">
+      <nav aria-label={ui.t("nav_onward")} className="flex flex-wrap gap-6 border-t border-DEFAULT pt-8">
         {[
           { label: ui.t("page_work"), href: `/${l}/work` },
           { label: ui.t("page_systems"), href: `/${l}/systems` },
