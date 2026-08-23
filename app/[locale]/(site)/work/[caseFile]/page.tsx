@@ -9,6 +9,15 @@ import { SiblingLinks } from "@/components/case-file/SiblingLinks";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { CoverSections } from "@/components/case-file/CoverSections";
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+/* ⚠️ Preview scaffolding, local only — see the two gated blocks below. */
+import { StubPage } from "@/components/preview/StubPage";
+import {
+  CHROME,
+  DRAFT_CASE_FILE_LAYER,
+  DRAFT_CASE_FILE_SECTION,
+  DRAFT_CASE_FILE_SLUGS,
+  PREVIEW_STUBS_ENABLED,
+} from "@/components/preview/preview-stubs";
 import { resolveCover } from "@/designs/registry";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
@@ -48,7 +57,27 @@ export const revalidate = 300;
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  return (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
+  const published = (await listCaseFileSlugs()).map((caseFile) => ({ caseFile }));
+  /*
+   * ⚠️ PREVIEW SCAFFOLDING — LOCAL ONLY, and this is the only place it touches
+   * a production route. See `components/preview/preview-stubs.ts`.
+   *
+   * The four draft mini case files are unpublished, so `listCaseFileSlugs`
+   * filters them out and `/work/east` is a genuinely unmatched param — it 404s
+   * through the not-found boundary, which is what the comment above describes.
+   * They belong in the preview map, and this is the ONLY place they can be
+   * served from: measured, a rejected param at this segment short-circuits the
+   * subtree, so `app/[locale]/(site)/[...preview]` never sees `/work/east`
+   * even when it declares that exact path.
+   *
+   * With the flag off this returns exactly what it returned before, so the
+   * draft slugs stay unmatched and nothing about this route changes.
+   */
+  if (!PREVIEW_STUBS_ENABLED) return published;
+  return [
+    ...published,
+    ...DRAFT_CASE_FILE_SLUGS.map((caseFile) => ({ caseFile: caseFile as string })),
+  ];
 }
 
 /** The thesis is the case file's own summary — the right preview description. */
@@ -86,7 +115,33 @@ export default async function CaseFileCover({
   const l = locale as Locale;
 
   const [detail, ui] = await Promise.all([getCaseFile(caseFile, l), getUiStrings(l)]);
-  if (!detail) notFound();
+  if (!detail) {
+    /*
+     * ⚠️ PREVIEW SCAFFOLDING — LOCAL ONLY. Unreachable with the flag off: every
+     * param this route accepts then resolves to a published case file, so
+     * `detail` is never null and this branch never runs. See
+     * `components/preview/preview-stubs.ts`.
+     *
+     * No title and no Purpose. `lib/content` cannot read an unpublished row and
+     * Notion supplies no Purpose for these four, so the stub shows the slug and
+     * says what is missing. Nothing is written here to fill that in.
+     */
+    if (PREVIEW_STUBS_ENABLED && (DRAFT_CASE_FILE_SLUGS as readonly string[]).includes(caseFile)) {
+      return (
+        <StubPage
+          locale={l}
+          title={caseFile}
+          template="/work/[caseFile]"
+          servedPath={`/${l}/work/${caseFile}`}
+          layer={DRAFT_CASE_FILE_LAYER}
+          section={DRAFT_CASE_FILE_SECTION}
+          notice={CHROME.draftNotice}
+          entries={[{ name: caseFile, purpose: null }]}
+        />
+      );
+    }
+    notFound();
+  }
 
   const title = detail.fields.title ?? caseFile;
   const domainLabel = ui.t(DOMAIN_LABEL_KEYS[detail.domain] ?? "");

@@ -37,6 +37,79 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 005230826 — 2026-08-23 06:10 — a preview of every unbuilt page, gated so it cannot ship
+
+He asked to see the whole site map rendered — every page the project plans — to judge shape,
+sequence and connection, and to see what is missing visually rather than from a list. **He said in
+the same breath that it is against the rules, and he was right about which ones.**
+
+### The mechanism was changed, and he was told why
+
+He asked for the placeholder content **in Notion**. He also said, in the same message, not to change
+anything in Notion's database — and both cannot hold, because anything written to Notion or Supabase
+is one sync from the live site. **Rule 7 exists on this project because fabricated content shipped
+once already.**
+
+So: a **local-only preview**, behind `NEXT_PUBLIC_PREVIEW_STUBS`. **Zero writes to Notion, zero to
+Supabase, no migration, no `ui_strings` row. No Notion property touched** — `Content ready`,
+`Development Status`, `In MVP-1` and `Build Layer` are all as they were.
+
+### The copy is his
+
+**Every unbuilt page already carries a `Purpose` he wrote.** It is rendered verbatim — no invented
+marketing, no "coming soon" prose of mine. `/door` shows *"[spark] Pure instinct — one tap, primary
+archetype 2pts + secondary 1pt"*, because that is what he wrote it to be.
+
+**And no Arabic translation of a Purpose was invented.** Those are English project metadata, so on
+`/ar` they render as English marked `lang="en" dir="ltr"` — the same treatment decision 053 already
+gives untranslated prose. Verified on `/ar/door`: document is `lang="ar" dir="rtl"`, and the Purpose
+inside it is the one `lang="en"` element.
+
+### Frontend found the leak I asked it to look for, and it was not the obvious one
+
+I told it a preview that leaks is worse than no preview. It measured rather than reasoned, and
+found that **a catch-all route changes production even while returning 404**:
+
+```
+pristine   /en/nonexistent-xyz → <html lang="en" dir="ltr" class="…fonts…">
+catch-all  /en/nonexistent-xyz → <html id="__next_error__">
+```
+
+**Every 404 on the site, both locales, loses its `lang`, its `dir` and its font variables** — because
+an unmatched URL now misses a *param* instead of missing a *route*, and Next renders a param miss in
+the error shell. "It still 404s" would have passed a casual check and shipped that.
+
+Its fix: the stub is named **`page.preview.tsx`**, and `preview.tsx` joins `pageExtensions` only when
+the flag is set. **Flag off, the route does not exist at all** — not a 404, not a match.
+
+### Verified by me, not relayed
+
+- **Clean `next build` with the flag unset: exit 0, 65/65 pages — the same count as before this task,
+  and the string `preview` appears nowhere in the build output.** That is the authoritative test.
+- **34 route-locale combinations with the flag on: all 200.** The 20 stubs, the index, and the four
+  draft mini case files that 404 today.
+- A `/en/preview` returning 200 with the flag *off* turned out to be a **stale dev server** that had
+  hot-reloaded the config without dropping the route. The clean build settles it. **Worth knowing:
+  on a config change, a running dev server is not evidence.**
+
+### A boundary crossed, declared rather than hidden
+
+**`next.config.mjs` is devops', and frontend wrote to it** — flagging that in its own comment and
+status entry rather than quietly. It is the only file that can make a route conditional, so the
+alternative was not doing the job. **Recorded here so the crossing is visible; keep-or-revert is a
+devops question, not a silent inheritance.**
+
+### Not verified
+
+**Nobody has looked at it.** 34 routes return 200 and the markup is right; whether the map reads as a
+map, and whether the sequence makes sense, is exactly the judgement the whole task exists to enable
+— and it is his.
+
+**The flag is not in `.env.local`.** The server is running with it passed inline, so the preview
+disappears the moment the server restarts without it. That is deliberate.
+
+---
+
 ## 004230826 — 2026-08-23 05:12 — a paragraph stops being a translatable unit. +75 Arabic paragraphs
 
 The model change Moataz approved. **Verified against the database and the build by me, not read off
