@@ -37,6 +37,66 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 006230826 — 2026-08-23 06:44 — the FATCA language-switch pair swapped, and the alt no longer describes the image
+
+He asked for two image replacements marked in Notion on Egypt / Onboarding, one per language, "same
+alt and caption". Done and synced clean. **But the alt and caption are now wrong about both images,
+and that is reported rather than fixed.**
+
+### What was actually marked
+
+Not Notion comments in the sidebar — **inline text inside the caption code span**, `replace with
+[…]`, with one real comment ("Replacement here") anchored to the Arabic one.
+
+| page | was | now |
+|---|---|---|
+| English | `…/Arabic/…/fatca-arabic` | `…/**English**/…/fatca-default-2` |
+| Arabic | `…/Arabic/…/fatca-arabic` | `…/Arabic/…/fatca-arabic-**2**` |
+
+Both pages had been pointing at **the same** Arabic screen.
+
+### The pair is a better idea than the thing it replaces — I looked at both
+
+- **English page:** the **LTR English shell with Arabic content**, carrying a `Back to original
+  English` button.
+- **Arabic page:** the **mirrored RTL Arabic shell with English content**, carrying `العودة إلى اللغة العربية`.
+
+**They are the two directions of the same switch**, which is exactly what the prose argues and what
+the old single screenshot could not show: *"in both directions, which matters for the foreign
+resident who handles everyday Arabic but wants sanctions questions in English."*
+
+### The problem, and it is his to rule on
+
+He said keep the alt and caption. Kept — **and both are now false**:
+
+- **English alt:** *"FATCA declaration rendered in Arabic, right-to-left, with the stepper and
+  guidance rail mirrored."* The new English image is **LTR and not mirrored**.
+- **English caption:** *"mirrored structurally rather than translated over an English skeleton."*
+  The new image **is** Arabic over an English skeleton — the precise opposite.
+- **Arabic alt/caption** say the section is *in Arabic*; the new Arabic image's **content is
+  English**.
+
+An `alt` that misdescribes its image is worse than a missing one — a screen reader states it as
+fact. **Not rewritten: these are his words and the fix changes what a reader is told.** Reported
+with the mismatch named line by line.
+
+### The sync refused once, correctly
+
+First run failed: the Arabic paragraph still carried a fourth code span, `replace with […]`, and the
+parser refuses anything that is not `[cld]`/`[alt]`/`[caption]` — writing **nothing** for the
+chapter's media rather than part of it. Removing the stray span fixed it. `failed 0`, and the
+instruction text is out of both captions.
+
+**That refusal is the guard working on the exact class of thing it exists for:** an authoring note
+left in a content field.
+
+### Verified
+
+Both rows resolved from the database, each locale pointing at its own new public ID. Both images
+confirmed on Cloudinary at 2880×2048 before anything was written.
+
+---
+
 ## 005230826 — 2026-08-23 06:10 — a preview of every unbuilt page, gated so it cannot ship
 
 He asked to see the whole site map rendered — every page the project plans — to judge shape,
