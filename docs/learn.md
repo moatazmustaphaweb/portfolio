@@ -244,6 +244,32 @@ The difference:
 
 **So, operationally: before treating something in a source file as missing content, ask whether it was excluded.** The question is not *"why isn't this on the page?"* but *"is this yours?"* — and if the answer is no, there is nothing further to write, no note explaining the absence, and no passing reference. An exclusion that gets a footnote is not an exclusion.
 
+## Notion is the source. A parser that cannot read it is the thing that is broken
+
+Learned 2026-08-23, task `003230826`, by proposing the opposite and being corrected inside a minute.
+
+**The situation.** 75 Arabic paragraphs are written in Notion and refused by the sync, because the Arabic splits and joins paragraphs differently from the English and the pairing gate requires equal counts. I put two options to Moataz and recommended the wrong one: **re-cut the paragraphs in Notion so the counts match.**
+
+His answer, and it is the standing rule for this project:
+
+> جيت لك notion جاهز… وقلت لك إن notion هو اللي هيبقى الـ website بتاعي. فلما تيجي تقولي أنا عندي bug في الـ website، فإحنا هنعدل notion عشان نحل الـ bug ده، فيبقى أنت غلطان.
+
+**Notion is the authoring surface and the content is finished. A defect in the site is fixed in the code.** Editing the source text to suit the parser is not a fix — it is moving the defect somewhere it stops being visible, and it charges the cost to the person whose work was already correct.
+
+**What makes this worth writing down is that the same rule had been applied correctly four hours earlier, by me, in `supabase/migrations/0044`:**
+
+> *"The slot is the structural name, the heading is the prose. This table exists so the prose does not have to bend."*
+
+That migration chose to add three alias rows rather than rename two headings, for exactly this reason. **The principle was not missing — it failed to transfer from headings to paragraphs**, because the paragraph case arrived wearing a plausible cost argument ("only 12 sections, a day's work"). **A rule you apply in one shape and abandon in another is not yet a rule.** When a fix asks the author to change finished writing, that is the signal — regardless of how small the edit is.
+
+**And the technical shape of the right answer was already in the codebase, one paragraph away.** `docs/sync-contract.md` Step 6 says of images:
+
+> *"each locale's body carries its own sequence, and there is nothing to pair."*
+
+Images in this system already accept that the two locales differ in count and order. Prose does not, and there is no principled reason for the difference — **a paragraph is not a translatable unit; a section is.** English has N paragraphs, Arabic has M, both are correct, and the pairing gate exists only because the schema keys translations to individual paragraph rows.
+
+**So the guard is not wrong and should not be loosened** — pairing by index across lists of different lengths really would attach the wrong Arabic to the wrong screenshot. **The model underneath it is wrong.** Loosening the guard and re-cutting the prose are both attempts to satisfy a 1:1 assumption that the content never had.
+
 ---
 
 # PART 4 — HOW HE WANTS CODE BUILT

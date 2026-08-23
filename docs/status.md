@@ -37,6 +37,58 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 003230826 — 2026-08-23 04:41 — corrected by Moataz: the fix is in the code, not in the writing
+
+**I recommended the wrong option and he overturned it immediately.**
+
+I put two paths to him for the 75 Arabic paragraphs the count gate is holding back: **(a)** re-cut
+the paragraphs in Notion so the counts match English, or **(b)** loosen the guard. I recommended
+(a), and called it "twelve sections, a day's work".
+
+> جيت لك notion جاهز… وقلت لك إن notion هو اللي هيبقى الـ website بتاعي. فلما تيجي تقولي أنا عندي
+> bug في الـ website، فإحنا هنعدل notion عشان نحل الـ bug ده، فيبقى أنت غلطان.
+
+**Notion is the source and the content is finished. A defect in the site is fixed in the code.**
+Asking the author to re-cut correct prose is not a fix — it relocates the defect to where it stops
+being visible and bills it to the person whose work was already right.
+
+### The part that makes this worth more than an apology
+
+**The same principle was applied correctly, by me, four hours earlier**, in
+`supabase/migrations/0044`, which chose to add three alias rows rather than rename two headings:
+
+> *"The slot is the structural name, the heading is the prose. This table exists so the prose does
+> not have to bend."*
+
+**The rule was not missing. It failed to transfer from headings to paragraphs**, because the
+paragraph case arrived wearing a cost argument that sounded reasonable. Written to `docs/learn.md`
+Part 3 as *Notion is the source. A parser that cannot read it is the thing that is broken*, with the
+generalisation: **a rule you apply in one shape and abandon in another is not yet a rule** — and the
+signal is any fix that asks the author to change finished writing, however small the edit.
+
+### And the technical answer was already in the contract
+
+`docs/sync-contract.md` Step 6, on images:
+
+> *"each locale's body carries its own sequence, and there is nothing to pair."*
+
+**Images already accept that the two locales differ in count and order. Prose does not, and there is
+no principled reason for the difference.** A paragraph is not a translatable unit — a section is.
+English has N paragraphs, Arabic has M, both are correct, and the pairing gate exists only because
+`translations` is keyed to individual `chapter_paragraphs` rows.
+
+**So the guard stays.** Index-pairing lists of different lengths really would attach the wrong
+Arabic to the wrong screenshot. **Both of the options I offered were attempts to satisfy a 1:1
+assumption the content never had** — one by editing the content, one by disabling the check. The
+model underneath is what is wrong.
+
+### Not decided, and not mine to decide
+
+Whether to change that model — Arabic paragraphs as their own sequence per section, the way images
+already are — crosses schema, sync and components. **Put to him, not started.**
+
+---
+
 ## 003230826 — 2026-08-23 04:24 — backend's report, checked; (B) was not a cause, and I had said it was
 
 Its full report arrived after the previous entry. **Two of its findings correct things I told
