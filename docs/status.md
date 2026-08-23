@@ -37,6 +37,70 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 019230826 — 2026-08-23 12:41 — Neobiz Mobile has a cover, and the NDA treatment is on a gallery card for the first time
+
+He supplied two Cloudinary URLs, "wide and squared", for "Egypt's cover".
+
+### Which Egypt — settled by looking, not by asking
+
+**There are two Egyptian case files** and the filename `EGY - NEOBIZ` does not separate them: the
+Egypt *web* product is also called NEO BIZ.
+
+**I opened the image.** Two phones running the app in Arabic, with an Egyptian commercial register
+and tax card behind them. `egypt-acquisition` is the **web** journey — its cover would show a
+browser. **`neobiz-mobile`, unambiguously.** A question avoided by three seconds of looking.
+
+### Neither file is square, and that mattered
+
+| | measured | named |
+|---|---|---|
+| `EGY_-_NEOBIZ_-_Cover` | 7728 × 4348 — **1.78:1** | "wide" |
+| `EGY_-_NEOBIZ_-_Cover_-_square` | 7290 × 4322 — **1.69:1** | "square" |
+
+**"Square" is 1.69:1.** The name describes the *composition* — the wide one carries the paper
+documents, the "square" is the two phones alone, tighter. Not the aspect ratio.
+
+So the mapping went on **what each one is for**, not what it is called:
+
+- **hero** → the wide one. `c_limit` never crops, so the richer composition survives whole.
+- **card** → the tighter one. `c_fill` at 1.6:1, and 1.69 loses almost nothing where 1.78 loses more.
+
+### A rename was required, and the reason is a hard-coded string
+
+`resolveCoverCard` looks the card up as **`${cover.cloudinary_public_id}-card`** — literal
+concatenation. Neither of his names could satisfy it, so
+`EGY_-_NEOBIZ_-_Cover_-_square` → **`EGY_-_NEOBIZ_-_Cover-card`**, with `invalidate`.
+
+**His original URL for that file no longer resolves.** Renaming an asset he had just handed over is
+the one thing here he might want back differently, so it is stated plainly rather than buried.
+
+### Done
+
+Two `media` rows, `alt` in both locales — read aloud, so `portfolio-voice` applies and it describes
+the artwork rather than selling it. `case_files.cover_media_id` set.
+
+**Verified on the rendered pages:** the gallery card serves `…-card`, the case-file hero serves the
+master, and the alt is present.
+
+### The line this closes
+
+```
+…/upload/e_grayscale/c_fill,w_640,h_400,g_auto/…/EGY_-_NEOBIZ_-_Cover-card
+```
+
+**`e_grayscale` is on a gallery card.** `CLAUDE.md` has carried *"the NDA grayscale treatment has
+still never been seen on a gallery card"* for weeks — including in the launch-gate list I rewrote
+this morning. **It has now been seen.** The bullet is superseded, and the remaining two covers are
+named without a count, for the reason that paragraph already gives.
+
+### Not verified
+
+**Nobody has looked at it.** The card is 640×400 grayscale of a bright orange composition; whether
+that reads as a deliberate signal or as a dead image is exactly the judgement the treatment exists
+to be judged on, and it has never had it.
+
+---
+
 ## 016230826 — 2026-08-23 12:14 — the UAE onboarding chapter has figures. The cover cannot take one
 
 Content's brief. **Verified by me from the database and the rendered page.**

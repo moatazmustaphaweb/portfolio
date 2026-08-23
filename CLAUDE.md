@@ -211,7 +211,7 @@ select count(*) from media;
 select slug, cover_media_id is not null as has_cover from case_files where status = 'published';
 ```
 
-What is still true and is not a count: **no case file except the UAE has a cover, so the NDA grayscale treatment has still never been seen on a gallery card.** · `settings.og_image` · **dates, employers and job titles** — the About design has had a career timeline component since before the site existed, the component was never built because there was nothing to put in it, and the read test named this gap first · Arabic review of the 11 strings written from English · mini case files in or cut (open question B) · domain + Vercel account.
+**Superseded 2026-08-23, task `019230826`: `neobiz-mobile` now has a cover, and `e_grayscale` is live on its gallery card.** The NDA treatment has been seen. What is left is `egypt-acquisition` and `cervello`, and the count is not written here for the reason above — run the query. · `settings.og_image` · **dates, employers and job titles** — the About design has had a career timeline component since before the site existed, the component was never built because there was nothing to put in it, and the read test named this gap first · Arabic review of the 11 strings written from English · mini case files in or cut (open question B) · domain + Vercel account.
 
 The read test's sharpest finding is a **content** one and no amount of building answers it: across four case files, one is live with real users, one was never built, one is in controlled release, one is five years old with no metrics — and three of the four are the same account-opening programme at the same bank.
 
