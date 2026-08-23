@@ -21,6 +21,27 @@ import { Nav } from "./Nav";
  * unconditionally off `settings.email`, and `cv_url` is read by nothing.
  * Corrected 2026-08-23, task `001230826`.
  */
+/*
+ * ── THE FOOTER CARRIES NO NAVIGATION, AND THAT IS A DESIGN DECISION ─────────
+ *
+ * Moataz, 2026-08-23, task `012230826`: the footer repeated the header's menu
+ * verbatim, and a footer is not a second header — it is where a SITE MAP
+ * belongs. Until that sitemap is designed, the footer shows contact and
+ * copyright only.
+ *
+ * `false`, not deleted: the query, the component and the `footer` rows in
+ * `navigation` all stay, so restoring this is one line once the sitemap exists.
+ *
+ * ⚠️ NO EMPTY <nav> IS LEFT BEHIND. An unnamed landmark with nothing in it is
+ * worse than no landmark: a screen reader still announces it, and the user
+ * arrives somewhere empty. Not rendering it also removes the site's only
+ * `landmark-unique` violation — two bare <nav> elements on 24 pages, which
+ * `docs/accessibility-audit.md` reports — because one nav cannot be ambiguous
+ * with another. When the sitemap returns, it returns WITH an aria-label from
+ * `ui_strings`.
+ */
+const FOOTER_NAV_ENABLED = false;
+
 export async function SiteFooter({
   locale,
   variant = "full",
@@ -38,7 +59,9 @@ export async function SiteFooter({
   const [settings, ui, items] = await Promise.all([
     getSettings(locale),
     getUiStrings(locale),
-    isMinimal ? Promise.resolve([]) : getNavigation("footer", locale),
+    isMinimal || !FOOTER_NAV_ENABLED
+      ? Promise.resolve([])
+      : getNavigation("footer", locale),
   ]);
 
   const name = settings.get("name");
@@ -48,7 +71,7 @@ export async function SiteFooter({
   return (
     <footer className="border-t border-DEFAULT bg-surface">
       <div className="mx-auto flex max-w-container flex-wrap justify-between gap-8 px-gutter py-10">
-        {isMinimal ? null : (
+        {isMinimal || !FOOTER_NAV_ENABLED ? null : (
           <Nav
             items={items}
             locale={locale}
@@ -112,11 +135,26 @@ export async function SiteFooter({
           ) : null}
         </div>
 
-        {/* The wordmark is already in the header; on Landing it would be a
-            third instance of the name on one screen. */}
+        {/*
+          The copyright line. The wordmark is already in the header, so on
+          Landing this would be a third instance of the name on one screen —
+          hence `!isMinimal`.
+
+          ⚠️ Rule 1 holds here and is worth stating, because it looks broken.
+          The NAME comes from `settings`, and the YEAR is computed. Neither is
+          a human-readable string in code. What IS a literal is `©`, and that
+          is a symbol rather than prose — it is not translated, not localised
+          and not something a copywriter edits, so it does not belong in
+          `ui_strings`. The same reasoning the RTL rules apply to arrows in
+          reverse: an arrow reverses per locale and must be data; `©` never
+          changes and must not be.
+
+          Numerals stay Western in both locales (`docs/design/tokens.md`), so
+          `2026` renders identically in Arabic — deliberately, not by omission.
+        */}
         {name && !isMinimal ? (
           <div className="w-full font-mono text-label uppercase text-fg-dim">
-            {name}
+            © {new Date().getFullYear()} {name}
           </div>
         ) : null}
       </div>

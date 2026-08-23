@@ -37,6 +37,60 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 012230826 — 2026-08-23 09:37 — the footer stops being a second header; and the landmark finding was bigger than I said
+
+### His ruling
+
+The footer repeated the header's menu verbatim. **A footer is not a second header — it is where a
+site map belongs.** Until that sitemap is designed: contact and copyright only.
+
+**Hidden, not deleted.** `FOOTER_NAV_ENABLED = false` in `SiteFooter.tsx`; the `Nav` component, the
+`getNavigation("footer")` call and the `footer` rows in the `navigation` table all stay. Restoring
+it is one line. The query is skipped while it is off, so it is not paying for a fetch it discards.
+
+**No empty `<nav>` is left behind**, and this is the part worth stating: he asked to keep the
+anchor. An unnamed landmark with nothing inside it is **worse** than no landmark — a screen reader
+still announces it and the user arrives somewhere empty. When the sitemap returns, it returns with
+its `aria-label`.
+
+### The copyright line
+
+`© 2026 Moataz Mustapha` / `© 2026 مُعتز مصطفى`, verified rendering in both locales.
+
+**Rule 1 holds and the comment says why it looks like it does not.** The name is from `settings`,
+the year is computed — neither is a string in code. The one literal is **`©`**, and that is a
+symbol, not prose: never translated, never localised, not something a copywriter edits. The
+mirror-image of the arrow rule — an arrow reverses per locale and must be data; `©` never changes
+and must not be. Numerals stay Western in Arabic per the tokens doc, so `2026` is identical in both.
+
+### And the landmark finding was bigger than the audit reported
+
+The audit said **two** bare `<nav>` elements, header and footer, and I passed that on. Removing the
+footer nav took `landmark-unique` from **24 nodes on 24 pages to 18 on 18** — an improvement, and
+**not the fix I implied it would be.**
+
+**There are seven unnamed `<nav>` elements**, not two. Besides the header: the onward-links block at
+the foot of `about`, `about/philosophy`, `systems`, `[chapter]`, `[caseFile]/all`,
+`[caseFile]/results`, and one in `not-found`. The breadcrumb is the only nav on the site that
+carries a label.
+
+**Why the audit undercounted it:** `landmark-unique` reports the *nodes it flags*, and I read the
+sample it printed — the header nav — as the whole picture rather than checking what it collided
+with per page. **A rule that fires 24 times is not necessarily one problem twenty-four times.**
+
+### Verified
+
+`next build` exit 0, **65/65** · `eslint` clean · `tsc` clean · header nav count on Landing is
+**1** · axe re-run over all 28 pages, `landmark-unique` **24 → 18**, no new violations.
+
+### What the remaining fix needs
+
+`aria-label` on the header nav and on each onward-links nav. **Those are strings, so `ui_strings`,
+so Arabic from him** — and probably 2–3 distinct labels rather than seven, since the page-bottom
+blocks do the same job.
+
+---
+
 ## 011230826 — 2026-08-23 09:08 — form borders meet 1.4.11; the link-colour finding was overstated and is withdrawn
 
 Two of the three remaining audit items. **One is fixed. One should not be, and that is my error to
