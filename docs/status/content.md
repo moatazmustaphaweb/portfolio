@@ -16,6 +16,153 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 016230826 — 2026-08-23 22:05 — 16 Cloudinary tags into the UAE onboarding chapter, both locales; the cover cannot take one and the desktop-redirect screen was deliberately left out
+
+**Brief:** Choose the UAE case file's images and write them into Notion as `[cld]`/`[alt]`/`[caption]`
+tags so they reach the site on the next sync. Verify every public ID returns HTTP 200 before writing.
+Same IDs in both locales, alt and caption written per locale. Do not touch the prose. Do not run the
+sync. Return the cover-image choice rather than making it.
+
+**Read:**
+- `docs/learn.md` in full; `docs/content-brief.md` in full; `CLAUDE.md`; `.claude/skills/portfolio-voice/SKILL.md`
+- `docs/sync-contract.md` — Step 3 (case file covers), Step 5, Step 6 (media) in full
+- `scripts/sync-notion.ts` lines 640–700 and 840–960 — the cover slot model, to establish whether a
+  cover can carry an inline image tag at all
+- `Image mapping/Cloudinary_Index_UAE_NEOBIZ_Mobile.xlsx` — all three sheets, all 441 rows
+- Notion: `Case File Cover — UAE Acquisition`, `النسخة العربية — الغلاف (الإمارات)` (title only),
+  `Chapter — UAE / Mobile Onboarding Journey`, `النسخة العربية — الإمارات / نيوبيزنس موبايل`,
+  `Chapter — UAE / Application Tracking`, `النسخة العربية — متابعة الطلب`
+- 17 candidate screens downloaded from Cloudinary and **looked at**, not read off their frame names
+
+**Found:**
+
+**16 tags written, 8 per locale, on the onboarding chapter and its Arabic child page.** Every public
+ID was requested before it was written; all 14 downloads returned **HTTP 200** and every one of the
+8 chosen IDs is among them. Both pages were re-fetched after writing and all 16 tags are present,
+each as its own paragraph carrying exactly three code spans and no prose.
+
+| Section | Public ID (under `00. UAE NEOBIZ - Mobile - Jul 27/`) | HTTP |
+|---|---|---|
+| Decision · Face recognition | `Regulatory Declaration - Single/49-facial-recognition-consent` | 200 |
+| Decision · Face recognition | `Regulatory Declaration - Single/57-verification-failed-continue-with-docs` | 200 |
+| Decision · Remote verification | `Regulatory Declaration - Single/61-efr-verification-link-generated` | 200 |
+| Decision · Remote verification | `Regulatory Declaration - Single/23-key-individuals-list-verification-link-sent` | 200 |
+| Decision · The dashboard | `Regulatory Declaration - Single/02-application-dashboard-with-header` | 200 |
+| Decision · The dashboard | `Signup and Onboarding/30-ownership-structure-picker` | 200 |
+| Tracking and exceptions | `Pre-Submition/45-track-dashboard-standard-exceptions-raised` | 200 |
+| The argument I lost | `Financial Details - Single/23-sanction-q1-default` | 200 |
+
+**The onboarding chapter carries FOUR uploaded S3 previews, not three.** `uae-efr-consent`,
+`uae-remote-verification-link`, `uae-application-dashboard`, `uae-track-dashboard-exceptions` — the
+same four, in the same positions, on both the English page and the Arabic child page, so eight blocks
+in total. All eight were **left in place**. Each of my four figures at those positions covers the same
+screen in intent, but the S3 URLs had expired by the time I could compare them pixel to pixel, and a
+Notion image block cannot be restored by API. Deleting on an unverified guess is irreversible; leaving
+them costs nothing, because Step 6 skips `image` blocks structurally.
+
+**Looking at the screens changed two captions.** `45 — Track Dashboard – Standard Exceptions Raised`
+carries **five** stages, not the four that `44` carries and that the tracking chapter's existing caption
+correctly states. And `75 — Partner / Sanction Q1 – Default` is **pixel-identical** to the single-owner
+`23`, so the chapter's *"are you…?" becomes "is any of the partners…?"* does not hold on that screen;
+no caption was written that asserts it. Both would have been wrong if the frame name had been trusted.
+
+**Gaps reported, not filled:**
+
+1. **The cover cannot take an inline image tag, so none was written.** `resolveCoverSections` reads
+   `lines`, which is prose only; image tags live in `items` and are never seen on the cover path. A
+   cover's image is `cover_sections.media_id` and the gallery card's is `case_files.cover_media_id`,
+   both set by hand in the database. A `[cld]` paragraph on the cover would be inert, not wrong — and
+   writing one would have looked like the gap was closed. **Choosing the cover image is Moataz's and
+   attaching it is backend's.** Returned to the orchestrator unanswered.
+
+2. **The layered-ownership redirect has no screen I may use.** The chapter says the app "sends them to
+   the web journey built for that structure." The only screen in all 441 that shows a desktop redirect
+   is `Signup and Onboarding/48 — Complete Application on Desktop`, and its body is *"For the best
+   experience, please visit the Mashreq NEO BIZ website on desktop."* That is the decision `docs/learn.md`
+   records as the design tribe lead's, argued against, and **never to appear in the portfolio — not the
+   screen, not the story, not a mention.** Deliberately excluded. Frame 49 in `Pre-Submition` — the one
+   learn.md names — is absent from the index entirely; the numbering skips 48 → 50.
+
+3. **`exception` is `الاستثناء` on this Arabic page and `الاستفسار` everywhere else.** The onboarding
+   Arabic page heading is `## المتابعة والاستثناءات` and its prose says `يفتح استثناءً`. The site-wide
+   convention, set by Moataz's own correction and recorded in three places, is `الاستفسار`. The tracking
+   Arabic page follows the convention. I wrote the convention into the alt and kept the word out of the
+   caption entirely, so no caption contradicts the paragraph above it. **Not fixed. His ruling.**
+
+4. **`replace a file that came back too large` still stands in the onboarding chapter's Tracking section**,
+   in both languages (`ملفًا رجع بحجم أكبر من المسموح`). `docs/learn.md` records that he corrected exactly
+   this phrase to *"came back unclear"* — the correction landed on the tracking chapter and not here. Not
+   touched.
+
+5. **The tracking chapter's `44-track-dashboard-application-submitted` is a 4322×4323 angled 3D phone
+   mockup on a black ground**, where every other screen in the index is a flat 786px frame. Nothing was
+   done about it; it is a visual call, and visual verification is his.
+
+**Belongs to someone else:**
+- **backend** — the cover's `media_id` write, once Moataz has chosen an image.
+- **devops** — running the sync. Not run, per the brief.
+- Nobody yet: the missing preview positions are now doubled (a live preview block plus my tag). If the
+  previews are ever to be removed, that is a manual Notion-UI action, not an API one.
+
+**Not verified:**
+- **I did not open the rendered page.** Nothing was synced, so there is nothing on `:3000` to look at.
+  Whether the eight figures land where I put them, and whether the Arabic captions read right in RTL at
+  the real type size, is untested.
+- **I did not compare my four figures against the four S3 previews.** The URLs expire in 300 seconds and
+  had lapsed. The match is inferred from the preview filenames and their positions in the body.
+- **I looked at 17 of 441 screens.** Any claim here about what the other 424 do or do not show is one I
+  did not make.
+- **I did not read the Arabic cover page's body**, only its title — the cover carries no media path, so
+  there was nothing to place there.
+- I checked one Single-vs-Partnership pair for a reworded question. The index's own notes say 26 sets are
+  pixel-identical; I did not check the other 25.
+
+**Open questions:** one, returned to the orchestrator and unanswered — **which screen goes in the UAE
+cover's two empty image slots.** The choice is his and the write is backend's, so nothing was picked.
+
+*(This paragraph originally said the gallery card had no cover and that the NDA grayscale treatment had
+never been seen on one. Both came from `CLAUDE.md` and I quoted them without testing — the exact failure
+that file's own bullet warns about. Measured below: the card cover IS set. Corrected rather than left
+standing, since the amendment underneath contradicts it.)*
+
+**Amended 22:09 after a scope change** — `Chapter — UAE / Application Tracking` ruled out of scope,
+targets narrowed to the cover and the onboarding chapter. Three things this added:
+
+**The tracking chapter was never written to.** It and its Arabic child were fetched to read the
+established tag format and caption voice. Read only, zero writes, both still exactly as devops left
+them last night.
+
+**The onboarding chapter was already complete** when the narrowed brief arrived — 8 tags per locale,
+written and read back earlier in this same task. The brief's "0 inline images today" was true when it
+was written and was not re-checked before being sent.
+
+**The cover claim was re-verified at the source rather than restated**, because the narrowed brief
+still framed the cover as a Notion-tag job. Two lines settle it:
+
+- `readOrderedBlocks` — a `[cld]` paragraph becomes `target.items.push({ kind: "image", tag })` and
+  then `continue`s. **It never reaches `lines`.**
+- `resolveCoverSections` — `paragraphs: block.lines.map((l) => l.trim()).filter(Boolean)`. It reads
+  `lines` and never touches `items`.
+
+So a tag on a cover is parsed, classified as an image, and dropped. No `media` row, no
+`[image:<uuid>]`, no error. **Writing one would have been inert and would have looked done.**
+
+**Measured in Supabase, not quoted:**
+
+| | |
+|---|---|
+| `uae-acquisition` cover slots | **3** — `thesis` (0), `role` (1), `map` (2) |
+| slots carrying a `media_id` | **0 of 3** |
+| `role` as a candidate | **excluded by the code** — the role card renders full width, `CoverSections` ignores `media_id` on that slot, and the sync emits a notice if one is set |
+| `case_files.cover_media_id` | **set**, to media `uae-acquisition` — the designed artwork, not a product screen |
+| card covers on the other three published case files | **0** — `cervello`, `egypt-acquisition`, `neobiz-mobile` all null |
+
+So the gallery card is not the gap; **the two empty in-cover slots are**, and they are `thesis` and
+`map`. Filling either is a `cover_sections.media_id` write, which is **backend's**, on a screen
+**Moataz** chooses. Nothing was written. The question stands, now narrowed to two named slots.
+
+---
+
 ## 002230826 — 2026-08-23 03:20 — Per-chapter audit: 99 of the 109 missing Arabic paragraphs are written in Notion and dropped by the sync; 10 were never written
 
 **Brief:** Audit only, report only, touch no code and no database beyond reading. Establish,

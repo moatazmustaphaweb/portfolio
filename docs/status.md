@@ -37,6 +37,72 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 016230826 — 2026-08-23 12:14 — the UAE onboarding chapter has figures. The cover cannot take one
+
+Content's brief. **Verified by me from the database and the rendered page.**
+
+### Eight figures, both locales, synced clean
+
+`updated 26`, `failed 0`. Measured: **8 image paragraphs in `en` and 8 in `ar`**, and both rendered
+pages carry Cloudinary URLs. The chapter went from **zero figures to eight**.
+
+**Every ID was requested before it was written** — 17 screens downloaded, 17 × 200, the 8 chosen
+from among them. That is the rule from `learn.md` Part 7 applied by someone who had not made the
+mistake it came from.
+
+**And it looked at the screens, which changed two captions.** `45 — Track Dashboard` carries *five*
+stages where `44` carries four. And `75 — Partner / Sanction Q1` is **pixel-identical** to the
+single-owner screen, so the chapter's *"are you…?" → "is any of the partners…?"* claim **is not
+visible on it** — no caption asserts it. That is rule 7 working at the level it usually fails at:
+not inventing a claim, but declining to illustrate a true one with a screen that does not show it.
+
+### The cover cannot carry an image tag, and this is the finding
+
+It reported the cover as returned to me. **The second reason it gave is the important one, and I
+checked it in the source rather than taking it:**
+
+`resolveCoverSections` builds its paragraphs from **`block.lines`** — line 733 — and never reads
+**`items`**, which is where `readOrderedBlocks` puts a `[cld]` tag before `continue`ing.
+
+**So a tag written on a cover page is parsed, classified, and dropped. No media row. No error.**
+It would have looked done and been inert — the exact failure shape as the accessibility page's 33
+tags, in a second place.
+
+**Cover images come from `cover_sections.media_id`, not from Notion.** Measured across published
+covers: **Egypt has two set (`thesis`, `map`); Cervello, Neobiz and the UAE have none.** `role` is
+excluded by the component itself.
+
+So: **it is a backend write, on a screen he picks** — not a content task, and content was right to
+stop.
+
+### Two things it declined to do, both correctly
+
+**The Desktop Redirect.** The prose says the app *"sends them to the web journey"*, and the only
+screen for that in all 441 is `48 — Complete Application on Desktop`. **It left it out**, citing the
+`learn.md` entry recording that as the design tribe lead's decision, never to appear. **A refusal
+recorded in a document was found and honoured by an agent that was not in the room for it** — which
+is what writing them down is for.
+
+**The four expired preview blocks.** It found **four**, not the three my brief said, and eight
+across both pages. It did not delete them: their S3 URLs had expired, so it could not compare pixels
+to confirm its figures cover them, and a Notion image block cannot be restored by API.
+**Irreversible on an unverified guess — left, and they are inert anyway.**
+
+### Two content defects it found and did not touch
+
+- **`exception` is `الاستثناء` on this Arabic page** and `الاستفسار` everywhere else, including the
+  tracking chapter. The standing convention is `الاستفسار`.
+- ***"replace a file that came back too large"*** still stands here in both languages, though
+  `learn.md` records him correcting exactly that phrase to *"came back unclear"* on the tracking
+  page yesterday.
+
+### Not verified
+
+**Nobody has looked at the chapter.** Eight figures resolve and the alt text is right; whether they
+sit where the argument wants them is his.
+
+---
+
 ## 018230826 — 2026-08-23 11:52 — the site has been deployed for weeks. `CLAUDE.md` said it never had
 
 He asked what I needed from Vercel — an API key, a token — and offered to fetch it.
