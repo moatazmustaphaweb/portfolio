@@ -1147,12 +1147,17 @@ async function upsertMedia(tag: ImageTag, locale: "en" | "ar"): Promise<string |
  * own slots and the seventh simply has no Arabic. Decision 013's fallback
  * applies per slot rather than all-or-nothing.
  *
- * ⚠️ English and Arabic reference DIFFERENT SCREENS, and that is the point of
- * pairing paragraphs by position rather than by image. Chapter One shares only
- * 4 of 16 public IDs between locales: an Arabic reader sees the Arabic
- * screenshot in the same place the English reader sees the English one. One
- * `chapter_paragraphs` row therefore holds `[image:A]` for `en` and
- * `[image:B]` for `ar`, which is correct and not a mismatch.
+ * ⚠️ EACH LOCALE OWNS ITS OWN PARAGRAPH SEQUENCE (migration 0045). A paragraph
+ * row belongs to one locale; nothing is paired by position, and the two
+ * sequences are free to differ in length and in order. The Arabic splits where
+ * the English joins — 2 English paragraphs to 5 Arabic on
+ * `neobiz-mobile/portal` — and both are correct.
+ *
+ * English and Arabic also reference DIFFERENT SCREENS: Chapter One shares only
+ * 4 of 16 public IDs between locales, because an Arabic reader sees the Arabic
+ * screenshot where the English reader sees the English one. That was already
+ * the rule for images (Step 6, "each locale's body carries its own sequence,
+ * and there is nothing to pair") and prose now follows it.
  */
 async function writeChapterSections(opts: {
   rowTitle: string;
@@ -1214,6 +1219,26 @@ async function writeChapterSections(opts: {
         );
       })
       .join(" · ")}] images en:${countImages(en.sections)} ar:${countImages(ar.sections)}`;
+
+  /*
+   * An Arabic slot with no English counterpart is written nowhere — the loop
+   * below iterates the ENGLISH sections. That has always been true and was
+   * always silent, which is the "absence is invisible" class: a section that
+   * exists only in Arabic looks exactly like a section that was never written.
+   *
+   * Reported, not fixed. Creating an English-less section would be a decision
+   * about what the English page shows, and it is not the sync's to make.
+   */
+  const enSlots = new Set(prose.map((s) => s.slot));
+  for (const s of ar.sections) {
+    if (!isChapterProseSlot(s.slot) || enSlots.has(s.slot)) continue;
+    notice(rowTitle,
+      `${rowTitle}: the Arabic page has a section resolving to slot "${s.slot}" ` +
+        `(${JSON.stringify(s.heading)}) and the English page has none. It was not ` +
+        "written — a chapter's slots come from the English page. Either the English " +
+        "section is missing or the Arabic heading resolves to the wrong slot.",
+    );
+  }
 
   if (DRY_RUN) return shape;
 
@@ -1296,152 +1321,124 @@ async function writeChapterSections(opts: {
     }
 
     /*
-     * Paragraphs pair by position within the slot, and only when the counts
-     * match. Where they differ the Arabic is skipped and reported rather than
-     * attached one row off — which, with images in the sequence, would put an
-     * Arabic screenshot under an English paragraph about a different screen.
+     * ⚠️ EACH LOCALE WRITES ITS OWN SEQUENCE. THERE IS NOTHING TO PAIR.
      *
-     * THE GATE IS UNCHANGED. What changed is what it counts.
+     * A paragraph is not a translatable unit; a section is. The Arabic is
+     * written from inside the language and splits where the English joins —
+     * `neobiz-mobile/portal` says its context in 2 English paragraphs and 5
+     * Arabic ones, and both are correct. The old model gave a section ONE
+     * paragraph list shared by both languages, which asserted a 1:1
+     * correspondence the content never had, and the position gate that
+     * protected that assertion refused 67 finished Arabic paragraphs.
      *
-     * The section's body and its tail are two independent groups, counted
-     * separately, because they vary independently: eight English `Result`
-     * sections carry a pointer after their closing divider and no Arabic page
-     * has one. Counting them together made every one of those slots off by
-     * exactly one, and the gate — correctly, on the information it had —
-     * refused 32 finished Arabic paragraphs. See `splitAtClosingDivider`.
+     * The gate was right and is not loosened — it is no longer reachable,
+     * because there is no longer an index to pair on. This is the rule Step 6
+     * has always applied to images: "each locale's body carries its own
+     * sequence, and there is nothing to pair."
      *
-     * A tail with no Arabic counterpart is a real gap and is reported as one.
-     * It is not filled here: an English pointer on an Arabic page is decision
-     * 013's normal fallback, and writing an Arabic one would be inventing copy.
+     * The fallback moves with it. Decision 013 now resolves per
+     * (section, part) rather than per paragraph: an Arabic section with no
+     * Arabic body serves the English body whole, marked `lang="en"`, instead
+     * of the half-Arabic section the old shape allowed.
+     *
+     * `part` is why the tail split survives the removal of the counting it was
+     * built for. Eight English `Result` sections close with a cross-chapter
+     * pointer after their divider and no Arabic page has one; keeping body and
+     * tail as separate fallback groups is what keeps that pointer on the
+     * Arabic page, exactly as it renders today. Dropping `part` would delete a
+     * line from eight Arabic pages, which is an editorial change and not this
+     * pass's to make.
      */
-    const pairGroup = (
-      enParas: readonly ChapterParagraph[],
-      arParas: readonly ChapterParagraph[],
-      what: "body" | "tail",
-    ): (ChapterParagraph | undefined)[] => {
-      const paired = arParas.length > 0 && arParas.length === enParas.length;
+    const writeSequence = async (
+      locale: "en" | "ar",
+      body: readonly ChapterParagraph[],
+      tail: readonly ChapterParagraph[],
+    ) => {
+      /*
+       * One flat numbering, body first, so a single `order by sort_order`
+       * reproduces the written order within this locale. `part` says which
+       * fallback group a row belongs to; it does not reorder anything.
+       */
+      const units = [
+        ...body.map((para) => ({ para, part: "body" as const })),
+        ...tail.map((para) => ({ para, part: "tail" as const })),
+      ];
 
-      if (arParas.length > 0 && !paired) {
-        notice(rowTitle,
-          `${rowTitle}: slot "${section.slot}" ${what} has ${enParas.length} paragraph(s) ` +
-            `in English and ${arParas.length} in Arabic. Arabic skipped for this ` +
-            "group — pairing by position across different counts would attach the " +
-            "wrong paragraph, and with figures in the sequence it would also show " +
-            "the wrong screenshot. The heading still synced.",
-        );
+      for (const [j, { para, part }] of units.entries()) {
+        const { data: paraRow, error: paraError } = await (await db())
+          .from("chapter_paragraphs")
+          .insert({
+            chapter_section_id: sectionRow.id,
+            sort_order: j,
+            kind: para.kind === "table" ? "table" : "prose",
+            locale,
+            part,
+          })
+          .select("id").single();
+
+        if (paraError || !paraRow) {
+          fail(rowTitle,
+            `${rowTitle}: slot "${section.slot}" ${locale} paragraph ${j + 1} — ` +
+              `${paraError?.message ?? "no row"}`);
+          continue;
+        }
+
+        /*
+         * A TABLE is cells, not a body — and now a table belongs to one
+         * locale, so its cells carry one language each. The grid-shape check
+         * that used to guard cell-by-cell pairing is gone with the pairing:
+         * an Arabic table of a different shape is simply the Arabic table.
+         */
+        if (para.kind === "table") {
+          for (const [r, cells] of para.grid.entries()) {
+            for (const [c, text] of cells.entries()) {
+              const { data: cellRow, error: cellError } = await (await db())
+                .from("chapter_table_cells")
+                .insert({
+                  chapter_paragraph_id: paraRow.id,
+                  row_idx: r,
+                  col_idx: c,
+                  // Row 0 is the header row, matching what SectionTable renders.
+                  is_header: r === 0,
+                })
+                .select("id").single();
+
+              if (cellError || !cellRow) {
+                fail(rowTitle,
+                  `${rowTitle}: slot "${section.slot}" ${locale} table cell ${r},${c} — ` +
+                    `${cellError?.message ?? "no row"}`);
+                continue;
+              }
+
+              await upsertTranslations("chapter_table_cell", cellRow.id, locale, { text });
+            }
+          }
+          continue;
+        }
+
+        const text = await bodyFor(para, locale);
+        if (text !== null) {
+          await upsertTranslations("chapter_paragraph", paraRow.id, locale, { body: text });
+        }
       }
-      if (what === "tail" && enParas.length > 0 && arParas.length === 0) {
-        notice(rowTitle,
-          `${rowTitle}: slot "${section.slot}" closes with ${enParas.length} paragraph(s) ` +
-            "after its divider and the Arabic page has none. Those stay English on " +
-            "the Arabic page — a content gap, reported rather than filled.",
-        );
-      }
-      return enParas.map((_, k) => (paired ? arParas[k] : undefined));
     };
 
-    /*
-     * One flat list, body first, so `sort_order` and the rendered page are
-     * byte-identical to what they were before the split. Only the Arabic
-     * attached to each row changes.
-     */
-    const arBody = pairGroup(section.paragraphs, arSection?.paragraphs ?? [], "body");
-    const arTail = pairGroup(section.tail, arSection?.tail ?? [], "tail");
-    const units: { para: ChapterParagraph; arPara: ChapterParagraph | undefined }[] = [
-      ...section.paragraphs.map((para, k) => ({ para, arPara: arBody[k] })),
-      ...section.tail.map((para, k) => ({ para, arPara: arTail[k] })),
-    ];
-
-    for (const [j, { para, arPara: arCounterpart }] of units.entries()) {
-      const { data: paraRow, error: paraError } = await (await db())
-        .from("chapter_paragraphs")
-        .insert({
-          chapter_section_id: sectionRow.id,
-          sort_order: j,
-          kind: para.kind === "table" ? "table" : "prose",
-        })
-        .select("id").single();
-
-      if (paraError || !paraRow) {
-        fail(rowTitle, `${rowTitle}: slot "${section.slot}" paragraph ${j + 1} — ${paraError?.message ?? "no row"}`);
-        continue;
-      }
+    await writeSequence("en", section.paragraphs, section.tail);
+    if (arSection) {
+      await writeSequence("ar", arSection.paragraphs, arSection.tail);
 
       /*
-       * A TABLE is cells, not a body.
-       *
-       * The Arabic counterpart is written only when this position pairs AND the
-       * Arabic paragraph is also a table. A table paired against a paragraph is
-       * a structural mismatch, not a translation, and writing it would put
-       * Arabic prose into a grid cell.
+       * A tail with no Arabic counterpart is a real gap and is reported as
+       * one. It is not filled: an English pointer on an Arabic page is
+       * decision 013's normal fallback, and writing an Arabic one would be
+       * inventing copy.
        */
-      if (para.kind === "table") {
-        const arPara = arCounterpart;
-        const arGrid = arPara?.kind === "table" ? arPara.grid : null;
-
-        if (arPara && arPara.kind !== "table") {
-          notice(rowTitle,
-            `${rowTitle}: slot "${section.slot}" position ${j + 1} is a table in English and ` +
-              `${arPara.kind} in Arabic. Arabic not written for this position — the shapes ` +
-              "do not correspond and pairing them would put prose into a grid cell.",
-          );
-        }
-        if (arGrid && (arGrid.length !== para.grid.length ||
-            arGrid[0]?.length !== para.grid[0]?.length)) {
-          notice(rowTitle,
-            `${rowTitle}: slot "${section.slot}" table is ${para.grid.length}x${para.grid[0]?.length} ` +
-              `in English and ${arGrid.length}x${arGrid[0]?.length} in Arabic. Arabic cells not ` +
-              "written — a different grid is a different table, and pairing by index would " +
-              "scatter its text across the wrong columns.",
-          );
-        }
-        const useAr =
-          arGrid &&
-          arGrid.length === para.grid.length &&
-          arGrid[0]?.length === para.grid[0]?.length;
-
-        for (const [r, cells] of para.grid.entries()) {
-          for (const [c, text] of cells.entries()) {
-            const { data: cellRow, error: cellError } = await (await db())
-              .from("chapter_table_cells")
-              .insert({
-                chapter_paragraph_id: paraRow.id,
-                row_idx: r,
-                col_idx: c,
-                // Row 0 is the header row, matching what SectionTable renders.
-                is_header: r === 0,
-              })
-              .select("id").single();
-
-            if (cellError || !cellRow) {
-              fail(rowTitle, `${rowTitle}: slot "${section.slot}" table cell ${r},${c} — ${cellError?.message ?? "no row"}`);
-              continue;
-            }
-
-            await upsertTranslations("chapter_table_cell", cellRow.id, "en", { text });
-            if (useAr) {
-              await upsertTranslations("chapter_table_cell", cellRow.id, "ar", {
-                text: arGrid[r][c] ?? "",
-              });
-            }
-          }
-        }
-        continue;
-      }
-
-      const enBody = await bodyFor(para, "en");
-      if (enBody !== null) {
-        await upsertTranslations("chapter_paragraph", paraRow.id, "en", { body: enBody });
-      }
-
-      if (arCounterpart) {
-        // A prose position must not take an Arabic table.
-        if (arCounterpart.kind !== "table") {
-          const arText = await bodyFor(arCounterpart, "ar");
-          if (arText !== null) {
-            await upsertTranslations("chapter_paragraph", paraRow.id, "ar", { body: arText });
-          }
-        }
+      if (section.tail.length > 0 && arSection.tail.length === 0) {
+        notice(rowTitle,
+          `${rowTitle}: slot "${section.slot}" closes with ${section.tail.length} paragraph(s) ` +
+            "after its divider and the Arabic page has none. Those fall back to English on " +
+            "the Arabic page — a content gap, reported rather than filled.",
+        );
       }
     }
   }

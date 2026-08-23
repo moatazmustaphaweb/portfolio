@@ -37,6 +37,87 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 004230826 — 2026-08-23 05:12 — a paragraph stops being a translatable unit. +75 Arabic paragraphs
+
+The model change Moataz approved. **Verified against the database and the build by me, not read off
+the report.**
+
+### Measured
+
+| | before | after |
+|---|---|---|
+| Arabic `body` translations | 177 | **252** |
+| English `body` translations | 262 | **262 — unchanged** |
+| `chapter_paragraphs` rows | 266 | 522 (266 en · 256 ar) |
+| `chapter_table_cells` | 88 | 176 |
+| `media` | 83 | **91** |
+
+**+75, the brief's number exactly.** Every previously-refused slot carries its Arabic:
+`fulfilment/context` 0→16 · `workflow/context` 0→13 · `what-v1-got-wrong` 0→7 ·
+`how-problems-were-found` 0→7 · `what-i-designed` 0→13 · `the-rule` 0→4 ·
+`what-this-is-evidence-of` 0→4 · `neobiz/portal/context` 0→5 · `what-carries-over` 0→3 ·
+`neobiz/onboarding/context` 0→3.
+
+**I queried for every section still at zero Arabic. Exactly two, both `the-interface`** — the ten
+paragraphs that are genuinely unwritten. **There is no longer a single section on this site whose
+Arabic exists and is being withheld.**
+
+`verify:content` all pass including the six decision-013 fallback checks · `check:seed-drift` no
+drift, 91/91 · `next build` exit 0, **65/65 pages**.
+
+### The shape, and the one judgement inside it
+
+Migration `0045` gives `chapter_paragraphs` a **`locale`** and a **`part`**, with
+`unique (chapter_section_id, locale, sort_order)`. A row belongs to one language; a section owns two
+sequences. **The gate was not loosened — there is no longer an index to pair on**, and it still
+guards entry handles, outcomes, targets, decisions, cover sections and `page_sections`.
+
+**`part` is the interesting decision and it did not need to come back to me.** Removing the pairing
+removed the reason `003230826`'s divider split existed — and dropping it **would have deleted the
+English cross-chapter pointer from eight Arabic `Result` sections**, which is a change to what a
+reader sees. It kept the split as the *fallback's unit* instead: decision 013 now resolves per
+`(section, part)`, and those eight pages render as they did this morning. **Preserving current
+output is the judgement; changing it is the decision** — that is the right line and it drew it
+itself.
+
+**The fallback is now stricter than what it replaced:** a section can no longer render half Arabic
+and half English.
+
+### My prediction held
+
+I told it frontend would need no change because `loadChapterSections` returns a flat `blocks` array
+the component consumes opaquely. **It did not open `ChapterSections.tsx`, and the pages render.** A
+model change of this size touching zero components is the slot model paying for itself.
+
+### Found, not fixed — one of these is the same bug in a second table
+
+**1. `cover_paragraphs` has the identical defect.** Covers still share one row per position, so the
+UAE cover's `thesis` — 2 English, 3 Arabic — is refused on every sync. 41 rows, 41 en, **39 ar**.
+It stayed inside the scope I set rather than widening an unreviewed migration, and flagged that
+**"a rule applied in one shape and abandoned in another"** is the exact failure `learn.md` records
+against this lineage — which is the correction Moataz issued to me four hours ago, quoted back at
+the right moment. **Queued as its own task.**
+
+**2. Every chapter table is missing its real header row, in both languages, and always has been.**
+`readTable` drops the Notion header — correct for outcomes/targets — and the chapter-table writer
+then marks row 0, the first *data* row, as `is_header`. **So a comparison table's first decision
+renders as its column headings.** Pre-existing and byte-identical before and after. Fixing it
+changes what a reader sees on two published pages, so it is reported, not done.
+
+**3.** An Arabic-only section is written nowhere — slots come from the English page. Zero instances
+today; it now raises a named notice instead of being silent.
+
+### Not verified
+
+**Three pages were opened in a browser; nine chapters are database and log only.** And the sentence
+that matters most: **75 Arabic paragraphs are now live that were not there this morning. They are
+Moataz's own words and the sync did not alter them — but nobody has read those pages end to end.**
+
+Also unresolved, carried a third time: **should the prose pointer be in `result` at all**, given
+every chapter renders a data-driven `Next chapter` block beneath it in both languages.
+
+---
+
 ## 003230826 — 2026-08-23 04:41 — corrected by Moataz: the fix is in the code, not in the writing
 
 **I recommended the wrong option and he overturned it immediately.**

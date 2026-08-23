@@ -102,8 +102,21 @@ Result
 
 **Both halves are written. The split is not a filter.** The tail becomes an
 ordinary paragraph in the same slot, in the same order, exactly as before the
-rule existed. What the split changes is only **which paragraphs are counted
-against which** when the two languages are paired — see Step 4.
+rule existed.
+
+**What the split decides changed on 2026-08-23, task `004230826`.** It was
+*which paragraphs are counted against which* when the two languages were paired
+by position. Nothing is paired any more (see Step 4), so what it decides now is
+**the granularity of the English fallback**: `chapter_paragraphs.part` is
+`body` or `tail`, and decision 013 resolves per `(section, part)`.
+
+That is why the split outlived the counting it was built for. Eight English
+`Result` sections close with a pointer and no Arabic page has one; with one
+fallback group per section the pointer would disappear from all eight Arabic
+pages. Keeping `tail` separate is what keeps it there, exactly as it renders
+today. **Whether it should be there at all is an open editorial question with
+Moataz** — every chapter already renders a data-driven `Next chapter` block
+directly beneath it. See `docs/status/backend.md` 003230826.
 
 **The test is position, never italics.** An all-italic paragraph is ordinary
 content here: four sections end with one *before* their divider, and
@@ -210,31 +223,85 @@ Arabic parser accepts `←` and `⬅`; the English parser does not, because `←
 in English copy as hierarchy notation (`Instance ← Organisation ← Team ← Project`)
 and splitting on it would cut a sentence in half.
 
-### Pairing is by position, and only when the counts match
+### A CHAPTER'S PROSE DOES NOT PAIR. EACH LOCALE HAS ITS OWN SEQUENCE
 
-Arabic sections, handles, outcomes and decisions are paired with their English
-counterparts **by position**. Where the counts differ, the Arabic is **skipped and
-reported** — attaching the wrong Arabic to the wrong row is worse than showing
-English. This also applies when *some* lines in a list fail to parse: a partial
-list whose count happens to equal English's is refused, because it would pair
-silently and wrongly.
+*Rewritten 2026-08-23, task `004230826`, against migration 0045.*
 
-Every such notice prints **both heading lists**, so "not translated yet" (Moataz's
-work) can be told apart from "the parser split it differently" (a bug). Those need
-opposite responses and are indistinguishable from a count alone.
+**A paragraph is not a translatable unit. A section is.** English has N
+paragraphs, Arabic has M, and both are correct — the Arabic is written from
+inside the language and splits where the English joins. `neobiz-mobile/portal`
+says its `context` in 2 English paragraphs and 5 Arabic ones. Neither is a
+translation of a row in the other.
 
-**A chapter section is counted as two groups, not one** — its body and its tail,
-split at the closing divider (see Step 3). They vary independently: eight English
-`Result` sections carry a pointer after their divider and no Arabic page has one.
-Counting them together made every one of those slots off by exactly one and the
-gate refused 32 finished Arabic paragraphs. **The gate itself is unchanged.** What
-changed is what it counts.
+`chapter_paragraphs` therefore carries a `locale`. A section owns **two
+independent sequences**, and the sync writes each from its own page:
 
-> This is the project's most productive bug class in its exact form: two lists
-> zipped by position, guarded by equal length, where **equal length was never the
-> question**. The English list contained an item the Arabic list is not supposed
-> to have. Widening the guard would have been the wrong repair; separating the
-> groups was the right one.
+```
+chapter_sections   slot = 'context'          ← shared, resolved per locale
+                                                by the alias table
+chapter_paragraphs locale='en'  sort 0..10   ← the English sequence
+                   locale='ar'  sort 0..12   ← the Arabic sequence
+```
+
+**This is the rule Step 6 has always applied to images:** *"each locale's body
+carries its own sequence, and there is nothing to pair."* Prose now follows it.
+There is no principled difference between the two.
+
+**The English fallback survives, and moves up a level.** Decision 013 resolves
+per `(section, part)` rather than per paragraph: an Arabic section with no
+Arabic body serves the English body **whole**, marked `lang="en"` so
+`rtl-guard`'s text-direction rule still applies. That is stricter than what it
+replaces — the old shape could render a section half Arabic and half English,
+paragraph by paragraph, which is worse than either.
+
+**Tables move with the prose.** A table is a paragraph, so each locale's table
+is its own row with its own cells. The grid-shape check that guarded cell-level
+pairing is gone with the pairing, not weakened: there is no longer an index to
+pair on.
+
+**A section that exists only in Arabic is reported, not written.** A chapter's
+slots come from the English page, and inventing an English-less section would
+be a decision about what the English page shows. Measured 2026-08-23: zero
+across all seventeen chapter pages.
+
+### What still pairs by position, and still refuses on a mismatch
+
+**Untouched — the guard is right wherever two lists really are the same list:**
+
+| | Pairs by position |
+|---|---|
+| Entry handles | yes |
+| Outcomes and targets | yes |
+| Decisions | yes |
+| Cover sections and **`cover_paragraphs`** | yes — see below |
+| `page_sections` | yes |
+| Chapter prose paragraphs | **no longer — migration 0045** |
+| Chapter table cells | **no longer — they follow their paragraph** |
+| Image tags | never did (Step 6) |
+
+Where the counts differ, the Arabic is **skipped and reported** — attaching the
+wrong Arabic to the wrong row is worse than showing English. This also applies
+when *some* lines in a list fail to parse: a partial list whose count happens to
+equal English's is refused, because it would pair silently and wrongly.
+
+Every such notice prints **both heading lists**, so "not translated yet"
+(Moataz's work) can be told apart from "the parser split it differently" (a
+bug). Those need opposite responses and are indistinguishable from a count
+alone.
+
+> ⚠️ **`cover_paragraphs` has the identical defect and it is NOT fixed.**
+> Covers keep one shared paragraph row per position, so the UAE cover's
+> `thesis` — 2 English paragraphs, 3 Arabic — is refused on every sync.
+> Measured 2026-08-23: `cover_paragraphs` 41 rows, 41 en, **39 ar**. Two
+> paragraphs, one slot, one cover. It is the same fix in a second table and is
+> deliberately out of task `004230826`'s scope, not overlooked.
+
+> The bug class this replaced, in its exact form: two lists zipped by position,
+> guarded by equal length, where **equal length was never the question**.
+> `003230826` fixed one instance of it by separating a body from a coda so the
+> counts stopped lying. This removes the question instead — **the remedy for a
+> pairing that should not exist is to delete the index, not to widen the
+> guard.**
 
 ### The rest
 
@@ -437,29 +504,41 @@ the whole bilingual pairing was the one pass a dry run could not see. It now
 resolves and prints, exactly as the cover pass already did.
 
 **CORRECTION 2 — the shape line now carries the Arabic counts.** It reads
-`result(4¶+1tail/2img ↔ar 4¶)`, so **whether a chapter slot's paragraphs will
-pair is now visible in a dry run**, before anything is written. The claim below
-that `+ar` means only "an Arabic section was found" is still true of
-`writeCoverSections`, which is unchanged.
+`result(4¶+1tail/2img ↔ar 4¶)`. The claim below that `+ar` means only "an
+Arabic section was found" is still true of `writeCoverSections`, which is
+unchanged.
 
-**WHAT STANDS:** both writers still return before the pairing loop, so the
-`notice()` text explaining a refusal is not emitted by a dry run. For chapters
-you can now read the mismatch off the counts; you do not get the sentence.
+**CORRECTION 3 — chapter prose no longer pairs at all** (2026-08-23, task
+`004230826`, migration 0045). The shape line's two counts are no longer a
+prediction of whether a slot will be refused: differing counts are now the
+normal, correct case, and both sequences are written. The line is still the
+diagnostic that matters — a count that CHANGES is how a silent drop becomes
+visible — but it no longer forecasts a refusal, because there is none to
+forecast.
+
+**WHAT STANDS:** the writers still return before the write loop, so a
+`notice()` raised inside it is not emitted by a dry run. For chapters that is
+now only the tail-gap notice; every refusal notice that mattered here is gone
+with the pairing. **Covers still pair, still refuse, and still say nothing
+about it in a dry run.**
 
 **And do not carry a number out of this document.** It said "109 chapter
 paragraphs", which was true when written and is not now. Run the query:
 
 ```sql
-select cf.slug||'/'||c.slug as ch, cs.slot,
- count(*) filter (where t.locale='en') as en,
- count(*) filter (where t.locale='ar') as ar
+-- Since 0045 the locale is on the paragraph row, so this counts SEQUENCES,
+-- not translations of a shared row. `en` and `ar` differing is normal.
+select cf.slug||'/'||c.slug as ch, cs.slot, cp.part,
+ count(*) filter (where cp.locale='en') as en,
+ count(*) filter (where cp.locale='ar') as ar
 from chapters c join case_files cf on cf.id=c.case_file_id
 join chapter_sections cs on cs.chapter_id=c.id
 join chapter_paragraphs cp on cp.chapter_section_id=cs.id
-left join translations t on t.entity_id=cp.id
-  and t.entity_type='chapter_paragraph' and t.field='body'
-group by 1,2 order by 1,2;
+group by 1,2,3, cs.sort_order order by 1, cs.sort_order, 3;
 ```
+
+**A slot with `ar = 0` is the thing to look at.** That is a section serving the
+English fallback whole — either not written in Arabic yet, or dropped.
 
 ### Why
 

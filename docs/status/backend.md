@@ -16,6 +16,174 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 004230826 — 2026-08-23 12:43 — a chapter paragraph belongs to one locale: 75 Arabic paragraphs recovered
+
+**Brief:** make each locale's paragraph sequence independent within a chapter section.
+A paragraph is not a translatable unit; a section is. Keep decision 013's fallback, keep
+the pairing gate wherever things still pair, land the 75 held-back Arabic paragraphs,
+update `docs/schema.md` and `docs/sync-contract.md` in the same task. Shape mine to choose
+and justify.
+
+**Files:** `supabase/migrations/0045_chapter_paragraphs_per_locale.sql` (**new, and
+APPLIED to Supabase — live, and its SQL is uncommitted**) · `scripts/sync-notion.ts` ·
+`lib/content/chapters.ts` · `lib/supabase/database.types.ts` · `docs/schema.md` ·
+`docs/sync-contract.md` · `docs/learn.md` · this entry. **Nothing committed — devops owns
+git.** No temporary files left in the repo; the three scratch scripts live under
+`$CLAUDE_JOB_DIR/tmp`.
+
+### THE SHAPE, AND WHY THIS ONE
+
+`chapter_paragraphs` gains **`locale`** and **`part`**. A paragraph row belongs to one
+language; a section owns two independent sequences; `unique (chapter_section_id, locale,
+sort_order)`. Text stays in `translations` — an `en` row carries only an `en` row — which
+is what keeps `resolveManyDetailed` able to report the language that actually supplied a
+string, and therefore keeps decision 053's `lang` marking working with no new code.
+
+**Nothing is paired, so nothing is gated.** The gate was not loosened; there is no longer
+an index to pair on. It is untouched and still refuses on entry handles, outcomes,
+targets, decisions, cover sections, `cover_paragraphs` and `page_sections`.
+
+**Tables followed their paragraph.** Each locale's table is its own row with its own
+cells, so the grid-shape check went the same way as the prose pairing. Cells 88 → 176,
+88 en / 88 ar, four tables each with an `en` and an `ar` copy of identical shape.
+
+**`part` is why the divider split from `003230826` survives.** It is now the unit decision
+013 falls back over. Without it, eight Arabic `Result` sections would lose the English
+cross-chapter pointer they render today — a change to what a reader sees, and not mine to
+make. **Fallback is now per `(section, part)`**, which is stricter than what it replaced:
+a section can no longer render half Arabic and half English.
+
+### MEASURED, FROM THE DATABASE
+
+| | before | after |
+|---|---|---|
+| `chapter_paragraphs` rows | 266 | 522 (266 en · 256 ar) |
+| Arabic `body` translations | **177** | **252** |
+| English `body` translations | 262 | **262** — unchanged |
+| `chapter_table_cells` | 88 | 176 (88 en · 88 ar) |
+| `media` | 83 | **91** |
+| translations orphaned by the migration | — | **0** |
+| rows whose translation locale ≠ row locale | — | **0** |
+| `prose` rows with no translation at all | — | **0** |
+
+**+75 Arabic paragraphs. That is the brief's number exactly.** +8 `media` rows are the
+Arabic screenshots that were being discarded along with the paragraphs that referenced
+them.
+
+**Every slot that was refused now carries its Arabic**, and every count equals the
+`↔ar N¶` the dry run predicted — found equals kept:
+
+| chapter | slot | en ¶ | ar before | ar after |
+|---|---|---|---|---|
+| egypt-acquisition/fulfilment | context | 15 | 0 | **16** |
+| egypt-acquisition/workflow | context | 11 | 0 | **13** |
+| egypt-acquisition/workflow | what-v1-got-wrong | 10 | 0 | **7** |
+| egypt-acquisition/workflow | how-problems-were-found | 6 | 0 | **7** |
+| egypt-acquisition/onboarding | what-i-designed | 14 | 0 | **13** |
+| egypt-acquisition/web-vs-mobile-onboarding | the-rule | 2 | 0 | **4** |
+| egypt-acquisition/web-vs-mobile-onboarding | what-this-is-evidence-of | 3 | 0 | **4** |
+| neobiz-mobile/portal | context | 2 | 0 | **5** |
+| neobiz-mobile/portal | what-carries-over | 2 | 0 | **3** |
+| neobiz-mobile/onboarding | context | 2 | 0 | **3** |
+| egypt-acquisition/onboarding | the-interface | 5 | 0 | **0** — no Arabic section exists |
+| egypt-acquisition/workflow | the-interface | 5 | 0 | **0** — same |
+
+**The only two slots still at zero Arabic are the two `the-interface` sections**, and
+those are genuinely unwritten: they are the only two `chapter_sections` rows in the
+database with no Arabic heading either. Not a drop.
+
+The 8 English `result` tails still have no Arabic and are each reported by name on every
+run. They fall back to English on the Arabic page, exactly as before.
+
+**Migration backfill, verified separately before the sync ran:** 262 en and 177 ar body
+translations preserved, 0 orphans, 0 mismatches. The re-sync then rebuilt everything from
+Notion, so the backfill was the safety net it was written to be rather than the delivery.
+
+### VERIFIED BY RUNNING
+
+`npm run sync:notion -- --dry-run` before and after the code change — **shape lines
+byte-identical**, notices identical at 7, which is the regression check that the decision
+path did not move · `npm run sync:notion` (applied): created 0 · updated 26 · skipped 8 ·
+notices 17 · failed 1 · `npx tsc --noEmit` 0 · `npm run lint` 0 · `npm run test:sync` all
+pass · `npm run verify:content` all pass, including the six decision-013 fallback checks ·
+`npm run check:seed-drift` no drift, 91/91 · `npm run build` exit 0, 65/65 static pages.
+
+**Notices went 7 → 17 and none of the ten new ones is a refusal.** Eight are the tail-gap
+report. One is `writeCoverSections` refusing the UAE cover's `thesis` (2 en, 3 ar) — the
+identical defect in a second table, see the open items. One is the pre-existing
+`egypt-acquisition/workflow` decisions mismatch (1 en, 3 ar), untouched. The single
+failure is the pre-existing accessibility-page image tag, unchanged, and it refuses that
+page's sections before any delete, so nothing was lost.
+
+### VERIFIED BY LOOKING — `localhost:3000`, dev server, both locales
+
+- **`/ar/work/neobiz-mobile/portal`** — `السياق` now renders **5 Arabic paragraphs**
+  where the English page renders 2. `النتيجة` renders 2 Arabic paragraphs then the English
+  pointer, `lang="en"`, reading LTR with its full stop on the correct side. Full-page
+  screenshot taken at 1200px.
+- **`/en/work/neobiz-mobile/portal`** — 2 context paragraphs, all English. Unchanged.
+- **`/ar/work/egypt-acquisition/workflow`** — 6 Arabic paragraphs + 7 Arabic captions in
+  `context` (13, matching the database), and `the-interface` falls back as a **whole
+  section** of English, marked, which is the improvement over the old half-and-half.
+  Clipped screenshot of that section.
+- **Figures resolve per locale.** `/ar/…/onboarding` serves 16 distinct public IDs, 12 of
+  them under `…/Arabic/…`; `/en/…/onboarding` serves 16, 12 under `…/English/…`; they
+  share 4. That is Step 6's rule holding structurally now rather than by coincidence of
+  matching counts.
+- **Both comparison tables render fully in their own language**, 13 rows Arabic and 13
+  English on `web-vs-mobile-onboarding`.
+- **Route sweep, 52 route-locale combinations, both locales: 50 × 200.** The two
+  non-200s are `/{en,ar}/work/uae-acquisition/results`, which 404 because UAE has no
+  targets table — pre-existing and unrelated.
+
+### NOT VERIFIED
+
+- **Only three pages were opened in a browser.** The other nine chapters are confirmed
+  from the database, the sync log and an HTTP status sweep, not by looking.
+- **No production build was exercised beyond `next build`.** Nothing deployed, no ISR,
+  no `/api/revalidate`.
+- **No accessibility or visual audit**, no keyboard pass, no mobile width.
+- **The Arabic that landed was not read for correctness.** 75 paragraphs are now on the
+  site that were not there this morning. They are Moataz's own words from Notion and the
+  sync did not alter them, but nobody has read the Arabic pages end to end since.
+- **`cover_paragraphs` was measured, not touched.**
+
+### FOUND, NOT FIXED — reported per the standing rule
+
+1. **`cover_paragraphs` has the identical defect.** Covers still share one paragraph row
+   per position, so the UAE cover's `thesis` — 2 English paragraphs, 3 Arabic — is refused
+   on every sync. Measured: 41 rows, 41 en, **39 ar**. It is the same migration in a second
+   table and was deliberately left out of this task's scope rather than overlooked. Doing
+   it unasked would have widened a migration the orchestrator had not reviewed. **My
+   recommendation is that it becomes its own task, soon** — a rule applied in one shape and
+   abandoned in another is the exact failure `learn.md` Part 3 already records against this
+   lineage.
+2. **Every chapter table is missing its real header row, in both languages, and has been
+   all along.** `readTable` drops the Notion header row — correct for the outcomes and
+   targets tables, where the header is not an item — and the chapter-table writer then
+   marks row 0, which is the first *data* row, as `is_header`. So the comparison table's
+   first decision renders as its column headings. Pre-existing, unchanged by this task,
+   identical before and after. **Two rules colliding, and fixing it changes what a reader
+   sees on two published pages**, so it is reported rather than repaired.
+3. **A section that exists only in Arabic is still written nowhere.** A chapter's slots
+   come from the English page. It was silent; it now raises a notice naming the slot and
+   the heading. **Measured across all seventeen chapter pages: zero instances.** The
+   notice is a guard against a future one, not a fix for a present one.
+
+**Open questions — returned to the orchestrator, unanswered.** Both are carried forward
+from `003230826` and neither blocks anything:
+
+1. **Should the cross-chapter pointer stay in `result` at all?** Every chapter already
+   renders a data-driven `Next chapter` / `الفصل التالي` block directly beneath it, in
+   both languages. The prose pointer duplicates it, in English, on the Arabic page. This
+   task deliberately preserved it — `part` exists partly for that — because removing it
+   deletes a line from eight published English pages and that is editorial.
+2. If it stays, should it render as a coda rather than as body prose? It is now
+   distinguishable in the data (`part = 'tail'`), so this became a frontend question
+   rather than a schema one.
+
+---
+
 ## 003230826 — 2026-08-23 03:51 — 24 Arabic paragraphs recovered: a chapter section now splits at its closing divider
 
 **Brief:** three reported bugs in the sync. (A) an English-only pointer line after the final

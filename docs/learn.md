@@ -351,6 +351,57 @@ Every English chapter closes its `Result` with a pointer to the next chapter, af
 - **Make the rule cost nothing when it misfires.** The split decides only what is *counted against what*; both halves are still written, in the same slot, in the same order. A paragraph the rule misreads loses its Arabic and stays on the page — it does not vanish. **A structural heuristic is safe exactly to the degree that being wrong about it is cheap**, and that property is worth designing for rather than discovering.
 - **The corpus is the specification.** Every one of these decisions was settled by dumping all seventeen pages' block structure and looking, not by reasoning about what the writing probably does. The italic false-positives would not have been predicted; they were visible in one grep.
 
+### And sometimes the two lists were never one list. Delete the index
+
+Learned 2026-08-23, task `004230826`, one task after the entry above — and the
+two together are the lesson, because the first fix was right and did not go far
+enough.
+
+`003230826` found eight slots where a length mismatch was caused by an item one
+list was not supposed to have, and fixed it by counting a body and a coda
+separately. **The gate stayed, the counts stopped lying, 24 rows landed.** Then
+the same query showed twelve more slots still refused — and on those the counts
+differ for a reason no regrouping can remove. The Arabic says
+`neobiz-mobile/portal`'s context in 5 paragraphs where the English says it in 2.
+Both are finished. Both are correct.
+
+**At that point the question changes from "why don't these counts match" to
+"why is anything being counted at all".** The answer was in the schema: a
+paragraph was one row shared by both languages, so Arabic could only attach by
+index, so an index had to be guarded. **The gate was not protecting a rule; it
+was protecting an assumption the model had accidentally made.**
+
+The fix was to put `locale` on the paragraph row. Each language owns its own
+sequence, nothing pairs, and the gate is not loosened — it is unreachable,
+because there is no longer an index. 75 Arabic paragraphs landed, 177 → 252.
+
+**The generalisable form, and it is a sequence, not a single rule:**
+
+1. **Counts differ → is one list carrying something the other should not?**
+   If yes, separate the groups. The gate is right. (`003230826`)
+2. **Still differing → are these two lists the same list at all?**
+   If no, the pairing itself is the defect. **Remove the index, do not widen
+   the guard.** (`004230826`)
+3. **Never → make the counts match by editing the content.** That is the one
+   move that is always wrong here, and it is the one that always looks
+   cheapest.
+
+**Two smaller things worth keeping:**
+
+- **The precedent was already in the contract, one file away.** Step 6 has said
+  of images since 2026-08-19: *"each locale's body carries its own sequence,
+  and there is nothing to pair."* Images had the right model and prose did not,
+  for no reason anyone had ever stated. **When a system does the right thing in
+  one place and the wrong thing in another, the fix is usually written down
+  already** — look for the sibling case before designing.
+- **A structural fix can quietly change what a reader sees, and that half needs
+  a decision, not a judgement.** Removing the pairing also removed the reason
+  the body/tail split existed, and dropping the split would have deleted the
+  English cross-chapter pointer from eight Arabic pages. It was kept as the
+  fallback's unit instead. **The rule: when a refactor makes some old mechanism
+  unnecessary, check what it was incidentally holding up before deleting it.**
+
+
 ## Silent success
 
 A write returning success is not evidence it landed.

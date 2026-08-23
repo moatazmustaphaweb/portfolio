@@ -18,6 +18,12 @@ resolve(entity, locale, field):
   3. else  return null → caller omits the element entirely
 ```
 
+**Chapter prose resolves the same way but over a larger unit.** A paragraph is
+not a translatable unit, so the fallback there is per `(chapter_section, part)`
+rather than per row — see THE CHAPTER SLOT MODEL below. Same rule, coarser
+grain, and deliberately: a section half-served by the fallback is not a
+bilingual section, it is an untranslated one.
+
 ---
 
 ## ENUMS
@@ -190,6 +196,97 @@ create table experiments (
 **Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role`, and without a **decided** decision set, in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
 
 > **Amended 2026-08-12 (decision 034).** An explicitly **empty** decision set is allowed. `cervello/method` argues in principles rather than decisions, and those are different things — a decision resolves a specific problem, a principle is a standing rule governing many. The rule forbids an unfilled field, not a considered zero.
+
+---
+
+## THE CHAPTER SLOT MODEL
+
+*Added 2026-08-23, task `004230826`. Migrations 0034–0038 and 0045.*
+
+> ⚠️ **This file is behind on the slot model generally.** `cover_sections`,
+> `cover_paragraphs`, `cover_slot_aliases` and `page_sections` are live tables
+> and are **not documented here**. Only the chapter side is, because that is
+> what `004230826` changed. Named so the gap reads as known rather than missed;
+> the migrations are the authority until it is closed.
+
+A chapter's prose used to live in six fixed `chapter` translation fields chosen
+by matching the Notion heading against a vocabulary in code, and **a heading
+outside that list was discarded silently**. Migration 0035 replaced that with
+named slots: the slot is structure, the heading text is content, and an
+unrecognised heading fails loudly instead of vanishing.
+
+```sql
+create table chapter_sections (
+  id         uuid primary key default gen_random_uuid(),
+  chapter_id uuid not null references chapters(id) on delete cascade,
+  slot       text not null,              -- text, not an enum: a new slot is a row
+  sort_order integer not null,
+  unique (chapter_id, slot)              -- two headings, one slot = a refusal
+);
+
+-- The heading text a chapter uses → the slot it fills. A new spelling is a
+-- ROW, not a deploy. This is the "data is data" split: which heading maps to
+-- which slot is data; the mapping mechanism is code.
+create table chapter_slot_aliases (
+  heading_norm text primary key,         -- normaliseHeading() in lib/sync/cover-slots.ts
+  slot         text not null,
+  observed_on  text                      -- documentation, not a key
+);
+```
+
+### A paragraph is a row, and it belongs to ONE locale
+
+```sql
+create table chapter_paragraphs (
+  id                 uuid primary key default gen_random_uuid(),
+  chapter_section_id uuid not null references chapter_sections(id) on delete cascade,
+  sort_order         integer not null,
+  kind               text not null,      -- 'prose' | 'table'
+  locale             locale_code not null,   -- 0045. NO DEFAULT
+  part               text not null,          -- 0045. 'body' | 'tail'. NO DEFAULT
+  unique (chapter_section_id, locale, sort_order)
+);
+
+create table chapter_table_cells (
+  id                   uuid primary key default gen_random_uuid(),
+  chapter_paragraph_id uuid not null references chapter_paragraphs(id) on delete cascade,
+  row_idx              integer not null,
+  col_idx              integer not null,
+  is_header            boolean not null default false,
+  unique (chapter_paragraph_id, row_idx, col_idx)
+);
+```
+
+**Why a paragraph is a row and not a joined blob:** an image tag in Notion is
+its own paragraph block, so it becomes its own row whose body is exactly
+`[image:<uuid>]`, and the renderer emits a `<figure>` as a **sibling** of the
+`<p>`s. `<figure>` is invalid inside `<p>` — a joined field would force the
+figure to be spliced into the middle of one, and the browser closes the
+paragraph early and reparents the rest. That renders *almost* right.
+
+**Why `locale` is on the row and not only on the translation (0045):** a
+paragraph is not a translatable unit; a **section** is. English has N
+paragraphs and Arabic has M, and both are correct — the Arabic is written from
+inside the language and splits where the English joins. A shared row asserts a
+1:1 correspondence the content never had, and the position gate protecting that
+assertion discarded 67 finished Arabic paragraphs. A section now owns two
+independent sequences and nothing is paired. `translations` still holds every
+string: an `en` row carries only an `en` row, an `ar` row only an `ar` one,
+which is what lets `resolveManyDetailed` report the language that actually
+supplied a string (decision 053).
+
+**Why `part` (0045):** a chapter section splits at its **last** horizontal rule
+into a `body` and a `tail` — in this corpus the tail is always the
+cross-chapter pointer, only ever on an English `Result`. `part` is the unit the
+English fallback resolves over, so an Arabic section serves its own body and
+still falls back for the pointer that follows it. `sort_order` is one flat
+numbering per locale, body first, so a single `order by sort_order` reproduces
+the written order.
+
+**The fallback for chapter prose is therefore per `(section, part)`, not per
+paragraph** — a strengthening of the rule at the top of this file, not an
+exception to it. The old shape could render a section half Arabic and half
+English; it now renders one language or the other, marked.
 
 ---
 

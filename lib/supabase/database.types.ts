@@ -220,11 +220,17 @@ export type Database = {
         Relationships: [];
       };
       /**
-       * One row per paragraph, ordered. Never a joined string.
+       * One row per paragraph, ordered, and belonging to ONE locale.
        *
        * A paragraph whose body is `[image:<uuid>]` renders as a <figure>. That
        * is why these are rows: <figure> is invalid inside <p>, so the figure
        * has to be a SIBLING of the paragraphs, not spliced into one.
+       *
+       * ⚠️ `locale` is not redundant with `translations.locale` (migration
+       * 0045). A section owns two INDEPENDENT sequences — its English
+       * paragraphs and its Arabic ones — because a paragraph is not a
+       * translatable unit and the two languages split the same passage
+       * differently. `sort_order` is unique per (section, locale).
        */
       chapter_paragraphs: {
         Row: {
@@ -233,12 +239,23 @@ export type Database = {
           sort_order: number;
           /** 'prose' | 'table' — a table row has no body and owns cells. */
           kind: string;
+          /** Which language's sequence this row belongs to. */
+          locale: "en" | "ar";
+          /**
+           * 'body' | 'tail' — the two halves of a section, split at its
+           * closing divider. The unit decision 013's fallback resolves over,
+           * so an Arabic section can serve its own body and still fall back
+           * for the English cross-chapter pointer that follows it.
+           */
+          part: string;
         };
         Insert: {
           id?: string;
           chapter_section_id: string;
           sort_order: number;
           kind?: string;
+          locale: "en" | "ar";
+          part: string;
         };
         Update: Partial<Database["public"]["Tables"]["chapter_paragraphs"]["Insert"]>;
         Relationships: [];
