@@ -618,6 +618,35 @@ Each of these cost at least one session.
 | **Catch-all fall-through depends on WHERE the match fails** | Same task. Two URLs under the same subtree behaved oppositely, and both look like "no route matched". `/work/east` — `work/[caseFile]` REJECTS the param, and the catch-all never sees the request **even when it declares that exact path**. `/work/uae-acquisition/cut/example-cut` — the param RESOLVES, no child matches the rest, and the catch-all serves it | A rejected param short-circuits the whole subtree; an unmatched deeper route falls through. **Test the specific path before designing around either behaviour** — a real `cut/[cut]/page.tsx` was written on the assumption that no fall-through was possible, and it degraded every `/work/<slug>/cut/*` 404 per the row above. It was deleted once the fall-through was measured |
 | **`generateStaticParams` returning `[]` does not mean "no paths"** | Same task. With `dynamicParams = false` and an empty param list, Next 16.3 dev stops enforcing the list and the segment answers **200 for every unmatched URL on the site**. The disabled state was the dangerous one | Declare at least one path always, even a sentinel the page 404s. And re-test after: the dev router caches param lists across edits, so a URL that was declared in an earlier attempt keeps answering from the old list until the server is restarted |
 
+## Three claims in one file rotted the same way. The pattern, not the facts
+
+Recorded 2026-08-23, task `018230826`, after the third one in a single night.
+
+`CLAUDE.md` has now carried three confident, load-bearing statements that were **true when written and false when read**:
+
+| the claim | what was measured |
+|---|---|
+| `main` is level with origin / the push is refused | wrong three separate ways, on one line |
+| `media` has **0 rows**; **0 of 4** case files have a cover | **80 rows**; the UAE has one |
+| **No deploy. No Vercel project.** Nothing has run on Vercel | a team, a project, **20 deployments**, production `READY` for weeks |
+
+**No one lied and no one was careless.** Each was written by someone who had just checked. The failure is what happened next: **the sentence was quoted into a brief, and the brief was trusted instead of the system.**
+
+**The tell is grammatical.** All three are *states* — a count, a status, an existence claim. A state is exactly the kind of sentence that ages without any of its words changing, and a document cannot tell you it has aged.
+
+**So the fix is not "be more careful", it is to stop writing states into documents.** Where a fact can be produced by a command, the document carries **the command** and not the answer:
+
+```sql
+select count(*) from media;
+```
+```
+git fetch origin && git log origin/main..HEAD --oneline
+```
+
+**A line that cannot be true or false cannot rot.** All three bullets now read that way, and the history is kept in each — because the third one happened *after* the first two were fixed with exactly this technique, in the same file, which is the strongest evidence there is that reading a warning is not the same as applying it.
+
+**The corollary that costs the most when missed:** these were all *pessimistic* claims — nothing exists, nothing works, nothing shipped. **A pessimistic stale claim is more dangerous than an optimistic one**, because it is never contradicted by a failure. A wrong "it works" breaks loudly the moment someone tries it. A wrong "there is no deploy" just quietly keeps a finished thing out of every plan — this one hid a live production site through an entire launch-readiness review.
+
 ---
 
 # PART 7 — MEASURE BEFORE REASONING

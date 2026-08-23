@@ -169,7 +169,16 @@ docs/                 all project documentation
 - **No accessibility audit.** No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised.
 - **The contact form has never been submitted through a browser.** Four route branches tested with `curl`; the rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once.
 - **ISR has never been observed working in production**, and `/api/revalidate` has never been called against a production build.
-- **No deploy. No Vercel project. Nothing has ever run on Vercel's runtime.** That much is true and is not a git fact.
+- **Deployment — and this line no longer states whether anything is deployed.** It said *"No deploy. No Vercel project. Nothing has ever run on Vercel's runtime."* **All three were false when measured, 2026-08-23, task `018230826`:** a team, a project linked to the GitHub repo, **twenty deployments**, and a production deploy in `READY`. The site has been building on every push to `main` for weeks.
+
+  **This is the third claim in this file to rot the same way** — after the git bullet above and the `media` counts below. Same mechanism every time: true when written, quoted afterwards, never re-run. So the same fix. **Run it:**
+
+  ```
+  # Vercel MCP, or the dashboard
+  list_teams → list_projects → list_deployments → get_project
+  ```
+
+  What is still true and is not a count: **there is no custom domain** — `moatazmustapha.com` is not attached, and the project answers on `*.vercel.app` only. **And the site is behind Vercel's deployment protection**, so a visitor gets a Vercel login rather than the portfolio. **Turning that off is the actual act of launching**, and it is Moataz's.
 
   **This bullet no longer states the git state, and that is the correction.** Rewritten 2026-08-22, task `024210826`, after devops **refused to commit the previous version** of it — which had corrected one stale claim (*"the push is refused"*) while leaving a second one standing in bold two clauses earlier (*"`main` is NOT level with origin"*), inside the same sentence that forbids restating a push verdict. Both were true when written. Neither was true when read.
 

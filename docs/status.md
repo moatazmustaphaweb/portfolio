@@ -37,6 +37,62 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 018230826 — 2026-08-23 11:52 — the site has been deployed for weeks. `CLAUDE.md` said it never had
+
+He asked what I needed from Vercel — an API key, a token — and offered to fetch it.
+
+**Nothing.** Vercel was already connected and reachable from this session:
+
+| | |
+|---|---|
+| team | `Moataz Portfolio`, hobby |
+| project | `portfolio`, linked to `moatazmustaphaweb/portfolio` |
+| deployments | **20**, latest **`READY`**, target **production** |
+| built from | `87963a1` — the parallel session's commit |
+
+**Every push to `main` has been triggering a production build for weeks.**
+
+### What the file said
+
+> *"No deploy. No Vercel project. Nothing has ever run on Vercel's runtime."*
+
+**Three claims, all false.** And this bullet sits **four lines below** the git bullet that was
+rewritten for exactly this reason, in the same file, under a heading that already explains the
+failure mode.
+
+**The bullet now carries the commands instead of the answer**, like the other two.
+
+### The pattern, written to `docs/learn.md` Part 6
+
+Three claims in one file, one night, same mechanism: **true when written, quoted afterwards, never
+re-run.** The tell is grammatical — all three are *states*, and a state ages without any of its
+words changing.
+
+**The part I had not seen before, and it is the reason this one survived longest:** all three were
+**pessimistic**. Nothing exists, nothing works, nothing shipped.
+
+**A pessimistic stale claim is more dangerous than an optimistic one, because nothing ever
+contradicts it.** A wrong *"it works"* breaks the moment someone tries it. A wrong *"there is no
+deploy"* just quietly keeps a finished thing out of every plan — **this one hid a live production
+site through an entire launch-readiness review, including one I ran today.**
+
+### What is actually left on the Vercel side
+
+- **No custom domain.** `moatazmustapha.com` is not attached; three `*.vercel.app` domains answer.
+- **Deployment protection is on.** `https://portfolio-moataz-portfolio.vercel.app/en` returns
+  **Vercel's login page**, not the portfolio. **That switch is the act of launching**, and it is his.
+- **None of tonight's work is deployed.** 41 commits are local to
+  `worktree-status-001220826`.
+- One deployment in the list is **`ERROR`**, and it is the parallel session's worktree branch —
+  **so a pushed worktree branch produces a failing preview build.** Worth knowing before I push mine.
+
+### Asked, not assumed
+
+Whether to push. The site is behind a login, so no visitor could see anything either way — but it
+would be the first push of this session and it is not mine to decide.
+
+---
+
 ## 017230826 — 2026-08-23 11:26 — controls answer a press. The rest of the motion work stays behind the gate
 
 He asked for three things — press feedback, a page-to-page loader, and the canvas camera — and
