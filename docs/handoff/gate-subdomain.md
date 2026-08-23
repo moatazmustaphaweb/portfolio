@@ -1,66 +1,67 @@
 # `gate.moatazmustapha.com` — subdomain handoff
 
-Task `021230826`, 2026-08-23. Two things live here: **the brief to send to Cloud CoWork**, and
-**the slots it fills in when it comes back**.
+Task `021230826`, 2026-08-23. **Updated the same day, task `022230826`: the Vercel half is done.**
+Moataz supplied a team-scoped API token, so steps that were written as instructions for Cloud CoWork
+have been executed here instead. **What is left is one DNS record at GoDaddy.**
 
-**Nothing in this file launches the site.** The subdomain can resolve, verify and hold a valid
-certificate while the project is still behind Vercel's deployment protection — a visitor gets a
-Vercel login, not the portfolio. **Turning that off is the launch**, it is one switch, and it is
-Moataz's. It is deliberately outside the brief below.
+**Nothing here launches the site.** The subdomain can resolve, verify and hold a valid certificate
+while the project stays behind Vercel's deployment protection — a visitor gets a Vercel login, not
+the portfolio. **Turning that off is the launch**, it is one switch, and it is Moataz's.
 
 ---
 
-## Facts the brief depends on
-
-Measured 2026-08-23, not remembered. Re-run `list_teams` / `list_projects` if this is being read
-later.
+## State, measured
 
 | | |
 |---|---|
-| Registrar | **GoDaddy** |
-| Apex | `moatazmustapha.com` — **registered, and already serving a site** |
-| New subdomain | `gate.moatazmustapha.com` |
-| Vercel team | `Moataz Portfolio` · `moataz-portfolio` · `team_9wIC827xg9APrboIsvjeTOiA` · Hobby |
+| Registrar | **GoDaddy** — nameservers `ns51.domaincontrol.com`, `ns52.domaincontrol.com` |
+| Apex | `moatazmustapha.com` — **registered, already serving a site** |
+| Subdomain | `gate.moatazmustapha.com` — **attached to the Vercel project, `verified: true`** |
+| Vercel team | `Moataz Portfolio` · `team_9wIC827xg9APrboIsvjeTOiA` · Hobby |
 | Vercel project | `portfolio` · `prj_V6FGgXOikzQaXpysT1WJcJmRlwVq` |
-| Git link | `moatazmustaphaweb/portfolio`, builds on every push to `main` |
+| DNS status | **`misconfigured: true`** — expected; the record below does not exist yet |
+| Env vars | **22 set**, all ten the app reads |
+| Deployment protection | **untouched, still on** |
 
-**The apex being live is the whole reason this brief is written defensively.** A subdomain is a
-purely additive change — one new record, nothing else touched — and every instruction below exists
-to keep it that way.
+---
+
+## THE RECORD — this is the whole remaining task
+
+```
+Type   CNAME
+Name   gate
+Value  adc7fd9cd7faf2df.vercel-dns-017.com
+TTL    600
+```
+
+### That value was worth waiting for
+
+The first version of this brief deliberately refused to name a CNAME target, because Vercel's own
+docs contradict themselves — `cname.vercel-dns.com` on the platform-elements page,
+`cname.vercel-dns-0.com` in the CLI reference. **Both would have been wrong.**
+
+`GET /v6/domains/gate.moatazmustapha.com/config` returns a **per-project** target,
+`adc7fd9cd7faf2df.vercel-dns-017.com`, ranked above the generic `cname.vercel-dns.com` fallback.
+A guessed value copied from a tutorial would have produced a record that looks correct in GoDaddy's
+table and is not the one Vercel wants.
+
+**The lesson generalises and is the same one this repo keeps relearning:** the value was not
+derivable. It had to be asked for. See `docs/learn.md` Part 7 on Cloudinary public IDs — same shape,
+different service.
 
 ---
 
 ## THE BRIEF — send this verbatim
 
-> **Goal:** make `gate.moatazmustapha.com` resolve to the Vercel project `portfolio`, verified, with
-> a valid TLS certificate. Add nothing else and change nothing else.
+> **Goal:** create one DNS record at GoDaddy so `gate.moatazmustapha.com` resolves to Vercel.
+> The Vercel side is already done — the domain is attached and verified. **Do not touch Vercel.**
 >
-> **Registrar:** GoDaddy, under Moataz's account.
-> **Vercel team:** `moataz-portfolio` (`team_9wIC827xg9APrboIsvjeTOiA`), Hobby plan.
-> **Vercel project:** `portfolio` (`prj_V6FGgXOikzQaXpysT1WJcJmRlwVq`).
+> **Registrar:** GoDaddy, Moataz's account. **Domain:** `moatazmustapha.com`.
 >
-> ⚠️ **`moatazmustapha.com` is a live domain serving an existing site, and its DNS is hosted at
-> GoDaddy.** You are adding one subdomain to it. You are not migrating it, not re-pointing it, and
-> not tidying it.
+> ⚠️ **`moatazmustapha.com` is live and serving an existing site, and GoDaddy hosts its DNS.**
+> You are adding one subdomain record. You are not migrating, re-pointing, or tidying anything.
 >
-> ### Step 1 — Vercel first, GoDaddy second
->
-> Add the domain to the project **before** touching DNS:
->
-> ```
-> vercel domains add gate.moatazmustapha.com --scope moataz-portfolio
-> vercel domains inspect gate.moatazmustapha.com --scope moataz-portfolio
-> ```
->
-> (Or: Vercel dashboard → project `portfolio` → Settings → Domains → Add.)
->
-> **`inspect` prints the exact record Vercel wants. Use what it prints.** Vercel's own docs
-> currently disagree with themselves about the CNAME target — one page says `cname.vercel-dns.com`,
-> the newer CLI reference says `cname.vercel-dns-0.com`, and the value is per-project in some
-> accounts. **Do not copy a value out of a tutorial, including this one.** Read it from `inspect`
-> or from the dashboard's Domains panel and report which one you were given.
->
-> ### Step 2 — GoDaddy: create exactly one record
+> ### The record
 >
 > GoDaddy → Domain Portfolio → `moatazmustapha.com` → **DNS** → Add New Record.
 >
@@ -68,52 +69,42 @@ to keep it that way.
 > |---|---|
 > | Type | `CNAME` |
 > | Name | `gate` |
-> | Value | *whatever step 1 printed* |
-> | TTL | `600` seconds (custom) if the UI allows, else the default hour |
+> | Value | `adc7fd9cd7faf2df.vercel-dns-017.com` |
+> | TTL | `600` seconds (custom) |
 >
 > **The Name field takes `gate`, not `gate.moatazmustapha.com`.** GoDaddy appends the zone itself;
-> entering the full name creates `gate.moatazmustapha.com.moatazmustapha.com`, which resolves for
-> nobody and looks correct in the table. This is the single most common way this task fails.
+> the full name creates `gate.moatazmustapha.com.moatazmustapha.com`, which resolves for nobody and
+> looks correct in the table. This is the single most common way this task fails.
 >
-> **Before you save, look at the existing records for two interceptors:**
-> - a wildcard `*` CNAME or A record — it will answer for `gate` and can mask your record
-> - GoDaddy **Domain Forwarding** or a Parked/"Website Builder" entry — it can override subdomains
+> **Before saving, check the existing records for two interceptors:** a wildcard `*` CNAME or A
+> record, and GoDaddy **Domain Forwarding** or a Parked / Website Builder entry. Either can answer
+> for `gate` and mask your record. **If either is present, stop and report it. Do not remove it.**
 >
-> If either is present, **stop and report it**. Do not remove it.
->
-> ### Step 3 — verify, and wait properly
+> ### Verify
 >
 > ```
 > dig CNAME gate.moatazmustapha.com +short
-> dig gate.moatazmustapha.com +short
 > curl -sSI https://gate.moatazmustapha.com | head -1
 > ```
 >
-> Then confirm in Vercel that the domain reads **Valid Configuration** and that a certificate has
-> been issued (`vercel certs ls --scope moataz-portfolio`).
+> **A `401`, or a Vercel login page, is the expected and correct result.** The project is behind
+> deployment protection on purpose. Reaching it proves the DNS works. Do not try to get past it.
 >
-> A `401` or a Vercel login page at the end is **the expected, correct result** — the project is
-> behind deployment protection on purpose. It proves the domain is wired. Do not try to get past it.
+> ### Report back, with actual strings
 >
-> ### Report back, with the actual strings
->
-> 1. The exact CNAME target Vercel asked for
-> 2. The record as GoDaddy saved it — type, name, value, TTL — copied from the table, not from memory
-> 3. `dig` output for both queries
-> 4. Vercel's configuration status and certificate status
-> 5. Anything you found and did not touch
+> The record as GoDaddy saved it — type, name, value, TTL — copied from the table rather than from
+> memory · the `dig` output · the HTTP status · anything you found and did not touch.
 >
 > ### DO NOT
 >
 > - **Do not change the nameservers.** GoDaddy hosts this zone. Moving DNS to Vercel — which some
->   Vercel flows suggest — takes the existing apex site and its email offline.
-> - Do not edit or delete any existing record. In particular the apex `A`/`CNAME`, any `MX`, and any
->   `TXT` (SPF, DKIM, verification tokens).
+>   Vercel flows suggest — takes the existing apex site **and its email** offline.
+> - Do not edit or delete any existing record: the apex `A`/`CNAME`, any `MX`, any `TXT`
+>   (SPF, DKIM, verification tokens).
 > - Do not add `www`, the apex, or any redirect.
-> - Do not disable Deployment Protection, and do not create a protection bypass.
+> - Do not log into Vercel, disable Deployment Protection, or create a bypass.
 > - Do not add, edit or remove environment variables.
 > - Do not deploy, redeploy, promote, roll back, or push to `main`.
-> - Do not buy, transfer or renew anything.
 >
 > If a step cannot be completed as written, **stop and report** rather than choosing an alternative.
 
@@ -121,95 +112,81 @@ to keep it that way.
 
 ## FILL IN WHEN IT COMES BACK
 
-Replace each `…`. Leave a line blank rather than guessing — a wrong value here gets quoted into a
-brief later, which is how three separate claims in `CLAUDE.md` went stale this month.
-
 ```yaml
-# ── returned by Cloud CoWork ────────────────────────────────────────────────
-subdomain:          gate.moatazmustapha.com
-cname_target:       …    # exactly what `vercel domains inspect` printed
 godaddy_record:
   type:             CNAME
   name:             …    # should read `gate`
   value:            …
   ttl:              …
 dig_cname:          …
-vercel_status:      …    # "Valid Configuration" / "Invalid Configuration"
-certificate:        …    # issued? for which names?
 https_response:     …    # 401 behind protection is correct
 found_but_untouched: …   # wildcards, forwarding, anything odd
 date_completed:     …
 ```
 
+Then, on this side: re-run `GET /v6/domains/gate.moatazmustapha.com/config` and confirm
+`misconfigured` has flipped to `false`, and that a certificate has been issued.
+
 ---
 
-## THE VERCEL SIDE — what is actually needed from Moataz
+## What was done with the token, and what was not
 
-**One thing: an API token.** Everything else is either already reachable or already on this machine.
+**Token:** team-scoped, stored at `.env.vercel.local` (gitignored by the `.env*` rule, mode 600).
+It authenticates against team endpoints and 404s on `/v2/user` — correct for a team token, which
+carries no user identity.
 
-```
-vercel.com/account/settings/tokens  →  Create Token
-   name   anything
-   scope  Moataz Portfolio          ← must be the team, not "Personal Account"
-   expiry 90 days is fine
-```
+### Done
 
-**Where it goes:** `.env.vercel.local` in the repo root, as `VERCEL_TOKEN=…`. That path is already
-gitignored by the `.env*` rule, and the reason is practical rather than cautious — **GitHub and
-Vercel both scan pushed commits for Vercel tokens and revoke them automatically**, so a token
-written into a tracked `.md` is dead before it is used.
+1. **`gate.moatazmustapha.com` attached** to project `portfolio`, returned `verified: true`.
+2. **Six environment variables added** to Production and Preview.
 
-**What the token unlocks, none of which is available through the MCP connection I already have:**
+### Two things found while doing it
 
-| | |
-|---|---|
-| `vercel domains add` | attaching the subdomain — the MCP exposes no add-domain tool |
-| environment variables | the ten below; no MCP tool for these either |
-| deployment protection | the launch switch — MCP *can* do this one, so the token is not required for it |
+**A Supabase integration was already installed** and had supplied sixteen variables, including all
+three the app needs. Nothing to add there — worth knowing before someone adds duplicates by hand.
 
-**If you would rather not issue a token at all**, the alternative costs four clicks in the dashboard
-and no credential leaves your hands. Say so and I will write the exact click path instead.
+**`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` was missing from Vercel** across all twenty previous
+deployments. It **was not breaking images**, and the reason is a deliberate one: `lib/media/cloud.ts`
+carries a hardcoded fallback, `?? "vewhrkzj"`, with a comment explaining that an imported constant
+depends on the bundler for nothing. It is now set explicitly as well; the fallback stays as the
+belt-and-braces it was written to be.
 
-### The environment variables, and the three that stay here
+### Deliberately not done
 
-Ten go to Vercel, **Production** scope. **Eight of them I already hold** in `.env.local` and need
-nothing from you.
+- **Deployment protection is untouched.** It is the launch, and it is Moataz's switch.
+- **No deploy, no promote, no push.** Environment variables do not take effect until the next build,
+  so nothing about the running site changed.
+- **`NEXT_PUBLIC_SITE_URL` is not set** — see below.
 
-| Variable | Source |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | have it |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | have it |
-| `SUPABASE_SERVICE_ROLE_KEY` | have it |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | have it |
-| `RESEND_API_KEY` | have it |
-| `CONTACT_NOTIFY_TO` | have it |
-| `CONTACT_NOTIFY_FROM` | have it |
-| `NEXT_PUBLIC_GA_ID` | have it |
-| `REVALIDATE_SECRET` | **empty locally** — I generate one; it is ours to invent, not yours to supply |
-| `NEXT_PUBLIC_SITE_URL` | `https://gate.moatazmustapha.com` — **pending the apex decision below** |
+### Which variables never need to reach Vercel
 
-**Three secrets never need to leave this machine, and that is a finding rather than a preference:**
+Traced through the code, not assumed:
 
-- **`NOTION_API_KEY`** — read only by `scripts/sync-notion.ts`, which runs locally. Nothing on the
-  server touches Notion.
+- **`NOTION_API_KEY`** — read only by `scripts/sync-notion.ts`, which runs locally.
 - **`CLOUDINARY_API_SECRET`** and **`NEXT_PUBLIC_CLOUDINARY_API_KEY`** — read by **no application
-  code at all**. They exist for the signed-upload script. Rule 3 means the site only ever *builds*
-  Cloudinary URLs, and building a delivery URL needs the cloud name and nothing else.
+  code at all**. Rule 3 means the site only ever *builds* delivery URLs, which needs the cloud name
+  alone. They exist for the signed-upload script.
 
-**And one must stay unset:** `NEXT_PUBLIC_PREVIEW_STUBS`. Setting it in Production ships the
-coming-soon stub pages as if they were real routes.
+And **`NEXT_PUBLIC_PREVIEW_STUBS` must stay unset**, or the coming-soon stub pages ship as real
+routes.
+
+`REVALIDATE_SECRET` was empty locally — it is ours to invent rather than Moataz's to supply. One was
+generated, set on Vercel, and written back to `.env.local` so both sides match. The route
+**fails closed** on a missing secret (500, not open), so the previous gap was never a hole.
 
 ---
 
-## The one decision still open, held back deliberately
+## The one decision still open
 
-`NEXT_PUBLIC_SITE_URL` is what every canonical tag, `og:url`, `sitemap.xml` and `llms.txt` is built
-from — `lib/seo/site.ts` resolves it, and it overrides Vercel's own `VERCEL_PROJECT_PRODUCTION_URL`.
-Whatever goes in it becomes the address search engines and shared links treat as the real one.
+`NEXT_PUBLIC_SITE_URL` decides every canonical tag, `og:url`, `sitemap.xml` and `llms.txt` —
+`lib/seo/site.ts` resolves it and it overrides Vercel's own `VERCEL_PROJECT_PRODUCTION_URL`.
+Whatever goes in it becomes the address search engines treat as real.
 
-So it depends on something not yet decided: **is `gate.` the portfolio's permanent home, or a
-staging address while `moatazmustapha.com` still serves the existing site?** The DNS work is
-identical either way, which is why the brief above does not wait on it.
+So it turns on something undecided: **is `gate.` the portfolio's permanent home, or a staging
+address while `moatazmustapha.com` keeps its current site?**
 
-**This is not a question being asked in this file** — it is recorded here so it does not get
-silently defaulted. It will be asked on its own, after the subdomain exists.
+**It is deliberately left unset, and that is safe rather than merely deferred.** With it absent,
+`siteUrl()` falls back to `VERCEL_PROJECT_PRODUCTION_URL`, which Vercel supplies automatically — so
+absolute URLs stay correct for the `.vercel.app` address in the meantime. Setting it wrong would be
+worse than leaving it, because a wrong canonical is the kind of thing that gets indexed before
+anyone notices.

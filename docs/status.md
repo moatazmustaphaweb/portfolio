@@ -37,6 +37,64 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 022230826 — 2026-08-23 14:40 — the Vercel half, done with a token
+
+Moataz supplied a team-scoped Vercel API token. Everything the previous task had written as
+*instructions for Cloud CoWork* on the Vercel side has been executed instead. **One DNS record at
+GoDaddy is all that remains**, and `docs/handoff/gate-subdomain.md` has been rewritten around that.
+
+### The CNAME value vindicated the refusal to guess
+
+`021230826` deliberately left the CNAME target blank, because Vercel's docs contradict themselves:
+`cname.vercel-dns.com` on one page, `cname.vercel-dns-0.com` in the CLI reference.
+
+`GET /v6/domains/gate.moatazmustapha.com/config` returns neither. It returns a **per-project**
+target:
+
+```
+adc7fd9cd7faf2df.vercel-dns-017.com     (rank 1)
+cname.vercel-dns.com                    (rank 2, generic fallback)
+```
+
+**Both documented values would have been wrong**, and the resulting record would have looked correct
+in GoDaddy's table. The value was not derivable — it had to be asked for. Same shape as the
+Cloudinary public IDs in `learn.md` Part 7, different service.
+
+### Done
+
+- **`gate.moatazmustapha.com` attached** to `portfolio`, `verified: true` immediately.
+- **Six environment variables** added to Production and Preview. The project now holds 22, covering
+  all ten the app reads.
+
+### Two things found on the way
+
+**A Supabase integration was already installed**, having supplied sixteen variables including all
+three the app needs. Anyone adding them by hand would have created duplicates.
+
+**`NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` was absent from Vercel** across all twenty prior deployments —
+and **was not breaking images**. `lib/media/cloud.ts` carries `?? "vewhrkzj"`, written deliberately
+because `next-cloudinary` reads the variable inside its own bundled code and whether that gets
+substituted is a property of the bundler. **The suspicion was raised and then withdrawn before it
+was reported as a defect**, which is the correct order and is worth noting because the opposite
+order has cost this project time twice this month.
+
+### Deliberately not done
+
+**Deployment protection is untouched.** No deploy, no promote, no push — environment variables do
+not take effect until the next build, so nothing about the running site changed.
+
+**`NEXT_PUBLIC_SITE_URL` is not set, and that is safe rather than merely deferred.** With it absent,
+`siteUrl()` falls back to `VERCEL_PROJECT_PRODUCTION_URL`, which Vercel supplies automatically. It
+depends on whether `gate.` is the permanent home or a staging address, and a wrong canonical is
+worse than none because it gets indexed before anyone notices.
+
+### Not verified
+
+**The record does not exist yet**, so `misconfigured` is still `true` and no certificate has been
+issued. Nothing has been resolved end to end, and nothing has been seen in a browser.
+
+---
+
 ## 021230826 — 2026-08-23 14:05 — the gate subdomain: a brief, and what the MCP cannot reach
 
 Moataz is registering `gate.moatazmustapha.com` at GoDaddy. The apex is **already live and serving
