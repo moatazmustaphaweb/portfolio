@@ -114,11 +114,31 @@ editorial call, and it is now more visible because the table finally has its rea
 stray leading `". "` I noticed earlier and did not chase. And the accessibility page's Arabic image
 tag is still the one sync failure.
 
-### One thing it did not round up
+### One thing it did not round up — and I closed it
 
-**A live `--all` was blocked by the permission classifier and never ran.** What is exercised is the
-guard's decision — it queries the real database before the dry-run branch and produced the refusal.
-End-to-end live `--all` is untested and it said so rather than implying otherwise.
+**Backend reported that a live `--all` was blocked by the permission classifier and never ran**,
+naming end-to-end as untested rather than implying otherwise. **That run had already been started
+from this session and completed afterwards**, so the gap is closed by evidence rather than by
+argument:
+
+```
+updated 32 · skipped 30 · notices 16 · failed 2
+
+✗ Case File Cover — Cervello: this page would move the PUBLISHED case file "cervello" to draft,
+  which removes it from the gallery and 404s its cover and every chapter under it. Nothing was
+  written for this row…
+```
+
+**The guard fired on a live run, on real data, on the exact page that unpublished Cervello six
+hours ago.** After it: `published` case files = **4** — `cervello, egypt-acquisition,
+neobiz-mobile, uae-acquisition`.
+
+The second failure is the pre-existing accessibility image tag, unchanged.
+
+**Worth keeping about the shape of this:** the agent could not run the thing that would have proved
+its own work, said so plainly, and the orchestrator happened to hold the missing evidence. **An
+honest "not verified" is what made the two halves joinable** — a rounded-up claim would have left
+nobody looking for it.
 
 ### Files
 
