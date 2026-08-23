@@ -246,6 +246,11 @@
   /* --- Motion: colour and opacity only, never transform or size --- */
   --duration: 150ms;
   --ease: ease;
+  /* Press feedback. Two values because down and up are not symmetric —
+   * see the :active rule. Tokens rather than literals so the
+   * reduced-motion block can zero them with everything else. */
+  --duration-press-in: 60ms;
+  --duration-press-out: 160ms;
 
   /* --- Focus --- */
   --focus-ring-width: 2px;
@@ -356,6 +361,8 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration: 0ms;
+    --duration-press-in: 0ms;
+    --duration-press-out: 0ms;
   }
   html {
     scroll-behavior: auto;
@@ -501,6 +508,67 @@
   :focus-visible {
     outline: var(--focus-ring-width) solid var(--color-accent);
     outline-offset: var(--focus-offset);
+  }
+
+  /*
+   * ── PRESS FEEDBACK ─────────────────────────────────────────────────────
+   *
+   * Added 2026-08-23, task `017230826`. Before it, `active:` appeared ONCE in
+   * the whole codebase and `:active` nowhere in this file: a control gave no
+   * acknowledgement that it had been pressed. That is not a missing flourish
+   * — a control that stays silent under the finger gets pressed twice, and on
+   * a slow connection the second press is the one that lands somewhere else.
+   *
+   * ── WHY OPACITY AND NOT SCALE ──────────────────────────────────────────
+   *
+   * `transform` is scoped to the Motion Layer's camera and field (decision
+   * 048) and a content-level element may not use it. `tailwind.config.ts`
+   * restricts `transitionProperty` to colour and opacity for the same reason:
+   * "Never transform, size or shadow." A dip in opacity is the only press
+   * affordance this system has, and it is enough.
+   *
+   * ── WHY IT IS NOT THE MOTION LAYER ─────────────────────────────────────
+   *
+   * `docs/design/motion-system.md` rule 1 bars everything in that document
+   * from MVP-1, and this is deliberately outside it. That document is about a
+   * field, a camera and six navigation moves — a *system* that states position
+   * and relationship. This is a control answering a finger. It ships in MVP-1
+   * because it is interaction feedback, not motion design, and Moataz called
+   * it required.
+   *
+   * ── THE 60ms IS DOING SOMETHING ────────────────────────────────────────
+   *
+   * `--duration-press-in` (60ms) is faster than `--duration`, on purpose: a
+   * press must read as instant, and the release is what can afford to ease at
+   * `--duration-press-out` (160ms). The transition sits on the resting state
+   * so it governs coming back UP; the pressed state overrides only the
+   * duration, so going DOWN is near-immediate.
+   *
+   * Both are TOKENS and both are zeroed in the `prefers-reduced-motion` block
+   * — which is the reason they are tokens. Written first as literals, they
+   * would have been the one animated thing on the site that ignored the
+   * setting, in a codebase whose own rule is that reduced-motion disables the
+   * system entirely rather than partially.
+   *
+   * ── SCOPE ──────────────────────────────────────────────────────────────
+   *
+   * Anchors, buttons and summary elements. NOT `:disabled` — a disabled
+   * control must not answer, and answering would tell the user their press
+   * did something. NOT inputs: a text field's press feedback is the caret.
+   */
+  a,
+  button,
+  summary,
+  [role="button"] {
+    transition: opacity var(--duration-press-out) var(--ease);
+  }
+
+  a:active,
+  button:not(:disabled):active,
+  summary:active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    opacity: 0.62;
+    transition-duration: var(--duration-press-in);
   }
 }
 

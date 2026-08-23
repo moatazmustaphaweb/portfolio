@@ -37,6 +37,71 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 017230826 — 2026-08-23 11:26 — controls answer a press. The rest of the motion work stays behind the gate
+
+He asked for three things — press feedback, a page-to-page loader, and the canvas camera — and
+asked whether I needed skills or a web search for them.
+
+### No, and the reason is worth recording
+
+**All three are already specified**, in `docs/design/motion-system.md` v2.0: the camera is §1–3, the
+loader is §5, the tooling call is §14. The skills exist too — `motion-system` governs, with
+`motion-framer`, `gsap-scrolltrigger`, `threejs-webgl` and `react-three-fiber` under it. **A search
+would have returned less than the document he already has.**
+
+**And the document's own rule 1 is *"Nothing in this document ships inside MVP-1."*** with decision
+047 putting it behind a flag after the launch gate passes in full, and **§16 listing seven open
+questions to answer before build** — field density, Canvas vs WebGL, camera amplitude, mobile
+tuning. None answered.
+
+**He ruled: the loader and the camera wait for after MVP-1. The press does not.**
+
+### Why the press is not the Motion Layer, which is what let it ship
+
+That document is about a field, a camera and six navigation moves — **a system that states position
+and relationship.** This is a control answering a finger. Interaction feedback, not motion design.
+
+**And the gap was real, measured not assumed:** `active:` appeared **once** in the entire codebase
+and `:active` **nowhere** in `globals.css`. A control that stays silent under the finger gets
+pressed twice, and on a slow connection the second press lands somewhere else.
+
+### What shipped
+
+`a`, `button`, `summary`, `[role="button"]` dip to `opacity: 0.62` on press.
+
+**Opacity, not scale.** `transform` is scoped to the Motion Layer's camera and field by decision
+048, and `tailwind.config.ts` restricts `transitionProperty` to colour and opacity for the same
+reason — *"Never transform, size or shadow."* An opacity dip is the only press affordance this
+system has, and it is enough.
+
+**Asymmetric by design:** `--duration-press-in` 60ms, `--duration-press-out` 160ms. A press must
+read as instant; the release can ease.
+
+**Excluded deliberately:** `:disabled` and `[aria-disabled="true"]` — a disabled control must not
+answer, because answering tells the user their press did something. Inputs too: a text field's press
+feedback is the caret.
+
+### The correction I made to my own work before committing it
+
+I first wrote the two durations as **literals**. `prefers-reduced-motion` in this file zeroes
+`--duration`, so literals would have made this **the one animated thing on the site that ignored the
+setting** — in a codebase whose stated rule is that reduced-motion disables the system *entirely,
+not partially*.
+
+Both are now tokens, and both are zeroed in that block. Verified in the **served** stylesheet:
+`--duration-press-in` and `--duration-press-out` each appear three times — declaration,
+reduced-motion override, and use.
+
+`next build` exit 0 · `eslint` clean.
+
+### Not verified
+
+**Nobody has pressed anything.** The rule is in the served CSS and the selectors are right;
+whether 0.62 reads as a press rather than a glitch is a judgement, and it needs a finger on a
+screen.
+
+---
+
 ## 014230826 — 2026-08-23 10:38 — the 404 has a title. **Zero axe violations across the site.**
 
 The last technical item on the accessibility audit.
