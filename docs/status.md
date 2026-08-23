@@ -37,6 +37,57 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 010230826 — 2026-08-23 08:41 — `fg-dim` darkened in the light theme; the smallest text now passes AA
+
+His ruling on the audit's one serious finding: **option (a)**.
+
+`--color-fg-dim` in the light theme, **`#888888` → `#707070`**. Dark theme untouched at `#8f8f8f`.
+
+| | on `bg` | on `surface` | on `surface-raised` |
+|---|---|---|---|
+| before | 3.54 ✗ | 3.40 ✗ | 3.22 ✗ |
+| **after** | **4.95 ✓** | **4.74 ✓** | **4.50 ✓** |
+
+**42 of the site's smallest elements** — `text-micro` and `text-label`, the section labels, metadata
+lines, breadcrumbs and pills — were below AA and now clear it on all three backgrounds.
+
+### The choice was between three greys and none of them was free
+
+`#767676` clears 4.5 on white and **fails on both panel backgrounds**, which fixes the defect where
+it is easiest to see and leaves it where it is hardest. `#707070` clears all three, and 4.50 on
+`surface-raised` is exactly on the line.
+
+**The accepted cost, written into the token:** `--color-fg-muted` is `#666666` at 5.74, so the two
+greys are now close. **This is arithmetic, not taste** — the light theme has very little room above
+4.5, and anything quieter than `fg-muted` while still legible lives in the band between `#666666`
+and `#707070`. The comment says not to lighten it back to separate them without re-running the
+numbers.
+
+### Verified
+
+Both light declarations changed — the `prefers-color-scheme` block and the explicit
+`[data-theme="light"]` block, which is the pair that has gone out of step before. The **served**
+stylesheet carries `#707070` and `#8f8f8f`, so light moved and dark did not. `next build` exit 0,
+**65/65**.
+
+### The 404 title looked mechanical and is not — reported, not attempted
+
+He gave standing authorisation to fix anything I can fix outright, so I opened it. **The strings
+exist in both locales** (`not_found_title`, `not_found_body`, `not_found_cta`). But `not-found.tsx`
+in the App Router **does not support `generateMetadata`**, and the alternative — a default title on
+the root layout — has to resolve a locale on a route that has no `locale` param, which is the same
+thing that makes the in-route `notFound()` wrapper hard.
+
+**So it is a frontend task with a real decision in it, not a two-line fix.** Left alone rather than
+guessed at.
+
+### Still open from the audit
+
+Link colour on raised surfaces (dark), form input borders, and the two unnamed `<nav>` landmarks —
+the last of which needs `ui_strings` rows and therefore Arabic.
+
+---
+
 ## 009230826 — 2026-08-23 08:12 — the raw `[achieved]` is gone, and his diagnostic question is why it was one edit
 
 `/en/work/uae-acquisition/onboarding` was printing `[achieved]` as literal text, six times across

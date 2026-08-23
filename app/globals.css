@@ -253,7 +253,26 @@
     --color-fg: #000000;
     --color-fg-body: #171717;
     --color-fg-muted: #666666;
-    --color-fg-dim: #888888;
+    /*
+     * #707070, not #888888. Changed 2026-08-23, task `010230826`.
+     *
+     * At #888888 this token measured 3.54 / 3.40 / 3.22 against bg, surface
+     * and surface-raised — below the 4.5 AA needs for normal text, and it
+     * carries 42 of the site's smallest elements (`text-micro`, `text-label`).
+     * Dark theme was never affected: the same token clears 5.84 there, which
+     * is why a light-only defect survived review in a codebase whose author
+     * works in dark.
+     *
+     * #707070 gives 4.95 / 4.74 / 4.50 — passing on all three, including the
+     * darkest panel, where 4.50 sits exactly on the line.
+     *
+     * ⚠️ The cost, accepted deliberately: `--color-fg-muted` is #666666 at
+     * 5.74, so the two greys are now close. The light theme has very little
+     * room above 4.5 — anything quieter than fg-muted and still legible lives
+     * in the narrow band between #666666 and #707070. Do not lighten this
+     * back to separate them without re-running the contrast numbers.
+     */
+    --color-fg-dim: #707070;
     --color-accent: #0060df;
     color-scheme: light;
   }
@@ -270,7 +289,8 @@
   --color-fg: #000000;
   --color-fg-body: #171717;
   --color-fg-muted: #666666;
-  --color-fg-dim: #888888;
+  /* See the note on the light-theme override above — same value, same reason. */
+  --color-fg-dim: #707070;
   --color-accent: #0060df;
   color-scheme: light;
 }
