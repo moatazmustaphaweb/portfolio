@@ -37,6 +37,63 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 009230826 — 2026-08-23 08:12 — the raw `[achieved]` is gone, and his diagnostic question is why it was one edit
+
+`/en/work/uae-acquisition/onboarding` was printing `[achieved]` as literal text, six times across
+both locales, in the `Result` table's first column.
+
+### He asked the question that settled it
+
+I put two options to him — move the claims into `outcomes`, or teach chapter tables to strip the
+marker. **He asked instead: does it appear in every table, or only this one?** With the rule
+attached: *if only this one, then the problem is only this one.*
+
+**Measured: only this one.** Every `chapter_table_cells` row in the database carrying an
+`[achieved]` / `[projected]` / `[not-measurable]` marker belongs to **one table** —
+`uae-acquisition/onboarding` `result`, 3 cells in English and 3 in Arabic. **Nothing else on the
+site has ever carried one.**
+
+**That collapses both of my options.** Neither a content move nor a parser change was needed,
+because there was no class of problem — there was one table with an authoring slip in it.
+
+### And the marked version already existed
+
+The three claims are **already in `outcomes`**, all `achieved`, rendering as status badges on the
+cover:
+
+| in `outcomes` | in the chapter table |
+|---|---|
+| `~10 minutes to complete an application` | the same line **+ `[achieved]`** |
+| `Under one business day to open the account, sometimes same day` | the same line **+ `[achieved]`** |
+| `Thousands of new business accounts via the digital journey` | the same line **+ `[achieved]`** |
+
+So the chapter table was a **duplicate** of the outcomes with the marker left attached. His second
+sentence — *"and when they are rewritten in the table that shows all the results, they exist like
+every other table"* — was already true before the fix.
+
+### The fix
+
+Six cells, both Notion pages, ` [achieved]` removed. **Nothing else touched — the prose, the
+claims and the `Basis` column are unchanged.** Re-synced, `failed 0`.
+
+**Verified:** `chapter_table_cells` carrying a marker = **0**. Rendered page = **0** occurrences.
+And the cover still shows **`Achieved`** four times as a badge, so the status information did not
+move or disappear — it is where it always was.
+
+### Worth keeping
+
+**A defect that looks systemic and is actually singular takes a different fix, and the way to tell
+is one query.** I had framed this as "chapter tables do not strip markers", which is true and is
+not the problem: no chapter table has ever needed to. **He asked for the distribution before
+choosing a remedy, and the distribution made the remedy obvious.**
+
+Also relevant to the rule he set earlier tonight — *Notion is the source, fix the code* — and this
+does not breach it. The marker was not content bent to suit a parser; it was **an authoring note in
+a cell where it carries no meaning**, with the authoritative marked copy already living in
+`outcomes`.
+
+---
+
 ## 007230826 — 2026-08-23 07:44 — three launch defects closed, all verified independently
 
 Backend's three-defect brief. **Every claim below is my own measurement**, taken before its report
