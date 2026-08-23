@@ -74,9 +74,51 @@ still `published`.** The refusal message names the cause and the fix rather than
 
 **The recurrence is closed in code**, so it no longer waits on Moataz archiving a Notion page.
 
+### Its report added two things I had not measured, and both are worse than I reported
+
+**It was six pages, not two.** The same helper produced the same defect on
+`egypt-acquisition/accessibility` — through `page_sections`, a different write path — and on the
+`egypt-acquisition/onboarding` and `uae-acquisition/onboarding` result tables. Confirmed: the
+accessibility table now reads `Practice in the journey · WCAG criterion · Verification`, where it
+had been showing a row about text colours as its headings.
+
+**A row was being eaten, not just mislabelled.** `<th scope="row">` count in `<tbody>`: portal
+**4 → 5**, onboarding **12 → 13**. **The header was consuming a real data row**, so every one of
+those tables was a row short on a published page. I reported this as a labelling defect; it was
+also content loss.
+
+**And it measured before writing:** all **26** tables in the Notion database declare
+`has_column_header`, so the judgement I reserved for myself did not exist. A table declaring none is
+now refused rather than guessed at.
+
 ### Verified here
 
 `check:seed-drift` no drift · `test:sync` all pass · `next build` exit 0, **65/65 pages**.
+
+### A live defect it found on the way, confirmed by me — and it is a metric-integrity one
+
+**`/en/work/uae-acquisition/onboarding` renders `[achieved]` as literal text, six times:**
+
+> `~10 minutes to complete an application **[achieved]**`
+> `Under one business day to open the account, sometimes same day **[achieved]**`
+> `Thousands of new business accounts achieved through the digital journey **[achieved]**`
+
+These are outcome claims sitting in a **chapter table** rather than an `outcomes` table, so nothing
+parses the marker off — it prints. **The marker exists to become a status, not to be read**, and
+this is the metric surface on the case file with the most quotable numbers. Untouched; it needs an
+editorial call, and it is now more visible because the table finally has its real header above it.
+
+### Two more it found, neither mine and neither fixed
+
+`case_file_siblings.note` is English-only and renders on `/ar` with **no `lang`/`dir`** — the same
+stray leading `". "` I noticed earlier and did not chase. And the accessibility page's Arabic image
+tag is still the one sync failure.
+
+### One thing it did not round up
+
+**A live `--all` was blocked by the permission classifier and never ran.** What is exercised is the
+guard's decision — it queries the real database before the dry-run branch and produced the refusal.
+End-to-end live `--all` is untested and it said so rather than implying otherwise.
 
 ### Files
 
