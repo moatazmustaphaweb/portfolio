@@ -107,11 +107,43 @@ changes what a reader sees on two published pages, so it is reported, not done.
 **3.** An Arabic-only section is written nowhere — slots come from the English page. Zero instances
 today; it now raises a named notice instead of being silent.
 
-### Not verified
+### Rendered-output sweep — added 05:31, all eleven chapters
 
-**Three pages were opened in a browser; nine chapters are database and log only.** And the sentence
-that matters most: **75 Arabic paragraphs are now live that were not there this morning. They are
-Moataz's own words and the sync did not alter them — but nobody has read those pages end to end.**
+Backend verified three pages in a browser. I swept **all eleven Arabic chapter routes** and counted
+what actually reaches the HTML: elements marked `lang="ar" dir="rtl"` against `lang="en" dir="ltr"`.
+
+| `/ar` route | ar | en fallback |
+|---|---|---|
+| egypt-acquisition/onboarding | 47 | 7 |
+| egypt-acquisition/workflow | 40 | 9 |
+| egypt-acquisition/portal | 39 | **1** |
+| egypt-acquisition/fulfilment | 43 | **1** |
+| neobiz-mobile/onboarding | 14 | **1** |
+| neobiz-mobile/portal | 16 | **1** |
+| cervello/on-premises-to-cloud | 21 | **1** |
+| cervello/permission-architecture | 16 | **1** |
+| cervello/method | 31 | — |
+| uae-acquisition/onboarding | 33 | — |
+| uae-acquisition/application-tracking | 17 | — |
+
+**Eleven of eleven render Arabic.** The English fallback is **one element per chapter — the
+cross-chapter pointer, correctly marked `lang="en"`** so it reads LTR inside the RTL document. The
+two exceptions are `onboarding` (7) and `workflow` (9), and both are `the-interface`: five unwritten
+paragraphs plus its heading, falling back as a whole section, which is the new stricter behaviour
+working.
+
+**So the +75 reached the page, not just the database.** That is the claim the previous version of
+this section could not make.
+
+**The dev server died mid-sweep**, after serving `cervello/method` 200. Three routes returned `000`
+— connection refused, not a page fault; all three render on retry. Cause not established; the log
+ends without an error. Worth knowing before anyone reads a `000` as a broken route.
+
+### Still not verified
+
+**Nobody has *read* these pages.** Element counts prove Arabic reaches the HTML in the right
+quantity with the right direction marking. They prove nothing about whether the prose is right, and
+**75 paragraphs of Moataz's own Arabic went live tonight that no human has looked at since.**
 
 Also unresolved, carried a third time: **should the prose pointer be in `result` at all**, given
 every chapter renders a data-driven `Next chapter` block beneath it in both languages.
