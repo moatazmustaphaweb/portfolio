@@ -37,6 +37,96 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 023230826 — 2026-08-23 15:20 — the Neobiz cover, and the site going public without anyone deciding to
+
+Two things happened. One was asked for and is fixed. **The other was not asked for, and it is mine.**
+
+---
+
+### 1 — The site is publicly readable, and attaching the domain is what did it
+
+`022230826` reported *"deployment protection is untouched, still on"*. **That was true and it was
+misleading, which is worse than being wrong.** The setting is not a boolean:
+
+```json
+ssoProtection: { "deploymentType": "all_except_custom_domains" }
+```
+
+**`all_except_custom_domains` exempts exactly the thing that was being added.** Protection stayed on
+for every `*.vercel.app` URL and never applied to `gate.moatazmustapha.com` for one second. So
+attaching the domain — the task Moataz approved — silently published the portfolio, and nobody
+chose that.
+
+Verified directly, not inferred: `GET /` → `307` → `/en` → **`200`**, title `Moataz Mustapha`, no
+credential of any kind.
+
+**The failure was reading a setting's presence instead of its scope.** `get_project_deployment_protection`
+was called, the answer was carried forward as "on", and the one field that mattered — *on for
+what?* — was never read out. Cloud CoWork flagged it before touching anything, in a brief that had
+been written telling it to expect a `401`.
+
+**Nothing has been changed in response.** Moataz's instruction was explicit: leave everything as it
+is, take no further step without agreeing it first. The protection scope is his to decide, and it is
+one field.
+
+**What is exposed while it stays open:** `cervello` is published with five draft chapters and zero
+paragraphs, `egypt-acquisition/accessibility` is published with zero paragraphs, and 264 Arabic
+paragraphs have never been read by a human.
+
+---
+
+### 2 — The Neobiz Egypt cover: 200 raw, 400 on every transform
+
+Invisible on the gallery card **and** on its own cover page. The row existed, the `public_id` was
+right, the `-card` variant row existed, and the bare delivery URL returned `200` with five megabytes
+of valid PNG.
+
+The transform returned **`400` with an empty body**. The reason lives only in a header:
+
+```
+x-cld-error: Maximum image size is 25 Megapixels. Requested 33.6 Megapixels
+```
+
+**7728 × 4348.** Cloudinary stores an image that large and serves it untouched, but refuses to
+derive from it — and rule 3 means this site *only* ever requests derived URLs. The asset was
+unusable in the one way the site can use it.
+
+**Fixed:** both re-uploaded at 3840px wide, same `public_id`, `overwrite=true`, `invalidate=true`.
+33.6 MP → 8.3, 31.5 MP → 8.7. The largest thing the site asks for is `w_1280` at `2x`, so 3840 is
+headroom rather than waste.
+
+`media.width`, `media.height` and `format` were **`NULL` on both rows** and are now filled — left
+alone, the card would have had the wrong aspect ratio even once the bytes arrived.
+
+**Verified end to end:** the URL scraped from the live page, query string and all, returns `200`
+with 32,472 bytes at 1x and 95,354 at 2x.
+
+The originals are kept at `EGY_cover_orig.png` / `EGY_card_orig.png` in this job's scratch
+directory, which is **not durable** — if the 33 MP masters matter, they need re-exporting from
+Figma.
+
+---
+
+### 3 — `egypt-acquisition` does not need a cover image, and an earlier list was wrong
+
+It was named in `021230826`'s list of missing covers. **It has `cover_kind = 'component'` and
+`cover_component = 'egypt-acquisition'`** — it renders a designed component, not an image, so a null
+`cover_media_id` is correct and expected there.
+
+The `cover_media_id is null` query that produced that list does not distinguish the two cases. **The
+real remaining gap is `cervello` alone**, which is `cover_kind = 'media'`, published, and has none.
+
+---
+
+### Not verified
+
+**Still nothing seen in a browser.** The Chrome extension is now connected — first time — but the
+image fix was proved by HTTP status and byte counts, not by looking. `_rsc` prefetch returned `200`
+here, so the `503` CoWork saw was either transient or specific to real prefetch hashes;
+it was not reproduced and it was not investigated.
+
+---
+
 ## 022230826 — 2026-08-23 14:40 — the Vercel half, done with a token
 
 Moataz supplied a team-scoped Vercel API token. Everything the previous task had written as

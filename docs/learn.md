@@ -636,6 +636,39 @@ So the URL is **byte-identical before and after a replace**. An immutable respon
 
 ---
 
+## A Cloudinary asset can return 200 raw and 400 on every single transform
+
+The Neobiz Egypt cover was invisible on its gallery card **and** on its own cover page, and every
+obvious explanation was wrong. The row existed. The `public_id` was right. The `-card` variant row
+existed too. **And requesting the asset with no transform returned `200` with five megabytes of
+valid PNG.**
+
+The transform returned `400`, with an **empty body**. The reason is only in a header:
+
+```
+x-cld-error: Maximum image size is 25 Megapixels. Requested 33.6 Megapixels
+```
+
+The file was **7728 × 4348**. Cloudinary will store an image that large and serve it untouched, but
+it refuses to *derive* from it. Since the site never requests an untransformed URL — rule 3 means
+every URL carries a preset — **the asset was unusable in the only way the site can use it.**
+
+**So `curl -o /dev/null -w '%{http_code}'` on the bare delivery URL proves nothing.** It answers
+"does this asset exist", which was never the question. Test the URL the page actually emits, and
+when it fails, **read `x-cld-error`** — `curl -D -` or `-I`, because the body is empty and tells you
+nothing.
+
+**Two ceilings, both silent, both plan-dependent:** 25 megapixels on the source of a transform, and
+100 MB on the file. Neither is visible in the Cloudinary UI next to the asset, and neither shows up
+until a derived URL is requested. A Figma export at 4× can cross the first one easily.
+
+**The fix is to re-upload smaller at the same `public_id`, and 3840px wide is the sensible ceiling**
+— the largest thing this site ever asks for is `w_1280` at `2x`, so 2560, and 3840 leaves headroom
+without leaving 33 megapixels lying around. Then re-read the dimensions into `media.width` /
+`media.height`, which were `NULL` on both rows and would have given the card the wrong aspect ratio
+even once the bytes arrived.
+
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.
