@@ -37,6 +37,51 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 027240826 — 2026-08-24 01:45 — og_image, filled the same night it was parked
+
+Two messages after recording it as deliberately undecided, Moataz sent one to try. It is set and it
+is live.
+
+**A white monogram on black, and it arrived at exactly 1200×630** — no resize, no padding, no
+re-export. Uploaded to `og-image`, `overwrite`, `invalidate`.
+
+### Two choices in the URL that are not cosmetic
+
+**It is stored versioned** — `/v1787518932/og-image.png` rather than the bare path. **LinkedIn,
+WhatsApp and Twitter cache `og:image` by URL, often for weeks**, so an unversioned URL would keep
+serving this picture in previews long after it was replaced. The version makes a replacement a new
+URL, which is the only thing those scrapers reliably notice. It is the same cache problem as
+`learn.md` Part 5, one layer further out, and here it can actually be solved.
+
+**No `f_auto`.** Social scrapers do not send reliable `Accept` headers and several mishandle WebP
+and AVIF. A plain PNG is the correct delivery for this one URL, and 14 KB costs nothing.
+
+### Verified across eight pages
+
+`/en`, `/ar`, `/en/work`, `/ar/work`, `/en/work/neobiz-mobile`, `/ar/work/uae-acquisition`,
+`/en/contact`, `/ar/about` — every one carries the image, and **every one now reports
+`twitter:card = summary_large_image`** instead of the bare `summary` it had an hour ago. That flip
+is the visible half of the change: the preview goes from a text line to a wide card.
+
+It took effect immediately rather than after the 300-second ISR window, so nothing needed
+revalidating.
+
+### Stored as a URL, and that is the rule bending correctly
+
+`og_image` is the **one exception to rule 3** in the project. Every other image is a `public_id` plus
+a preset resolved through `CloudinaryImage`; this one is an absolute URL in `settings.value`, because
+the consumer is an external scraper reading raw HTML that never runs the component. Zero translation
+rows — it is locale-independent by design, and `getSettings` falls back to the column.
+
+### Worth a second look, not a change
+
+**The mark carries no name and no words.** In a LinkedIn feed the image contributes recognition but
+no information; the name arrives only in the title text beside it. That reads as a deliberate,
+design-led choice rather than an oversight — and Moataz framed this as a trial, so it is recorded
+rather than argued.
+
+---
+
 ## 026240826 — 2026-08-24 00:55 — the card was never off-centre. Its canvas was
 
 Moataz: the inner cover is right, the gallery card is wrong — not taking the new image, wide, and not

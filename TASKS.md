@@ -10,7 +10,7 @@
 | Task | Blocked by | Owner |
 |---|---|---|
 | ~~0.5 query-layer verification~~ | **Resolved** — key in place, `npm run verify:content` passes | — |
-| **`settings.og_image`** | **Deliberately undecided, 2026-08-24.** Moataz is holding it because it has to express him rather than merely fill the slot, and will send it when it is ready. **Do not propose one and do not ask again** — the ask is closed until he reopens it. Nothing is blocked meanwhile: shared links render title and description with no image, and the Twitter card degrades from `summary_large_image` to `summary`. Specs when he wants them: 1200×630, no transparency, absolute URL | Moataz |
+| ~~`settings.og_image`~~ | **Set 2026-08-24, task `027240826` — on trial.** A white monogram on black, 1200×630, at `og-image` on Cloudinary. Live on all eight pages checked, both locales, and the Twitter card is now `summary_large_image`. **Moataz called it a trial ("جرب كده"), so it is filled rather than settled** — the mark carries no name and no words, which is a deliberate-looking choice worth a second look before launch, not a defect | — |
 | ~~`settings.cv_url`~~ | **Not a blocker and not a thing — closed 2026-08-23.** The CV became a *request*, not a download: `CvRequestPanel` renders unconditionally in the footer and on Contact, composing a mail to `settings.email`. **Nothing reads `cv_url`.** The column stays in `settings` as an unused key | — |
 | ~~Egypt/UAE outcome markers~~ | **Resolved** — markers added in Notion; UAE has 4 outcomes, Egypt 3 | — |
 | **Cervello route collision — REOPENED 2026-08-23** | Two Notion covers claim `/[locale]/work/cervello`. The live one is `Cervello Cloud (IoT)`; the other is blank, `Not started`, `Layer 3`. Decision 040 cleared it by taking the blank one **out of MVP-1** — which works only while the sync is MVP-1-scoped. **`--all` pulls it back in and writes `draft` over the published row**, and the case file drops out of the gallery. **Restored 2026-08-23 and verified rendering** — gallery, cover (en + ar), chapters and `/all` all 200. It **will recur on the next `--all`** unless the parked page is archived or its `Route` changed. ⚠️ Restoring the row is not enough on its own: `dynamicParams = false` means the route list is fixed at build, so the cover kept 404ing until the server was restarted | Moataz |
@@ -41,7 +41,7 @@ list that still describes unfinished work.
 
 ### Next: the three things Moataz owns, in the order they unblock the most
 
-1. **`og_image`** — one `settings` value, and every link shared to LinkedIn or WhatsApp stops rendering bare
+1. ~~**`og_image`**~~ — **done 2026-08-24**, on trial
 2. **Three cover images** — the gallery is the landing surface, and the NDA treatment has never been seen on it
 3. **The visual pass** — nothing below it can be trusted until someone looks. `:3000` is serving the current build now
 
@@ -81,7 +81,7 @@ list that still describes unfinished work.
 - [x] `settings.email` — `moataz.mustapha@outlook.com`
 - [x] `settings.linkedin_url`
 - [x] `settings.tagline` · `intro` · `description` — seeded, both locales, live on Landing
-- [ ] 🔴 `settings.og_image` — still NULL, **launch-gate blocker** (see BLOCKED)
+- [x] `settings.og_image` — set 2026-08-24, monogram on black, 1200×630. **On trial, see BLOCKED**
 - [x] ~~`settings.cv_url`~~ — **retired.** The CV is requested, not downloaded; no code reads this key
 - [x] Native Arabic review — 9 corrections applied to the database, `0003_seed_site_chrome.sql` and `docs/ui-strings-review.md`. No collisions remain across all 52
 
@@ -218,7 +218,7 @@ matter carry the query that reproduces them.
 
 ### 🔴 Blocking, and only Moataz can clear them
 
-- [ ] **`settings.og_image`** — still `NULL`. Every link shared to LinkedIn or WhatsApp renders bare
+- [x] **`settings.og_image`** — set 2026-08-24. Shared links now carry the monogram and a wide card
 - [ ] **Cover images: 1 of 4.** Only `uae-acquisition` has one. **The NDA grayscale has never been seen on a gallery card**, and the gallery is the first page anyone lands on
   ```sql
   select slug, cover_media_id is not null from case_files where status = 'published';
