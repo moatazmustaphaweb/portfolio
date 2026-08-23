@@ -65,20 +65,31 @@ Both pages had been pointing at **the same** Arabic screen.
 the old single screenshot could not show: *"in both directions, which matters for the foreign
 resident who handles everyday Arabic but wants sanctions questions in English."*
 
-### The problem, and it is his to rule on
+### I reported the captions as false. He ruled they are correct, and he is right
 
-He said keep the alt and caption. Kept — **and both are now false**:
+I kept the alt and caption as instructed, then flagged that they no longer describe the images and
+offered replacements. **His ruling: *"the caption was right, the images were the wrong ones."*
+Nothing is to be changed.**
 
-- **English alt:** *"FATCA declaration rendered in Arabic, right-to-left, with the stepper and
-  guidance rail mirrored."* The new English image is **LTR and not mirrored**.
-- **English caption:** *"mirrored structurally rather than translated over an English skeleton."*
-  The new image **is** Arabic over an English skeleton — the precise opposite.
-- **Arabic alt/caption** say the section is *in Arabic*; the new Arabic image's **content is
-  English**.
+**And the evidence against me was in the page I had just read in full.** The English chapter says,
+of the bilingual FATCA screen:
 
-An `alt` that misdescribes its image is worse than a missing one — a screen reader states it as
-fact. **Not rewritten: these are his words and the fix changes what a reader is told.** Reported
-with the mismatch named line by line.
+> *"Note what stays in English: the declaration answers themselves. That constraint is exactly what
+> made the language switch cheap enough to win."*
+
+So the new Arabic image — mirrored RTL shell, stepper reversed, guidance rail moved, **declaration
+text in English** — does not contradict *"the regulatory section in Arabic, mirrored structurally
+rather than translated over an English skeleton"*. **It is that sentence, exactly.** I read English
+characters inside the frame and called the caption false, when the chapter had already explained why
+they are there by design.
+
+**The generalisable error: I checked the caption against the pixels and not against the argument the
+chapter makes.** On a page whose whole subject is which parts stay in which language, the pixels are
+not self-describing.
+
+The one thing I noted that his ruling does not resolve — the English page's alt still says
+`right-to-left` and `mirrored` while its image is the LTR shell — is **left exactly as he wrote it**.
+Raised once, ruled on, closed.
 
 ### The sync refused once, correctly
 
