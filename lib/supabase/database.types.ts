@@ -172,16 +172,28 @@ export type Database = {
         Relationships: [];
       };
       /** One row per paragraph, ordered. Never a joined string. */
+      /**
+       * One row per paragraph, ordered, and belonging to ONE locale.
+       *
+       * ⚠️ `locale` is not redundant with `translations.locale` (migration
+       * 0046, the cover half of what 0045 did for chapters). It says which
+       * language's SEQUENCE this row is part of, because the two languages
+       * paragraph a slot differently — the UAE `thesis` is 2 in English and 3
+       * in Arabic. `sort_order` is unique per (section, locale).
+       */
       cover_paragraphs: {
         Row: {
           id: string;
           cover_section_id: string;
           sort_order: number;
+          /** Which language's sequence this row belongs to. */
+          locale: "en" | "ar";
         };
         Insert: {
           id?: string;
           cover_section_id: string;
           sort_order: number;
+          locale: "en" | "ar";
         };
         Update: Partial<Database["public"]["Tables"]["cover_paragraphs"]["Insert"]>;
         Relationships: [];

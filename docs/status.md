@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 007230826 — 2026-08-23 07:44 — three launch defects closed, all verified independently
+
+Backend's three-defect brief. **Every claim below is my own measurement**, taken before its report
+arrived.
+
+### (A) The tables show their real headings again
+
+`/en/work/egypt-acquisition/web-vs-mobile-portal`:
+
+| | `<th scope="col">` row |
+|---|---|
+| before | `Reaching an absent customer` · `Email + SMS — both require…` · `Push notifications join as…` |
+| after | **`The same need` · `Web` · `Mobile` · `Why it changed`** |
+
+The first data row was being announced as the column header for every cell in the table, on the
+case file whose sibling page argues for accessibility. **Fixed.**
+
+**And the thing that could have gone wrong did not:** `targets` **11** and `outcomes` **7**,
+unchanged. The fix did not come from making `readTable` keep the header everywhere, which is what
+the brief forbade because outcomes and targets depend on it dropping.
+
+### (C) `cover_paragraphs` per-locale — the second table gets the `0045` treatment
+
+Migration `0046`. UAE cover `thesis` measured **2 en / 3 ar**, where the Arabic had been refused on
+every sync. `cover_paragraphs` Arabic total **39 → 42**, English unchanged at 41.
+
+### (B) The Cervello guard, tested on the case it guards against
+
+A guard nobody has watched fire is a guess, so I ran the `--all` that broke it: **`cervello` is
+still `published`.** The refusal message names the cause and the fix rather than the rule —
+
+> *"this page would move the PUBLISHED case file … to draft, which removes it from the gallery and
+> 404s its cover and every chapter under it … check for a second Notion page claiming the same
+> Route — archive it."*
+
+**The recurrence is closed in code**, so it no longer waits on Moataz archiving a Notion page.
+
+### Verified here
+
+`check:seed-drift` no drift · `test:sync` all pass · `next build` exit 0, **65/65 pages**.
+
+### Files
+
+`supabase/migrations/0046_cover_paragraphs_per_locale.sql` (new) · `scripts/sync-notion.ts` ·
+`lib/content/case-files.ts` · `lib/supabase/database.types.ts` · `docs/schema.md` ·
+`docs/sync-contract.md` · `docs/learn.md` · `docs/status/backend.md`.
+
+---
+
 ## 008230826 — 2026-08-23 07:26 — the first accessibility audit this project has ever had
 
 He asked what is wrong with the **site's own** accessibility, so the accessibility page can be

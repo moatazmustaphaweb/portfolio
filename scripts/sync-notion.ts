@@ -295,21 +295,53 @@ async function fetchRows(): Promise<Row[]> {
 }
 
 /**
- * Read the rows of a Notion table block as `[cell, cell, …]` per row.
- * The header row is dropped.
+ * Read a Notion table block as its HEADER and its DATA ROWS, kept apart.
+ *
+ * ⚠️ IT USED TO RETURN ONE LIST WITH ROW 0 THROWN AWAY, AND THAT IS THE BUG
+ * THIS SPLIT EXISTS TO END.
+ *
+ * Two correct rules were colliding. For OUTCOMES and TARGETS the header is not
+ * an item — `Claim | Basis` is not a claim — so dropping it is right, and the
+ * status parser depends on it. For a CHAPTER or DOCUMENT table the header IS
+ * content: `The same need · Web · Mobile · Why it changed` is what tells a
+ * reader, and a screen reader, what each column means. Dropping it and then
+ * marking the surviving row 0 as `is_header` put the first DECISION of every
+ * comparison table into `<th scope="col">` and deleted the real headings from
+ * the page. Live in both locales on both comparison pages and on the
+ * accessibility page.
+ *
+ * So the caller says which it wants instead of the reader guessing: outcomes
+ * and targets read `.rows`, the document and chapter passes read the header
+ * back in.
+ *
+ * WHETHER THERE IS A HEADER AT ALL IS DATA, NOT POSITION. Notion's table block
+ * carries `has_column_header`, which is the author's own declaration in the UI,
+ * and it is the only thing consulted here — never "row 0 looks like a heading".
+ * Measured across the whole database on 2026-08-23: 26 tables, all 26 declare
+ * `has_column_header: true`. `header` is null only for a table that says it has
+ * none, and `readOrderedBlocks` refuses that case rather than guessing.
  */
-async function readTable(tableId: string): Promise<string[][]> {
-  const rows: string[][] = [];
+async function readTable(
+  tableId: string,
+  hasColumnHeader: boolean,
+): Promise<{ header: string[] | null; rows: string[][] }> {
+  const all: string[][] = [];
   const res = await notion.blocks.children.list({ block_id: tableId, page_size: 100 });
 
-  for (const [i, block] of res.results.entries()) {
+  for (const block of res.results) {
     const b = block as { type: string; table_row?: { cells: { plain_text: string }[][] } };
     if (b.type !== "table_row" || !b.table_row) continue;
-    if (i === 0) continue; // header row
     const cells = b.table_row.cells.map((c) => c.map((t) => t.plain_text).join("").trim());
-    if (cells.some((c) => c)) rows.push(cells);
+    all.push(cells);
   }
-  return rows;
+
+  /*
+   * The header is taken BEFORE the all-empty filter, so a header row is never
+   * silently promoted out of the data by a blank line above it. The filter
+   * then applies to the data rows only, exactly as it did before.
+   */
+  const header = hasColumnHeader ? (all.shift() ?? null) : null;
+  return { header, rows: all.filter((cells) => cells.some((c) => c)) };
 }
 
 /**
@@ -346,9 +378,20 @@ async function readBody(pageId: string): Promise<Map<string, string[]>> {
       };
 
       if ((b as { type: string }).type === "table") {
-        const rows = await readTable((b as unknown as { id: string }).id);
+        /*
+         * DATA ROWS ONLY on this path, and that is deliberate. Everything that
+         * reads a `heading::table` key — outcomes, targets, features — treats
+         * each row as an ITEM, and `Claim | Basis` is not a claim. The header
+         * is restored on the `readOrderedBlocks` path instead, where the table
+         * is rendered as a table.
+         */
+        const t = await readTable(
+          (b as unknown as { id: string }).id,
+          Boolean((b as unknown as { table?: { has_column_header?: boolean } }).table
+            ?.has_column_header),
+        );
         const existing = tables.get(current) ?? [];
-        tables.set(current, [...existing, ...rows]);
+        tables.set(current, [...existing, ...t.rows]);
         continue;
       }
 
@@ -705,7 +748,15 @@ function resolveCoverSections(
  * fourth simply has no Arabic. Decision 013's fallback applies per slot instead
  * of all-or-nothing.
  *
- * Paragraph pairing WITHIN a slot stays positional, and keeps its guard.
+ * ⚠️ EACH LOCALE OWNS ITS OWN PARAGRAPH SEQUENCE (migration 0046). A paragraph
+ * row belongs to one locale; nothing pairs by position, and the two sequences
+ * are free to differ in length. The UAE cover's `thesis` is 2 paragraphs in
+ * English and 3 in Arabic — both finished, and under the old shared-row model
+ * the whole Arabic slot was refused on every run.
+ *
+ * This is the rule chapters have followed since 0045 and images since Step 6 of
+ * the contract: "each locale's body carries its own sequence, and there is
+ * nothing to pair." Covers were the last place it was not applied.
  */
 async function writeCoverSections(opts: {
   rowTitle: string;
@@ -765,8 +816,24 @@ async function writeCoverSections(opts: {
 
   const arBySlot = new Map(ar.sections.map((s) => [s.slot, s]));
 
+  /*
+   * GUARD 6 — the resolved shape, printed every run, with the ARABIC COUNT
+   * beside the English one rather than a bare `+ar`.
+   *
+   * `+ar` said only that an Arabic slot existed. It said that for
+   * `uae-acquisition thesis` on every run for the life of the slot model,
+   * while the three Arabic paragraphs behind it were being discarded and zero
+   * were written — the "absence is invisible" class, in the one line whose job
+   * is to make absence visible. The chapter pass has printed both counts since
+   * `003230826`; this is the same line.
+   */
   const shape =
-    `slots [${prose.map((s) => `${s.slot}(${s.paragraphs.length}¶${arBySlot.has(s.slot) ? "+ar" : ""})`).join(" · ")}]` +
+    `slots [${prose
+      .map((s) => {
+        const a = arBySlot.get(s.slot);
+        return `${s.slot}(${s.paragraphs.length}¶ ${a ? `↔ar ${a.paragraphs.length}¶` : "↔ar —"})`;
+      })
+      .join(" · ")}]` +
     ` claimed [${en.sections.filter((s) => !isProseSlot(s.slot)).map((s) => s.slot).join(" · ") || "—"}]`;
 
   if (DRY_RUN) return shape;
@@ -846,43 +913,39 @@ async function writeCoverSections(opts: {
     }
 
     /*
-     * Paragraphs pair by position within the slot, and only when the counts
-     * match — the same rule and the same reasoning as everywhere else. Where
-     * they differ the Arabic paragraphs are skipped and reported rather than
-     * attached one row off.
+     * ⚠️ EACH LOCALE WRITES ITS OWN SEQUENCE. THERE IS NOTHING TO PAIR.
+     *
+     * This used to pair paragraphs by position within the slot and refuse the
+     * whole Arabic slot when the counts differed. The gate was right and the
+     * model under it was wrong, exactly as it was for chapters in 0045: a
+     * paragraph is not a translatable unit, a section is. The UAE cover's
+     * `thesis` says in 3 Arabic paragraphs what the English says in 2, both
+     * are finished writing, and the Arabic was discarded on every run since
+     * the slot model shipped.
+     *
+     * The gate is not loosened. It is unreachable — migration 0046 put
+     * `locale` on the row, so there is no longer an index to pair on.
      */
-    const pairParagraphs =
-      arSection !== undefined &&
-      arSection.paragraphs.length > 0 &&
-      arSection.paragraphs.length === section.paragraphs.length;
+    const writeSequence = async (locale: "en" | "ar", paragraphs: readonly string[]) => {
+      for (const [j, text] of paragraphs.entries()) {
+        const { data: paraRow, error: paraError } = await (await db())
+          .from("cover_paragraphs")
+          .insert({ cover_section_id: sectionRow.id, sort_order: j, locale })
+          .select("id").single();
 
-    if (arSection && arSection.paragraphs.length > 0 && !pairParagraphs) {
-      notice(rowTitle,
-        `${rowTitle}: slot "${section.slot}" has ${section.paragraphs.length} paragraph(s) ` +
-          `in English and ${arSection.paragraphs.length} in Arabic. Arabic paragraphs ` +
-          "skipped for this slot — pairing by position across different counts would " +
-          "attach the wrong paragraph to the wrong place. The heading still synced.",
-      );
-    }
+        if (paraError || !paraRow) {
+          fail(rowTitle,
+            `${rowTitle}: slot "${section.slot}" ${locale} paragraph ${j + 1} — ` +
+              `${paraError?.message ?? "no row"}`);
+          continue;
+        }
 
-    for (const [j, text] of section.paragraphs.entries()) {
-      const { data: paraRow, error: paraError } = await (await db())
-        .from("cover_paragraphs")
-        .insert({ cover_section_id: sectionRow.id, sort_order: j })
-        .select("id").single();
-
-      if (paraError || !paraRow) {
-        fail(rowTitle, `${rowTitle}: slot "${section.slot}" paragraph ${j + 1} — ${paraError?.message ?? "no row"}`);
-        continue;
+        await upsertTranslations("cover_paragraph", paraRow.id, locale, { body: text });
       }
+    };
 
-      await upsertTranslations("cover_paragraph", paraRow.id, "en", { body: text });
-      if (pairParagraphs) {
-        await upsertTranslations("cover_paragraph", paraRow.id, "ar", {
-          body: arSection.paragraphs[j],
-        });
-      }
-    }
+    await writeSequence("en", section.paragraphs);
+    if (arSection) await writeSequence("ar", arSection.paragraphs);
   }
 
   /*
@@ -1398,7 +1461,18 @@ async function writeChapterSections(opts: {
                   chapter_paragraph_id: paraRow.id,
                   row_idx: r,
                   col_idx: c,
-                  // Row 0 is the header row, matching what SectionTable renders.
+                  /*
+                   * Row 0 IS the header row now, and that sentence became true
+                   * in this task. `readTable` used to drop Notion's header
+                   * before the grid ever got here, so this line was marking
+                   * the first DATA row — the real headings never reached the
+                   * database and the first decision of every comparison table
+                   * was announced to a screen reader as the column heading.
+                   *
+                   * `readOrderedBlocks` now restores the header as row 0 and
+                   * refuses any table that declares none, so there is no
+                   * grid arriving here whose row 0 is not the header.
+                   */
                   is_header: r === 0,
                 })
                 .select("id").single();
@@ -1471,6 +1545,86 @@ async function upsertTranslations(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Would writing this Notion row DESTROY a published case file? Returns the
+ * refusal, or null when the write is safe.
+ *
+ * ⚠️ CERVELLO VANISHED FROM THE GALLERY ON 2026-08-23 AND WAS RESTORED BY HAND.
+ *
+ * Two Notion pages claim `/[locale]/work/cervello`. One is the live case file.
+ * The other is BLANK — `Content ready: Not started`, `Build Layer 3`, and its
+ * own Notes record that it was taken out of MVP-1 specifically to clear this
+ * collision. `findRouteCollisions` therefore does not see it, by design: it
+ * ignores rows outside MVP-1 so that parked content cannot report problems
+ * against content that ships. That is the right call and it is not changed here.
+ *
+ * The hole is that `--all` syncs those same parked rows. The blank page is not
+ * `Done`, so it computes `status = 'draft'`, and the update is keyed on the
+ * SLUG rather than on the Notion page — so it lands on the live row and
+ * unpublishes a finished case file along with its seven chapters.
+ *
+ * Decision 040 closed this by scoping the sync to MVP-1. That holds exactly as
+ * long as nobody passes `--all`, which is a property of how the command is
+ * typed rather than of the code. Archiving the Notion page is Moataz's to do
+ * and he has not; this must not depend on him doing it.
+ *
+ * ── WHY A REFUSAL AND NOT A MERGE ───────────────────────────────────────────
+ *
+ * "Keep the higher status" would also stop the unpublish, and it would do it
+ * SILENTLY — the collision would still be there, still be wrong, and nobody
+ * would ever be told. This is the same shape as every other guard here: the
+ * whole row is refused, nothing is written for it, the reason names both pages,
+ * and the run exits non-zero.
+ *
+ * A downgrade that is genuinely intended is still available and is one edit:
+ * set the live page's `Content ready` to something other than `Done`. What is
+ * refused is a downgrade arriving from a page with nothing on it.
+ */
+async function caseFileRegression(opts: {
+  slug: string;
+  incomingStatus: "published" | "draft";
+  /** H2/H3 sections the Notion page offers. Zero means an unwritten page. */
+  offeredSections: number;
+}): Promise<string | null> {
+  const { slug, incomingStatus, offeredSections } = opts;
+
+  const { data: live } = await (await db())
+    .from("case_files").select("id, status").eq("slug", slug).maybeSingle();
+
+  // A case file that does not exist yet cannot be regressed, and one that is
+  // already a draft is not what this protects.
+  if (!live || live.status !== "published") return null;
+
+  if (incomingStatus === "draft") {
+    return (
+      `this page would move the PUBLISHED case file "${slug}" to draft, which ` +
+      "removes it from the gallery and 404s its cover and every chapter under " +
+      "it. Nothing was written for this row. If the page is a duplicate — check " +
+      "for a second Notion page claiming the same Route — archive it. If the " +
+      "case file really should come down, set Content ready on the LIVE page."
+    );
+  }
+
+  if (offeredSections === 0) {
+    const { count } = await (await db())
+      .from("cover_sections")
+      .select("id", { count: "exact", head: true })
+      .eq("case_file_id", live.id);
+
+    if ((count ?? 0) > 0) {
+      return (
+        `this page has no sections written on it, and the published case file ` +
+        `"${slug}" already has ${count} cover section(s). Writing an empty page ` +
+        "over populated content is how a duplicate Notion row blanks a live " +
+        "cover. Nothing was written for this row — check for a second page " +
+        "claiming the same Route."
+      );
+    }
+  }
+
+  return null;
+}
+
 /* -------------------------------------------------------------------- main */
 
 /**
@@ -1480,8 +1634,12 @@ async function upsertTranslations(
  * for a cover, where "My role" IS a field, and wrong for a static page, where
  * "What that year actually taught me" is a sentence to render. This keeps the
  * words and the order.
+ *
+ * `label` names the Notion page in any failure raised from here. It is required
+ * rather than optional: a refusal that cannot say which page it is about is a
+ * refusal nobody can act on.
  */
-async function readOrderedBlocks(pageId: string): Promise<OrderedBlock[]> {
+async function readOrderedBlocks(pageId: string, label: string): Promise<OrderedBlock[]> {
   /*
    * `level` records which heading tag introduced the block, and the cover pass
    * depends on it. A cover opens with an H1 carrying the page title and, beneath
@@ -1533,7 +1691,47 @@ async function readOrderedBlocks(pageId: string): Promise<OrderedBlock[]> {
        * dropping it would have synced two pages of preamble around a hole.
        */
       if (b.type === "table") {
-        const grid = await readTable((block as unknown as { id: string }).id);
+        const declared = Boolean(
+          (block as unknown as { table?: { has_column_header?: boolean } }).table
+            ?.has_column_header,
+        );
+        const { header, rows } = await readTable(
+          (block as unknown as { id: string }).id,
+          declared,
+        );
+
+        /*
+         * ⚠️ NO HEADER DECLARED → THE TABLE IS REFUSED, NOT GUESSED AT.
+         *
+         * `SectionTable` is the only table renderer on this site and it draws
+         * row 0 in `<thead scope="col">` unconditionally. So a grid stored
+         * without a header row does not render as a headerless table — it
+         * renders with its first DATA row announced as the column headings,
+         * which is precisely the defect this pass exists to end, arriving by
+         * the other door.
+         *
+         * Which row is the header is a content decision. It is Moataz's, it is
+         * one checkbox in Notion, and the sync has no business inferring it.
+         * Nothing is written for the table and the run exits non-zero.
+         */
+        if (!declared) {
+          const where = blocks[blocks.length - 1].heading || "the top of the page";
+          fail(label,
+            `${label}: a table under ${JSON.stringify(where)} has "Header row" turned OFF ` +
+              "in Notion. Every table on this site renders its first row as the column " +
+              "headings, so a grid with no declared header would put a data row into " +
+              "<th scope=\"col\">. Which row is the header is a content decision, not the " +
+              "sync's — the table was NOT written. Turn on Header row in Notion and re-run.",
+          );
+          continue;
+        }
+
+        /*
+         * The header goes back in as row 0, which is what makes `is_header:
+         * r === 0` in the chapter writer true rather than merely conventional,
+         * and what puts the real headings back in `<th scope="col">`.
+         */
+        const grid = header ? [header, ...rows] : rows;
         if (grid.length > 0) {
           blocks[blocks.length - 1].tables.push(grid);
           blocks[blocks.length - 1].items.push({ kind: "table", grid });
@@ -1708,6 +1906,37 @@ async function main() {
 
     const status = row.contentReady === "Done" ? "published" : "draft";
 
+    /*
+     * ⚠️ THE REGRESSION GUARD RUNS FIRST, BEFORE ANY WRITE AND BEFORE THE DRY
+     * RUN BRANCHES.
+     *
+     * The blocks are read up here rather than after the row is written,
+     * because the guard needs to know whether the page has anything on it and
+     * a check that runs after the damage is not a guard. Both branches use the
+     * same reads, so this costs no extra Notion calls — only one Supabase read.
+     *
+     * A dry run reports the refusal exactly as a live run does. A dry run that
+     * said "case_file cervello (draft)" and then watched a real run refuse it
+     * would be the dry run lying, which it is not allowed to do.
+     */
+    const enBlocks = await readOrderedBlocks(row.id, row.title);
+    const arabic = await findArabicChild(row.id);
+    const arBlocks = arabic
+      ? await readOrderedBlocks(arabic.id, `${row.title} (ar)`)
+      : null;
+
+    const regression = await caseFileRegression({
+      slug: caseFile,
+      incomingStatus: status,
+      // The same test GUARD 4 in `writeCoverSections` uses for "unwritten
+      // draft", so the two cannot disagree about what an empty page is.
+      offeredSections: enBlocks.filter((b) => b.level >= 2 && b.heading).length,
+    });
+    if (regression) {
+      fail(row.title, `${row.title}: ${regression}`);
+      continue;
+    }
+
     if (DRY_RUN) {
       console.log(`  case_file  ${caseFile}  (${status})`);
       updated.push(`case_file ${caseFile}`);
@@ -1722,14 +1951,11 @@ async function main() {
        * unrecognised heading should surface, before anything is written. The
        * call returns before it writes, so this stays read-only.
        */
-      const dryEn = await readOrderedBlocks(row.id);
-      const dryArabic = await findArabicChild(row.id);
-      const dryAr = dryArabic ? await readOrderedBlocks(dryArabic.id) : null;
       const dryShape = await writeCoverSections({
         rowTitle: row.title,
         caseFileId: `dry-run:${caseFile}`,
-        enBlocks: dryEn,
-        arBlocks: dryAr,
+        enBlocks,
+        arBlocks,
         aliases: coverAliases,
       });
       if (dryShape) console.log(`  cover ${caseFile}: ${dryShape}`);
@@ -1803,7 +2029,6 @@ async function main() {
       fieldsFromBody(body, COVER_FIELDS, row.title.replace(/^.*—\s*/, "")),
     );
 
-    const arabic = await findArabicChild(row.id);
     if (arabic) {
       const arBody = await readBody(arabic.id);
       await upsertTranslations(
@@ -1819,9 +2044,12 @@ async function main() {
      * fields above, NOT instead of them — the old rows are removed in a separate
      * migration once the site is verified rendering from the new tables, so that
      * a failure here cannot take the covers down.
+     *
+     * `enBlocks`, `arBlocks` and `arabic` were read at the top of this
+     * iteration, by the regression guard. Re-reading them here would be two
+     * reads of one page free to disagree — and the guard's answer has to be
+     * about the same bytes this writes.
      */
-    const enBlocks = await readOrderedBlocks(row.id);
-    const arBlocks = arabic ? await readOrderedBlocks(arabic.id) : null;
     const shape = await writeCoverSections({
       rowTitle: row.title,
       caseFileId: data.id,
@@ -1883,8 +2111,8 @@ async function main() {
       const dryShape = await writeChapterSections({
         rowTitle: row.title,
         chapterId: `dry-run:${caseFile}/${slug}`,
-        enBlocks: await readOrderedBlocks(row.id),
-        arBlocks: dryArabic ? await readOrderedBlocks(dryArabic.id) : null,
+        enBlocks: await readOrderedBlocks(row.id, row.title),
+        arBlocks: dryArabic ? await readOrderedBlocks(dryArabic.id, `${row.title} (ar)`) : null,
         aliases: chapterAliases,
       });
       if (dryShape) console.log(`      sections ${dryShape}`);
@@ -1966,8 +2194,8 @@ async function main() {
       !ONLY || `${caseFile}/${slug}`.toLowerCase().includes(ONLY) || row.title.toLowerCase().includes(ONLY);
 
     if (sectionsApply) {
-      const enBlocks = await readOrderedBlocks(row.id);
-      const arBlocks = arabic ? await readOrderedBlocks(arabic.id) : null;
+      const enBlocks = await readOrderedBlocks(row.id, row.title);
+      const arBlocks = arabic ? await readOrderedBlocks(arabic.id, `${row.title} (ar)`) : null;
       const sectionShape = await writeChapterSections({
         rowTitle: row.title,
         chapterId: data.id,
@@ -2667,7 +2895,7 @@ async function main() {
      */
     if (row.kind === "static" && !STATIC_PROSE_PAGES.has(pageKey)) continue;
 
-    const blocks = await readOrderedBlocks(row.id);
+    const blocks = await readOrderedBlocks(row.id, row.title);
     const enPage = parsePageSections(blocks, row.title);
     const { intro, sections } = enPage;
 
@@ -2683,7 +2911,7 @@ async function main() {
     };
     const arabicChild = await findArabicChild(row.id);
     if (arabicChild) {
-      const arBlocks = await readOrderedBlocks(arabicChild.id);
+      const arBlocks = await readOrderedBlocks(arabicChild.id, `${row.title} (ar)`);
       const parsedAr = parsePageSections(arBlocks, arabicChild.title);
 
       /*

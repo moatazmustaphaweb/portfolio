@@ -5,6 +5,7 @@ import { cache } from "react";
 import { supabaseServer } from "@/lib/supabase/server";
 
 import { resolveMany, resolveManyDetailed, withFields } from "./translate";
+import { DEFAULT_LOCALE } from "./types";
 import type {
   CoverParagraph,
   CoverSection,
@@ -178,22 +179,43 @@ export const listCaseFiles = cache(async (locale: Locale): Promise<CaseFile[]> =
 
     const sectionIds = [...opening.values()];
     if (sectionIds.length > 0) {
+      /*
+       * ⚠️ TWO ROWS NOW SIT AT `sort_order = 0` PER SECTION — one per locale
+       * (migration 0046) — so this picks a language rather than a position.
+       * Filtering on `sort_order` alone would return both and the winner would
+       * depend on row order, which is how an Arabic gallery card would start
+       * showing English at random.
+       *
+       * The locale is chosen per section: this locale's opening paragraph if
+       * the cover has one, else the English one (decision 013). The fallback
+       * is done here rather than by `resolveMany`, because after 0046 an
+       * Arabic paragraph row simply does not exist when the slot has no
+       * Arabic — there is no row for the resolver to fall back on.
+       */
       const { data: firstParas } = await supabaseServer
         .from("cover_paragraphs")
-        .select("id, cover_section_id, sort_order")
+        .select("id, cover_section_id, sort_order, locale")
         .in("cover_section_id", sectionIds)
         .eq("sort_order", 0);
 
-      const paraFields = await resolveMany(
-        "cover_paragraph",
-        (firstParas ?? []).map((p) => p.id),
-        locale,
+      const wanted = new Map<string, string>();
+      const english = new Map<string, string>();
+      for (const p of firstParas ?? []) {
+        if (p.locale === locale) wanted.set(p.cover_section_id, p.id);
+        if (p.locale === DEFAULT_LOCALE) english.set(p.cover_section_id, p.id);
+      }
+      // Two maps rather than one written twice: the preference is stated once
+      // and cannot depend on the order the rows came back in.
+      const chosen = new Map(
+        sectionIds
+          .map((id) => [id, wanted.get(id) ?? english.get(id)] as const)
+          .filter((e): e is readonly [string, string] => Boolean(e[1])),
       );
-      const paraBySection = new Map(
-        (firstParas ?? []).map((p) => [p.cover_section_id, paraFields.get(p.id)?.body]),
-      );
+
+      const paraFields = await resolveMany("cover_paragraph", [...chosen.values()], locale);
       for (const [caseFileId, sectionId] of opening) {
-        const body = paraBySection.get(sectionId);
+        const paraId = chosen.get(sectionId);
+        const body = paraId ? paraFields.get(paraId)?.body : undefined;
         if (body) summaryByCaseFile.set(caseFileId, body);
       }
     }
@@ -418,14 +440,47 @@ export const getCaseFile = cache(
     const sections: CoverSection[] = [];
     if ((sectionRows ?? []).length > 0) {
       const sectionIds = (sectionRows ?? []).map((s) => s.id);
-      const { data: paraRows, error: paraError } = await supabaseServer
+      const { data: allParaRows, error: paraError } = await supabaseServer
         .from("cover_paragraphs")
-        .select("id, cover_section_id, sort_order")
+        .select("id, cover_section_id, sort_order, locale")
         .in("cover_section_id", sectionIds)
         .order("sort_order");
       if (paraError) {
         throw new Error(`Failed to load cover paragraphs for ${slug}: ${paraError.message}`);
       }
+
+      /*
+       * ⚠️ EACH LOCALE HAS ITS OWN PARAGRAPH SEQUENCE (migration 0046), so the
+       * first thing this does is CHOOSE one. A paragraph is not a translatable
+       * unit; a slot is. The UAE cover's `thesis` is 2 paragraphs in English
+       * and 3 in Arabic, neither a translation of a row in the other.
+       *
+       * Decision 013's fallback therefore resolves PER SLOT rather than per
+       * paragraph: the Arabic sequence if this slot has one, else the English
+       * sequence whole, marked `lang="en"`. The old shape could render a slot
+       * half Arabic and half English, which is worse than either.
+       *
+       * Nothing marks the language here: an English row carries only an
+       * English translation, so `resolveManyDetailed` reports
+       * `fieldLocales.body === 'en'` on its own (decision 053).
+       *
+       * The same shape as `loadChapterSections`, deliberately — one rule, both
+       * places, so neither can drift from the other.
+       */
+      type CoverParaRow = NonNullable<typeof allParaRows>[number];
+      const bySectionLocale = new Map<string, CoverParaRow[]>();
+      for (const p of allParaRows ?? []) {
+        const key = `${p.cover_section_id} ${p.locale}`;
+        const list = bySectionLocale.get(key) ?? [];
+        list.push(p);
+        bySectionLocale.set(key, list);
+      }
+      const paraRows = sectionIds.flatMap(
+        (id) =>
+          bySectionLocale.get(`${id} ${locale}`) ??
+          bySectionLocale.get(`${id} ${DEFAULT_LOCALE}`) ??
+          [],
+      );
 
       /*
        * Section images, in ONE query for the whole cover — not one round trip
@@ -441,7 +496,7 @@ export const getCaseFile = cache(
        */
       const [headingFields, paragraphFields, sectionMedia] = await Promise.all([
         resolveManyDetailed("cover_section", sectionIds, locale),
-        resolveManyDetailed("cover_paragraph", (paraRows ?? []).map((p) => p.id), locale),
+        resolveManyDetailed("cover_paragraph", paraRows.map((p) => p.id), locale),
         fetchMedia((sectionRows ?? []).map((x) => x.media_id), locale, row.nda),
       ]);
 
@@ -468,7 +523,7 @@ export const getCaseFile = cache(
            * The language travels WITH the text, resolved from the same entry,
            * so a paragraph cannot arrive labelled as the wrong one.
            */
-          paragraphs: (paraRows ?? [])
+          paragraphs: paraRows
             .filter((p) => p.cover_section_id === s.id)
             .map((p) => {
               const entry = paragraphFields.get(p.id);

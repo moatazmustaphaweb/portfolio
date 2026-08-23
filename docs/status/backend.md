@@ -16,6 +16,210 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 007230826 — 2026-08-23 17:20 — the real table headings are on the page again, covers get per-locale paragraphs, and a blank Notion page can no longer unpublish a live case file
+
+**Brief:** three launch-blocking sync defects, ordered by visibility. (A) every chapter
+table published its first *data* row as its column headings. (B) a blank duplicate Notion
+page unpublishes Cervello on any `--all` run. (C) `cover_paragraphs` still carries the
+per-locale defect that migration 0045 fixed for chapters. Not in scope and not touched:
+the paragraph-count gate, the `page_section` media path, the Accessibility page's Arabic,
+`the-interface`.
+
+**Files:** `scripts/sync-notion.ts` · `lib/content/case-files.ts` ·
+`lib/supabase/database.types.ts` · `supabase/migrations/0046_cover_paragraphs_per_locale.sql`
+(**new, and APPLIED to Supabase — live, and its SQL is uncommitted**) · `docs/schema.md` ·
+`docs/sync-contract.md` · `docs/learn.md` · this entry. **Nothing committed — devops owns
+git.** No scratch files left in the repo; they live under `$CLAUDE_JOB_DIR/tmp`.
+
+---
+
+### (A) THE HEADER ROW — TWO CORRECT RULES COLLIDING
+
+`readTable` dropped Notion's header row and the chapter writer then marked the *surviving*
+row 0 as `is_header`. Both halves were right on their own. Composed, the first decision of
+every comparison table was published as its column headings and the real headings never
+reached the database.
+
+**The fix is a split, not a special case.** `readTable(tableId, hasColumnHeader)` now
+returns `{ header, rows }` and the caller chooses: outcomes, targets and features read
+`.rows` (header dropped — `Claim | Basis` is not a claim); `readOrderedBlocks` reads the
+header back in as row 0, which serves both the chapter-section path and the
+`page_sections` document path.
+
+**Whether a table has a header is DATA.** Notion's table block carries
+`has_column_header` — the author's checkbox — and it is the only thing consulted. Nothing
+infers a header from what row 0 looks like. A table that declares none is **refused** and
+the run exits non-zero, because `SectionTable` draws row 0 in `<thead>` unconditionally, so
+storing a headerless grid would reintroduce the same defect by the other door. Which row
+is a header is a content decision.
+
+**Measured, before writing any code:** every table block in the Notion database, walked
+including Arabic child pages. **26 tables, 26 with `has_column_header: true`, 0 without.**
+So the refusal fires on nothing today and there was no judgement to return.
+
+**Rendered `<th scope="col">`, before and after, on localhost:3000.**
+
+| page | before | after |
+|---|---|---|
+| `/en/…/web-vs-mobile-portal` | `Reaching an absent customer` · `Email + SMS — both require the customer to go somewhere` · `Push notifications join as a third channel` · `Push goes to the customer instead of waiting for them…` | `The same need` · `Web` · `Mobile` · `Why it changed` |
+| `/ar/…/web-vs-mobile-portal` | `الوصول إلى عميل غائب` · `بريد إلكتروني + رسائل قصيرة…` · `تنضم الإشعارات الفورية كقناة ثالثة` · `الإشعار يذهب إلى العميل…` | `الاحتياج نفسه` · `على الويب` · `على الموبايل` · `لماذا تغير` |
+| `/en/…/web-vs-mobile-onboarding` | `Overall structure` · `Linear five-stage stepper` · `Task dashboard, five cards with states` · `A stepper shows remaining distance…` | `The same need` · `Web` · `Mobile` · `Why it changed` |
+| `/ar/…/web-vs-mobile-onboarding` | `البنية العامة` · `مسار خطي من خمس مراحل` · `لوحة مهام بخمس بطاقات…` · `المسار الخطي يعرض المسافة المتبقية…` | `الاحتياج نفسه` · `على الويب` · `على الموبايل` · `لماذا تغير` |
+
+**It was on six pages, not four.** The accessibility page's table goes through
+`page_sections`, not `chapter_paragraphs`, and had the identical defect from the same
+helper: `/en/…/accessibility` and `/ar/…/accessibility` both showed
+`Text colours (primary, secondary, hint) taken from the bank's shared component library` ·
+`1.4.3 Contrast (Minimum)` · `Inherited from the library — not independently measured by me`.
+Both now show `Practice in the journey` · `WCAG criterion` · `Verification`. Two more —
+`egypt-acquisition/onboarding` (`Finding` · `Count`) and `uae-acquisition/onboarding`
+(`Claim` · `Basis`) — are fixed in both locales too.
+
+**A data row was being eaten, not just mislabelled.** Rendered `<th scope="row">` count in
+`<tbody>`: portal 4 → **5**, onboarding 12 → **13**. Each table recovered exactly one row.
+
+**Outcomes and targets are untouched, and that was verified rather than assumed.**
+Measured from the database after the live sync: `egypt-acquisition` 3 outcomes / 6 targets,
+`neobiz-mobile` 5 targets, `uae-acquisition` 4 outcomes — identical to the pre-change dry
+run, same markers in the same order. No label reads `Claim`, `Basis`, `Outcome` or
+`Source`, so no header leaked in as an item and no item was lost.
+
+---
+
+### (B) A BLANK PAGE CAN NO LONGER UNPUBLISH A LIVE CASE FILE
+
+`caseFileRegression()` runs **before any write and before the dry-run branch**, and
+refuses the whole row when either is true:
+
+1. the row would move a `published` case file to `draft`;
+2. the Notion page offers zero sections and the published case file already has cover
+   sections.
+
+`fail()` + `continue`. Nothing is written for that row, not even the status, and the run
+exits non-zero. **A refusal rather than "keep the higher status"** — a merge would stop the
+unpublish silently and leave the collision in place with nobody told. The message names
+both halves and says the escape hatch: a genuine unpublish is one edit on the **live** page.
+
+The blocks are read at the top of the iteration and reused by both branches, so the guard
+reads the same bytes the writer does and this costs no extra Notion calls — one extra
+Supabase read per case file.
+
+**Measured, `--dry-run --all`, which is the shape of the run that broke Cervello:**
+
+```
+Read 68 rows, 68 in scope.
+  case_file  cervello  (published)      ← the live page still syncs
+  …
+failed   2
+  ✗ Case File Cover — Cervello: this page would move the PUBLISHED case file "cervello"
+    to draft, which removes it from the gallery and 404s its cover and every chapter
+    under it. Nothing was written for this row. …
+```
+
+Order-independent: the guard reads the live row's status from the database, so it refuses
+whether the blank page is processed before or after the real one.
+
+**`case_files` status after everything, from the database:** `cervello` **published**,
+`egypt-acquisition` published, `neobiz-mobile` published, `uae-acquisition` published;
+`east` · `kshemam` · `pidetaxi` · `aam-advisor` draft — unchanged, and the guard correctly
+does not fire on them because they were never published.
+
+**Decision 040 is not replaced.** Scoping the sync to MVP-1 is still the default and still
+right; this is the guard underneath it, because a default protects the path people usually
+take and this one was defeated by a flag.
+
+---
+
+### (C) COVER PARAGRAPHS — MIGRATION 0046
+
+The same change 0045 made for chapters. `cover_paragraphs` gains `locale`,
+`unique (cover_section_id, locale, sort_order)`, and the count gate in
+`writeCoverSections` is gone because there is no longer an index to guard. **No `part`
+column** — a cover has no coda after a closing divider, so there is one fallback group per
+slot — and **no table cells**, since a cover's tables are its outcomes.
+
+The backfill mirrors 0045's, `materialized` CTE included: every existing row becomes the
+English row, every row carrying Arabic gains an Arabic twin at the same position, and the
+Arabic translations move to the twin. Nothing deleted.
+
+**Measured from the database.**
+
+| | before | after backfill | after live sync |
+|---|---|---|---|
+| `cover_paragraphs` rows | 41 | 80 (41 en · 39 ar) | **83 (41 en · 42 ar)** |
+| `cover_paragraph` translations | 41 en · **39 ar** | 41 en · 39 ar | 41 en · **42 ar** |
+| orphaned `cover_paragraph` translations | — | **0** | **0** |
+| `uae-acquisition` `thesis` | 2 en · **0 ar** | 2 en · 0 ar | **2 en · 3 ar** |
+
+**Rendered, on localhost:3000.** `/ar/work/uae-acquisition` carries all three Arabic thesis
+paragraphs — `طلب فتح حساب شركة كان يعمل بالفعل على الويب…` · `هذا هو الملف الشقيق لمصر،
+والاثنان معًا هما الحجة…` · `نفس المصمم. نفس المتطلب. ونتيجتان لا تشبهان بعضهما.` — and its
+`lang="en"` element count went from the English thesis fallback to **0**. Every other cover
+is unchanged in both locales: cervello 3/2/3/3, egypt 5/3/6, neobiz 3/4/2/1, all `↔ar` equal.
+
+**The dry-run shape line now prints the Arabic count.** It said `thesis(2¶+ar)` on every run
+for the life of the slot model while three finished Arabic paragraphs were being discarded —
+`+ar` only meant an Arabic slot existed. It now reads `thesis(2¶ ↔ar 3¶)`, matching the
+chapter pass. This is the "absence is invisible" class in the one line whose job is to make
+absence visible.
+
+**Two query sites changed in `lib/content/case-files.ts`,** and the second is the one that
+would have broken quietly: the gallery/`llms.txt` summary filtered `.eq("sort_order", 0)`,
+which after 0046 returns **two** rows per section and would have picked a language by row
+order. It now picks this locale's row, else the English one, per section.
+
+---
+
+### VERIFICATION
+
+`npm run test:sync` pass · `npx tsc --noEmit` exit 0 · `npm run lint` 0 errors ·
+`npm run verify:content` all checks passed · `npm run check:seed-drift` no drift (91/91) ·
+`npm run build` succeeded, 65/65 static pages · live `npm run sync:notion` completed,
+26 updated, 1 failure and it is the pre-existing one below.
+
+**Not verified — named as such:**
+
+- **A live `--all` run was refused by the permission classifier and was NOT executed.**
+  What *is* verified against live data is the guard's decision: `caseFileRegression` runs
+  before the dry-run branch, queries the real database, and returned the refusal on
+  `--dry-run --all`. The code path up to and including the refusal is identical. The
+  end-to-end live `--all` is untested.
+- **No browser.** Every rendered check above is `curl` against `localhost:3000` and
+  inspection of the returned HTML — the `<th>` text, the `<th scope="row">` counts, the
+  Arabic paragraph strings. Nobody has looked at these tables on a screen, in either
+  direction, and an RTL table's mirroring is exactly the kind of thing DOM inspection
+  cannot judge. **Moataz's pass is still owed on all six pages.**
+- **The refusal for a table with `Header row` off has never fired**, because no such table
+  exists. Its message and its `continue` are unexercised.
+
+---
+
+### NOT MINE, FOUND ON THE WAY, NOT DONE
+
+- **frontend + content — an unmarked English sentence on the Arabic UAE cover.**
+  `case_file_siblings.note` is English-only (`". Same bank, same regulatory requirement, a
+  market without the identity infrastructure, and a very different answer."`), and
+  `SiblingLinks` renders it on `/ar/work/uae-acquisition` with **no `lang`/`dir`** — so
+  decision 053's marking and `rtl-guard`'s direction rule both miss it. Two rows, both
+  English. Separately: **the stored note begins with a literal `". "`** — a leading full
+  stop and space that renders on the page. That one looks like a `parseSiblingLine`
+  artefact and is mine if it is briefed; I have not touched it.
+- **content — the accessibility page's Arabic image tag, unchanged and still the only sync
+  failure.** `…/application-submitted-arabic-verification-choice` shares its paragraph with
+  prose, so the whole chapter's media is refused. Notion is read-only to me.
+- **content — the accessibility page's Arabic, 8 sections to English's 14**, so the
+  page_sections pass skips the Arabic. Reported by the sync, out of scope per the brief.
+- **Possibly frontend or content — `uae-acquisition/onboarding`'s `result` table renders
+  its status markers raw.** Its first cell reads `~10 minutes to complete an application
+  [achieved]`, marker and all, because it is a chapter table rather than an `outcomes` row,
+  so nothing strips or renders the marker. It is now more legible than before, since the
+  `Claim | Basis` header is finally above it. I did not change it — whether that table
+  should be an outcomes table is an editorial call.
+
+**Open questions:** none returned. Nothing in the brief needed a decision.
+
+---
+
 ## 004230826 — 2026-08-23 12:43 — a chapter paragraph belongs to one locale: 75 Arabic paragraphs recovered
 
 **Brief:** make each locale's paragraph sequence independent within a chapter section.

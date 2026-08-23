@@ -68,6 +68,40 @@ The script reads the Notion page body and maps headings to fields.
 
 *Corrected 2026-08-11.* This section previously described outcomes as a list. The content is written as a **table**, and the mismatch had a real cost: the parser read a summary sentence sitting above the table as though it were an outcome, and marking it would have written one nonsense row while silently discarding four real ones.
 
+### A table's header row is kept or dropped by WHAT READS IT, never by position
+
+*Rule added 2026-08-23, task `007230826`, after both halves of it were wrong at
+once on six live pages.*
+
+A Notion table is read as **a header and its data rows, kept apart**, and the
+caller chooses:
+
+| Reader | Header |
+|---|---|
+| Outcomes, targets, features — the **item list** readers | **Dropped.** `Claim \| Basis` is not a claim, and the status parser reads the first column of every row it is given |
+| Chapter tables and document-page tables — the **grid** readers | **Kept, as row 0.** `The same need · Web · Mobile · Why it changed` is what tells a reader, and a screen reader, what each column means |
+
+**What went wrong.** One reader dropped the header for everyone, and the chapter
+writer then marked the *surviving* row 0 as `is_header`. So the first **data**
+row of every comparison table was published as its column headings, in
+`<th scope="col">`, and the real headings never reached the database. Both
+locales, both comparison pages, and the accessibility page — the sibling of the
+case file that argues for accessibility. Two correct rules colliding, each
+invisible from inside the other.
+
+**Whether a table has a header at all is data.** Notion's table block carries
+`has_column_header` — the author's own checkbox in the UI — and it is the only
+thing consulted. Nothing infers a header from what row 0 looks like.
+
+**A table with `Header row` turned OFF is REFUSED, and the page is not written.**
+`SectionTable` is the only table renderer on this site and it draws row 0 in
+`<thead>` unconditionally, so a grid stored with no header would put a data row
+in a `<th>` by the other door. Which row is a header is a content decision.
+Measured across the whole database on 2026-08-23: 26 tables, all 26 declare a
+column header, so this refuses nothing today — it exists so the next table
+authored without one stops the run instead of publishing a data row as a
+heading.
+
 ### Chapter pages
 
 | Notion heading | `translations.field` |
@@ -273,10 +307,11 @@ across all seventeen chapter pages.
 | Entry handles | yes |
 | Outcomes and targets | yes |
 | Decisions | yes |
-| Cover sections and **`cover_paragraphs`** | yes — see below |
 | `page_sections` | yes |
+| Cover **sections** (slot ↔ slot, not by index) | n/a — resolved through the alias table |
 | Chapter prose paragraphs | **no longer — migration 0045** |
 | Chapter table cells | **no longer — they follow their paragraph** |
+| **`cover_paragraphs`** | **no longer — migration 0046** |
 | Image tags | never did (Step 6) |
 
 Where the counts differ, the Arabic is **skipped and reported** — attaching the
@@ -289,12 +324,18 @@ Every such notice prints **both heading lists**, so "not translated yet"
 bug). Those need opposite responses and are indistinguishable from a count
 alone.
 
-> ⚠️ **`cover_paragraphs` has the identical defect and it is NOT fixed.**
-> Covers keep one shared paragraph row per position, so the UAE cover's
-> `thesis` — 2 English paragraphs, 3 Arabic — is refused on every sync.
-> Measured 2026-08-23: `cover_paragraphs` 41 rows, 41 en, **39 ar**. Two
-> paragraphs, one slot, one cover. It is the same fix in a second table and is
-> deliberately out of task `004230826`'s scope, not overlooked.
+> ✅ **`cover_paragraphs` is fixed too — migration 0046, task `007230826`.**
+> The line above used to say it was not, and named it as deliberately out of
+> `004230826`'s scope. It was the abandoned half of the same rule, which
+> `docs/learn.md` Part 3 already warns about: *a rule you apply in one shape
+> and abandon in another is not yet a rule.* A cover paragraph now belongs to
+> one locale, each language owns its own sequence within a slot, and the count
+> gate is unreachable rather than loosened. No `part` column: a cover has no
+> coda after a closing divider, so there is one fallback group per slot.
+>
+> Measured before: 41 rows, 41 en, **39 ar** — the UAE `thesis` refusing 3
+> finished Arabic paragraphs on every run. After: see
+> `docs/status/backend.md` `007230826`.
 
 > The bug class this replaced, in its exact form: two lists zipped by position,
 > guarded by equal length, where **equal length was never the question**.
@@ -599,7 +640,27 @@ paragraphs without it.
 
 ## KNOWN DATA ISSUES (resolve in Notion before the first real sync)
 
-1. **Route collision** — two rows claim `/[locale]/work/cervello`: `Case File Cover — Cervello` (old) and `Case File Cover — Cervello Cloud (IoT)` (current). The sync will create duplicates or overwrite unpredictably.
+1. **Route collision** — two rows claim `/[locale]/work/cervello`: `Case File Cover — Cervello` (old, blank, `Content ready: Not started`, `Build Layer 3`) and `Case File Cover — Cervello Cloud (IoT)` (current, live). **Still unresolved in Notion — archiving the old page is Moataz's.**
+
+   **What the sync does about it now (task `007230826`), and what it does not.**
+   `findRouteCollisions` ignores rows outside MVP-1 by design, so it does not
+   see this one — parked content must not be able to report problems against
+   content that ships, and that is the right call. Decision 040 then closed the
+   hole by scoping the sync to MVP-1, which holds exactly as long as nobody
+   types `--all`. **On 2026-08-23 somebody did, and Cervello disappeared from
+   the gallery**: the blank page is not `Done`, so it computed `draft`, and the
+   update is keyed on the SLUG rather than on the Notion page, so it landed on
+   the live row and took seven chapters down with it. It was restored by hand.
+
+   **`caseFileRegression` now refuses the write.** A row that would move a
+   `published` case file to `draft`, or write a page with no sections over a
+   cover that has some, **fails and writes nothing** — the whole row, not just
+   the status — and the run exits non-zero. It is a refusal rather than a
+   silent "keep the higher status", because a merge would leave the collision
+   in place, still wrong, and tell nobody.
+
+   A genuine unpublish is still one edit: change `Content ready` on the **live**
+   page. What is refused is a downgrade arriving from a page with nothing on it.
 2. **Five orphaned Cervello chapters** — IoT Platform Web App, Design System, Alarm iOS App, Horizontal Apps, Platform Website — superseded by the three-chapter rebuild.
 3. **Mini case files** still flagged `In MVP-1 = __YES__` with no content written.
 4. **Stale blockers** on Neobiz Mobile chapters marked `Content ready = Done`.

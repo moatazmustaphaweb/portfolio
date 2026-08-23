@@ -270,6 +270,33 @@ Images in this system already accept that the two locales differ in count and or
 
 **So the guard is not wrong and should not be loosened** — pairing by index across lists of different lengths really would attach the wrong Arabic to the wrong screenshot. **The model underneath it is wrong.** Loosening the guard and re-cutting the prose are both attempts to satisfy a 1:1 assumption that the content never had.
 
+### And the rule was abandoned again the same week, in writing, on purpose
+
+Added 2026-08-23, task `007230826`. The entry above ends *"a rule you apply in
+one shape and abandon in another is not yet a rule."* Migration 0045 fixed
+`chapter_paragraphs` the next morning and left `cover_paragraphs` on the old
+model, where the UAE cover's `thesis` — 2 English paragraphs, 3 Arabic, both
+finished — lost its Arabic on every run.
+
+**What makes this worth a second entry is that it was not an oversight.** The
+gap was found, measured, and written down, in `docs/sync-contract.md`:
+
+> ⚠️ **`cover_paragraphs` has the identical defect and it is NOT fixed.** …
+> It is the same fix in a second table and is deliberately out of task
+> `004230826`'s scope, not overlooked.
+
+Every word of that is true and it still left finished Arabic off the live UAE
+cover for another day. **"Named so the gap reads as known rather than missed"
+is a good habit that becomes a way of closing a task with the bug still in it.**
+Scoping is real and a task cannot swallow everything it touches — but the
+second half of scoping something out is saying *when*, and to whom, and that
+half was missing.
+
+**Operationally, and it is cheap:** when a fix has an identical twin one table
+over, either do both in the pass, or hand the twin back to the orchestrator as
+a named follow-up in the same reply. A `⚠️` in a document is addressed to
+whoever reads that document next, which may be nobody.
+
 ---
 
 # PART 4 — HOW HE WANTS CODE BUILT
@@ -302,6 +329,40 @@ Any parser that enforces a fixed vocabulary will silently discard correct conten
 Every hardening this project has done came from a real incident. When a guard refuses valid content, the fix is to teach it the construct, not to remove it.
 
 If a newly added guard refuses content that previously synced, that means something has been dropping silently all along. **Find out what. Do not loosen the guard to make it pass.**
+
+### A protection that depends on how the command is typed is not a protection
+
+Learned 2026-08-23, task `007230826`, from a case file disappearing off the
+live site overnight.
+
+Two Notion pages claim `/[locale]/work/cervello`: the finished one, and a blank
+Layer 3 row whose own notes say it was taken out of MVP-1 **to clear that
+collision**. Decision 040 closed the problem by scoping the sync to MVP-1, and
+that was a real fix — for a year of ordinary runs. Then someone passed `--all`,
+the blank page computed `draft`, the update was keyed on the SLUG rather than
+on the Notion page, and it landed on the live row and took seven chapters with
+it.
+
+**The fix was correct and it was not a guard.** It was a *default*. A default
+protects the path people usually take; a guard protects the path they take at
+2am with a flag on. Both are worth having and they are not substitutes, and the
+sentence that should have raised the alarm was written in the decision itself:
+*"the sync is scoped to MVP-1."* That is a statement about what the command
+normally does.
+
+- **Ask of any mitigation: what has to stay true for this to hold?** If the
+  answer is a habit, a flag, a filename, or an ordering, it is a default. Write
+  the guard as well.
+- **A guard belongs at the write, not at the selection.** The collision check
+  runs over the row list; the damage happens at the `update … where slug = …`.
+  Anything that filters *which rows are considered* can be widened by a flag.
+  Anything that refuses *this particular write* cannot.
+- **Refuse the whole row; do not merge.** "Keep the higher status" would also
+  have stopped the unpublish — silently, leaving the collision in place and
+  telling nobody. The refusal names both pages and exits non-zero.
+- **And it must not wait on a person.** Archiving the duplicate page is
+  Moataz's, he has not done it, and the code may not assume he will. A fix that
+  is really a request is not a fix.
 
 ## Verify by looking
 
@@ -401,6 +462,45 @@ because there is no longer an index. 75 Arabic paragraphs landed, 177 → 252.
   fallback's unit instead. **The rule: when a refactor makes some old mechanism
   unnecessary, check what it was incidentally holding up before deleting it.**
 
+
+## A shared reader that makes a policy decision on behalf of every caller
+
+Learned 2026-08-23, task `007230826`, from a defect that was live in both
+languages on six pages and was produced by **two correct rules, neither of
+which could see the other.**
+
+`readTable` dropped the Notion header row. For **outcomes and targets** that is
+right and load-bearing: `Claim | Basis` is not a claim, and the status parser
+reads the first column of every row it is handed. The chapter writer then
+marked the surviving row 0 as `is_header` — also right, given a grid whose
+row 0 is the header. Composed, they published the first **data** row of every
+comparison table as its column headings, in `<th scope="col">`, and the real
+headings never reached the database at all.
+
+**Neither half is wrong when you read it. The defect only exists in the seam,
+and the seam is not in any file.** Both call sites had a correct comment
+explaining what they did and why.
+
+- **The tell is a shared helper that returns something less than it read.**
+  `readTable` threw a row away before its callers could disagree about whether
+  they wanted it. A reader that discards is making a policy decision for
+  everyone downstream, and the second caller — the one written months later —
+  inherits it without ever being asked.
+- **The fix is to return both and let the caller choose.** `{ header, rows }`.
+  Outcomes read `.rows`, the grid readers read the header back in. Nothing was
+  loosened and nothing was special-cased.
+- **Generalises past parsers:** whenever a helper serves two consumers with
+  genuinely different needs, the question is not *"which behaviour is correct"*
+  but *"is this helper entitled to decide?"* If both answers are correct for
+  someone, it is not.
+
+And the smaller half, which is the `data is data` rule again: **whether a table
+has a header is authored, not inferred.** Notion carries `has_column_header` —
+a checkbox in the UI — and reading it removed the last place position was
+standing in for meaning. Measured across the database: 26 tables, all 26
+declare one. A table that declares none is refused rather than guessed at,
+because the site's only table renderer draws row 0 in `<thead>` regardless, so
+storing a headerless grid would reintroduce the same defect by the other door.
 
 ## Silent success
 

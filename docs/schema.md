@@ -204,10 +204,10 @@ create table experiments (
 *Added 2026-08-23, task `004230826`. Migrations 0034–0038 and 0045.*
 
 > ⚠️ **This file is behind on the slot model generally.** `cover_sections`,
-> `cover_paragraphs`, `cover_slot_aliases` and `page_sections` are live tables
-> and are **not documented here**. Only the chapter side is, because that is
-> what `004230826` changed. Named so the gap reads as known rather than missed;
-> the migrations are the authority until it is closed.
+> `cover_slot_aliases` and `page_sections` are live tables and are **not
+> documented here**. Only the chapter side is, plus the one `cover_paragraphs`
+> column added in `007230826`. Named so the gap reads as known rather than
+> missed; the migrations are the authority until it is closed.
 
 A chapter's prose used to live in six fixed `chapter` translation fields chosen
 by matching the Notion heading against a vocabulary in code, and **a heading
@@ -287,6 +287,53 @@ the written order.
 paragraph** — a strengthening of the rule at the top of this file, not an
 exception to it. The old shape could render a section half Arabic and half
 English; it now renders one language or the other, marked.
+
+### `is_header` says what NOTION declared, never what row 0 looks like
+
+*Corrected 2026-08-23, task `007230826`.*
+
+The header row was being **dropped on the way in and then re-invented on the
+way out**. `readTable` removed Notion's header row — correct for outcomes and
+targets, where the header is not an item — and the chapter writer then marked
+the surviving row 0 as `is_header`. So the first *data* row of every comparison
+table went into `<th scope="col">` and the real headings never reached the
+database at all. Live in both locales on both comparison pages and on the
+accessibility page, and announced by a screen reader as the column heading for
+every cell beneath it.
+
+The two rules were both right and were colliding. `readTable` now returns the
+header and the data rows **separately**, and the caller says which it wants:
+outcomes and targets read the rows, the chapter and document passes read the
+header back in as row 0.
+
+**Whether a table has a header is DATA, not an inference from row 0.** Notion's
+table block carries `has_column_header` — the author's own checkbox — and that
+is the only thing consulted. A table that declares none is **refused**, because
+`SectionTable` is the only table renderer on this site and it draws row 0 in
+`<thead>` unconditionally: storing a headerless grid would put a data row in a
+`<th>` by the other door. Which row is a header is a content decision.
+Measured across the whole Notion database on 2026-08-23: 26 tables, all 26
+declare `has_column_header: true`, so the refusal fires on nothing today.
+
+### A cover paragraph belongs to one locale too (0046)
+
+```sql
+alter table cover_paragraphs
+  add column locale locale_code not null;   -- 0046. NO DEFAULT
+-- unique (cover_section_id, locale, sort_order)
+```
+
+The same change 0045 made for chapters, applied to covers a task later —
+`docs/learn.md` Part 3 already names this shape: *"a rule you apply in one
+shape and abandon in another is not yet a rule."* A shared paragraph row forced
+Arabic to attach by index, the count gate refused any slot where the two
+languages differ, and the UAE cover's `thesis` — 2 English paragraphs, 3 Arabic,
+both finished — lost its Arabic on every run. The gate is not loosened; there is
+no longer an index to guard.
+
+**No `part` column, and no table cells.** A cover has no coda after a closing
+divider, so there is one fallback group per slot; and a cover's tables are its
+outcomes, which live in `outcomes` with their own status markers.
 
 ---
 
