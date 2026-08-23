@@ -37,6 +37,48 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 025240826 — 2026-08-24 00:35 — the first image on this project actually looked at
+
+Moataz sent the delivery URL for the Neobiz cover. Rather than check another status code, the bytes
+were downloaded and **viewed** — the first time any image on this project has been seen rather than
+verified structurally.
+
+### What the cover is
+
+Two iPhones at an angle on a transparent field: the front one showing the NEOBIZ account-application
+dashboard in **Arabic**, the one behind it the same screen in **English**. Dummy data throughout —
+`Business plan: Lite`, `Commercial register`, `Tax card` — consistent with rule 6 and amendment 036.
+
+**The grayscale NDA treatment is working, and this is the first time it has been seen** rather than
+inferred from a `200`. It reads as a deliberate finish, not as a degraded image, which is the whole
+argument of amendment 036.
+
+### Three observations, none of them defects
+
+**The transparency question resolved the right way.** Both the cover and the card deliver with a
+`tRNS` chunk — colour-type 3 with palette transparency, not a white plate. So on the dark theme the
+phones sit on the page background instead of inside a glowing white rectangle. **That is exactly the
+"طايرة، ماشية مع الخلفية" instruction from `010230826` holding at the asset level**, and it was the
+one thing that could have quietly broken when the source was re-exported. It did not.
+
+**The rear phone is clipped at the frame edge** — `Ownership details`, `…etails`, `…on` are cut. That
+is what clip content does, and it is almost certainly intended. Worth noting only because **the
+clipped phone is the English one** and the fully readable one is Arabic, on a portfolio whose primary
+reader is an English-speaking hiring manager.
+
+**The gallery card leaves roughly its right third empty.** `c_fill,w_640,h_400,g_auto` places both
+phones left of centre. Nothing is cut and nothing is wrong; the composition simply carries a lot of
+dead field. Changing it would mean a different gravity or a differently framed source, and both are
+design calls rather than fixes — **recorded, not acted on**.
+
+### Not verified
+
+**Still nothing seen in a page.** These were the raw derivatives, fetched and viewed directly. How
+the cover sits inside its layout, at what size, against which background, on either theme, remains
+unlooked-at. The Chrome extension is connected and that check has still not been run.
+
+---
+
 ## 024240826 — 2026-08-24 00:15 — the replace that was not a replace
 
 Moataz re-exported the Neobiz Egypt cover from Figma with clip content on, so the frame is genuinely
