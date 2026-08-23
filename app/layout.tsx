@@ -1,8 +1,11 @@
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { getLocale } from "next-intl/server";
+
+import { getSettings } from "@/lib/content/settings";
+import type { Locale } from "@/lib/content/types";
 
 import "./globals.css";
 
@@ -68,6 +71,47 @@ const meralSans = localFont({
   display: "swap",
   adjustFontFallback: false,
 });
+
+/*
+ * ── THIS EXISTS FOR EXACTLY ONE ROUTE: THE 404 ──────────────────────────────
+ *
+ * `app/[locale]/layout.tsx` already sets `title` from the database, and every
+ * page under `[locale]` inherits it or overrides it. **This changes none of
+ * them** — the nearer layout wins.
+ *
+ * What it reaches is `app/not-found.tsx`, which sits ABOVE `[locale]` because
+ * an unmatched URL has no locale segment to render inside. It was therefore
+ * the one route in the app with no metadata anywhere in its chain, and it
+ * shipped with an empty <title>: a blank browser tab, and a screen reader that
+ * announces nothing when the page opens. axe rates it `serious`
+ * (`document-title`) — `docs/accessibility-audit.md` finding 5.
+ *
+ * ── WHY NOT `global-not-found.tsx` ──────────────────────────────────────────
+ *
+ * It is the file built for this and it supports metadata directly, so it was
+ * the first choice and was rejected on the docs. Next's own reference says it
+ * is for apps that CANNOT compose a 404 from `layout.js` + `not-found.js` —
+ * multiple root layouts, or a root layout on a dynamic segment. This app has
+ * one static root layout and can. It is also experimental, and it **bypasses
+ * the layout entirely**: fonts, the pre-paint theme script and `globals.css`
+ * would all have to be duplicated into it, and the locale — which
+ * `not-found.tsx` gets from `getLocale()` via the middleware — would have to
+ * be re-established. That risks the Arabic 404, which is the bug this file was
+ * created to fix in the first place.
+ *
+ * ── RULE 1 ──────────────────────────────────────────────────────────────────
+ *
+ * The title is `settings.name`, from the database. No literal. If that setting
+ * were ever NULL this returns `{}` and the 404 goes back to having no title —
+ * omitting rather than substituting, which is the rule the locale layout
+ * already applies to `tagline` and `og_image`.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = (await getLocale()) as Locale;
+  const settings = await getSettings(locale);
+  const name = settings.get("name");
+  return name ? { title: name } : {};
+}
 
 export const viewport: Viewport = {
   width: "device-width",

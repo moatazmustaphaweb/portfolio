@@ -37,6 +37,74 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 014230826 — 2026-08-23 10:38 — the 404 has a title. **Zero axe violations across the site.**
+
+The last technical item on the accessibility audit.
+
+### What was wrong, precisely
+
+The 404 rendered correctly — right locale, right direction, copy from the database, both CTAs — with
+**no `<title>`**. A blank browser tab, and a screen reader that announces nothing on open. axe rates
+it `serious`.
+
+**Cause:** `app/[locale]/layout.tsx` already sets `title` from `settings.name`, and every page under
+it inherits or overrides that. **`app/not-found.tsx` sits above `[locale]`** — an unmatched URL has
+no locale segment to render inside — so it inherited from `app/layout.tsx`, which exported
+`viewport` and no metadata. It was the one route in the app with no metadata anywhere in its chain.
+
+### The route not taken, and why
+
+`global-not-found.tsx` is the file built for this and supports metadata directly. **He chose it, and
+I came back and argued against it**, because reading Next's bundled reference changed the picture:
+
+> *"`global-not-found.js` is useful when you **can't** build a 404 page using a combination of
+> `layout.js` and `not-found.js` … multiple root layouts … or a root layout defined using top-level
+> dynamic segments."*
+
+**Neither applies.** One static root layout, and it composes. It is also experimental, and it
+**bypasses the layout entirely** — fonts, the pre-paint theme script and `globals.css` duplicated
+into it, and the locale, which `not-found.tsx` gets from `getLocale()` via the middleware, would
+have to be re-established. **That risks the Arabic 404, which is the bug `app/layout.tsx` exists to
+fix.** Trading a hard-won fix for a tab label.
+
+### And his objection to option (a) turned out not to apply
+
+He rejected a root-level default on the principle that **a page which forgets its metadata should
+be visible as broken, not silently given a title.** That principle is right, and I had described the
+change badly.
+
+**It is not a site-wide default.** `[locale]` pages resolve against their own nearer layout, which
+already sets a title. This reaches **one route** — the only one outside `[locale]`. Verified rather
+than asserted: all **22** route-locale titles dumped before and after, and **every one is
+unchanged** except the 404, which went from empty to the site name in the correct language.
+
+### Result
+
+```
+Pages audited: 28 · errored: 0
+
+VIOLATIONS, worst impact first
+  none
+```
+
+**Zero axe violations across the site, both locales.** From five findings this morning:
+`fg-dim` contrast, form-control borders, `landmark-unique` on 24 pages, `document-title` on 2 — all
+closed. The one withdrawn was withdrawn because it was never real.
+
+`next build` exit 0, **65/65** · `tsc` clean · `eslint` clean.
+
+### Still true, and it is the whole remaining gap
+
+**`jsdom` has no layout engine**, so `color-contrast`, `landmark-one-main` and `page-has-heading-one`
+were checked by hand rather than by axe — the first from the tokens, the other two by counting.
+**And nothing needing a browser has been tested at all:** keyboard walkthrough, focus visibility on
+real pixels, screen reader in either language, zoom to 200%, touch targets as rendered.
+
+**"Zero violations" means zero of what this method can see.** It is a real result and it is not the
+same sentence as "the site is accessible".
+
+---
+
 ## 013230826 — 2026-08-23 10:04 — every landmark has a name; `landmark-unique` is gone
 
 His three labels, approved verbatim. Migration `0047` seeds them; seven `<nav>` elements now carry
