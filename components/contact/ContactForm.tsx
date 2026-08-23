@@ -75,7 +75,7 @@ export function ContactForm({
   }
 
   const field =
-    "mt-2 w-full rounded-control border border-DEFAULT bg-surface px-4 py-3 text-body text-fg " +
+    "mt-2 w-full rounded-control border border-input bg-surface px-4 py-3 text-body text-fg " +
     "transition-colors placeholder:text-fg-dim focus:border-strong focus:outline-none " +
     "focus-visible:ring-2 focus-visible:ring-accent";
   const label = "font-mono text-micro uppercase text-fg-dim";

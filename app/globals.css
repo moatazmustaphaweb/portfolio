@@ -22,6 +22,18 @@
   --color-border: #1f1f1f;
   --color-border-strong: #333333;
   --color-border-subtle: #2a2a2a;
+  /*
+   * The boundary of a FORM CONTROL, and only that. WCAG 1.4.11 wants 3.0 for
+   * a UI component's edge; `--color-border` sits at 1.27 here, which is a
+   * decorative hairline and correct as one — it is used on 44 panels, pills
+   * and dividers that are not components and do not need it.
+   *
+   * A separate token rather than raising `--color-border`, so an input reads
+   * as an input without repainting every edge on the site. #616161 measures
+   * 3.20 against `surface`, which is what the field sits on.
+   * Added 2026-08-23, task `011230826`.
+   */
+  --color-border-input: #616161;
   --color-fg: #ffffff;
   --color-fg-body: #ededed;
   --color-fg-muted: #a1a1a1;
@@ -250,6 +262,8 @@
     --color-border: #eaeaea;
     --color-border-strong: #d4d4d4;
     --color-border-subtle: #e5e5e5;
+    /* 3.10 against `surface` — see the dark note above. */
+    --color-border-input: #8f8f8f;
     --color-fg: #000000;
     --color-fg-body: #171717;
     --color-fg-muted: #666666;
@@ -286,6 +300,7 @@
   --color-border: #eaeaea;
   --color-border-strong: #d4d4d4;
   --color-border-subtle: #e5e5e5;
+  --color-border-input: #8f8f8f;
   --color-fg: #000000;
   --color-fg-body: #171717;
   --color-fg-muted: #666666;

@@ -169,6 +169,9 @@ const config: Config = {
       DEFAULT: "var(--color-border)",
       strong: "var(--color-border-strong)",
       subtle: "var(--color-border-subtle)",
+      // Form controls only — 1.4.11 needs 3.0 for a component boundary, and
+      // the decorative hairline deliberately does not meet it.
+      input: "var(--color-border-input)",
       accent: "var(--color-accent)",
       nda: "var(--color-nda-stroke)",
       fg: "var(--color-fg)",

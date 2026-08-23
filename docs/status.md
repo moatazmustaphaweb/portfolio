@@ -37,6 +37,58 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 011230826 — 2026-08-23 09:08 — form borders meet 1.4.11; the link-colour finding was overstated and is withdrawn
+
+Two of the three remaining audit items. **One is fixed. One should not be, and that is my error to
+report.**
+
+### Form input borders — fixed, with a new token rather than a global change
+
+The resting input border was **`--color-border`**, not `border-strong` as I first said — the
+weakest token on the site, at **1.27 dark / 1.20 light** against a required **3.0**.
+
+**`--color-border-input`** added: `#616161` dark (**3.20** on `surface`), `#8f8f8f` light
+(**3.10**). Mapped as `borderColor.input`, applied to the one shared `field` class the contact
+form's inputs, select and textarea all use.
+
+**Deliberately not by raising `--color-border`.** That token is on **44** panels, pills and
+dividers which are decorative and correctly below 3.0 — 1.4.11 covers components, not ornament.
+Raising it would have repainted every edge on the site to fix five fields.
+
+### The link colour — I overstated it, and changing it would make things worse
+
+I reported *"link colour falls just under AA on raised surfaces"*. **That was a token-level
+possibility described as a real defect.** Checked properly:
+
+- **`accent` is never a resting text colour.** Links are `text-fg`. Accent appears as text **only
+  on `hover:`**, in four places.
+- Those four sit on the page background — **4.61, which passes** — and one is an `h2`, where large
+  text needs only 3.0.
+- The 4.35 / 4.15 figures are `accent` on `surface` / `surface-raised`, **a pairing no text
+  actually uses.**
+
+**And the change he authorised would have broken a real one.** Lightening the blue to clear 4.5
+everywhere — `#1a80f5` — drops **white-on-accent** from ≈4.55 to ≈3.85, and that pairing *is* used:
+an 11px pill on the chapter page with `bg-accent` and `text-accent-fg`.
+
+**So the fix trades a passing hover state for a failing badge.** He said keep the blue and fix the
+ratio; the honest answer is that the ratio is not the problem. **Not changed. Reported.**
+
+If a hover-accent link is ever placed on a raised panel at small size, the answer is a separate
+lighter `accent-text` token — not a change to the accent itself, because one colour cannot be
+optimised as both text and background.
+
+### Verified
+
+`next build` exit 0, **65/65** · `eslint` clean · `tsc` clean · the rendered contact form carries
+`border-input` on its shared field class.
+
+### Still open from the audit
+
+The two unnamed `<nav>` landmarks. Needs `ui_strings` rows, so it needs Arabic from him.
+
+---
+
 ## 010230826 — 2026-08-23 08:41 — `fg-dim` darkened in the light theme; the smallest text now passes AA
 
 His ruling on the audit's one serious finding: **option (a)**.
