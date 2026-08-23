@@ -37,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 021230826 — 2026-08-23 14:05 — the gate subdomain: a brief, and what the MCP cannot reach
+
+Moataz is registering `gate.moatazmustapha.com` at GoDaddy. The apex is **already live and serving
+a different site**, which is the fact the whole brief is built around: a subdomain is purely
+additive, and every instruction in `docs/handoff/gate-subdomain.md` exists to keep it that way.
+
+**Written, not executed.** Nothing was changed at GoDaddy, at Vercel, or in the app.
+
+### What was measured rather than assumed
+
+| | |
+|---|---|
+| team | `Moataz Portfolio` · `team_9wIC827xg9APrboIsvjeTOiA` · **Hobby** |
+| project | `portfolio` · `prj_V6FGgXOikzQaXpysT1WJcJmRlwVq` |
+| git link | `moatazmustaphaweb/portfolio` |
+
+### The CNAME value was deliberately left blank
+
+**Vercel's own documentation contradicts itself** — the platform-elements page shows
+`cname.vercel-dns.com`, the CLI reference shows `cname.vercel-dns-0.com`, and in some accounts the
+target is per-project. Writing either one into the brief would have produced a record that looks
+right in GoDaddy's table and resolves for nobody.
+
+So the brief says **read it from `vercel domains inspect` and report which one you were given**, and
+the fill-in block has a slot for it. A value that cannot be true or false cannot rot — the same
+treatment the three stale `CLAUDE.md` claims got this week.
+
+### Three secrets turn out never to need to leave this machine
+
+Not a preference — traced through the code:
+
+- **`NOTION_API_KEY`** — read only by `scripts/sync-notion.ts`. Nothing server-side touches Notion.
+- **`CLOUDINARY_API_SECRET`** and **`NEXT_PUBLIC_CLOUDINARY_API_KEY`** — read by **no application
+  code at all**. Rule 3 means the site only ever *builds* delivery URLs, and that needs the cloud
+  name and nothing else. They exist for the signed-upload script.
+
+Ten variables go to Production; **eight are already in `.env.local`**. `REVALIDATE_SECRET` is empty
+locally and is ours to generate — and the route **fails closed** on a missing secret (500, not open),
+so the gap is not a hole. `NEXT_PUBLIC_PREVIEW_STUBS` must stay unset or the coming-soon stubs ship
+as real routes.
+
+### What the MCP connections cannot do, checked rather than guessed
+
+Moataz asked whether GoDaddy and Vercel could simply be driven over MCP.
+
+- **Vercel is connected** and was used throughout this task. But its tool surface has **no
+  add-domain, no domains-list and no DNS tool**. `buy_domain` registers a *new* domain; it cannot
+  attach an existing one. Deployment protection *is* reachable — `update_project_deployment_protection`.
+- **GoDaddy is not connected** in this session. Account-level claude.ai connectors do reach here
+  (Vercel, Supabase, Notion and Cloudinary all do), so whatever is on the desktop app is not one.
+- **No Chrome browser is connected** — `list_connected_browsers` returned empty — so the
+  registrar's web UI cannot be driven either. **This is the same extension gap that has blocked the
+  visual pass for weeks**, now blocking a second kind of work.
+
+### Held back on purpose
+
+`NEXT_PUBLIC_SITE_URL` decides every canonical, `og:url`, `sitemap.xml` and `llms.txt`. It depends
+on whether `gate.` is the permanent home or a staging address while the apex keeps its current site.
+**The DNS work is identical either way**, so the brief does not wait on it, and the question is
+recorded in the handoff file rather than defaulted.
+
+---
+
 ## 020230826 — 2026-08-23 13:29 — two defects in one line on a published Arabic cover
 
 Both found by backend on its way past, neither its brief, both live on
