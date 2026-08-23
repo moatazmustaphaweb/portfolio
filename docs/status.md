@@ -37,6 +37,63 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 008230826 — 2026-08-23 07:26 — the first accessibility audit this project has ever had
+
+He asked what is wrong with the **site's own** accessibility, so the accessibility page can be
+written honestly. Full findings in **`docs/accessibility-audit.md`**.
+
+### How, and what it cannot see
+
+`axe-core` over **28 pages** — 14 routes × 2 locales including a 404 — in `jsdom`. **The Chrome
+extension is still not connected**, the same failure `CLAUDE.md` records against three previous
+attempts, so no real browser was involved.
+
+`jsdom` has no layout engine, so `color-contrast`, `landmark-one-main` and `page-has-heading-one`
+could not run there. **All three were checked separately** rather than left as "incomplete" —
+contrast computed from the design tokens, the other two counted per page.
+
+### Most of it passes, and that is the honest headline
+
+**28/28** on: one `<main>`, one `<h1>`, no skipped heading level, skip link present, `lang`/`dir`
+correct. **Image alt and form labels produced no findings at all** — the `CloudinaryImage` alt rule
+and the form markup doing their jobs.
+
+### Five findings
+
+1. **🔴 The smallest text fails AA in the light theme.** `fg-dim` is **3.22–3.54** against the three
+   backgrounds; AA needs 4.5. It is used **66 times, 42 of them at `text-micro` or `text-label`**.
+   **Dark theme is fine at 5.84–6.49** — which is why it survived: it is a light-theme-only defect
+   in a codebase whose author works in dark.
+2. **🟠 Link colour just under AA on raised surfaces, dark only** — `accent` at **4.35** and
+   **4.15**. **The focus ring, which uses the same token, is fine** — it is non-text and needs 3.0.
+3. **🟠 Form input borders at 1.42–1.66 against a required 3.0** (1.4.11). Card and divider borders
+   fail the same numbers and are **reported separately on purpose**: a decorative panel edge is
+   arguably not a component boundary, an input's edge is not arguable.
+4. **🟠 Two `<nav>` landmarks with no accessible name**, 24 pages. Needs `aria-label` — **and those
+   are strings, so `ui_strings`, not the component.**
+5. **🟡 The 404 has no `<title>`**, both locales. axe rates it serious.
+
+### A defect I invented and then removed
+
+My first pass reported **"no skip link on any Arabic page" — 14 pages**. **False.** I grepped for
+`تخطي`; the string is `انتقل إلى المحتوى`. **A test that does not know the content it is testing
+invents defects**, and an Arabic false positive is the easiest kind to leave standing in a report
+nobody else reads in Arabic. Caught by checking the page rather than trusting the check.
+
+### The gap that now matters most
+
+**Everything needing a browser is still untested**: keyboard-only walkthrough, focus visibility on
+real pixels, screen reader in either language, zoom to 200% and reflow, touch targets as rendered,
+and the two interactive components. **That is the distance between this audit and a defensible
+claim on the accessibility page** — and it is why that page should not be written yet.
+
+### Not fixed
+
+Nothing was changed. This is the report he asked for. Fixes are the next task, and (1) is one token
+value.
+
+---
+
 ## 006230826 — 2026-08-23 06:44 — the FATCA language-switch pair swapped, and the alt no longer describes the image
 
 He asked for two image replacements marked in Notion on Egypt / Onboarding, one per language, "same
