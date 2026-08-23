@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 026240826 — 2026-08-24 00:55 — the card was never off-centre. Its canvas was
+
+Moataz: the inner cover is right, the gallery card is wrong — not taking the new image, wide, and not
+centred. All three were true, and all three had one cause.
+
+### The gravity was never the problem
+
+Fetching the `-card` source uncropped settled it in one look: **the phones occupy the left ~62% of
+the canvas and the rest is empty transparency.** It is the un-clipped Figma export. He fixed the
+clipping for the cover — `EGY_-_NEOBIZ_-_Cover_-_square` — and the card kept the old frame.
+
+So `g_auto` was behaving correctly the whole time. **It centred on the subject; the subject really was
+on the left**, because the canvas extended past it. Blaming the gravity would have meant tuning a
+preset that every card on the site shares, to compensate for one bad export.
+
+### Why 1.6:1 exactly
+
+`c_fill,w_640,h_400` **is** 1.6:1. **A source authored at 1.6:1 is cropped by nothing and gravity
+never gets a say** — which is why `uae-acquisition-card` is 2560×1600 and why that number was copied
+rather than chosen.
+
+Rebuilt from the fixed square cover: `e_trim` to drop the transparent margin, then
+`c_pad,w_2560,h_1600,b_transparent,g_center`. Uploaded over the existing id.
+
+*(`c_trim` does not exist and returns `Invalid crop_mode in transformation: trim`. It is `e_trim`, an
+effect, not a crop mode.)*
+
+### The four rows now agree
+
+| | cover | card |
+|---|---|---|
+| `uae-acquisition` | 2400×2400 · **1.00** | 2560×1600 · **1.60** |
+| `neobiz-mobile` | 4322×4322 · **1.00** | 2560×1600 · **1.60** |
+
+**Verified by looking, not by status code:** the literal URL the gallery requests renders both phones
+centred, filling the frame, at the same density as the UAE card.
+
+### Worth keeping
+
+**The card source is orange.** The grayscale is applied by `e_grayscale` at delivery — rule 6's
+"signal, not concealment" is holding structurally, and the pixels were never touched.
+
+### Not verified
+
+Still nothing seen inside a page, on either theme. And **Moataz's browser will show the old card
+until a hard reload** — same URL, `immutable`, the `/v1/` placeholder. `learn.md` Part 5.
+
+---
+
 ## 025240826 — 2026-08-24 00:35 — the first image on this project actually looked at
 
 Moataz sent the delivery URL for the Neobiz cover. Rather than check another status code, the bytes

@@ -701,6 +701,32 @@ orphans its card. **Copy the bytes onto the existing id instead** — `overwrite
 `invalidate=true`. One name stays in play, every convention built on it survives.
 
 
+## When a gravity looks wrong, measure the canvas before touching the preset
+
+The Neobiz gallery card put both phones left of centre and left its right third empty. The obvious
+reading is that `g_auto` chose badly and the preset needs a different gravity.
+
+**It had chosen correctly.** Fetching the source uncropped showed the subject genuinely occupying the
+left ~62% of the frame, with the rest empty transparency — a Figma export made without clip content,
+so the canvas ran on past the artwork. **`g_auto` centred on the subject; the subject was where it
+looked.**
+
+Had the preset been "fixed" instead, one bad export would have permanently skewed the gravity for
+every card on the site.
+
+**The check is one request:** ask for the source with `c_limit` and no crop, and look at it. If the
+artwork does not fill its own canvas, nothing downstream can compose it well.
+
+**And the shape is worth authoring deliberately.** `c_fill,w_640,h_400` is exactly 1.6:1, so **a
+source authored at 1.6:1 is cropped by nothing and gravity never gets a vote** — which is why
+`uae-acquisition-card` is 2560×1600. Matching that number is not cargo-culting; it is the reason the
+UAE card never had this problem.
+
+To rebuild one from a square master: `e_trim` to drop the transparent margin, then
+`c_pad,w_2560,h_1600,b_transparent,g_center`. **`c_trim` is not a thing** — it returns
+`Invalid crop_mode in transformation: trim`. Trim is an effect, `e_trim`.
+
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.
