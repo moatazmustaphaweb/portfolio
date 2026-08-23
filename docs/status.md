@@ -37,6 +37,67 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 020230826 — 2026-08-23 13:29 — two defects in one line on a published Arabic cover
+
+Both found by backend on its way past, neither its brief, both live on
+`/ar/work/uae-acquisition`. It reported and did not touch them, which was right.
+
+**What the page rendered:**
+
+```html
+<p class="mt-4 max-w-measure text-body-sm text-fg-muted">. Same bank, same regulatory requirement…
+```
+
+### 1 — English inside an RTL document with nothing marking it
+
+This is **the exact failure decision 053 exists for**, and the one `ChapterSections` was fixed for
+after 73 paragraphs and 31 captions did it. Unmarked English in a `dir="rtl"` document lays out as
+Arabic: the trailing stop resolves to the wrong visual side.
+
+**Cause:** the query layer resolved sibling titles and notes with **`resolveMany`**, which returns
+`fields` and discards `fieldLocales`. **The component had nothing to mark with** — it was not an
+oversight in the markup, it was a missing input.
+
+`resolveManyDetailed` for both, `titleLang`/`noteLang` on `SiblingLink`, and the `<p>` marks itself.
+Now: `<p lang="en" dir="ltr">`.
+
+**Worth keeping:** the sibling note is *supposed* to be English on an Arabic cover sometimes — that
+is decision 013 working. **The fallback and the direction marking are one mechanism, and using the
+thin wrapper silently opted out of half of it.** `resolveMany` is one line over
+`resolveManyDetailed`; anywhere its output reaches a page, that line costs the `lang`.
+
+### 2 — A leading full stop that was punctuation, read as an error
+
+`parseSiblingLine` took the note as everything after the last `]`, stripping a leading **dash**:
+
+```js
+const note = afterLast.replace(/^\s*[—–-]\s*/u, "").trim();
+```
+
+The UAE cover writes `…[Neobiz Mobile — Egypt]. Same bank…` — **a full stop closing the bracketed
+list, then the sentence.** Not a dash. So the stop survived into the database and onto the page.
+
+**Fixed in the parser, not in Notion**, and the comment says why: `learn.md` Part 3 — Notion is the
+source, and `]. ` is ordinary punctuation, not an authoring error. Rewriting his line to feed the
+regex is the move he overruled this morning.
+
+`:` was added to the class at the same time, because the cross-cutting line one function below uses
+it and a sibling line written that way would lose to the same gap.
+
+**Verified after a re-sync:** all four notes in the database now begin with their first word.
+
+### Verified
+
+`test:sync` pass · `tsc` clean · `eslint` clean · `next build` exit 0, **65/65** · and the rendered
+Arabic cover carries `lang="en" dir="ltr"` with no leading stop.
+
+### Not verified
+
+**The other three notes were not re-read on the page**, only in the database. And nobody has looked
+at the cover.
+
+---
+
 ## 015230826 — 2026-08-23 13:02 — the accessibility page speaks Arabic. Every written Arabic on the site now reaches it
 
 The third application of the per-locale pattern — `0045` for chapter paragraphs, `0046` for covers,

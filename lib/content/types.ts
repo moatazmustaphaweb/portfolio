@@ -327,8 +327,12 @@ export type SiblingLink = {
   id: string;
   slug: string;
   title?: string;
+  /** The language `title` came from — may be `en` on an `ar` page. */
+  titleLang?: Locale;
   /** Why they are siblings, as written on the pointing cover. */
   note?: string;
+  /** The language `note` came from. Decision 053: mark it, or it lays out wrong. */
+  noteLang?: Locale;
 };
 
 /** A chapter in the context of its parent, for the chapter route. */

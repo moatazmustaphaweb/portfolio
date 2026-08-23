@@ -275,9 +275,26 @@ export function parseSiblingLine(raw: string): ParsedSiblings | null {
     .filter(Boolean);
   if (titles.length === 0) return null;
 
-  // The note is whatever follows the final bracket, minus a leading dash.
+  /*
+   * The note is whatever follows the final bracket, minus the separator.
+   *
+   * ⚠️ The separator is NOT always a dash, and assuming it was shipped a
+   * defect. The UAE cover writes `…[Neobiz Mobile — Egypt]. Same bank, same
+   * regulatory requirement…` — a full stop closing the bracketed list, then
+   * the sentence. A dash-only strip left the stop attached, and
+   * `/ar/work/uae-acquisition` rendered ". Same bank, same regulatory
+   * requirement…" on a published page until 2026-08-23, task `020230826`.
+   *
+   * Fixed here rather than in Notion. `docs/learn.md` Part 3: Notion is the
+   * source, and a parser that cannot read finished prose is the thing that is
+   * broken. `]. ` is ordinary punctuation, not an authoring error.
+   *
+   * `:` is included for the same reason — the cross-cutting line one function
+   * below uses it, and a sibling line written that way should not lose to a
+   * character class.
+   */
   const afterLast = text.slice(text.lastIndexOf("]") + 1);
-  const note = afterLast.replace(/^\s*[—–-]\s*/u, "").trim();
+  const note = afterLast.replace(/^\s*[—–\-.:]\s*/u, "").trim();
 
   return { titles, note: note || null };
 }

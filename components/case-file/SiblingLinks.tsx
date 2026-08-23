@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { Locale, SiblingLink } from "@/lib/content/types";
+import { dirForLocale, type Locale, type SiblingLink } from "@/lib/content/types";
 
 /**
  * Sibling case files — the same requirement, in a different market.
@@ -36,6 +36,10 @@ export function SiblingLinks({
    */
   const notes = [...new Set(usable.map((s) => s.note).filter(Boolean))];
   const sharedNote = notes.length === 1 ? notes[0] : null;
+  /* The locale of the shared note, taken from the first sibling that carries it. */
+  const sharedNoteLang = sharedNote
+    ? usable.find((s) => s.note === sharedNote)?.noteLang
+    : undefined;
 
   return (
     <section className="mt-14 border-t border-DEFAULT pt-8">
@@ -56,8 +60,21 @@ export function SiblingLinks({
         ))}
       </ul>
 
+      {/*
+        `lang` and `dir` from the language the NOTE is written in, not from the
+        page locale (decision 053). The note is often English on an Arabic
+        cover — the fallback working — and unmarked English inside a
+        `dir="rtl"` document renders ". Same bank…" with the stop on the wrong
+        side. That was live here until task `020230826`.
+      */}
       {sharedNote ? (
-        <p className="mt-4 max-w-measure text-body-sm text-fg-muted">{sharedNote}</p>
+        <p
+          lang={sharedNoteLang}
+          dir={sharedNoteLang ? dirForLocale(sharedNoteLang) : undefined}
+          className="mt-4 max-w-measure text-body-sm text-fg-muted"
+        >
+          {sharedNote}
+        </p>
       ) : null}
 
       {!sharedNote
@@ -66,6 +83,8 @@ export function SiblingLinks({
             .map((s) => (
               <p
                 key={`${s.id}-note`}
+                lang={s.noteLang}
+                dir={s.noteLang ? dirForLocale(s.noteLang) : undefined}
                 className="mt-3 max-w-measure text-body-sm text-fg-muted"
               >
                 {s.title} — {s.note}

@@ -404,9 +404,21 @@ export const getCaseFile = cache(
         .in("id", siblingRows.map((s) => s.sibling_id))
         .eq("status", "published");
 
+      /*
+       * `resolveManyDetailed`, not `resolveMany`. The note is frequently
+       * English on an Arabic cover — decision 013's fallback doing its job —
+       * and English inside a `dir="rtl"` document lays out as Arabic unless
+       * the element says otherwise: the trailing full stop jumps to the wrong
+       * side. That is the exact failure decision 053 exists for, and it was
+       * live on `/ar/work/uae-acquisition` until 2026-08-23, task `020230826`.
+       *
+       * `resolveMany` discards which locale supplied each field, so the
+       * component had nothing to mark with. It is a thin wrapper over this
+       * one; the only cost of the switch is carrying the locale through.
+       */
       const [siblingTitles, siblingNotes] = await Promise.all([
-        resolveMany("case_file", (siblingCaseFiles ?? []).map((c) => c.id), locale),
-        resolveMany("case_file_sibling", siblingRows.map((s) => s.id), locale),
+        resolveManyDetailed("case_file", (siblingCaseFiles ?? []).map((c) => c.id), locale),
+        resolveManyDetailed("case_file_sibling", siblingRows.map((s) => s.id), locale),
       ]);
 
       siblings = siblingRows.flatMap((s) => {
@@ -416,8 +428,10 @@ export const getCaseFile = cache(
           {
             id: s.id,
             slug: target.slug,
-            title: siblingTitles.get(target.id)?.title,
-            note: siblingNotes.get(s.id)?.note,
+            title: siblingTitles.get(target.id)?.fields.title,
+            titleLang: siblingTitles.get(target.id)?.fieldLocales.title,
+            note: siblingNotes.get(s.id)?.fields.note,
+            noteLang: siblingNotes.get(s.id)?.fieldLocales.note,
           },
         ];
       });
