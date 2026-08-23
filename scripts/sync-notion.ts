@@ -69,7 +69,6 @@ import {
   parsePageSections,
   routeToPageKey,
   stripArabicScaffolding,
-  type ParsedSection,
 } from "@/lib/sync/static-pages";
 
 /**
@@ -1891,6 +1890,31 @@ async function main() {
     for (const row of data ?? []) chapterAliases.set(row.heading_norm, row.slot);
   }
 
+  /*
+   * Page-section slug aliases (migration 0050), keyed by PAGE because a heading
+   * is only unique within its page — `روابط أخرى` is `elsewhere` on About and
+   * `also-here` on Contact.
+   *
+   * Nested map rather than a composite string key: Pass 5 needs the per-page
+   * map both to alias with and to audit against, and a flat map would have to
+   * be filtered by prefix to get either.
+   */
+  const pageSectionAliases = new Map<string, Map<string, string>>();
+  {
+    const { data, error } = await (await db())
+      .from("page_section_slug_aliases")
+      .select("page, derived_slug, slug");
+    if (error) {
+      console.error(`Could not load page_section_slug_aliases: ${error.message}`);
+      process.exit(1);
+    }
+    for (const row of data ?? []) {
+      const forPage = pageSectionAliases.get(row.page) ?? new Map<string, string>();
+      forPage.set(row.derived_slug, row.slug);
+      pageSectionAliases.set(row.page, forPage);
+    }
+  }
+
   /* ---- Pass 1: case files ---------------------------------------------- */
 
   const caseFileIdBySlug = new Map<string, string>();
@@ -2116,6 +2140,27 @@ async function main() {
         aliases: chapterAliases,
       });
       if (dryShape) console.log(`      sections ${dryShape}`);
+
+      /*
+       * Decisions are resolved in a dry run too, for the reason the block above
+       * gives about slots: since migration 0049 each locale owns its own list,
+       * and the shape of those two lists is exactly what a dry run is for.
+       * `egypt-acquisition/workflow` reads `1 en · 3 ar` here, and under the old
+       * model those three Arabic decisions were silently dropped at write time
+       * with nothing in the preview to say so.
+       */
+      const dryEn = decisionsFromBody(await readBody(row.id));
+      const dryAr = dryArabic
+        ? decisionsFromBody(await readBody(dryArabic.id))
+        : { kept: [], dropped: [], found: 0 };
+      if (dryEn.kept.length > 0 || dryAr.kept.length > 0) {
+        decisionReport.push({
+          chapter: `${caseFile}/${slug}`,
+          en: dryEn.kept.length,
+          ar: dryAr.kept.length,
+          names: dryEn.kept.map((d) => d.name),
+        });
+      }
       continue;
     }
 
@@ -2207,16 +2252,24 @@ async function main() {
     }
 
     /*
-     * Decisions — an ORDERED LIST per chapter (amendment 032).
+     * Decisions — an ORDERED LIST per chapter (amendment 032), and one list
+     * PER LOCALE (migration 0049).
      *
      * Replaced wholesale, translations first: same polymorphic-orphan trap as
      * outcomes and targets.
      *
-     * Arabic is paired BY POSITION, and only when the counts match. Where they
-     * differ the Arabic is skipped and reported — egypt-acquisition/workflow
-     * has one decision in English and three in Arabic because the Arabic
-     * genuinely splits what the English combines, and pairing those by index
-     * would attach the wrong Arabic to the wrong decision.
+     * ⚠️ ARABIC NO LONGER PAIRS WITH ENGLISH BY POSITION, and the gate that
+     * refused an unequal pairing is not loosened — there is no longer an index
+     * for it to guard. `egypt-acquisition/workflow` names one decision in
+     * English ("Fold the separate systems in, and give the exception a life")
+     * and three in Arabic, the third of which — `القرار الثالث · إظهار مخارج
+     * القرار الخمسة` — has no English counterpart at all. Both are finished.
+     * Under the old shared-row model all three were discarded on every run.
+     *
+     * The English fallback moves to the CHAPTER: a chapter with no Arabic
+     * decisions serves the English list whole, marked `lang="en"` by
+     * `withFields` on its own, because an `en` row carries only an `en`
+     * translation (decision 053).
      */
     const enSift = decisionsFromBody(body);
     const enDecisions = enSift.kept;
@@ -2230,11 +2283,14 @@ async function main() {
     }
 
     /*
-     * A dropped candidate on EITHER side refuses the pairing.
+     * A dropped candidate is still reported, on either side.
      *
-     * An English drop is reported too, and it is the more serious of the two:
-     * a decision that announced itself and could not be read is content
-     * missing from the published page, not merely from the translation.
+     * It no longer refuses the other language — nothing is paired, so an
+     * unreadable Arabic decision costs the Arabic list one entry and leaves
+     * the English list untouched. It is still worth seeing, and an English
+     * drop is the more serious of the two: a decision that announced itself
+     * and could not be read is content missing from the published page, not
+     * merely from the translation.
      */
     for (const [side, s] of [["English", enSift], ["Arabic", arDecisions]] as const) {
       if (s.dropped.length > 0) {
@@ -2250,41 +2306,20 @@ async function main() {
       await (await db()).from("decisions").delete().eq("chapter_id", data.id);
     }
 
-    /*
-     * Length equality AND completeness on both sides. Equality alone is what
-     * let the UAE handles through: three parsed of four found matched
-     * English's three, and the guard passed on a list that had lost an item.
-     */
-    const decisionsComplete = enSift.dropped.length === 0 && arDecisions.dropped.length === 0;
-    const pairArabic =
-      decisionsComplete &&
-      arDecisions.kept.length > 0 &&
-      arDecisions.kept.length === enDecisions.length;
+    for (const [locale, list] of [
+      ["en", enDecisions] as const,
+      ["ar", arDecisions.kept] as const,
+    ]) {
+      for (const [i, d] of list.entries()) {
+        const { data: dec } = await (await db())
+          .from("decisions")
+          .insert({ chapter_id: data.id, sort_order: i, locale })
+          .select("id").single();
+        if (!dec) continue;
 
-    if (arDecisions.kept.length > 0 && !pairArabic && decisionsComplete) {
-      notice(row.title,
-        `${row.title}: ${enDecisions.length} decision(s) in English but ` +
-          `${arDecisions.kept.length} in Arabic. Arabic skipped — pairing by position ` +
-          "across different counts would attach the wrong Arabic to the wrong decision.",
-      );
-    }
-
-    for (const [i, d] of enDecisions.entries()) {
-      const { data: dec } = await (await db())
-        .from("decisions").insert({ chapter_id: data.id, sort_order: i })
-        .select("id").single();
-      if (!dec) continue;
-
-      await upsertTranslations("decision", dec.id, "en", {
-        name: d.name,
-        ...(d.body ? { body: d.body } : {}),
-      });
-
-      if (pairArabic) {
-        const ar = arDecisions.kept[i];
-        await upsertTranslations("decision", dec.id, "ar", {
-          name: ar.name,
-          ...(ar.body ? { body: ar.body } : {}),
+        await upsertTranslations("decision", dec.id, locale, {
+          name: d.name,
+          ...(d.body ? { body: d.body } : {}),
         });
       }
     }
@@ -2895,79 +2930,136 @@ async function main() {
      */
     if (row.kind === "static" && !STATIC_PROSE_PAGES.has(pageKey)) continue;
 
-    const blocks = await readOrderedBlocks(row.id, row.title);
-    const enPage = parsePageSections(blocks, row.title);
-    const { intro, sections } = enPage;
+    const aliases = pageSectionAliases.get(pageKey) ?? new Map<string, string>();
 
-    if (sections.length === 0 && !intro) {
+    const blocks = await readOrderedBlocks(row.id, row.title);
+    const enPage = parsePageSections(blocks, row.title, aliases);
+
+    if (enPage.sections.length === 0 && !enPage.intro) {
       notice(row.title, `${row.title}: no prose found on the page. Nothing written.`);
       continue;
     }
 
-    /* Arabic, paired by POSITION — the same rule outcomes and handles use. */
-    const arabic: { intro: string; sections: ParsedSection[] } = {
-      intro: "",
-      sections: [],
-    };
+    /*
+     * ⚠️ EACH LOCALE OWNS ITS OWN SEQUENCE OF SECTIONS (migration 0048).
+     *
+     * Arabic used to be paired with English BY POSITION, refused whenever the
+     * two counts differed, and that refusal was throwing away the whole Arabic
+     * accessibility page — 8 finished sections against the English page's 14,
+     * because the Arabic writes six headed subsections as six numbered
+     * paragraphs and folds the design-system passage into the component-library
+     * one. Nothing was missing; the split was different.
+     *
+     * There is no pairing left to guard. Each locale is parsed on its own
+     * terms, written on its own terms, and `getPageSections` chooses one
+     * sequence or the other per PAGE — a section has no language-independent
+     * name to fall back on individually, and falling back individually would
+     * publish the Arabic page's own content back to it in English.
+     */
     const arabicChild = await findArabicChild(row.id);
-    if (arabicChild) {
-      const arBlocks = await readOrderedBlocks(arabicChild.id, `${row.title} (ar)`);
-      const parsedAr = parsePageSections(arBlocks, arabicChild.title);
+    const arPage = arabicChild
+      ? parsePageSections(
+          await readOrderedBlocks(arabicChild.id, `${row.title} (ar)`),
+          arabicChild.title,
+          aliases,
+        )
+      : null;
 
-      /*
-       * Completeness before equality. A block that produced nothing is not
-       * automatically harmful — but a side that shed one while the other did
-       * not can still arrive at the same count, and then the length check
-       * below passes on two lists that no longer describe the same page.
-       */
-      const pageDrops = [
-        ["English", enPage] as const,
-        ["Arabic", parsedAr] as const,
-      ].filter(([, s]) => s.dropped.length > 0);
+    /*
+     * Drops are still reported, and they no longer threaten the other locale.
+     *
+     * Under the old shape a dropped block on EITHER side skipped all the
+     * Arabic, because a drop meant the two lists might no longer describe the
+     * same page even at equal length. Nothing is being counted against
+     * anything now, so a drop costs only the block it names — but it is still
+     * a block that was offered and produced nothing, and it is still worth
+     * seeing.
+     */
+    for (const [side, parsed] of [
+      ["English", enPage] as const,
+      ["Arabic", arPage] as const,
+    ]) {
+      if (!parsed || parsed.dropped.length === 0) continue;
+      notice(
+        row.title,
+        describeDrops(`${row.title}: ${side} page blocks`, {
+          kept: parsed.sections,
+          dropped: parsed.dropped,
+          found: parsed.sections.length + parsed.dropped.length,
+        }),
+      );
+    }
 
-      if (pageDrops.length > 0) {
-        for (const [side, s] of pageDrops) {
-          notice(row.title,
-            describeDrops(`${row.title}: ${side} page blocks`, {
-              kept: s.sections,
-              dropped: s.dropped,
-              found: s.sections.length + s.dropped.length,
-            }),
-          );
-        }
-      } else if (
-        parsedAr.sections.length > 0 &&
-        parsedAr.sections.length !== sections.length
-      ) {
-        /*
-         * The headings are printed, not just the counts.
-         *
-         * This notice used to say only "Arabic has 7 to English's 6", which is
-         * true and unactionable — it cannot distinguish "one section is not
-         * translated yet" (Moataz's work) from "the parser split the Arabic
-         * differently" (a bug). The second is what had been happening on every
-         * static page, undetected, because both look identical at the level of
-         * a count. Showing both lists makes the extra or missing one obvious.
-         */
-        notice(
+    /*
+     * GUARD — an alias that matched nothing.
+     *
+     * `page_section_slug_aliases` exists only where something outside the page
+     * binds to a slug (today: the Systems page's evidence cards). A row that
+     * matches no heading means the heading was rewritten in Notion and that
+     * binding is about to fail SILENTLY — the card simply stops rendering and
+     * the page looks intentional. So it fails the run instead.
+     *
+     * Checked only when both locales were read. A page whose Arabic child is
+     * absent has not offered its Arabic headings yet, and reporting those
+     * aliases as orphans would be reporting the absence of a page, not a stale
+     * row.
+     */
+    if (aliases.size > 0 && arPage) {
+      const offered = new Set([...enPage.derived, ...arPage.derived]);
+      for (const [derivedSlug, slug] of aliases) {
+        if (offered.has(derivedSlug)) continue;
+        fail(
           row.title,
-          `${row.title}: Arabic has ${parsedAr.sections.length} section(s) to ` +
-            `English's ${sections.length}. Arabic skipped — pairing by position ` +
-            "across different counts would attach the wrong text to the wrong section.\n" +
-            `      EN: ${sections.map((s) => s.heading || "(untitled)").join(" · ")}\n` +
-            `      AR: ${parsedAr.sections.map((s) => s.heading || "(untitled)").join(" · ")}`,
+          `${row.title}: page_section_slug_aliases has ${JSON.stringify(derivedSlug)} → ` +
+            `${JSON.stringify(slug)} for page "${pageKey}", and no heading on either ` +
+            `language of that page derives that slug. A heading was probably ` +
+            `rewritten in Notion. Whatever binds to "${slug}" — the Systems page ` +
+            `binds its evidence cards this way — would stop resolving without ` +
+            `anything failing. Update the alias row, or delete it if nothing ` +
+            `binds to that section any more.`,
         );
-      } else {
-        arabic.intro = parsedAr.intro;
-        arabic.sections = parsedAr.sections;
       }
+    }
+
+    /*
+     * What each locale will write. The intro is a section too, with an empty
+     * heading and sort_order -1: it renders as an unheaded lede, and giving it
+     * a row keeps one code path for page copy rather than a special field on a
+     * table that has no other.
+     */
+    type PageWrite = {
+      slug: string;
+      heading: string;
+      body: string;
+      order: number;
+      kind: "prose" | "table";
+    };
+    const perLocale: { locale: "en" | "ar"; items: PageWrite[] }[] = [];
+    for (const [locale, parsed] of [
+      ["en", enPage] as const,
+      ["ar", arPage] as const,
+    ]) {
+      if (!parsed) continue;
+      const items: PageWrite[] = [];
+      if (parsed.intro) {
+        items.push({ slug: "intro", heading: "", body: parsed.intro, order: -1, kind: "prose" });
+      }
+      parsed.sections.forEach((s, i) =>
+        items.push({ slug: s.slug, heading: s.heading, body: s.body, order: i, kind: s.kind }),
+      );
+      if (items.length > 0) perLocale.push({ locale, items });
     }
 
     if (DRY_RUN) {
       console.log(
-        `  page ${pageKey}: ${sections.length} section(s)` +
-          `${intro ? " + intro" : ""}` +
-          `${arabic.sections.length > 0 ? `, ar ${arabic.sections.length}` : ""}`,
+        `  page ${pageKey}: ` +
+          perLocale
+            .map(
+              ({ locale, items }) =>
+                `${locale} ${items.filter((i) => i.slug !== "intro").length} section(s)` +
+                `${items.some((i) => i.slug === "intro") ? " + intro" : ""}`,
+            )
+            .join(" · "),
       );
       continue;
     }
@@ -2976,6 +3068,10 @@ async function main() {
      * Replace wholesale, translations first. `translations` is polymorphic
      * with nothing to cascade, so deleting rows alone orphans their text and
      * every re-sync accumulates another dead set.
+     *
+     * Both locales go together: a run that rewrote only the locale it just
+     * parsed would leave an Arabic sequence behind after the Arabic child page
+     * was deleted, and the site would keep serving it.
      */
     const { data: doomed } = await (await db())
       .from("page_sections")
@@ -2991,72 +3087,53 @@ async function main() {
     }
     await (await db()).from("page_sections").delete().eq("page", pageKey);
 
-    /*
-     * The intro is a section too, with an empty heading and sort_order -1. It
-     * renders as an unheaded lede; giving it a row keeps one code path for
-     * page copy rather than a special field on a table that has no other.
-     */
-    const toWrite: {
-      slug: string;
-      heading: string;
-      body: string;
-      order: number;
-      kind: "prose" | "table";
-    }[] = [];
-    if (intro) {
-      toWrite.push({ slug: "intro", heading: "", body: intro, order: -1, kind: "prose" });
-    }
-    sections.forEach((s, i) =>
-      toWrite.push({
-        slug: s.slug,
-        heading: s.heading,
-        body: s.body,
-        order: i,
-        kind: s.kind,
-      }),
-    );
-
     let written = 0;
-    for (const item of toWrite) {
-      const { data, error: dbError } = await (await db())
-        .from("page_sections")
-        .insert({
-          page: pageKey,
-          slug: item.slug,
-          sort_order: item.order,
-          kind: item.kind,
-        })
-        .select("id")
-        .single();
+    const perLocaleWritten: string[] = [];
+    for (const { locale, items } of perLocale) {
+      let localeWritten = 0;
+      for (const item of items) {
+        const { data, error: dbError } = await (await db())
+          .from("page_sections")
+          .insert({
+            page: pageKey,
+            slug: item.slug,
+            sort_order: item.order,
+            kind: item.kind,
+            locale,
+          })
+          .select("id")
+          .single();
 
-      if (dbError || !data) {
-        fail(row.title, dbError?.message ?? "insert returned no row");
-        continue;
-      }
+        if (dbError || !data) {
+          fail(row.title, dbError?.message ?? "insert returned no row");
+          continue;
+        }
 
-      await upsertTranslations("page_section", data.id, "en", {
-        ...(item.heading ? { heading: item.heading } : {}),
-        body: item.body,
-      });
-
-      const ar =
-        item.slug === "intro"
-          ? arabic.intro
-            ? { heading: "", body: arabic.intro }
-            : null
-          : arabic.sections[item.order] ?? null;
-
-      if (ar?.body) {
-        await upsertTranslations("page_section", data.id, "ar", {
-          ...(ar.heading ? { heading: ar.heading } : {}),
-          body: ar.body,
+        /*
+         * One locale per row, so one translation set per row. That is what
+         * lets `withFields` report which language actually supplied a string:
+         * an `en` row serving an Arabic page resolves `fieldLocales.body` to
+         * `en` on its own, and `ProseSections` marks it (decision 053).
+         */
+        await upsertTranslations("page_section", data.id, locale, {
+          ...(item.heading ? { heading: item.heading } : {}),
+          body: item.body,
         });
-      }
 
-      written++;
+        written++;
+        localeWritten++;
+      }
+      perLocaleWritten.push(`${locale} ${localeWritten}`);
     }
 
-    updated.push(`${row.title} → ${written} section(s)`);
+    /*
+     * The resolved shape on every run, not just the total. "Absence is
+     * invisible" is the bug class this line exists against: decision 013 makes
+     * a missing Arabic section normal, so a sync that silently stopped writing
+     * one would look identical to one that was never written. A count that
+     * CHANGES is visible; nothing is not.
+     */
+    updated.push(`${row.title} → ${written} section(s) [${perLocaleWritten.join(" · ")}]`);
   }
 
   /* ---- Decisions, features, and cross-page consistency ------------------ */
@@ -3078,9 +3155,23 @@ async function main() {
   }
 
   if (decisionReport.length > 0) {
-    console.log("\nDECISIONS FOUND (parsed, NOT written — schema change pending):\n");
+    /*
+     * The header used to say "parsed, NOT written — schema change pending",
+     * which stopped being true at migration 0013, and the counts used to carry
+     * a ⚠️ whenever the two locales disagreed. Since 0049 an unequal count is
+     * the NORMAL case rather than a warning: each locale owns its own list, and
+     * `egypt-acquisition/workflow` legitimately argues one decision in English
+     * and three in Arabic.
+     *
+     * What is worth flagging is the opposite — a chapter with English decisions
+     * and no Arabic at all, which is now the only shape that makes an Arabic
+     * page serve an English list.
+     */
+    console.log(
+      DRY_RUN ? "\nDECISIONS FOUND, per locale:\n" : "\nDECISIONS WRITTEN, per locale:\n",
+    );
     for (const d of decisionReport) {
-      const flag = d.en !== d.ar && d.ar > 0 ? `  ⚠️ EN ${d.en} / AR ${d.ar}` : "";
+      const flag = d.en > 0 && d.ar === 0 ? "  ← no Arabic; falls back to English" : "";
       console.log(`  ${d.chapter}: ${d.en} en, ${d.ar} ar${flag}`);
       for (const n of d.names) console.log(`      · ${n}`);
     }

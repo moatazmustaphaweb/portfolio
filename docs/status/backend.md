@@ -16,6 +16,227 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 015230826 — 2026-08-23 22:32 — the Arabic accessibility page and the workflow chapter's three Arabic decisions are on the site; the per-locale model now covers all four tables
+
+**Brief:** bring `page_sections` and `decisions` onto the per-locale model, the way
+`chapter_paragraphs` got it in 0045 and `cover_paragraphs` in 0046 — the last two places the
+count gate was discarding Arabic Moataz has written. Tables follow their parent. The gate is
+not loosened. `docs/schema.md` and `docs/sync-contract.md` updated in the same task. Plus four
+English-only fields to **diagnose and not fix**. Explicitly out of scope and not touched: the
+`page_section` media path, which Moataz has deferred.
+
+**Files:** `supabase/migrations/0048_page_sections_per_locale.sql` ·
+`supabase/migrations/0049_decisions_per_locale.sql` ·
+`supabase/migrations/0050_page_section_slug_aliases.sql` — **all three new, and all three
+APPLIED to Supabase: live, with their SQL uncommitted** · `scripts/sync-notion.ts` ·
+`scripts/test-sync-logic.ts` · `scripts/probe-locale-fallback.ts` (new) ·
+`lib/sync/static-pages.ts` · `lib/content/pages.ts` · `lib/content/chapters.ts` ·
+`lib/supabase/database.types.ts` · `docs/schema.md` · `docs/sync-contract.md` ·
+`docs/learn.md` · this entry. **Nothing committed — devops owns git.** No scratch files in the
+repo; they live under `$CLAUDE_JOB_DIR/tmp`.
+
+---
+
+### MEASURED — the numbers, before and after, from the database
+
+`page_sections`, sections per page per locale, after a full live `npm run sync:notion`:
+
+| page | en | ar before | ar after |
+|---|---|---|---|
+| about | 7 | 7 | 7 |
+| about/philosophy | 5 | 5 | 5 |
+| contact | 5 | 5 | 5 |
+| systems | 5 | 5 | 5 |
+| **work/egypt-acquisition/accessibility** | 15 | **0** | **8** |
+
+Translation fields on the accessibility page: **27 en / 0 ar → 27 en / 14 ar.**
+
+`decisions`: **20 rows → 42** — 20 `en` (40 fields) and 22 `ar` (44 fields).
+`egypt-acquisition/workflow` went **1 en / 0 ar → 1 en / 3 ar**.
+
+---
+
+### (A) `page_sections` — AND THE ONE PLACE THE 0046 PATTERN DOES NOT TRANSPLANT
+
+The Arabic accessibility page was never missing. Read block by block off both Notion pages
+before writing any code, the two are **split differently**: the English writes `What shipped`
+as a container H2 with six H3 subsections `1 ·`…`6 ·`; the Arabic writes the same six as six
+numbered paragraphs (`١ ·`…`٦ ·`) inside `ما صدر عن هذا القرار`, and folds
+`The design system contribution` into `مكتبة المكونات، باسمها الصحيح`. 7 content sections
+against 14, every passage present.
+
+**The fallback could not move to the section, and this is the one respect in which 0048 is not
+0046 with the names changed.** 0046 could put decision 013's fallback on the cover *slot*
+because a slot has a language-independent name — `thesis` — that both locales resolve to
+through `cover_slot_aliases`. **A page section's identity IS its heading, and the heading is
+prose.** Per-section fallback on this page would have served the Arabic reader the six numbered
+items twice — once in their own Arabic, then again as six English sections underneath — plus
+the design-system passage twice. Worse than the bug it replaced.
+
+So `getPageSections` chooses **one sequence or the other for the whole page**: this locale's if
+the page has one, else the English one. Same shape for `decisions`, one level up: per
+**chapter**, because a decision's identity is its name and the name is the argument.
+
+**The gate is not loosened; it is unreachable.** Pairing 8 Arabic sections against 14 English
+by index would have put `سجل المطابقة` under the heading `4 · Error prevention` and its
+conformance table under `5 · Confirming instead of typing`. The guard was right. The shared row
+that forced an index to exist was not.
+
+**The table follows its parent** and did not regress: the conformance table renders
+`الممارسة · معيار WCAG · كيف جرى التحقق` on the Arabic page and
+`Practice in the journey · WCAG criterion · Verification` on the English — the `007230826`
+header fix intact in both.
+
+### (B) `decisions` — one English decision, three Arabic, and the third has no counterpart
+
+`egypt-acquisition/workflow`: English names one decision that does two things; the Arabic names
+them separately (`القرار الأول`, `القرار الثاني`) and adds a third, `القرار الثالث · إظهار
+مخارج القرار الخمسة`, which the English page does not have at all. Both finished. `1 !== 3`, so
+all three were dropped on every run.
+
+`decisions` never had a uniqueness rule, only an index. 0049 adds
+`unique (chapter_id, locale, sort_order)` — with two locales sharing that space it is what makes
+an Arabic list a sequence rather than a bag, and it is the constraint 0045 and 0046 both added.
+
+### (C) A REGRESSION I WOULD HAVE SHIPPED, AND THE TWO ROWS THAT STOP IT
+
+Per-locale rows mean an Arabic heading now produces an Arabic slug. That is right everywhere the
+slug is an anchor id — **except Systems**, where
+`app/[locale]/(site)/systems/page.tsx` binds an evidence card to a section **by slug**,
+deliberately, to stop the cards pairing by index. Left alone, `/ar/systems` would have lost two
+of its three evidence cards, silently, with a dev-only warning.
+
+`page_section_slug_aliases` (0050) is the third instance of a pattern this project already uses
+twice — `cover_slot_aliases` (0032), `chapter_slot_aliases` (0036). The slug is the structural
+name, the heading is the prose, a new spelling is a **row**. Two differences: the **page** is
+part of the key, because `روابط أخرى` is `elsewhere` on About and `also-here` on Contact; and
+the lookup is on the **derived** slug, so `headingToSlug` stays the only normaliser in the
+system and there is no second one to drift from.
+
+**Two rows, and both are load-bearing** — an alias exists only where something outside the page
+binds to the slug. That is what makes the guard proportionate: **an alias matching no heading
+FAILS the run**, checked only when both locales of the page were read. A stale alias means a
+heading was rewritten and a card is about to stop rendering with nothing failing.
+
+### (D) The dry run can now preview decisions
+
+Pass 2's dry-run branch `continue`d before the decisions code, so `--dry-run` printed nothing
+about the one pass this task changed. It now reports `1 en, 3 ar` before anything is written,
+for the same reason the chapter-slot preview was added in `004230826`. The report header stopped
+saying *"parsed, NOT written — schema change pending"* (untrue since 0013), and the `⚠️` on an
+unequal count is gone — unequal is the normal case now. What is flagged instead is `en > 0,
+ar == 0`, the only shape that still makes an Arabic page serve an English list.
+
+---
+
+### VERIFIED
+
+- **`--dry-run` first, then live.** Dry run showed
+  `page work/egypt-acquisition/accessibility: en 14 section(s) + intro · ar 8 section(s)` and
+  the count-mismatch notice gone; live sync exit 0 on its own terms, `updated 26`, `failed 1`
+  (the pre-existing Arabic image tag, below).
+- **Looked at the pages, on `localhost:3000`, on the dev server.** `/ar/…/accessibility` renders
+  seven Arabic sections and the Arabic conformance table, every heading `lang="ar" dir="rtl"`.
+  `/ar/…/workflow` renders all three Arabic decision headings where it rendered one English one.
+  `/ar/systems` still renders all three evidence cards — `/ar/work/cervello/method`,
+  `/ar/work/cervello/permission-architecture`, `/ar/work/egypt-acquisition/accessibility`.
+  `/ar/about`, `/ar/contact`, `/ar/about/philosophy` unchanged.
+- **Route sweep: 58/62 returned 200.** The four that did not are
+  `/{en,ar}/work/{cervello,uae-acquisition}/results`, which 404 because neither case file has a
+  targets table. Pre-existing and correct; outcomes and targets were not touched.
+- **The fallback branch is unreachable from live content**, because after this task every page
+  and every chapter with decisions has Arabic. So `scripts/probe-locale-fallback.ts` writes a
+  probe, reads it back through the real `lib/content` path, and deletes it — same shape as
+  `verify-content.ts`'s decision-013 probe. All 9 assertions pass, including
+  `fieldLocales === 'en'` on the fallback, which is what lets `ProseSections` mark it
+  `lang="en"`. Read back after deleting: 0 probe rows, 0 probe translations left in the database.
+  **No npm script for it — `package.json` is devops's file.** Run it with
+  `npx tsx --conditions=react-server --env-file=.env.local scripts/probe-locale-fallback.ts`.
+- `npm run test:sync` (4 new cases: an alias takes the structural slug, the derived slugs are
+  reported, an alias cannot overwrite a slug already claimed, no alias map is a no-op) ·
+  `npx tsc --noEmit` · `npx eslint .` · `npm run verify:content` · `npm run check:seed-drift`
+  (94/94, no drift) · `npm run build` — **all exit 0.**
+- **`check:seed-drift` does not cover 0050's seed, and that is consistent rather than an
+  oversight.** It parses `strings(key, context, en, ar)` tuples for `ui_strings` only, so
+  `0032_seed_cover_slot_aliases.sql` and `0036_seed_chapter_slot_aliases.sql` are not in
+  `SEED_FILES` either. Adding an alias seed to that list would need a second parser and a second
+  SQL shape. Named so it reads as known.
+
+### NOT VERIFIED
+
+- **Nothing has been looked at in a browser** — every rendering claim above is `curl` plus DOM
+  extraction on `localhost:3000`. No screenshot, no visual pass. Visual verification is Moataz's.
+- **No production build was served.** The page checks ran against `npm run dev`; `npm run build`
+  passed separately but was not started and swept.
+- **The 62-route sweep checked status codes and, on nine pages, headings.** It did not read every
+  page's prose.
+- **ISR / `/api/revalidate` not exercised.** The dev server reads live.
+
+---
+
+### DIAGNOSED, NOT FIXED — the four English-only fields
+
+**None of them is a count-pairing casualty, so none of them changes what this migration should
+cover.** Three are vocabulary gaps in the *legacy* field path; one is not a gap at all.
+
+1. **`neobiz-mobile` `thesis` — the Arabic IS written.** The heading is `الفكرة الأساسية`, and
+   `HEADING_SYNONYMS` in `scripts/sync-notion.ts` knows only `الأطروحة`. Note that
+   `0032_seed_cover_slot_aliases.sql` **already records this exact spelling** and says so in its
+   own comment — so the cover renders its Arabic thesis correctly through `cover_sections`
+   (`thesis(3¶ ↔ar 3¶)` on every run). Only the legacy `case_files.thesis` translation field is
+   English-only. The alias table has the word; the code map does not.
+2. **`egypt-acquisition/onboarding` `evidence_note` — the Arabic IS written.** Heading `الأدلة`
+   (plural); `HEADING_SYNONYMS` has `الدليل` (singular). Same shape: `chapter_sections` carries
+   it (`evidence(7¶ ↔ar 7¶)`), the legacy `chapters.evidence_note` field does not.
+3. **The `media` alt/caption fields are NOT a translation gap.** Measured: 93 `media` rows, 66
+   with an English alt, 64 with an Arabic one, **29 English-only and 27 Arabic-only** — close to
+   symmetric, because the two locales reference *different screenshots*. An English page shows
+   English screens and an Arabic page shows Arabic ones, which `docs/sync-contract.md` Step 6 has
+   said since 2026-08-19: *"a `media` row carries alt and caption for the locales that reference
+   it, which is often one, not both. This is not a missing translation and must not be reported
+   as one."* (The brief said 4; the measured figure is 29/27.)
+4. **The four `case_file_sibling` notes — the Arabic IS written, and the parser refuses it.**
+   `parseSiblingLine` in `lib/sync/handles.ts:273` requires `[Bracketed]` titles and returns
+   `null` without them. The Arabic sibling lines name their siblings in prose — the Neobiz cover
+   reads `والملف ذات صله: الاستحواذ في مصر (ويب): وهو معمار الأنظمة الستة…` — so all four are
+   dropped. **`looksLikeSiblingLine` was already made deliberately weaker than
+   `parseSiblingLine` for this exact reason** (its comment says so, about the UAE cover), which
+   stopped the line being counted as a failed handle but never made the note reachable.
+   **And the leading `". "` renders because of the same function**, line 280: it strips a leading
+   dash and nothing else, so `[Title]: the same regulated journey…` keeps its colon and
+   `[Title]. Same bank…` keeps its full stop. Both are in the database now.
+
+---
+
+### FOUND WHILE IN HERE — three things that are not mine to fix
+
+- **The contents rail and the page body disagree, and it is PRE-EXISTING on the English page.**
+  `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx:159-166` builds the rail from sections
+  with a `heading`; `components/layout/ProseSections.tsx:32` renders sections with a `body`. A
+  heading-only section is in one and not the other. Measured on `/en/…/accessibility`: the rail
+  has 13 entries, the body has 12, `#what-shipped` is a **dead anchor**, and every rail number
+  from 03 down is one higher than the section it points at. `What shipped` is a container H2
+  with six H3s beneath it, so the data is correct — the two filters are not. The Arabic page now
+  shows the same defect with its own H1 (`قابلية الوصول والاستخدام (Accessibility) في منتج مصرفي
+  ثنائي اللغة`, heading with no body). **frontend's, both files.**
+- **The English accessibility page publishes an authoring note as its lede.** Rendered at
+  `/en/…/accessibility` right now: *"Status: Draft v1 — written from interview, 6 Aug 2026.
+  Verified claims and open claims are separated below."* It is the level-0 prose above the first
+  heading, which `parsePageSections` treats as the intro. `resolveCoverSections` skips exactly
+  this and its comment names this exact sentence — *"authoring notes … must never publish"*. The
+  fix is in my file and I have **not** made it: it removes a paragraph from a published page,
+  which is a decision rather than a repair, and the About page's lede comes from a *headed* echo
+  so a blanket rule would be safe today and not obviously safe tomorrow. **Returning it.**
+- **The one `failed` on the live run is unchanged and is content's**, in Notion: the Arabic
+  accessibility page has an image tag sharing a paragraph with prose
+  (`وقد طرحت دعم RTL بوصفه متطلبًا…`), so the whole page's media is refused. This is the blocker
+  on retiring the `page_section` path entirely, and it is the deferred item — **not started, not
+  half-implemented.**
+
+**Open questions returned:** the authoring-note lede above. Nothing else.
+
+---
+
 ## 007230826 — 2026-08-23 17:20 — the real table headings are on the page again, covers get per-locale paragraphs, and a blank Notion page can no longer unpublish a live case file
 
 **Brief:** three launch-blocking sync defects, ordered by visibility. (A) every chapter

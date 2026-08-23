@@ -109,7 +109,9 @@ create table features (
 create table decisions (
   id          uuid primary key default gen_random_uuid(),
   chapter_id  uuid not null references chapters(id) on delete cascade,
-  sort_order  int not null default 0
+  sort_order  int not null default 0,
+  locale      locale_code not null,   -- 0049. NO DEFAULT. See PER-LOCALE ROWS below
+  unique (chapter_id, locale, sort_order)
 );
 
 create table outcomes (
@@ -203,11 +205,11 @@ create table experiments (
 
 *Added 2026-08-23, task `004230826`. Migrations 0034–0038 and 0045.*
 
-> ⚠️ **This file is behind on the slot model generally.** `cover_sections`,
-> `cover_slot_aliases` and `page_sections` are live tables and are **not
-> documented here**. Only the chapter side is, plus the one `cover_paragraphs`
-> column added in `007230826`. Named so the gap reads as known rather than
-> missed; the migrations are the authority until it is closed.
+> ⚠️ **This file is behind on the slot model generally.** `cover_sections` and
+> `cover_slot_aliases` are live tables and are **not documented here**. Only the
+> chapter side is, plus the `cover_paragraphs` column added in `007230826` and
+> the per-locale section below, added in `015230826`. Named so the gap reads as
+> known rather than missed; the migrations are the authority until it is closed.
 
 A chapter's prose used to live in six fixed `chapter` translation fields chosen
 by matching the Notion heading against a vocabulary in code, and **a heading
@@ -334,6 +336,80 @@ no longer an index to guard.
 **No `part` column, and no table cells.** A cover has no coda after a closing
 divider, so there is one fallback group per slot; and a cover's tables are its
 outcomes, which live in `outcomes` with their own status markers.
+
+---
+
+## PER-LOCALE ROWS — THE WHOLE SET, AND WHERE THE FALLBACK LANDS
+
+*Added 2026-08-23, task `015230826`. Migrations 0048, 0049 and 0050 close the
+set 0045 opened.*
+
+Four tables held one row shared by two languages, which asserted a 1:1
+correspondence the content never had and forced Arabic to attach by index. Each
+now carries a `locale`, each language owns its own sequence, and the count gates
+are **unreachable rather than loosened**.
+
+| Table | Since | The unit that is per-locale | Where the English fallback resolves |
+|---|---|---|---|
+| `chapter_paragraphs` | 0045 | a paragraph | per `(chapter_section, part)` |
+| `cover_paragraphs` | 0046 | a paragraph | per cover **slot** |
+| `page_sections` | 0048 | a **section** | per **page** |
+| `decisions` | 0049 | a **decision** | per **chapter** |
+
+```sql
+alter table page_sections
+  add column locale locale_code not null;      -- 0048. NO DEFAULT
+-- unique (page, locale, slug); index (page, locale, sort_order)
+```
+
+**Why the fallback climbs a level each time, and why it cannot stop at the
+section.** 0046 could put it on the cover slot because a slot has a
+language-independent *name* — `thesis` — that both locales resolve to through
+`cover_slot_aliases`. A page section has no such name: **its identity is its
+heading, and the heading is prose.** So does a decision: its identity is its
+name, and the name is the content.
+
+Falling back per section on the accessibility page would be actively wrong, not
+merely unavailable. Its Arabic offers **7 sections to the English page's 14**
+with nothing missing — it writes six headed `1 ·`…`6 ·` subsections as six
+numbered paragraphs, and folds `The design system contribution` into the
+component-library section. Falling back for "the seven it lacks" would serve the
+Arabic reader their own content back in English, underneath itself. One sequence
+or the other, per page.
+
+Same for `egypt-acquisition/workflow`: 1 English decision, 3 Arabic, and the
+third has no English counterpart. Per-decision fallback would publish the same
+argument twice on one page, in two languages.
+
+**Nothing marks the language by hand.** An `en` row carries only an `en`
+translation, so `withFields` reports `fieldLocales === 'en'` on its own and the
+renderer marks it `lang="en"` (decision 053).
+
+### `page_section_slug_aliases` (0050)
+
+```sql
+create table page_section_slug_aliases (
+  page         text not null,     -- the page_sections.page key. Part of the key:
+                                  -- روابط أخرى is `elsewhere` on About and
+                                  -- `also-here` on Contact
+  derived_slug text not null,     -- headingToSlug(the heading as written)
+  slug         text not null,     -- the structural name the section is known by
+  observed_on  text,              -- what binds to it. Documentation, not a key
+  primary key (page, derived_slug)
+);
+```
+
+An Arabic heading now produces an Arabic slug, which is the right anchor id and
+binds to nothing — **except on Systems**, where the page composition attaches an
+evidence card to a section by slug, deliberately, to stop the cards pairing by
+index. Two rows keep that binding alive in Arabic.
+
+Same shape as `cover_slot_aliases` and `chapter_slot_aliases` — the slug is
+structure, the heading is content, a new spelling is a row rather than a deploy
+— with the lookup on the **derived** slug so `headingToSlug` stays the only
+normaliser. **An alias matching no heading FAILS the sync**, checked when both
+locales of the page were read: an alias exists only where something binds to it,
+so a stale one means a card is about to stop rendering silently.
 
 ---
 

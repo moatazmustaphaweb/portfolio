@@ -20,9 +20,13 @@ export function routeToPageKey(route: string): string | null {
  *
  * Latin-only slugs would collapse every Arabic heading to the empty string and
  * then to a unique-constraint collision, so non-Latin scripts are kept as they
- * are. In practice the sync derives slugs from the ENGLISH page and pairs
- * Arabic by position, but a slug function that silently returns "" for Arabic
- * is a trap left lying for whoever changes that.
+ * are.
+ *
+ * ⚠️ THE COMMENT THAT USED TO BE HERE SAID ARABIC PAIRED BY POSITION. It does
+ * not, since migration 0048: each locale owns its own sequence of sections and
+ * its own slugs, so an Arabic heading now really does produce the Arabic slug
+ * this function has always been careful to return. The trap it was left against
+ * is the one that got sprung.
  */
 export function headingToSlug(heading: string): string {
   const slug = heading
@@ -73,16 +77,39 @@ export function parsePageSections(
     tables?: readonly (readonly string[])[][];
   }[],
   pageName: string,
-): { intro: string; sections: ParsedSection[]; dropped: { what: string; why: string }[] } {
+  /*
+   * Heading-derived slug → the structural slug the section is known by
+   * (`page_section_slug_aliases`, migration 0050). Empty for almost every page:
+   * an alias exists only where something OUTSIDE the page binds to the slug,
+   * which today is the Systems page's evidence cards.
+   *
+   * Applied before collision-claiming, so an alias competes for its name on the
+   * same terms as a derived slug and two sections can never both win it.
+   */
+  aliases: ReadonlyMap<string, string> = new Map(),
+): {
+  intro: string;
+  sections: ParsedSection[];
+  dropped: { what: string; why: string }[];
+  /**
+   * Every heading-derived slug this page offered, BEFORE aliasing and before
+   * collision suffixes. The sync compares the alias table against this to
+   * refuse an alias that matches nothing — a stale alias means a heading was
+   * rewritten and whatever binds to the slug is about to fail silently.
+   */
+  derived: string[];
+} {
   let intro = "";
   const sections: ParsedSection[] = [];
   /* Blocks that were offered and produced nothing. See lib/sync/sift.ts. */
   const dropped: { what: string; why: string }[] = [];
+  const derived: string[] = [];
   const seen = new Set<string>();
 
-  /** Reserve a slug, suffixing rather than colliding on (page, slug). */
+  /** Reserve a slug, suffixing rather than colliding on (page, locale, slug). */
   function claim(base: string): string {
-    let slug = base;
+    derived.push(base);
+    let slug = aliases.get(base) ?? base;
     if (seen.has(slug)) {
       let n = 2;
       while (seen.has(`${slug}-${n}`)) n++;
@@ -160,7 +187,7 @@ export function parsePageSections(
     }
   }
 
-  return { intro, sections, dropped };
+  return { intro, sections, dropped, derived };
 }
 
 /**

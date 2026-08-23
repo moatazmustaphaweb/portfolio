@@ -37,6 +37,51 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 015230826 — 2026-08-23 13:02 — the accessibility page speaks Arabic. Every written Arabic on the site now reaches it
+
+The third application of the per-locale pattern — `0045` for chapter paragraphs, `0046` for covers,
+now `0048`–`0050` for `page_sections` and `decisions`. **Measured by me, before its report arrived.**
+
+| | before | after |
+|---|---|---|
+| accessibility page `page_section` Arabic | **0** of 27 | **14** |
+| `page_section` Arabic, sitewide | 41 | **55** |
+| `decision` Arabic | 38 | **44** |
+
+**`decision` Arabic now exceeds English (44 against 40)** — which is the model working, not a fault:
+`egypt-acquisition/workflow` writes one decision in English and three in Arabic, and the old gate
+threw all three away for not matching.
+
+### The page, rendered
+
+`/ar/work/egypt-acquisition/accessibility`: **14 Arabic elements, zero English fallback.**
+
+**Fewer sections than the English, and that is correct.** The content audit established it in
+`002230826`: the English splits `What shipped` into six numbered sub-sections where the Arabic keeps
+one section with the same six as bold inline paragraphs. **8 Arabic sections cover what 14 English
+sections cover.** Not loss — a different split, which is the whole reason the count gate had to go.
+
+**The conformance table did not regress.** It reads `الممارسة · معيار WCAG · كيف جرى التحقق` — its
+real headings, not its first data row. That fix was made this morning in `007230826` on a different
+write path, and this migration moved that path.
+
+### Verified
+
+`check:seed-drift` **94/94, no drift** · `verify:content` all pass · `test:sync` pass · `tsc` clean ·
+`eslint` clean · `next build` exit 0, **65/65**.
+
+### What this closes
+
+**Every piece of Arabic written in Notion now reaches the site.** The gap ran: 109 chapter
+paragraphs → 75 → 0 written-and-blocked; cover paragraphs; page sections; decisions. **What is left
+untranslated is genuinely unwritten** — `the-interface` on two Egypt chapters, and the handful of
+single fields still being diagnosed.
+
+The count gate was never loosened. It was made unnecessary, four tables at a time, because a
+paragraph is not a translatable unit and a section is.
+
+---
+
 ## 019230826 — 2026-08-23 12:41 — Neobiz Mobile has a cover, and the NDA treatment is on a gallery card for the first time
 
 He supplied two Cloudinary URLs, "wide and squared", for "Egypt's cover".

@@ -462,6 +462,53 @@ because there is no longer an index. 75 Arabic paragraphs landed, 177 → 252.
   fallback's unit instead. **The rule: when a refactor makes some old mechanism
   unnecessary, check what it was incidentally holding up before deleting it.**
 
+### The fix does not transplant unchanged. Check what the FALLBACK pairs on
+
+Learned 2026-08-23, task `015230826`, closing the set the two entries above
+opened — `page_sections` and `decisions`, the last two tables where a shared row
+forced Arabic to attach by index.
+
+**Deleting the index is only half the fix. The other half is deciding where the
+English fallback now lands, and that answer is different in every table:**
+
+| Table | Row that became per-locale | Fallback resolves per |
+|---|---|---|
+| `chapter_paragraphs` (0045) | a paragraph | `(section, part)` |
+| `cover_paragraphs` (0046) | a paragraph | cover **slot** |
+| `page_sections` (0048) | a **section** | **page** |
+| `decisions` (0049) | a **decision** | **chapter** |
+
+The fallback can only land on something with a **language-independent name**.
+A cover slot has one — `thesis`, resolved from either language through
+`cover_slot_aliases`. A page section does not: its identity *is* its heading,
+and the heading is prose. Neither does a decision: its identity is its name, and
+the name is the argument.
+
+**And "just do what 0046 did" would have shipped a worse bug than the one it
+fixed.** Falling back per section on the accessibility page — 7 Arabic sections
+against 14 English — would have served the Arabic reader their own content back
+to them in English, underneath itself: the Arabic writes six headed English
+subsections as six numbered paragraphs, so "the sections it lacks" are the six
+it has just said. Not a gap filled. The same argument at chapter level for
+`egypt-acquisition/workflow`, which argues one decision in English and three in
+Arabic.
+
+**So the question to ask when carrying a fix into a fourth table is not "what
+shape did the last one take" but "what does this table's fallback have to pair
+on, and does that thing have a name in both languages?"** Where it does, the
+fallback goes there. Where it does not, it climbs to the parent that does.
+
+**The corollary, and it caught this task:** *when a refactor makes some old
+mechanism unnecessary, check what it was incidentally holding up* — the rule one
+bullet above — has a second form. **Removing an index can remove an IDENTITY
+something else was quietly binding to.** Giving `page_sections` a locale meant
+Arabic headings produce Arabic slugs, which is right everywhere except the
+Systems page, where the composition attaches an evidence card to a section *by
+slug*, deliberately, to stop the cards pairing by index. Two aliases kept that
+alive. **Grep for the column you are about to make locale-dependent before you
+change it** — the binding was three files away, in `app/`, and nothing would
+have failed: the cards would simply have stopped rendering in Arabic.
+
 
 ## A shared reader that makes a policy decision on behalf of every caller
 

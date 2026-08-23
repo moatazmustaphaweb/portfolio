@@ -533,6 +533,56 @@ const leadIn = parsePageSections(
 eq("prose before any heading becomes the intro", leadIn.intro, "An opening line.");
 eq("...and does not become a section", leadIn.sections.length, 1);
 
+/* -------------------------------- page-section slug aliases (0050) ------- */
+
+// The Arabic Systems page. Its headings slug to Arabic, and two of them carry
+// a binding the page composition makes by slug — the evidence cards. Both
+// slugs below were produced by running headingToSlug, not typed.
+const systemsAr = parsePageSections(
+  [
+    { heading: "ما بنيته فعلاً", lines: ["أنظمة."] },
+    { heading: "العمل داخل نظام لا أملكه", lines: ["مشرق."] },
+    { heading: "الأنماط التي تتكرر عبر العمل", lines: ["أنماط."] },
+  ],
+  "النسخة العربية — الأنظمة",
+  new Map([
+    ["ما-بنيته-فعلاً", "what-ive-actually-built"],
+    ["العمل-داخل-نظام-لا-أملكه", "working-inside-a-system-i-didnt-own"],
+  ]),
+);
+eq("an aliased Arabic heading takes the structural slug", systemsAr.sections.map((s) => s.slug), [
+  "what-ive-actually-built",
+  "working-inside-a-system-i-didnt-own",
+  // No alias: the slug stays in the language the heading is written in, which
+  // is the right anchor id for that page and binds to nothing.
+  "الأنماط-التي-تتكرر-عبر-العمل",
+]);
+eq(
+  "...and the DERIVED slugs are reported so a stale alias can be caught",
+  systemsAr.derived,
+  ["ما-بنيته-فعلاً", "العمل-داخل-نظام-لا-أملكه", "الأنماط-التي-تتكرر-عبر-العمل"],
+);
+
+// An alias must not be able to steal a slug a heading on the same page already
+// claimed. It competes on the same terms as a derived slug and loses to
+// whichever came first, rather than overwriting it.
+const aliasCollision = parsePageSections(
+  [
+    { heading: "Coming", lines: ["First."] },
+    { heading: "قادم", lines: ["Second."] },
+  ],
+  "Systems",
+  new Map([["قادم", "coming"]]),
+);
+eq("an alias cannot overwrite a slug already claimed", aliasCollision.sections.map((s) => s.slug), [
+  "coming",
+  "coming-2",
+]);
+
+// No alias map at all is the normal case: four of the five pages have none.
+const noAliases = parsePageSections([{ heading: "Now", lines: ["Body."] }], "About");
+eq("no alias table leaves the derived slug alone", noAliases.sections[0].slug, "now");
+
 console.log(
   failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
 );

@@ -306,12 +306,12 @@ across all seventeen chapter pages.
 |---|---|
 | Entry handles | yes |
 | Outcomes and targets | yes |
-| Decisions | yes |
-| `page_sections` | yes |
 | Cover **sections** (slot ↔ slot, not by index) | n/a — resolved through the alias table |
 | Chapter prose paragraphs | **no longer — migration 0045** |
 | Chapter table cells | **no longer — they follow their paragraph** |
-| **`cover_paragraphs`** | **no longer — migration 0046** |
+| `cover_paragraphs` | **no longer — migration 0046** |
+| **`page_sections`** | **no longer — migration 0048** |
+| **Decisions** | **no longer — migration 0049** |
 | Image tags | never did (Step 6) |
 
 Where the counts differ, the Arabic is **skipped and reported** — attaching the
@@ -343,6 +343,71 @@ alone.
 > counts stopped lying. This removes the question instead — **the remedy for a
 > pairing that should not exist is to delete the index, not to widen the
 > guard.**
+
+### `page_sections` and `decisions` — the last two, migrations 0048 and 0049
+
+*Added 2026-08-23, task `015230826`. The same rule, in the last two tables that
+were still discarding finished Arabic.*
+
+**A page section belongs to one locale, and the fallback is per PAGE.**
+
+Measured before: the four static pages were 1:1 and untouched by this; the
+accessibility page had **27 English fields and 0 Arabic**, because its Arabic
+page offers 8 sections to the English page's 14 and the count gate refused all
+of them.
+
+Read block by block off both Notion pages, the two are split differently and
+**nothing is missing from the Arabic**: it writes the English page's six headed
+`1 ·`…`6 ·` subsections as six numbered paragraphs inside `ما صدر عن هذا القرار`,
+and folds `The design system contribution` into `مكتبة المكونات، باسمها الصحيح`.
+
+⚠️ **The fallback could not move to the section, the way 0046 moved it to the
+cover slot, and this is the one place the pattern differs.** A cover slot has a
+language-independent name (`thesis`) that both locales resolve to through
+`cover_slot_aliases`. A page section's identity **is its heading**, and the
+heading is prose. Falling back per section on the accessibility page would serve
+the Arabic reader the six numbered items twice — once in their own Arabic, and
+again as six English sections underneath — plus the design-system passage twice.
+So `getPageSections` chooses **one sequence or the other for the whole page**:
+this locale's if the page has one, else the English one, marked `lang="en"`.
+
+**A decision belongs to one locale, and the fallback is per CHAPTER.**
+
+Measured before: 20 decisions, 19 with Arabic. The one without was
+`egypt-acquisition/workflow` — 1 English decision against 3 Arabic ones, the
+third of which (`القرار الثالث · إظهار مخارج القرار الخمسة`) has no English
+counterpart at all. Same reasoning as above: a decision's identity is its name,
+and its name is content, so the fallback is one level up.
+
+**Neither gate was loosened.** Pairing 8 Arabic sections against 14 English ones
+would have put `سجل المطابقة` under the heading `4 · Error prevention`. The
+guards were right; the shared row that forced an index to exist was not.
+
+#### `page_section_slug_aliases` — migration 0050
+
+Per-locale rows mean an Arabic heading now produces an Arabic slug, which is the
+right anchor id and binds to nothing — **except on Systems**, where
+`app/[locale]/(site)/systems/page.tsx` attaches an evidence card to a section
+**by slug**, deliberately, to stop the cards pairing by index. Two rows keep
+that binding alive in Arabic:
+
+| page | derived slug | slug |
+|---|---|---|
+| `systems` | `ما-بنيته-فعلاً` | `what-ive-actually-built` |
+| `systems` | `العمل-داخل-نظام-لا-أملكه` | `working-inside-a-system-i-didnt-own` |
+
+Same shape as `cover_slot_aliases` and `chapter_slot_aliases`: the slug is the
+structural name, the heading is the prose, a new spelling is a **row**. Two
+differences. The **page** is part of the key, because a page-section slug is
+unique to its page — `روابط أخرى` is `elsewhere` on About and `also-here` on
+Contact. And the lookup is on the **derived slug** rather than the raw heading,
+so `headingToSlug` is the only normaliser in the system and there is no second
+one to drift from.
+
+**An alias that matches no heading FAILS the run**, checked only when both
+locales of the page were read. An alias exists only where something outside the
+page binds to the slug, so a stale one means a heading was rewritten and a card
+is about to stop rendering with nothing failing.
 
 ### The rest
 

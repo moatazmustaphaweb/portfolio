@@ -313,6 +313,11 @@ export type Database = {
           sort_order: number;
           /** 'prose' | 'table' — a table stores TAB/NEWLINE cells in body. */
           kind: string;
+          /**
+           * The language this section IS (0048). Each locale owns its own
+           * ordered sequence within a page; nothing pairs by position.
+           */
+          locale: Database["public"]["Enums"]["locale_code"];
         };
         Insert: {
           id?: string;
@@ -320,8 +325,28 @@ export type Database = {
           slug: string;
           sort_order?: number;
           kind?: string;
+          // No default in the database: an insert must state the locale.
+          locale: Database["public"]["Enums"]["locale_code"];
         };
         Update: Partial<Database["public"]["Tables"]["page_sections"]["Insert"]>;
+        Relationships: [];
+      };
+      page_section_slug_aliases: {
+        Row: {
+          page: string;
+          derived_slug: string;
+          slug: string;
+          observed_on: string | null;
+        };
+        Insert: {
+          page: string;
+          derived_slug: string;
+          slug: string;
+          observed_on?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["page_section_slug_aliases"]["Insert"]
+        >;
         Relationships: [];
       };
       chapters: {
@@ -357,8 +382,23 @@ export type Database = {
         Relationships: [];
       };
       decisions: {
-        Row: { id: string; chapter_id: string; sort_order: number };
-        Insert: { id?: string; chapter_id: string; sort_order?: number };
+        Row: {
+          id: string;
+          chapter_id: string;
+          sort_order: number;
+          /**
+           * The language this decision IS (0049). Each locale owns its own
+           * ordered list within a chapter; nothing pairs by position.
+           */
+          locale: Database["public"]["Enums"]["locale_code"];
+        };
+        Insert: {
+          id?: string;
+          chapter_id: string;
+          sort_order?: number;
+          // No default in the database: an insert must state the locale.
+          locale: Database["public"]["Enums"]["locale_code"];
+        };
         Update: Partial<Database["public"]["Tables"]["decisions"]["Insert"]>;
         Relationships: [];
       };
