@@ -669,6 +669,38 @@ without leaving 33 megapixels lying around. Then re-read the dimensions into `me
 even once the bytes arrived.
 
 
+## In Cloudinary, "replace" means the same public_id. A new name is a new asset
+
+Moataz re-exported a cover, uploaded it, and reported the site unchanged. The reasonable suspicions
+were all wrong — not a CDN cache, not a browser cache, not something "attached" that needed
+reattaching. **The upload had simply landed on a different `public_id`**, one character of intent
+away from the one the database holds:
+
+```
+EGY_-_NEOBIZ_-_Cover_-_square   <- uploaded
+EGY_-_NEOBIZ_-_Cover            <- what the site reads
+```
+
+The site resolves images through `media.cloudinary_public_id`. **An asset the row does not name does
+not exist as far as the site is concerned**, however recently it was uploaded and however obviously
+it is the intended file.
+
+**Check this first, before reasoning about caches**, because it takes one call and eliminates the
+whole class:
+
+```
+GET /v1_1/<cloud>/resources/search   {"sort_by":[{"created_at":"desc"}]}
+```
+
+If the newest asset carries a name nobody references, the mystery is over. If the id the database
+names still shows the *old* `version` number, no replacement reached it.
+
+**And repointing the row at the new name is usually the wrong fix.** Derived ids break: this project
+looks the gallery-card variant up as `<public_id>-card`, so moving the cover to a new name silently
+orphans its card. **Copy the bytes onto the existing id instead** — `overwrite=true`,
+`invalidate=true`. One name stays in play, every convention built on it survives.
+
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.

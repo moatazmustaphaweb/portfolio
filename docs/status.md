@@ -37,6 +37,59 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 024240826 — 2026-08-24 00:15 — the replace that was not a replace
+
+Moataz re-exported the Neobiz Egypt cover from Figma with clip content on, so the frame is genuinely
+square this time, uploaded it, and reported that the site had not changed.
+
+**It had not changed because the upload was a new asset, not a replacement:**
+
+```
+2026-08-23T20:05:53   4322x4322   SQUARE   EGY_-_NEOBIZ_-_Cover_-_square   <- his
+2026-08-23T18:28:21   3840x2160   wide     EGY_-_NEOBIZ_-_Cover            <- what the site reads
+```
+
+Nothing was cached, nothing was attached anywhere, and nothing needed reattaching. **In Cloudinary a
+replace is the same `public_id` and nothing else is.** A new name is a new asset, and the site — which
+holds the id in `media.cloudinary_public_id` — has no way to know it exists.
+
+### Why the cover was wide and UAE's is square
+
+The inner cover uses **`c_limit,w_1200`** — no crop, no forced height. **It preserves the source's
+aspect ratio exactly**, so the cover is whatever shape the file is:
+
+| | cover (`c_limit`) | card (`c_fill,w_640,h_400`) |
+|---|---|---|
+| `uae-acquisition` | 2400×2400 → **square** | 2560×1600 → wide |
+| `neobiz-mobile`, before | 3840×2160 → **wide** | 3840×2276 → wide |
+| `neobiz-mobile`, now | 4322×4322 → **square** | 3840×2276 → wide |
+
+The card is `c_fill` at a fixed 1.6:1 and is wide **by preset**, whatever the source. So the shape
+Moataz was objecting to could only ever have come from the cover source, and only the cover source
+needed changing.
+
+### Why the fix was to copy bytes, not to repoint the row
+
+Repointing `cover_media_id` at `EGY_-_NEOBIZ_-_Cover_-_square` would have **broken the gallery card.**
+`lib/content/case-files.ts:107` looks the card variant up by convention as `<public_id>-card`, and
+`EGY_-_NEOBIZ_-_Cover_-_square-card` does not exist. Copying the square bytes onto the existing id
+keeps that derivation intact and leaves one name in play instead of two.
+
+**Verified:** `c_limit,w_1200` returns a real **1200×1200**, `c_limit,w_2400` a real **2400×2400**,
+and the card still returns 200. `media.width`/`height` updated to 4322×4322 — they were still holding
+my earlier wide numbers, which would have given the cover the wrong reserved box.
+
+### Not verified
+
+**Moataz's own browser will still show the old bytes.** Same URL, `immutable, max-age=2592000`, and
+`getCldImageUrl` emits a fixed `/v1/` placeholder rather than the real version — `learn.md` Part 5
+covers this exactly. `invalidate=true` purged Cloudinary's CDN and cannot reach his machine. A hard
+reload is required, and that is not a bug being worked around, it is the known structural gap.
+
+**`EGY_-_NEOBIZ_-_Cover_-_square` is still on Cloudinary** as an orphan nothing references.
+
+---
+
 ## 023230826 — 2026-08-23 15:20 — the Neobiz cover, and the site going public without anyone deciding to
 
 Two things happened. One was asked for and is fixed. **The other was not asked for, and it is mine.**
