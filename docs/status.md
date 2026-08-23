@@ -882,6 +882,54 @@ Checked rather than assumed: every one of the four skills is loaded by more than
 
 ---
 
+## 2026-08-23 09:05 — 001230826 — The FATCA declaration image in Egypt / Onboarding is swapped, in Notion and in the database
+
+**Asked for:** replace the regulatory-declaration image in `egypt-acquisition/onboarding` with `Old-fatca`, keeping alt and caption, changing nothing in Cloudinary.
+
+**What the image was.** One `media` row, `42c151d4-6d1c-4e30-87e4-47d629cdaf8f`, public ID
+`5. AOF (Account Opening Form) EGY - Jul 27/Pages/07-regulatory-declaration-fatca-and-pep`.
+It is referenced once, from the `context` slot of the Onboarding Journey chapter, by both the
+English and the Arabic paragraph — the same row serves both locales.
+
+**Why the database alone was not enough, and this is the part worth keeping.** `upsertMedia`
+keys on `cloudinary_public_id`. Had the row been edited and Notion left alone, the next
+`sync:notion` would have found no row for the tag still written in Notion, inserted a *second*
+media row, and re-pointed both paragraph markers at it. The swap would have reverted silently
+and left an orphan behind. **A media public ID cannot be changed in one place.** Notion holds
+the `[cld]` tag; the database holds the row; they are one fact stored twice.
+
+**What changed, in order:**
+
+1. **Notion** — `Chapter — Egypt / Onboarding Journey`, blocks `ffffe506…` (en) and `513e36e8…` (ar).
+   Only the `[cld]` rich-text segment was rewritten, to `[cld] Old-fatca`. The `[alt]` and
+   `[caption]` segments, their `code` annotation and the segment count (5) are untouched in both.
+2. **Supabase** — `media.cloudinary_public_id` on the existing row set to `Old-fatca`.
+   **The row id is unchanged**, so the four `translations` rows (en/ar × alt/caption) and both
+   `[image:…]` markers still resolve. Nothing was inserted and nothing was deleted.
+3. **Cloudinary** — nothing. No rename, no upload, no delete. `Old-fatca` was already there
+   (uploaded 2026-08-23 08:39, 2880×1826 png); the old asset is still there, now unreferenced.
+
+**Verified, not assumed:**
+
+- Both assets exist via the Cloudinary Admin API before the swap.
+- `sync:notion --dry-run` after the change: **0 failed**, 21 updated, no notice naming this chapter.
+  The new tag parses — an unusable tag would have failed the chapter under guard 3.
+- Rendered against a running server, both locales: `/en/…/onboarding` and `/ar/…/onboarding` emit
+  `…/e_grayscale/c_limit,w_2000/f_auto/q_auto/v1/Old-fatca` and **zero** occurrences of the old
+  public ID. The NDA grayscale is still applied, from `case_files.nda` as it should be.
+- Alt and caption read back identical in both languages, in the rendered HTML.
+
+**Not verified:** nobody has *looked* at the page. The replacement is portrait→landscape
+(1189×1683 → 2880×1826), so the figure's proportions in the flow change. That is a visual call
+and it is Moataz's.
+
+**Left alone deliberately:** `Image mapping/cloudinary-tags-inventory.md` still names the old
+public ID in four rows. It is a planning inventory, not state — two of the four rows describe a
+chapter-18 placement that does not exist in Notion or the database — and correcting it here would
+imply it tracks reality.
+
+---
+
 ## 2026-08-21 14:35 — 053 finished everywhere, English fallback aligns with the Arabic, and the Neobiz cover is unfrozen
 
 Four items, all shipped. Nothing touched the paragraph-count gate.
