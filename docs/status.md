@@ -37,6 +37,52 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 035240826 — 2026-08-24 06:35 — swept `/all` and the chapter pages; found the same SHAPE, not the same bug
+
+Moataz: `/work/neobiz-mobile/all` has the same problem, and it's unreasonable to have to point out each
+page separately — sweep the rest of the site.
+
+### Read both files in full before touching anything
+
+`app/[locale]/(site)/work/[caseFile]/all/page.tsx` (444 lines) and `[chapter]/page.tsx` (527 lines) —
+neither renders a single `<img>` or `CloudinaryImage` anywhere. `ChapterSections.tsx` was already read
+in full for the earlier fixes tonight: figures are siblings of paragraphs, never beside them, by the
+component's own design (an explicit rule, not an oversight).
+
+**Neither page has the mechanism the bug lived in.** `CoverSections.tsx`'s bug was specifically a cap
+that was SUPPOSED to vary with `section.media` and didn't. These two pages never had that condition to
+begin with — their width caps are uniform and permanent, by design, regardless of any image.
+
+### Measured `/all` before concluding that
+
+`.max-w-prose` container: `margin-left: 200px`, `margin-right: 200px` — genuinely centered, not
+lopsided, at a 1400px window. `--container-prose: 1000px` is a deliberate second, narrower container
+token (`tailwind.config.ts`), distinct from `--container-max: 1200px`, specifically for this "Linear
+View" / "read start to finish" page — a long-form single-scroll read, the kind every reading-focused
+site (an article, a blog post) keeps narrower than a landing or gallery page on purpose. Paragraphs
+inside it additionally cap at `max-w-measure` (721px), same as everywhere else prose renders.
+
+The chapter page picks between `max-w-container` and `max-w-prose` **by chapter kind**
+(`isDocument ? "max-w-container" : "max-w-prose"`) — document-style chapters (comparison tables) get
+the wide container, narrative chapters get the reading column. Also deliberate, also unrelated to
+images.
+
+### Why this wasn't just fixed the same way
+
+Stripping `max-w-measure`/`max-w-prose` here would not restore a broken "full width when no image"
+rule — there never was one on these pages. It would widen a paragraph from ≈721px to up to 1152px,
+which at normal body text size is well past the ~75-character line length typography treats as the
+readable ceiling — the opposite direction from the CoverSections fix, which corrected a cap that had
+nothing to justify it. Doing that silently would trade the last defect for a worse one.
+
+### Open, not decided here
+
+Is the reading column meant to widen too, trade accepted? Or was the comparison against the
+cover page — which changed shape moments earlier in the same conversation — the reason it now reads
+as "the same problem"? Recorded rather than guessed past; asked in chat.
+
+---
+
 ## 034240826 — 2026-08-24 06:10 — the card sections had the same bug, and the sweep found nothing else
 
 Moataz: "Status, honestly" and "Why it matters anyway" have the same problem — small, not expanding
