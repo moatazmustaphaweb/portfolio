@@ -37,6 +37,87 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 040240826 — 2026-08-24 10:15 — the nav collapses into a burger, and the header finally fits a phone
+
+Moataz: collapse the whole navigation into a burger on mobile, ordered **burger · name · space ·
+theme · language**.
+
+### This closes a thread three tasks long
+
+`028240826` cut the theme control from three buttons to one; `029240826` cut the locale switch from
+two to one. Between them the header's minimum content width went ~562px → ~482px, and **both entries
+recorded the same conclusion: still wider than a 360–430px phone, and nothing left to remove without
+menu-izing the nav.** This is that step. The four links leave the row entirely rather than being
+shaved.
+
+**Measured with the nav collapsed: burger 28 + name 118 + controls 116, plus 48px gutter and 24px of
+gaps = 334px.** Down from ~482px. That clears every real phone.
+
+### `flex-wrap` is gone, deliberately
+
+It was the safety net for a row that overflowed. Now that the row fits, keeping it would silently
+re-introduce the two-line header the moment anything grew — the exact bug this thread started with,
+made invisible again. Removed, so an overflow would be *visible* rather than absorbed.
+
+### The 320px floor, and the one thing that protects it
+
+334px clears every real phone but is 14px over the **320px** the definition of done names. The
+wordmark carries `min-w-0 truncate` and NOT `shrink-0`: above 334px it never shrinks and nothing
+changes anywhere it currently fits; below it, the name ellipsises in the last few pixels instead of
+pushing the controls off the row. Graceful degradation rather than an overflow.
+
+### Desktop is untouched by construction
+
+`MobileMenu` is `md:hidden`, `Nav` is `hidden md:flex`. Two elements with complementary visibility,
+not one element restyled — so the desktop header keeps the exact markup and the exact `Nav` it has
+always had.
+
+The cost, stated rather than hidden: the nav links exist twice in the DOM. **`aria-hidden` is not
+used on either copy** — `display: none` already removes an element from the accessibility tree, so it
+would be redundant on the hidden one and actively harmful on the visible one.
+
+### Accessibility, built in rather than checked after
+
+`aria-expanded` tracks state; `aria-controls` points at the panel via `useId`. The button's
+accessible name **changes with the state** — "Open menu" / "Close menu", `ui_strings` via migration
+0052 — because a static "Menu" would announce the same thing in both states and `aria-expanded` alone
+reads as "expanded" without saying what would collapse. Escape closes the panel **and returns focus to
+the burger**, so a keyboard user is not dropped at the top of the document.
+
+### The lint rule caught the same mistake as last task
+
+`useEffect(() => setOpen(false), [pathname])` — the obvious way to close on navigation — is exactly
+what `react-hooks/set-state-in-effect` rejects, the same rule that caught `039240826`'s mount flag.
+That one was solved with `useSyncExternalStore`; this one takes React's other documented answer,
+adjusting state **during render** by storing the previous pathname and comparing. React re-runs the
+component before touching the DOM, so no frame paints with the menu still open — and unlike an
+`onClick` on each link, it also covers back/forward.
+
+### Verified
+
+`tsc` clean · `eslint` **0** · `check:seed-drift` **98/98** · `next build` exit 0, 65/65 · **axe: zero
+violations on six pages**, both locales.
+
+Interaction, exercised rather than read: label flips `Open menu` → `Close menu`, `aria-expanded`
+`false` → `true`, panel opens with **all four links**, Escape closes it and **focus returns to the
+burger**. Arabic reads `فتح القائمة`.
+
+Order confirmed structurally, which is viewport-independent: **BURGER · NAME · NAV(desktop-only) ·
+CONTROLS**.
+
+### Not verified
+
+⚠️ **The two Arabic strings are mine and unreviewed** — `فتح القائمة`, `إغلاق القائمة`. Marked in the
+migration comment and added to `TASKS.md` beside 0051's pair.
+
+**Never seen at a real mobile viewport.** The automation window would not resize below ~1400px this
+session — it clamped to 606px earlier tonight and refused entirely later — so the breakpoint was
+exercised by forcing `display` on the two elements and measuring the real row that produced. That is
+a simulation of the media query, not a phone. The 334px figure is arithmetic over measured element
+widths, not an observation of a 334px-wide page.
+
+---
+
 ## 039240826 — 2026-08-24 09:30 — copy-link on every section heading, and a dead offset it exposed
 
 Moataz's brief: in the detailed pre-launch review it must be possible to send someone ONE passage
