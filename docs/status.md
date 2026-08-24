@@ -37,6 +37,72 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 031240826 — 2026-08-24 04:15 — the cycle order is OS-dependent, on Moataz's correction
+
+`030240826` shipped a FIXED cycle order (System → Light → Dark → System) and its own comment argued
+*against* branching on the resolved OS preference, calling it non-deterministic. Moataz overruled
+that with two fully worked sequences — one per OS preference — and they resolve the concern rather
+than dodge it.
+
+### The actual rule, reverse-engineered from his two examples
+
+He gave the full click sequence for OS=light and OS=dark. Working both backward to a formula:
+
+```
+current = system     → next = other(os)   — the colour you have NOT seen
+current = other(os)  → next = os          — pin the OS's own colour, explicitly
+current = os          → next = system      — back to auto
+```
+
+`current`, `other(os)` and `os` partition `{system, light, dark}` exactly once each, so the three
+branches are exhaustive — checked against both his sequences before writing any code:
+
+| OS | sequence |
+|---|---|
+| light | system → **dark** → light → system |
+| dark | system → **light** → dark → system |
+
+Both match his two paragraphs exactly, including the direction each way.
+
+### The store needed a new signal it didn't have
+
+`getThemeSnapshot()` collapses to the explicit choice once one is pinned — exactly the case this
+needs to see past. Added `getSystemPreferenceSnapshot()` to `lib/theme/store.ts`, mirroring the
+existing `getChoiceSnapshot`/`getChoiceServerSnapshot` pair: reads `matchMedia(LIGHT_QUERY)` directly,
+cached and invalidated by the same `refresh()` the media-query listener already drives — no new
+subscription, no new listener, the existing infrastructure already fires on exactly the event this
+needed.
+
+### Verified — formula first, then a real click-through, then a coordinate bug caught mid-task
+
+**The formula itself**, replayed standalone against both OS values, matched his two examples on every
+branch before any component code was touched.
+
+**Then a full live click-through** on this machine's actual OS preference (light, confirmed via
+`matchMedia`): fresh `system` state read `"Toggle theme: Dark"` — the reversal Moataz flagged,
+confirmed fixed on the first read, before a single click. Four real clicks: Dark → Light → System →
+Dark again, loop closed, matching the table above exactly.
+
+**The click-through itself needed a repair mid-verification.** The first two clicks, aimed at screen
+coordinates read off a screenshot, produced no state change at all — `aria-label` and `data-theme`
+both read back unchanged. `document.elementFromPoint()` on the same coordinates returned `null`:
+the point was outside `window.innerWidth` (606px) entirely. The screenshot's pixel buffer and the
+click tool's coordinate space were not the same scale, on a window left resized from an earlier task
+today. Switched to `read_page`'s element `ref` and clicked by reference instead of by coordinate —
+every click after that landed correctly. See the lesson in `learn.md`.
+
+axe against both locales: **zero violations**. Arabic reads `"تبديل المظهر: داكن"` at the fresh
+`system` state — correct, composed from the same `ui_strings`.
+
+### Not verified
+
+**OS=dark was never exercised through a real, hydrated, simulated-dark browser** — this tooling has
+no way to override `prefers-color-scheme` before a page's own pre-paint script runs. That branch
+rests on the formula replay and the exhaustive-partition argument, not a live click-through. Flagged
+rather than glossed over.
+
+---
+
 ## 030240826 — 2026-08-24 03:40 — the theme icon now shows the destination, matching the locale switch
 
 Moataz, right after approving the collapsed locale switch: the theme toggle should follow the same

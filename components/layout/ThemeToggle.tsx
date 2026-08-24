@@ -10,56 +10,53 @@ import {
 import {
   getChoiceServerSnapshot,
   getChoiceSnapshot,
+  getSystemPreferenceServerSnapshot,
+  getSystemPreferenceSnapshot,
   setThemeChoice,
-  subscribeTheme,
+  type Theme,
   type ThemeChoice,
+  subscribeTheme,
 } from "@/lib/theme/store";
 
 /**
- * Theme control — one button, cycling System → Light → Dark → System.
+ * Theme control — one button. Icon and label always show what clicking DOES,
+ * never the current state (task `030240826`, following `LocaleSwitch`'s same
+ * rule: the current state is legible from the page itself).
  *
- * Replaced the three-button radiogroup 2026-08-24, task `028240826`, on
- * Moataz's explicit instruction after the first mobile visual pass: the
- * header wrapped to two lines, and the theme control's three 44px targets
- * were the largest single contributor.
+ * ── THE CYCLE ORDER IS OS-DEPENDENT, CORRECTED 2026-08-24, TASK `031240826` ─
  *
- * ── ICON AND LABEL SHOW THE DESTINATION, NOT THE CURRENT STATE ─────────────
+ * `030240826` shipped a FIXED order — System → Light → Dark → System — and
+ * its own comment argued against branching on the OS preference, calling it
+ * non-deterministic. Moataz overruled that with a fully worked spec for both
+ * directions, and it resolves the concern rather than ignoring it: the order
+ * is OS-dependent, but internally consistent for a given OS preference, and
+ * it is exactly what makes the toggle useful — from System, it offers the
+ * visual experience you HAVEN'T seen first, not the one already painted.
  *
- * Changed 2026-08-24, task `030240826`, on Moataz's correction: he compared
- * it to `LocaleSwitch` right next to it, which shows "العربية" while on the
- * English page — the label there is what clicking DOES, not where you are.
- * This control now matches that: both `Icon` and `aria-label` are keyed off
- * `next`, never off `current`.
+ * Let `os` be the raw OS preference (`getSystemPreferenceSnapshot`, NOT
+ * `getThemeSnapshot` — that second one collapses to an explicit choice once
+ * one is pinned, which is exactly the case this needs to see through) and
+ * `other(t)` be its opposite colour:
  *
- * This still answers the old three-radio component's own reason for
- * existing — a cycling button can say only where you're going, not where you
- * are — the same way `LocaleSwitch` answers it: the CURRENT state is legible
- * from the page itself (it visibly IS light or dark; the surrounding words
- * visibly ARE English), the same way a page's language is legible from its
- * own words. Nothing here needs to re-state what the page already shows.
+ *   current = system   → next = other(os)   — the colour you haven't seen
+ *   current = other(os) → next = os          — pin the OS's own colour
+ *   current = os        → next = system      — back to auto
  *
- * `aria-label` still composes from `ui_strings` that already exist —
- * `theme_toggle` + the DESTINATION choice's own label, e.g.
- * "Toggle theme: Dark" — so it agrees with the icon rather than contradicting
- * it, and nothing is invented (rule 7).
+ * Worked example, OS = light: system → dark → light → system. A visitor on a
+ * dark OS gets the mirror image: system → light → dark → system. Both are
+ * exactly Moataz's two spelled-out sequences.
  *
- * ── ORDER, AND WHY IT DOES NOT BRANCH ON THE RESOLVED OS THEME ─────────────
+ * `current`, `other(os)` and `os` partition `{system, light, dark}` exactly
+ * once each, so the three branches above are exhaustive — no default case
+ * needed, and none was added.
  *
- * Fixed: System → Light → Dark → System. A 3-cycle has no canonical
- * direction, so this was chosen to match the left-to-right order the old
- * radiogroup displayed — nothing about the mental model changes, only the
- * control.
- *
- * Moataz's own framing ("if System has resolved to light, show dark") reads
- * naturally for a 2-state light/dark toggle, but this is a 3-state cycle:
- * from System, the fixed order's next stop is Light, not "whichever of
- * light/dark the OS isn't currently showing." Branching the next state on
- * the resolved OS theme would make the cycle length non-deterministic — two
- * clicks gets back to System for a visitor on a light OS, three for one on a
- * dark OS — which is a worse contract than a fixed, always-3-click cycle.
- * Kept fixed; flagged rather than guessed past.
+ * `aria-label` composes from `ui_strings` that already exist — `theme_toggle`
+ * + the DESTINATION choice's own label — same discipline as before, nothing
+ * invented (rule 7).
  */
-const ORDER: ThemeChoice[] = ["system", "light", "dark"];
+function otherOf(theme: Theme): Theme {
+  return theme === "light" ? "dark" : "light";
+}
 
 export function ThemeToggle({
   labels,
@@ -73,17 +70,24 @@ export function ThemeToggle({
     getChoiceSnapshot,
     getChoiceServerSnapshot,
   );
+  const osPref = useSyncExternalStore(
+    subscribeTheme,
+    getSystemPreferenceSnapshot,
+    getSystemPreferenceServerSnapshot,
+  );
 
-  // `choice` is null until the browser answers (server cannot know it).
-  // "system" is the correct resting state for that gap: it is the default,
-  // and the pre-paint script has already applied it if nothing was
-  // explicitly chosen.
-  const current = choice ?? "system";
-  const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+  // Both null until the browser answers (server cannot know either). "system"
+  // is the pre-paint script's own default when nothing was chosen; "dark" is
+  // the codebase's stated default (decision 019) — a reasonable resting guess
+  // for the brief pre-hydration window, corrected immediately after.
+  const current: ThemeChoice = choice ?? "system";
+  const os: Theme = osPref ?? "dark";
+
+  const next: ThemeChoice =
+    current === "system" ? otherOf(os) : current === otherOf(os) ? os : "system";
   const nextLabel = labels[next];
 
-  // The icon and label both key off `next` — what clicking DOES — not
-  // `current`. See the component comment.
+  // The icon keys off `next` — what clicking DOES — never `current`.
   const Icon = next === "light" ? LightThemeIcon : next === "dark" ? DarkThemeIcon : AutoThemeIcon;
 
   return (

@@ -43,6 +43,7 @@ const LIGHT_QUERY = "(prefers-color-scheme: light)";
 const listeners = new Set<() => void>();
 let cache: Theme | null = null;
 let choiceCache: ThemeChoice | null = null;
+let osCache: Theme | null = null;
 let observer: MutationObserver | null = null;
 let media: MediaQueryList | null = null;
 
@@ -50,6 +51,15 @@ let media: MediaQueryList | null = null;
 function resolve(): Theme {
   const explicit = document.documentElement.getAttribute("data-theme");
   if (explicit === "light" || explicit === "dark") return explicit;
+  return resolveOs();
+}
+
+/**
+ * The raw OS preference, ignoring any explicit choice — unlike `resolve()`,
+ * which an explicit `data-theme` overrides. `ThemeToggle` needs this even
+ * when a choice IS explicit, to order its cycle: task `031240826`.
+ */
+function resolveOs(): Theme {
   return window.matchMedia(LIGHT_QUERY).matches ? "light" : "dark";
 }
 
@@ -75,12 +85,17 @@ function syncThemeColor(theme: Theme): void {
 function refresh() {
   const nextTheme = resolve();
   const nextChoice = resolveChoice();
-  if (nextTheme === cache && nextChoice === choiceCache) return;
+  const nextOs = resolveOs();
+  if (nextTheme === cache && nextChoice === choiceCache && nextOs === osCache) return;
   // The OS flipping under a `system` choice repaints the page, so the browser
   // chrome has to follow it too — not only explicit changes.
   if (nextTheme !== cache) syncThemeColor(nextTheme);
   cache = nextTheme;
   choiceCache = nextChoice;
+  // Recomputed even when an explicit choice masks it visually — the OS can
+  // still flip underneath a pinned light/dark, and ThemeToggle's cycle order
+  // needs to notice, or the icon it shows next goes stale silently.
+  osCache = nextOs;
   for (const listener of listeners) listener();
 }
 
@@ -136,6 +151,25 @@ export function getChoiceSnapshot(): ThemeChoice {
 
 /** `null` on the server for the same reason the theme is: it is not knowable. */
 export function getChoiceServerSnapshot(): ThemeChoice | null {
+  return null;
+}
+
+/**
+ * The raw OS preference, regardless of any explicit choice.
+ *
+ * Added for `ThemeToggle`'s cycle order (task `031240826`): from `system`,
+ * the toggle offers whichever colour the OS is NOT currently showing first —
+ * the one visit hasn't seen — then the OS's own colour pinned explicitly,
+ * then back to `system`. That ordering needs to know the OS preference even
+ * while an explicit choice is masking it from `getThemeSnapshot()`.
+ */
+export function getSystemPreferenceSnapshot(): Theme {
+  if (osCache === null) osCache = resolveOs();
+  return osCache;
+}
+
+/** `null` on the server for the same reason the other two are. */
+export function getSystemPreferenceServerSnapshot(): Theme | null {
   return null;
 }
 

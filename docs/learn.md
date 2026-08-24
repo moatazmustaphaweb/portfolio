@@ -777,6 +777,32 @@ the click didn't reach a framework's own handler before suspecting a timing issu
 would not have fixed this one; nothing was pending, nothing ever fired.
 
 
+## A screenshot's pixel buffer and a click tool's coordinate space are not guaranteed to match
+
+Two clicks aimed at coordinates read off a screenshot produced no visible change — no error, `aria-
+label` and `data-theme` both read back identical to before the click. The natural first suspicion
+(click didn't register, needs a longer wait) was wrong.
+
+**The tell:** `document.elementFromPoint(x, y)` at those same coordinates returned `null`. That means
+the point was outside `window.innerWidth`/`innerHeight` — not "hit the wrong element", but hit
+nothing, because the coordinate was off-page entirely.
+
+**The cause:** a browser window resized earlier in the session (down to Chrome's own ~606px content
+floor, chasing a different question) stayed that size for a later, unrelated tab in the same window.
+The screenshot tool's returned pixel dimensions did not match `window.innerWidth` at anywhere near a
+clean ratio — not `devicePixelRatio`, not any obvious scale — so a coordinate eyeballed off a
+screenshot silently pointed somewhere else on the page, or off it.
+
+**The fix that made the failure impossible rather than diagnosing the exact scale factor:** stop
+converting screenshot pixels to click coordinates at all. `read_page` returns element `ref`s; `computer`
+`left_click` accepts a `ref` directly and clicks the actual element regardless of what coordinate
+space anything else is using. Every click after switching landed correctly.
+
+**Worth checking before trusting any screenshot-coordinate click:** does `window.innerWidth` match
+what the screenshot's dimensions imply? If a window was resized earlier in the session for an
+unrelated reason, a later tab in the same window can silently inherit it.
+
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.
