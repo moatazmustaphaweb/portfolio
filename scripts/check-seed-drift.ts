@@ -29,6 +29,7 @@ const SEED_FILES = [
   "supabase/migrations/0047_seed_landmark_labels.sql",
   "supabase/migrations/0051_seed_section_link_strings.sql",
   "supabase/migrations/0052_seed_menu_strings.sql",
+  "supabase/migrations/0054_seed_career_strings.sql",
 ];
 const CORRECTIONS = [
   "supabase/migrations/0006_arabic_review_corrections.sql",

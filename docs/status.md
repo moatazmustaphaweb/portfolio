@@ -37,6 +37,81 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 043240826 — 2026-08-24 12:10 — the career timeline: schema, strings and query layer. No data, on purpose
+
+Moataz asked a question I had not made clear the answer to: the CV extraction went into
+`docs/career-history.md`, and **he asked where the reflection on the website is.**
+
+**It was nowhere, and that needed saying plainly rather than being left to look like publishing.**
+Verified in front of him: `grep` for `career-history` across `app`, `components` and `lib` returns
+nothing; there was no career table in the database; and the live About page still showed only its six
+prose sections. A `.md` file in the repo is documentation, not content.
+
+### Why it stopped at a file
+
+`CLAUDE.md` records the gap as *dates, employers and job titles* — and the design has had a timeline
+component **since before the site existed, unbuilt because there was nothing to put in it.** That is
+not "paste text into a page"; it is a table, a query layer and a component, and rule 4 orders them
+schema → seed → query layer → pages. The transcription was step zero. **The failure was not
+announcing that when it finished.**
+
+### What he decided
+
+Asked once, because these names reach a public page and he currently works at one of the banks the
+case files are about. His answer: **the domain, the job title, the dates, the city and the country —
+without the names.**
+
+### What shipped
+
+**0053 · `career_roles`** — `locale`, `sort_order`, `started`, `ended`. **There is no `employer`
+column**, so this cannot leak a name by accident rather than by policy. `ended IS NULL` means
+current. A `check` refuses a role that ends before it starts, and `unique (locale, sort_order)` keeps
+one position per slot per language. Public-read RLS, matching every other content table.
+
+`title`, `domain`, `city`, `country` are **translations, not columns** — "Madrid" is "مدريد" and
+"Spain" is "إسبانيا", and storing them as columns would have forced the Arabic page to render Latin
+place names, the same defect decision 053 exists to prevent one layer up.
+
+**0055 · `career_role` added to the `entity_type` enum**, in its own file. Not tidiness: **Postgres
+refuses to use a new enum value in the transaction that adds it**, so a single migration doing both
+fails at runtime rather than at review. Splitting makes that unrepresentable.
+
+**0054 · two `ui_strings`** — `career_heading` and `career_present`. The second is the structural one:
+"Present" is a word, so `ended ?? "Present"` in a component would have shipped an untranslatable
+English literal onto the Arabic page. The NULL is the fact; the string is its rendering.
+
+**`lib/content/career.ts`** — rule 2, the only thing that touches the table. Uses
+`resolveManyDetailed`, not `resolveMany`: a role whose Arabic is missing falls back to English, and
+unmarked English inside `dir="rtl"` lays out as Arabic. That is the exact mistake `020230826` fixed on
+sibling notes, and it is not repeated.
+
+### The table ships EMPTY, and that is the point
+
+No seed. The rows are Moataz's own facts, extraction from a PDF is lossy — this one arrived with a
+letter-spacing artefact that had to be collapsed — and seeding unverified dates would put invented
+precision on his About page. Rule 7. **The component will render nothing until he confirms the
+transcription**, which is the correct failure mode.
+
+### A correction he made, recorded because I invented the problem
+
+The first draft of `career-history.md` treated *Lead Product Designer* and *Senior UI/UX Consultant,
+Regional* as one title conflicting with itself, and asked him which to "resolve". **There was no
+conflict.** They are two different jobs at two different companies — Lead Product Designer in IoT, and
+Senior UI/UX Consultant Regional in financial products — consecutive steps in one career path. The
+file now says so.
+
+### Verified
+
+`tsc` clean · `eslint` **0** · `check:seed-drift` **100/100**, no drift.
+
+### Not done, and blocked on him
+
+**The component is not built.** Building a renderer for data that has not been confirmed is the wrong
+order — it would be verified against nothing. One confirmation of the seven rows unlocks the seed and
+the component together.
+
+---
+
 ## 041240826 — 2026-08-24 11:00 — decisions get link buttons; they were never section headings
 
 Moataz: some paragraphs have no link — the decisions — and copying a decision to send to someone is

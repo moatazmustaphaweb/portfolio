@@ -272,6 +272,31 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["chapter_paragraphs"]["Insert"]>;
         Relationships: [];
       };
+      /* Migration 0053 — the About page career timeline. Employer NAMES are
+         deliberately not stored; see the migration for why. */
+      career_roles: {
+        Row: {
+          id: string;
+          locale: Database["public"]["Enums"]["locale_code"];
+          sort_order: number;
+          started: string;
+          /** NULL means the role is current. */
+          ended: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          locale: Database["public"]["Enums"]["locale_code"];
+          sort_order: number;
+          started: string;
+          ended?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["career_roles"]["Insert"]>;
+        Relationships: [];
+      };
       chapter_table_cells: {
         Row: {
           id: string;
@@ -669,7 +694,9 @@ export type Database = {
         | "cover_paragraph"
         | "chapter_section"
         | "chapter_paragraph"
-        | "chapter_table_cell";
+        | "chapter_table_cell"
+        /* Added by migration 0055 for the career timeline. */
+        | "career_role";
       grammar_type: "country-culture" | "ecosystem" | "design-system";
       locale_code: "en" | "ar";
       nav_location: "header" | "footer";
