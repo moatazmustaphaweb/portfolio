@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
 
+import { CareerTimeline } from "@/components/about/CareerTimeline";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { getCareerRoles } from "@/lib/content/career";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -79,9 +81,10 @@ export default async function About({
   setRequestLocale(locale);
   const l = locale as Locale;
 
-  const [{ intro, sections }, ui] = await Promise.all([
+  const [{ intro, sections }, ui, careerRoles] = await Promise.all([
     getPageSections("about", l),
     getUiStrings(l),
+    getCareerRoles(l),
   ]);
 
   const { headline, rest } = splitLede(intro);
@@ -142,6 +145,21 @@ export default async function About({
           </section>
         ) : null,
       )}
+
+      {/*
+        The career timeline, after the prose and before the onward cards.
+
+        It renders NOTHING when `careerRoles` is empty — which is how it
+        behaved between migration 0053 and 0056, and remains the correct
+        failure mode if a locale has no rows. Employer names are absent by
+        construction: there is no column to read. See migration 0053.
+      */}
+      <CareerTimeline
+        roles={careerRoles}
+        locale={l}
+        heading={ui.t("career_heading")}
+        presentLabel={ui.t("career_present")}
+      />
 
       {/*
         The design's sub-page grid. Cards rather than the plain buttons that

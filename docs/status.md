@@ -37,6 +37,73 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 044240826 — 2026-08-24 13:00 — the career timeline is live, and it names no employer
+
+Moataz confirmed the transcription and supplied the domains the CV could not: **Fintech and Medical**
+for the 2021 role, then **Medical and e-learning** and **Engineering and e-commerce** for the two
+Cairo roles. That closed the last gap between `043240826`'s empty table and a rendered timeline.
+
+**Live on `/en/about` and `/ar/about`. Seven roles, 2012 → present.**
+
+### What is on the page
+
+| | |
+|---|---|
+| Dates | `Intl` from real `date` columns — "JUL 2022", "يوليو 2022" |
+| Title | translated per locale |
+| Domain | five stated by him; **two deliberately blank** |
+| Place | city + country, translated |
+
+**No employer name appears, and not by restraint.** `career_roles` has no `employer` column at all
+(0053), so the component has nothing to render even if a later edit reached for one. Verified by
+scanning the served HTML for six employer names.
+
+⚠️ **One name IS on the page, and it is not from the timeline.** The existing "Now" prose says *"…at
+Mashreq, across the UAE and Egypt…"* — his own writing, from long before this task. The scan flags
+it honestly rather than the check being tuned to pass. **Whether that stays is his call**, and it sits
+oddly beside a timeline that deliberately omits it.
+
+### The two oldest roles carry no domain, on purpose
+
+The freelance years and the first graphics job. He has not named a domain for either, and the CV
+describes their projects rather than a domain. Rule 7 forbids inventing the label, so the renderer
+shows the row without one — `filter(Boolean)` closes the gap rather than leaving a stray `·`.
+
+### Two defects found by reading the served Arabic, not by looking
+
+**1 · A Latin comma inside Arabic text.** The place line joined with `", "`, so Arabic rendered
+`دبي, الإمارات العربية المتحدة`. Arabic's comma is **U+060C `،`** and sits the other way round. Now
+locale-aware: `دبي، الإمارات العربية المتحدة`.
+
+**2 · My own `dir="ltr"` on the date range was the bug it claimed to prevent.** I added it reasoning
+that a range would otherwise be reordered end-first in RTL. **Backwards.** `Intl` formats in the
+page's own locale, so `/ar` gets a pure Arabic run that bidi already lays out **start-on-the-right** —
+correct Arabic reading order. Forcing LTR moved the start to the LEFT. Removed; the comment now
+records the reasoning error rather than the claim.
+
+Both are invisible at a glance and were caught by reading the HTML.
+
+### Verified
+
+`tsc` clean · `eslint` **0** · `check:seed-drift` **100/100** · `next build` exit 0, 65/65 ·
+**axe: zero violations**, both locales.
+
+Seen rendered: English left-aligned with the rail on the left; **Arabic fully mirrored** — rail on the
+right, Arabic month names, dates starting on the right, `computedDir: rtl` on the date line.
+
+### ⚠️ Not approved
+
+**Every Arabic string in the timeline is mine, unreviewed** — seven job titles, five domains, four
+cities, four countries, plus `المسار المهني` and `حتى الآن`. Added to `TASKS.md` beside the pairs from
+0051, 0052 and 0054.
+
+One judgement flagged rather than buried: **the job titles are translated into Arabic** rather than
+kept Latin. `learn.md` records that Arabic copy here deliberately keeps `Governance`, `OTP`, `KYC` and
+`NDA` in Latin, and job titles could defensibly join that list — Arabic CVs often do. Translated here
+because a timeline is prose a person reads. **One edit per row if he disagrees.**
+
+---
+
 ## 043240826 — 2026-08-24 12:10 — the career timeline: schema, strings and query layer. No data, on purpose
 
 Moataz asked a question I had not made clear the answer to: the CV extraction went into
