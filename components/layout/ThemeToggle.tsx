@@ -23,26 +23,41 @@ import {
  * header wrapped to two lines, and the theme control's three 44px targets
  * were the largest single contributor.
  *
- * ── WHAT THE OLD COMPONENT'S OWN COMMENT ARGUED, AND WHY THIS STILL HOLDS ───
+ * ── ICON AND LABEL SHOW THE DESTINATION, NOT THE CURRENT STATE ─────────────
  *
- * The radiogroup existed because a cycling button can announce only where you
- * are GOING, not where you ARE — `aria-checked` on three radios said both.
- * That is not fixed by removing the radios; it is answered a different way:
- * `aria-label` is rebuilt on every render from `theme_toggle` + the CURRENT
- * choice's own label (e.g. "Toggle theme: System"), so a screen reader still
- * hears where you are, not just that a button was pressed. No new copy — both
- * strings already exist in `ui_strings`, composed rather than invented (rule
- * 7).
+ * Changed 2026-08-24, task `030240826`, on Moataz's correction: he compared
+ * it to `LocaleSwitch` right next to it, which shows "العربية" while on the
+ * English page — the label there is what clicking DOES, not where you are.
+ * This control now matches that: both `Icon` and `aria-label` are keyed off
+ * `next`, never off `current`.
  *
- * Visually the icon carries the same information: it is always the CURRENT
- * state's icon, never the state you are about to move to.
+ * This still answers the old three-radio component's own reason for
+ * existing — a cycling button can say only where you're going, not where you
+ * are — the same way `LocaleSwitch` answers it: the CURRENT state is legible
+ * from the page itself (it visibly IS light or dark; the surrounding words
+ * visibly ARE English), the same way a page's language is legible from its
+ * own words. Nothing here needs to re-state what the page already shows.
  *
- * ── ORDER ─────────────────────────────────────────────────────────────────
+ * `aria-label` still composes from `ui_strings` that already exist —
+ * `theme_toggle` + the DESTINATION choice's own label, e.g.
+ * "Toggle theme: Dark" — so it agrees with the icon rather than contradicting
+ * it, and nothing is invented (rule 7).
  *
- * System → Light → Dark → System. Fixed and arbitrary — a 3-cycle has no
- * canonical direction — chosen to match the left-to-right order the old
- * radiogroup displayed, so nothing about the mental model changes, only the
+ * ── ORDER, AND WHY IT DOES NOT BRANCH ON THE RESOLVED OS THEME ─────────────
+ *
+ * Fixed: System → Light → Dark → System. A 3-cycle has no canonical
+ * direction, so this was chosen to match the left-to-right order the old
+ * radiogroup displayed — nothing about the mental model changes, only the
  * control.
+ *
+ * Moataz's own framing ("if System has resolved to light, show dark") reads
+ * naturally for a 2-state light/dark toggle, but this is a 3-state cycle:
+ * from System, the fixed order's next stop is Light, not "whichever of
+ * light/dark the OS isn't currently showing." Branching the next state on
+ * the resolved OS theme would make the cycle length non-deterministic — two
+ * clicks gets back to System for a visitor on a light OS, three for one on a
+ * dark OS — which is a worse contract than a fixed, always-3-click cycle.
+ * Kept fixed; flagged rather than guessed past.
  */
 const ORDER: ThemeChoice[] = ["system", "light", "dark"];
 
@@ -60,21 +75,22 @@ export function ThemeToggle({
   );
 
   // `choice` is null until the browser answers (server cannot know it).
-  // "system" is the correct resting icon/label for that gap: it is the
-  // default, and the pre-paint script has already applied it if nothing was
+  // "system" is the correct resting state for that gap: it is the default,
+  // and the pre-paint script has already applied it if nothing was
   // explicitly chosen.
   const current = choice ?? "system";
-  const currentLabel = labels[current];
-  const Icon =
-    current === "light" ? LightThemeIcon : current === "dark" ? DarkThemeIcon : AutoThemeIcon;
-
   const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+  const nextLabel = labels[next];
+
+  // The icon and label both key off `next` — what clicking DOES — not
+  // `current`. See the component comment.
+  const Icon = next === "light" ? LightThemeIcon : next === "dark" ? DarkThemeIcon : AutoThemeIcon;
 
   return (
     <button
       type="button"
       onClick={() => setThemeChoice(next)}
-      aria-label={ariaLabel && currentLabel ? `${ariaLabel}: ${currentLabel}` : ariaLabel}
+      aria-label={ariaLabel && nextLabel ? `${ariaLabel}: ${nextLabel}` : ariaLabel}
       className="tap-target-44 flex h-control-h-sm items-center justify-center rounded-control border border-DEFAULT px-3 text-fg-dim transition-colors hover:text-fg"
     >
       <Icon className="h-5 w-5" />

@@ -37,6 +37,56 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 030240826 — 2026-08-24 03:40 — the theme icon now shows the destination, matching the locale switch
+
+Moataz, right after approving the collapsed locale switch: the theme toggle should follow the same
+logic — the icon should show what clicking DOES, not what's currently showing.
+
+### What changed
+
+`Icon` and `aria-label` in `ThemeToggle.tsx` now key off `next` — the state one click away — instead
+of `current`. The click target (`setThemeChoice(next)`) was already `next`; only what's displayed
+moved.
+
+### The example he gave didn't quite fit a 3-state cycle, and the fix explains why rather than guessing
+
+His framing: "if System has resolved to light, show dark." That's the right instinct for a two-state
+light/dark toggle, but this is a three-state cycle, and from System the fixed order's next stop is
+Light — not "whichever of light/dark the OS isn't currently showing."
+
+**Branching the next state on the resolved OS theme was rejected rather than attempted:** it would
+make the cycle non-deterministic. Two clicks would return a light-OS visitor to System; three clicks
+for a dark-OS visitor. A fixed, always-3-click cycle is a better contract than one whose length
+depends on the visitor's OS. Flagged in the component comment, not silently reinterpreted.
+
+### Verified with a full real click-through, all four states
+
+Reset to a clean `system` choice, then four real mouse clicks in a live tab, reading `aria-label` and
+`data-theme` after each:
+
+| state before click | label shown | click → |
+|---|---|---|
+| system (resolved light) | "Toggle theme: Light" | light |
+| light | "Toggle theme: Dark" | dark |
+| dark | "Toggle theme: System" | system |
+| system | "Toggle theme: Light" | *(loop closed)* |
+
+**At the dark step, screenshotted rather than just read:** the page is visibly painted black, and the
+button shows the auto/"A" badge icon — the destination (system), not the moon a current-state reading
+would have shown. That is the concrete case Moataz's principle predicts and this confirms.
+
+Same check repeated on `/ar`: fresh load reads `"تبديل المظهر: فاتح"` — Arabic, correct, composed
+from the same `ui_strings` rather than a new translation.
+
+axe against both locales: **zero violations**, WCAG 2A/2AA.
+
+### Not verified
+
+Same as the last two: no actual phone. This change doesn't touch header width, so it doesn't bear on
+that open question — recorded separately in `TASKS.md`.
+
+---
+
 ## 029240826 — 2026-08-24 03:10 — the locale switch collapsed too; same instruction, same shape
 
 Moataz, immediately after the theme toggle: the language switch should be the same pattern — one
