@@ -1,7 +1,7 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
-import type { ChapterSection, Locale, Media } from "@/lib/content/types";
+import type { ChapterBlock, ChapterSection, Locale, Media } from "@/lib/content/types";
 
 /**
  * A chapter's slots, rendered in the order the database holds them.
@@ -27,7 +27,9 @@ import type { ChapterSection, Locale, Media } from "@/lib/content/types";
  * <p>: a browser meeting one closes the paragraph early and reparents the rest,
  * so the page renders *almost* right and the bug is very hard to see. Keeping
  * paragraphs as rows means there is no <p> to nest inside — the invalid markup
- * is unreachable rather than merely avoided.
+ * is unreachable rather than merely avoided. Pairing them into one grid ROW,
+ * below, does not change this — the two are still siblings inside that row,
+ * neither nested in the other.
  *
  * ── RTL, AND THE ONE THING THIS FILE DOES SET ───────────────────────────────
  *
@@ -46,6 +48,33 @@ import type { ChapterSection, Locale, Media } from "@/lib/content/types";
  * resolves to the wrong visual side, so the sentence renders as
  * ".This is where the whole design meets its limit" and the paragraph aligns
  * right. 73 paragraphs and 31 captions did exactly that.
+ *
+ * ── A PARAGRAPH PAIRS WITH THE IMAGE IMMEDIATELY AFTER IT (task `036240826`) ─
+ *
+ * Added 2026-08-24, on Moataz's explicit instruction, extending the rule
+ * `CoverSections` already carries: a paragraph with an image beside it renders
+ * at two thirds with the image at one third; a paragraph with nothing beside
+ * it goes full width. Chapters render as a flat, ordered sequence of prose,
+ * image and table blocks — not a section with one optional image the way a
+ * cover slot is — so "beside it" has to be a positional rule, walked once:
+ *
+ *   prose, then an image immediately next  → paired: text 2/3, image 1/3
+ *   prose with anything else (or nothing) next → full width, alone
+ *   an image not consumed by the prose before it → full width, alone
+ *   a table → unchanged, always its own full-width row
+ *
+ * Checked against real data before writing this, not assumed: Egypt's
+ * `onboarding/what-i-designed` section runs prose, prose, IMAGE, IMAGE, prose,
+ * prose, IMAGE, prose, IMAGE, prose, IMAGE, IMAGE, IMAGE, IMAGE — no clean
+ * one-paragraph-one-image alternation, and runs of up to four consecutive
+ * images exist. The rule above is deliberately POSITIONAL rather than trying
+ * to guess which image a paragraph is "about": simple, deterministic, and it
+ * matches what Moataz confirmed rather than what would need inferring from
+ * the prose itself.
+ *
+ * `groupBlocks` does this walk once, before any rendering. Kept as its own
+ * function (and exported) so it can be tested against the shape above without
+ * rendering anything.
  */
 export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
   if (sections.length === 0) return null;
@@ -61,6 +90,9 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
          * failed to load rather than as content that was never written.
          */
         if (section.blocks.length === 0) return null;
+
+        const rows = groupBlocks(section.blocks);
+        if (rows.length === 0) return null;
 
         return (
           <section
@@ -91,22 +123,58 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
             ) : null}
 
             <div className="mt-5 space-y-6">
-              {section.blocks.map((block, i) => {
-                if (block.kind === "prose") {
+              {rows.map((row, i) => {
+                const key = `${section.id}-${i}`;
+
+                if (row.type === "pair") {
+                  return (
+                    <div
+                      key={key}
+                      /*
+                       * Same shape as `CoverSections`' per-section grid, and for
+                       * the same reason: CSS Grid places items along the INLINE
+                       * axis, so it mirrors under `dir="rtl"` with no direction
+                       * check written anywhere.
+                       */
+                      className="grid items-start gap-x-10 lg:grid-cols-3"
+                    >
+                      <p
+                        lang={row.text.lang}
+                        dir={dirForLocale(row.text.lang)}
+                        className="max-w-measure whitespace-pre-line text-body text-fg-body lg:col-span-2"
+                      >
+                        {row.text.text}
+                      </p>
+                      <ChapterFigure media={row.image.media} variant="paired" />
+                    </div>
+                  );
+                }
+
+                if (row.type === "text") {
+                  /*
+                   * No `max-w-measure` — nothing sits beside this paragraph, so
+                   * a reading-width cap here is the exact bug `033240826` and
+                   * `034240826` fixed on `CoverSections`, just moved one file
+                   * over. It fills whatever the page's own container already
+                   * is (`max-w-prose` or `max-w-container` — untouched, and not
+                   * this file's concern).
+                   */
                   return (
                     <p
-                      key={`p-${section.id}-${i}`}
-                      lang={block.lang}
-                      dir={dirForLocale(block.lang)}
-                      className="max-w-measure whitespace-pre-line text-body text-fg-body"
+                      key={key}
+                      lang={row.block.lang}
+                      dir={dirForLocale(row.block.lang)}
+                      className="whitespace-pre-line text-body text-fg-body"
                     >
-                      {block.text}
+                      {row.block.text}
                     </p>
                   );
                 }
-                if (block.kind === "image") {
-                  return <ChapterFigure key={`f-${section.id}-${i}`} media={block.media} />;
+
+                if (row.type === "image") {
+                  return <ChapterFigure key={key} media={row.block.media} variant="solo" />;
                 }
+
                 /*
                  * ⚠️ The SAME `SectionTable` the document pages have always
                  * used, fed the same tab-and-newline string. Not a
@@ -125,9 +193,9 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
                  */
                 return (
                   <div
-                    key={`t-${section.id}-${i}`}
-                    lang={block.lang}
-                    dir={dirForLocale(block.lang)}
+                    key={key}
+                    lang={row.block.lang}
+                    dir={dirForLocale(row.block.lang)}
                     /*
                      * `display: contents` — the wrapper carries the language and
                      * then gets out of the way. A real box here would take the
@@ -137,7 +205,7 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
                      */
                     className="contents"
                   >
-                    <SectionTable body={block.body} />
+                    <SectionTable body={row.block.body} />
                   </div>
                 );
               })}
@@ -147,6 +215,60 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
       })}
     </>
   );
+}
+
+type ProseBlock = Extract<ChapterBlock, { kind: "prose" }>;
+type ImageBlock = Extract<ChapterBlock, { kind: "image" }>;
+type TableBlock = Extract<ChapterBlock, { kind: "table" }>;
+
+type Row =
+  | { type: "pair"; text: ProseBlock; image: ImageBlock }
+  | { type: "text"; block: ProseBlock }
+  | { type: "image"; block: ImageBlock }
+  | { type: "table"; block: TableBlock };
+
+/**
+ * Walks a section's blocks once and decides which paragraphs pair with an
+ * image immediately after them. See the component comment for the rule and
+ * why it is positional.
+ *
+ * An `image` block whose `media` resolved to `null` — a deleted row, or a
+ * locale with no alt (`lib/content/types.ts`) — is dropped BEFORE the walk,
+ * not after. `ChapterFigure` already renders nothing for it; leaving it in
+ * the sequence would either pair a paragraph with an empty column or count as
+ * "something beside it" for a paragraph that, visually, has nothing there.
+ */
+export function groupBlocks(blocks: ChapterBlock[]): Row[] {
+  const usable = blocks.filter((b) => b.kind !== "image" || b.media !== null);
+  const rows: Row[] = [];
+  let i = 0;
+
+  while (i < usable.length) {
+    const block = usable[i];
+
+    if (block.kind === "prose") {
+      const next = usable[i + 1];
+      if (next && next.kind === "image") {
+        rows.push({ type: "pair", text: block, image: next });
+        i += 2;
+        continue;
+      }
+      rows.push({ type: "text", block });
+      i += 1;
+      continue;
+    }
+
+    if (block.kind === "image") {
+      rows.push({ type: "image", block });
+      i += 1;
+      continue;
+    }
+
+    rows.push({ type: "table", block });
+    i += 1;
+  }
+
+  return rows;
 }
 
 /**
@@ -163,22 +285,41 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
  * The image carries no frame — no border, no rounding, no background. Screens
  * sit directly on the page (2026-08-23, task `001230826`).
  *
- * Sizing is two rules, not one. Below `md` the image takes the full column and
- * its height follows its aspect ratio. From `md` up the HEIGHT is capped at
- * `--figure-max-h` and the width becomes `auto`, so the aspect ratio is kept
- * and a square mockup stops being a thousand-pixel wall between two paragraphs.
- *
- * `me-auto` and not `mr-auto`: once the image is narrower than its column it
- * has to hug the inline start, which is the left in English and the right in
- * Arabic. `block` is what makes that margin apply at all — an inline image
- * would take its position from the ancestor's `text-align` instead.
- *
  * The NDA grayscale is NOT applied here. It rides on `media.nda`, stamped by
  * the content layer from `case_files.nda`, and is applied inside
  * `CloudinaryImage` — so this component cannot forget it and cannot override
  * it (amendment 036).
+ *
+ * ── TWO SIZINGS, ONE FOR EACH CONTEXT ────────────────────────────────────────
+ *
+ * `variant="solo"` — an image with no adjacent paragraph, full width of the
+ * section. Below `md` it takes the full column at its own aspect ratio. From
+ * `md` up the HEIGHT is capped at `--figure-max-h` and the width becomes
+ * `auto`, so a square mockup stops being a thousand-pixel wall between two
+ * paragraphs. Unchanged from before `036240826` — nothing about a solo image
+ * changed.
+ *
+ * `variant="paired"` — added `036240826`, sits in the one-third grid column
+ * beside its paragraph. No height cap: the column is already narrow (roughly
+ * a third of the section, well under the point `--figure-max-h` would ever
+ * bind at), so the cap built for a full-width image has nothing to do here.
+ * Fills its column at its own aspect ratio instead, the same rule
+ * `CoverSections`' `SectionImage` already uses for its one-third column.
+ *
+ * `me-auto` on the solo variant, not `mr-auto`: once the image is narrower
+ * than its column it has to hug the inline start, which is the left in
+ * English and the right in Arabic. `block` is what makes that margin apply at
+ * all — an inline image would take its position from the ancestor's
+ * `text-align` instead. The paired variant fills its column exactly, so it
+ * has no narrower-than-container case to hug a side from.
  */
-function ChapterFigure({ media }: { media: Media | null }) {
+function ChapterFigure({
+  media,
+  variant,
+}: {
+  media: Media | null;
+  variant: "solo" | "paired";
+}) {
   if (!media) return null;
 
   const caption = media.fields.caption;
@@ -190,11 +331,15 @@ function ChapterFigure({ media }: { media: Media | null }) {
   const captionLang: Locale | undefined = media.fieldLocales.caption;
 
   return (
-    <figure className="mt-8">
+    <figure className={variant === "solo" ? "mt-8" : "mt-10 lg:mt-0"}>
       <CloudinaryImage
         media={media}
-        preset="gallery"
-        className="me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
+        preset={variant === "solo" ? "gallery" : "lead"}
+        className={
+          variant === "solo"
+            ? "me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
+            : "h-auto w-full"
+        }
       />
       {caption ? (
         <figcaption

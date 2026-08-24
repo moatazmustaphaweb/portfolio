@@ -37,6 +37,91 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 036240826 — 2026-08-24 07:20 — chapters get the same two-thirds/one-third rule, and it's a real positional walk
+
+Moataz corrected the previous entry directly: he was never talking about the cover, and not about
+`/all`'s container either — he means "the content of the pages themselves." Every paragraph should be
+able to sit beside an image at two-thirds/one-third, same rule already approved for covers; no image,
+full width.
+
+### Why this needed a real design decision, not a mechanical copy
+
+Checked the actual data before writing anything. Cover sections have at most one optional image —
+`section.media`, a single nullable field. Chapters don't: `chapter_paragraphs` holds a flat ordered
+sequence, and images are `[image:<uuid>]` markers embedded in translated text, not a separate row kind
+(the `kind` column is only ever `prose`/`table` — the split into text/image parts happens in
+`splitBody()`, downstream of the database).
+
+Egypt's `onboarding/what-i-designed` section, read in full: `text, text, IMAGE, IMAGE, text, text,
+IMAGE, text, IMAGE, text, IMAGE, IMAGE, IMAGE, IMAGE`. No clean one-paragraph-one-image alternation,
+and a run of four consecutive images. Asked rather than guessed which pairing rule to apply — his
+answer: **each paragraph pairs with the image immediately after it**, positional and deterministic,
+not an attempt to infer which image a paragraph is "about."
+
+### `groupBlocks` — the walk, isolated and checked before touching the render
+
+A pure function, exported so it can be verified on its own: walk `section.blocks` once; a `prose`
+block followed immediately by an `image` block becomes a `pair` row (advance by two); anything else —
+prose with something other than an image next, or an image nothing paired it with — becomes its own
+full-width row; a `table` is untouched.
+
+**Checked against Egypt's exact sequence before wiring it into any component**, replayed standalone:
+`text(0) solo → pair(1,2) → image(3) solo → text(4) solo → pair(5,6) → pair(7,8) → pair(9,10) →
+image(11) solo → image(12) solo → image(13) solo`. Also checked the edge case the schema allows: an
+`image` block whose `media` resolved to `null` (a deleted row, or a locale with no alt) is filtered
+out BEFORE the walk, not after — left in, it would either pair a paragraph with an empty column or
+count as "something beside it" for a paragraph that visually has nothing there.
+
+### The two visual pieces, reusing what already existed rather than inventing new ones
+
+**The pair.** Identical shape to `CoverSections`' per-section grid — `grid items-start gap-x-10
+lg:grid-cols-3`, text in `lg:col-span-2` keeping `max-w-measure` (a real two-thirds column exists, so
+the reading cap still does work), image filling the third column with the `lead` preset, which turned
+out to already be tuned for almost exactly this width (`c_limit,w_600`, `sizes` switching at 1024px to
+a 400px column).
+
+**The orphan.** A paragraph with nothing after it drops `max-w-measure` — the same fix as
+`033240826`/`034240826`, one file over, same reasoning: a cap with nothing beside it to justify it is
+not a readable measure, it is a narrow column with empty space beside it. It fills whatever the page's
+own container already provides; the container itself (`max-w-prose` vs `max-w-container`, chosen per
+chapter kind) was explicitly named out of scope in this same correction and was not touched.
+
+**`ChapterFigure` gained a `variant` prop** rather than a second component: `"solo"` is byte-identical
+to before — full width below `md`, height-capped at `--figure-max-h` (600px) above it, unchanged since
+that was fixed earlier tonight and nothing here should disturb it. `"paired"` fills its column with no
+height cap, since a one-third column is already narrow enough that the cap built for a full-width
+image would rarely bind there.
+
+### Verified in a live browser, both locales, against the exact section the data check used
+
+Egypt `/en/work/egypt-acquisition/onboarding#what-i-designed`: DOM structure read back as
+`text, PAIR, SOLO-IMG, text, PAIR, PAIR, PAIR, SOLO-IMG, SOLO-IMG, SOLO-IMG` — matching the standalone
+`groupBlocks` replay exactly, block for block. Screenshotted: text at two-thirds, a real loaded image
+(`complete: true`) at one third with its caption below it, and the next row's unpaired image spanning
+the full column beneath.
+
+**Arabic mirrors correctly with no direction logic anywhere in the new code**: the same section on
+`/ar` reads the image at `left: 224` and the text at `left: 554` — CSS Grid's inline-axis placement
+flipping the layout the way the file's own long-standing comment says it will.
+
+`tsc` clean, `eslint` clean, `next build` exit 0 (65/65).
+
+### Scope, and what was deliberately not touched
+
+Applies to every chapter section on the site with this shape — the two-column pairing is a mechanism,
+not a per-case-file switch, so Egypt, UAE and any future chapter with adjacent image data all pick it
+up from this one change. Page-level containers (`max-w-prose`, `max-w-container`, the outer chapter
+and `/all` shells) are untouched, per his explicit correction that this was never about them.
+
+### Not verified
+
+Only two chapters, one locale pair, were walked end to end in a real browser — Egypt's `onboarding`.
+UAE's `onboarding` and `application-tracking` also carry image data per the same query and were not
+separately screenshotted, only covered by the same component and the same `groupBlocks` logic that was
+checked standalone. Mobile width, same tooling ceiling as every earlier fix tonight.
+
+---
+
 ## 035240826 — 2026-08-24 06:35 — swept `/all` and the chapter pages; found the same SHAPE, not the same bug
 
 Moataz: `/work/neobiz-mobile/all` has the same problem, and it's unreasonable to have to point out each
