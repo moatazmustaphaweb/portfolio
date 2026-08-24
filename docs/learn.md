@@ -753,6 +753,30 @@ IS useful data, but it answers "what's the minimum width this needs," not "does 
 two are different questions and only the second was the one being asked.
 
 
+## A programmatic `.click()` does not reliably trigger a Next.js `<Link>`
+
+Testing the collapsed locale switch, `document.querySelector('a[hreflang]').click()` in the browser
+console appeared to do nothing — `location.pathname` read unchanged 400ms later, no error, no
+rejected promise, nothing to catch.
+
+**The plain `<button onClick={...}>` from the theme-toggle test one task earlier worked fine with the
+identical technique.** The difference is `next/link`'s `<Link>`, which intercepts the click through
+its own handler to do client-side routing rather than a full navigation, and a synthetic
+`HTMLElement.click()` does not reliably reach or satisfy whatever that handler checks — this was not
+diagnosed further, only worked around, because the workaround is both faster and the more honest test
+anyway.
+
+**The real test is a real click** — the `computer` tool's `left_click` at actual coordinates,
+producing a trusted event a real visitor's browser would also produce. It is not a fallback for when
+the programmatic route fails; for anything routed through `<Link>`, it is the only test that proves
+the thing a visitor actually experiences.
+
+**The tell, not just the fix:** if a click "worked" (no thrown error) but a value that should have
+changed as a direct result — URL, DOM state, a store — reads back unchanged shortly after, suspect
+the click didn't reach a framework's own handler before suspecting a timing issue. A longer `setTimeout`
+would not have fixed this one; nothing was pending, nothing ever fired.
+
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.

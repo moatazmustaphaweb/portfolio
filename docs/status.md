@@ -37,6 +37,70 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 029240826 — 2026-08-24 03:10 — the locale switch collapsed too; same instruction, same shape
+
+Moataz, immediately after the theme toggle: the language switch should be the same pattern — one
+button, not two. On the English page it should read "العربية" alone; clicking it switches the whole
+page to Arabic, and back.
+
+### What changed
+
+**`LocaleSwitch.tsx` is now a single `<Link>`** to the OTHER locale — `LOCALES.find(code => code !==
+locale)` — rather than a two-pill `role="group"` rendering both languages with one marked active.
+
+**This one needed no accessibility trade-off**, unlike the theme toggle. A locale switch only ever
+has two states, so "the other one" is unambiguous, and the visible label already IS the destination —
+a link reading "العربية" surrounded entirely by English is self-evidently "click for Arabic," with no
+missing state to announce. It was always one meaningful choice wearing two elements.
+
+`aria-label` composes `${language} : ${destinationLabel}` — `"Language: العربية"` /
+`"اللغة: English"` — from the two `ui_strings` that already existed (`language`, `lang_en`/`lang_ar`),
+same discipline as the theme toggle: nothing invented, rule 7 held.
+
+### Verified with real clicks — and a wrong first attempt caught before it was reported
+
+First pass used a programmatic `link.click()` in the browser console. **It did nothing** —
+`location.pathname` was unchanged 400ms later. Next.js `<Link>` intercepts the click and routes via
+its own handler; a synthetic DOM click does not reliably trigger it the way `<button onClick>` did
+for the theme toggle a task ago. Caught before it was reported, not after — see the lesson in
+`learn.md`.
+
+**With a real mouse click** (the `computer` tool, actual coordinates): `/en/work/neobiz-mobile` →
+click → `/ar/work/neobiz-mobile`, same chapter, RTL, breadcrumb and heading translated. Click "English"
+→ back to `/en/work/neobiz-mobile`, same page, LTR. Full round trip, both directions, same page every
+time — the exact behaviour the old component's comment required and this one inherits unchanged.
+
+axe against both directions on the deep page: **zero violations**, WCAG 2A/2AA.
+
+### The width number, corrected again with real data
+
+`028240826` left the header's minimum content width at ≈560–565px, a real phone at 360–430px, and
+named `LocaleSwitch`'s full `"English"`/`"العربية"` labels — the second-largest block — as the next
+lever. That lever wasn't pulled by abbreviating; it was pulled by only ever showing ONE label instead
+of two.
+
+**Measured directly via DOM after this change, at the tool's clamped floor of 606px, zero-slack
+technique from the previous task:**
+
+| | minimum content width |
+|---|---|
+| `/en` | **≈494px** |
+| `/ar` | **≈482px** |
+
+Down from ≈562px. A real phone is still narrower — the gap is now **≈50–135px** depending on device,
+against ≈130–200px before tonight. **Likely still wraps on most phones**, closer to fitting on the
+wider ones (412–430px class) than the narrow ones (360–375px class). Nothing left to remove from the
+header controls without cutting a nav item or menu-izing navigation on mobile — that is the next,
+larger lever, not pulled here.
+
+### Not verified
+
+**No actual phone**, same caveat as last task, now doubled. Two fixes deep and still working from
+DOM measurement at a clamped 606px floor rather than a genuine mobile viewport, because the tooling
+available cannot produce one.
+
+---
+
 ## 028240826 — 2026-08-24 02:35 — theme toggle collapsed to one button; header still doesn't fit a real phone
 
 Moataz's first visual pass, on his own phone: dark theme, EN/AR toggle, RTL, and every cover but
