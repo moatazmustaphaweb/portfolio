@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 033240826 — 2026-08-24 05:45 — the "full width" fallback was ~60% wide the whole time
+
+Moataz, precisely, after the last fix: "my comment still stands." On `neobiz-mobile`, "Thesis" and
+"What it is" take two-thirds of the page even though they should be full width with no image beside
+them. Direct and correct — the previous entry's own image fix was a real bug, but a different one.
+
+### Found by arithmetic, then confirmed in the DOM
+
+`CoverSections.tsx`'s plain-prose branch — the one for sections with no `media`, the exact branch
+`032240826` read and trusted — wraps paragraphs in `max-w-measure` **unconditionally**, in the shared
+`body` JSX used by both the grid path and the "full width" path. `--measure-prose: 68ch` renders at
+≈721px against `--container-max: 1200px` — **≈60%**, close enough to "two thirds" that his word choice
+was exact. The section's own comment claimed "renders full width, byte-identical to how every section
+rendered before this existed" — true of the grid, false of the cap.
+
+Neobiz has no media on any cover section, so both "Thesis" and "What it is" hit this every time —
+not an edge case, the visible case.
+
+### The fix, and what it deliberately left alone
+
+The cap now applies only where a real two-thirds column exists to make it meaningful — moved from the
+shared `body` into a `measureClass` computed from `section.media`. Nothing else in the file changed:
+
+- `role` — already fixed in an earlier session (its own comment records the same reasoning, "a full
+  width box around a 718px column read as a wide box with an empty right half"), untouched.
+- `CARD_SLOTS` (`status`, `why-it-matters`) — deliberately boxed at `max-w-measure-lead`, a different,
+  intentional card treatment, not what he was describing (he named Thesis and What it is specifically,
+  not these two). Untouched.
+- Egypt's `Thesis` and `The map` — DO carry media, so they keep the grid and the cap inside it.
+  Verified directly: `class="flex flex-col gap-4 max-w-measure"` inside `lg:col-span-2`, unchanged.
+
+### Verified in the DOM, not just by reading the diff
+
+Neobiz `/en`: `Thesis` and `What it is` sections read `mt-10` with no width class, their inner prose
+`div` reading `"flex flex-col gap-4"` — no `max-w-measure` — while `Status, honestly` and `Why it
+matters anyway` still read `max-w-measure-lead` unchanged. Egypt `/en`: `Thesis`'s prose `div` still
+reads `"flex flex-col gap-4 max-w-measure"` inside its grid column.
+
+**The narrow-viewport claim from earlier tonight didn't apply here** — this bug only shows past 721px,
+so mobile testing (or this tool's 606px floor) would never have caught it, and never did. His report
+was specifically "on the web."
+
+**Not independently confirmed by eye above 606px** — this tool's window would not resize past that
+floor even going wider this time, so the visual difference (full-bleed prose vs. a ~60%-wide column)
+was verified through the DOM class list and the arithmetic, not a screenshot. `tsc` clean, `eslint`
+clean, `next build` exit 0.
+
+---
+
 ## 032240826 — 2026-08-24 05:10 — the "two columns" bug: not layout, not a grid — a photo with a fifth of its frame blank
 
 Moataz reported a mobile bug: a paragraph not taking full width when no image sits beside it, "in

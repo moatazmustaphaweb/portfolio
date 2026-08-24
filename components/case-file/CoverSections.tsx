@@ -248,8 +248,7 @@ export function CoverSections({
          *
          * An image belongs to a SECTION, not to a case file. A section that
          * has one renders its text at two thirds with the image at one third;
-         * a section without renders full width, byte-identical to how every
-         * section rendered before this existed.
+         * a section without renders full width.
          *
          * The container used to live on the page and activate once, on the
          * leading run, which is why the `map` section had unaddressable space
@@ -258,7 +257,23 @@ export function CoverSections({
          * Logical by construction: CSS Grid places items along the INLINE
          * axis, so under `dir="rtl"` the text column lands on the right and
          * the image on the left, with no direction check anywhere.
+         *
+         * ── `max-w-measure` ONLY WHEN THERE IS SOMETHING BESIDE IT ─────────
+         *
+         * Fixed 2026-08-24, task `033240826`, on Moataz's correction — this
+         * comment's "renders full width" was not true. `max-w-measure` (68ch,
+         * ≈721px) was applied to the prose UNCONDITIONALLY, so a section with
+         * no image still capped at ~60% of the 1200px container: a two-thirds
+         * look with no two-thirds container to explain it. Neobiz's "Thesis"
+         * and "What it is" have no media on any of the four covers' sections,
+         * so this was the visible case, not an edge one.
+         *
+         * The cap now applies only inside the grid branch below, where a
+         * genuine two-thirds column already exists and a reading-width limit
+         * inside it is doing real work. With no image, the text goes to the
+         * container's own edge.
          */
+        const measureClass = section.media ? "max-w-measure" : "";
         const body = (
           <>
             {section.heading ? (
@@ -272,7 +287,7 @@ export function CoverSections({
                 </span>
               </h2>
             ) : null}
-            <div className="flex max-w-measure flex-col gap-4">
+            <div className={["flex flex-col gap-4", measureClass].filter(Boolean).join(" ")}>
               {section.paragraphs.map((p, i) => (
                 <p
                   key={i}
