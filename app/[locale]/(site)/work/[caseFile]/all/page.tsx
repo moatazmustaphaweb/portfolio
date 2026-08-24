@@ -285,11 +285,24 @@ export default async function LinearView({
                 </p>
               ) : null}
 
-              {chapter.decisions.map((decision) =>
+              {chapter.decisions.map((decision, di) =>
                 decision.fields.name ? (
+                  /*
+                   * NAMESPACED BY CHAPTER. Every chapter on this page renders
+                   * its own decisions, so `decision-1` alone would collide
+                   * across chapters and the first match would win — the same
+                   * reason the chapter anchors above use the slug.
+                   *
+                   * The chapter page's own decision anchors are `decision-N`
+                   * without the prefix, because only one chapter renders
+                   * there. The two pages therefore have DIFFERENT anchors for
+                   * the same decision, which is correct: they are different
+                   * documents, and a link is to a place on a page.
+                   */
                   <div
                     key={decision.id}
-                    className="mt-6 border-s border-accent ps-5"
+                    id={`${chapter.slug}-decision-${di + 1}`}
+                    className="mt-6 scroll-mt-18 border-s border-accent ps-5"
                   >
                     {ui.t("decision") ? (
                       <p className="font-mono text-micro uppercase text-fg-dim">
@@ -302,6 +315,11 @@ export default async function LinearView({
                       dir={decision.fieldLocales.name ? dirForLocale(decision.fieldLocales.name) : undefined}
                     >
                       {decision.fields.name}
+                      <SectionLink
+                        targetId={`${chapter.slug}-decision-${di + 1}`}
+                        label={ui.t("copy_section_link")}
+                        copiedLabel={ui.t("section_link_copied")}
+                      />
                     </p>
                     {decision.fields.body ? (
                       <p

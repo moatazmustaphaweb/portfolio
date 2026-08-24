@@ -37,6 +37,81 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 041240826 — 2026-08-24 11:00 — decisions get link buttons; they were never section headings
+
+Moataz: some paragraphs have no link — the decisions — and copying a decision to send to someone is
+exactly what he wants this for.
+
+### Why they were missed
+
+`039240826` put the button on **section headings**, and a decision is not one. Decisions are their
+own rows in their own table, rendered as a card with an accent border and a `DECISION` pill, outside
+`ChapterSections` entirely — in `[chapter]/page.tsx` and again in `all/page.tsx`. Neither had an `id`
+at all, so there was nothing to link to even before there was a button.
+
+Not a bug in the feature: a gap in where it was applied, and the sweep that found it should have run
+the first time.
+
+### The anchor, and the trade it carries
+
+`decisions` has **no slug column**, so the id is either a readable ordinal or the row's UUID.
+`decision-1`, `decision-2` — matching the visible pill — wins for a link a person pastes into a
+message, which is the whole point of the feature.
+
+**Stated rather than hidden:** inserting a decision ABOVE an existing one renumbers the ones below,
+so an old link would land on its neighbour. A slug column is the permanent fix if that ever matters.
+The section anchors do not have this problem — they use slot names, which are stable by design.
+
+**On `/all` the ids are namespaced by chapter** — `onboarding-decision-1` — because every chapter on
+that page renders its own decisions and a bare `decision-1` would collide, first match winning. The
+same reason the chapter anchors there use the slug. So the two pages carry *different* anchors for
+the same decision, which is correct: they are different documents.
+
+### Swept for anything else missing a link, rather than assuming
+
+Three more headed blocks exist on the chapter page — `context`, `evidence`, `result` — each with an
+`<h2>` and no link button. **All three are gated on `!hasSections`**, the legacy pre-slot-model path.
+Checked against the database rather than the code: exactly one published chapter has zero
+`chapter_sections`, `egypt-acquisition/accessibility`, and that one is the already-recorded empty
+chapter with no paragraphs either. So those branches render for nothing, and wiring them would be
+wiring dead code. Left alone deliberately.
+
+### Verified
+
+`tsc` clean · `eslint` **0** · `next build` exit 0, 65/65 · **axe: zero violations**, four pages, both
+locales.
+
+| | |
+|---|---|
+| chapter page `/en` | 3 decisions, 3 ids, 3 buttons, `scroll-margin-top: 72px` on each |
+| chapter page `/ar` | 3 / 3 / 3 |
+| `/all` `/en` | 8 decisions, **8 unique ids**, zero collisions, 8 buttons |
+| `/all` `/ar` | 10 / 10 / 10 |
+
+Exercised, not read: copying `decision-2` put
+`…/onboarding#decision-2` on the clipboard, the heading text was **unchanged** afterwards (the portal
+from `039240826` holding), and jumping to that hash from a cleared hash landed the card at **72px**,
+clearing the 57px header.
+
+*(A first attempt to test the jump measured 2193px and looked like a failure. It was not: the copy had
+already set the hash via `replaceState`, and assigning `location.hash` the value it already holds
+does not re-trigger a scroll. Cleared the hash first and it landed correctly.)*
+
+### Worth knowing
+
+**Arabic `/all` has 10 decisions where English has 8.** Decisions are per-locale since migration 0049,
+so the ordinals differ between languages — `#decision-2` on `/en` and on `/ar` are not the same
+decision. The locale is part of the URL, so a shared link keeps its own numbering; only switching
+language while a hash is set could drift. Recorded, not fixed.
+
+### Not verified
+
+No real mobile viewport, same tooling ceiling. The clipboard write is still stubbed in tests — the
+automation tab cannot hold focus, so the success path is proven with only that one browser API
+replaced.
+
+---
+
 ## 040240826 — 2026-08-24 10:15 — the nav collapses into a burger, and the header finally fits a phone
 
 Moataz: collapse the whole navigation into a burger on mobile, ordered **burger · name · space ·

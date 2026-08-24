@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ChapterSections } from "@/components/case-file/ChapterSections";
+import { SectionLink } from "@/components/layout/SectionLink";
 import { ProseSections } from "@/components/layout/ProseSections";
 import { getChapter, listChapterParams } from "@/lib/content/chapters";
 import { getPageSections } from "@/lib/content/pages";
@@ -397,11 +398,28 @@ export default async function Chapter({
           */}
           {detail.decisions.length > 0 ? (
             <div className="mt-8 flex flex-col gap-6">
-              {detail.decisions.map((decision) =>
+              {detail.decisions.map((decision, i) =>
                 decision.fields.name ? (
+                  /*
+                   * `decision-1`, `decision-2`, … — numbered from the rendered
+                   * order, matching the visible DECISION pill.
+                   *
+                   * `decisions` has no slug column, so the choice was a
+                   * readable ordinal or the row's UUID. The ordinal wins for a
+                   * link a person pastes into a message, which is what this is
+                   * for. The trade is stated rather than hidden: inserting a
+                   * decision ABOVE an existing one renumbers the ones below it,
+                   * so an old link would land on its neighbour. A slug column
+                   * is the permanent fix if that ever bites.
+                   *
+                   * `scroll-mt-18` (72px) clears the 57px sticky header — NOT
+                   * `scroll-mt-24`, which is off this project's spacing scale
+                   * and silently computes to 0px (`039240826`).
+                   */
                   <section
                     key={decision.id}
-                    className="rounded-panel border border-accent bg-surface p-card-p"
+                    id={`decision-${i + 1}`}
+                    className="scroll-mt-18 rounded-panel border border-accent bg-surface p-card-p"
                   >
                     {ui.t("decision") ? (
                       <p className="inline-flex rounded-pill bg-accent px-3 py-1 font-mono text-label uppercase text-accent-fg">
@@ -414,6 +432,11 @@ export default async function Chapter({
                       dir={decision.fieldLocales.name ? dirForLocale(decision.fieldLocales.name) : undefined}
                     >
                       {decision.fields.name}
+                      <SectionLink
+                        targetId={`decision-${i + 1}`}
+                        label={sectionLinkLabels.copy}
+                        copiedLabel={sectionLinkLabels.copied}
+                      />
                     </h2>
                     {decision.fields.body ? (
                       <p
