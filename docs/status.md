@@ -37,6 +37,62 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 034240826 — 2026-08-24 06:10 — the card sections had the same bug, and the sweep found nothing else
+
+Moataz: "Status, honestly" and "Why it matters anyway" have the same problem — small, not expanding
+to full width with no image. Asked to apply the same fix here and sweep the rest of the site for the
+same mistake.
+
+### Same bug, different width token
+
+`CARD_SLOTS` (`status`, `why-it-matters`) wrapped its whole card — border, background, padding — in
+`max-w-measure-lead` (42ch ≈ 446px) **unconditionally**, the same shape of bug as `033240826`, one
+token narrower. Neither slot carries media on any of the four case files (checked the database
+before, not assumed), so both cards were capped every time they rendered — never an edge case.
+
+Fixed the same way: the cap now applies only when `section.media` exists, matching the convention
+`role` already established in an earlier session ("a capped box with nothing beside it is not a
+readable measure, it is empty space with a border around it" — that reasoning transfers exactly).
+
+### The sweep — one file has this pattern, checked, not assumed
+
+Searched for every OTHER place a grid activates conditionally on an image before touching anything:
+`grep -rn "grid-cols\|grid items-start"` across `components/` and `app/`. Six matches. Five are
+fixed-purpose grids with no image-adjacency concept at all — `OutcomeStrip`, the gallery grid, the
+chapter contents rail, Contact's two-column layout, About's list — none of them vary by whether an
+image exists, so none of them can have this bug. **`CoverSections.tsx` is the only file where a grid
+activates per-section based on `section.media`,** and every branch inside it is now checked:
+
+| section type | media-conditional cap? |
+|---|---|
+| `role` | already correct (fixed in an earlier session) |
+| `status` / `why-it-matters` | **fixed here** |
+| plain prose (thesis, what-it-is, map) | fixed in `033240826` |
+| grid branch (section HAS media) | untouched — the cap belongs there |
+
+The much longer list of `max-w-measure` uses across static pages (About, Philosophy, Systems, Contact,
+the 404, the "read start to finish" view, results tables) were checked and left alone — none of them
+have an "image beside this, or not" concept to begin with; the cap there is a plain, correct,
+unconditional reading-width choice, not the bug being described.
+
+### Verified across all four case files, this time at genuine desktop width
+
+The tool's window reached true 1200px this session (no repeat of the 606px floor from earlier
+tonight). Measured directly, both locales:
+
+| | width |
+|---|---|
+| Neobiz `/en` — Thesis, What it is, Status, Why it matters | **1152px** each, all four |
+| Neobiz `/ar` — الفكرة الأساسية، ما هو، الحالة بصراحة، ولماذا يهم | **1152px** each, all four |
+| Cervello — same two card slots | no `max-w-measure-lead` in the served HTML |
+| UAE, Egypt | no `status`/`why-it-matters` slots exist — nothing to check |
+
+Screenshotted, not just measured: the "Status, honestly" and "Why it matters anyway" cards now
+visibly span the container edge to edge, and Thesis's opening line runs the same width as the page
+above it. `tsc` clean, `eslint` clean, `next build` exit 0.
+
+---
+
 ## 033240826 — 2026-08-24 05:45 — the "full width" fallback was ~60% wide the whole time
 
 Moataz, precisely, after the last fix: "my comment still stands." On `neobiz-mobile`, "Thesis" and

@@ -177,10 +177,25 @@ export function CoverSections({
         }
 
         if (CARD_SLOTS.has(section.slot)) {
+          /*
+           * `max-w-measure-lead` (42ch) ONLY WHEN THERE IS AN IMAGE THIS CARD
+           * SHARES ITS ROW WITH — the same fix as the plain-prose branch
+           * above (task `033240826`), and the same reasoning `role` already
+           * established: a capped box with nothing beside it is not a
+           * readable measure, it is empty space with a border around it.
+           * Neither status nor why-it-matters currently carries media on any
+           * cover, so this was unconditionally too narrow every time it
+           * rendered — task `034240826`.
+           */
           return (
             <section
               key={section.id}
-              className="mt-14 max-w-measure-lead rounded-panel border border-DEFAULT bg-surface p-card-p"
+              className={[
+                "mt-14 rounded-panel border border-DEFAULT bg-surface p-card-p",
+                section.media ? "max-w-measure-lead" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
               {section.heading ? (
                 <h2>
