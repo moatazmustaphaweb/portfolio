@@ -37,6 +37,78 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 032240826 — 2026-08-24 05:10 — the "two columns" bug: not layout, not a grid — a photo with a fifth of its frame blank
+
+Moataz reported a mobile bug: a paragraph not taking full width when no image sits beside it, "in
+Egypt New Biz mobile." Two wrong readings of that report happened before the real one, worth
+recording precisely because each was checked and ruled out rather than assumed.
+
+### Wrong reading 1 — the rule itself is broken
+
+Read `CoverSections.tsx` end to end: `if (!section.media) return <section className="mt-10">{body}
+</section>` — full width, no grid, unconditional. `ChapterSections.tsx` has no grid mechanism at all,
+anywhere. Both already do exactly what he described as the agreed rule. **Nothing to fix here** — he
+was stating the rule, not reporting it broken.
+
+### Wrong reading 2 — Cervello's Status section
+
+`underdev-arabic.png`/`underdev-english.png` were assumed to be placeholder graphics for Cervello
+(the one thing genuinely under development). Asked; wrong guess, and he redirected: the actual report
+was about **his own earlier bug**, on **Egypt New Biz**, and image placement is still open — not
+answered yet in this exchange.
+
+### The real bug — found by looking, not by reading code
+
+`neobiz-mobile`'s two chapters (`onboarding`, `portal`) carry **zero image blocks in either
+language** — confirmed against `chapter_paragraphs`, `kind='image'` returns nothing. Nothing there
+could produce this. "Egypt New Biz" reads more naturally as `egypt-acquisition` (the web journey),
+same product family, same NeoBiz name.
+
+Loaded its cover at the tool's narrowest reachable width (606px, below the `lg` breakpoint where the
+image column is documented to collapse to one column). **A section titled "Thesis" ended, and then
+nothing rendered for roughly 900px** before a caption appeared: *"The difference of the Egyptian
+national ID and Emirates ID."* — with no visible image above it.
+
+**The image was there. It had loaded (`complete: true`, real bytes, real dimensions).** Its
+`getBoundingClientRect()` read 558×832 — `width: 100%` of the mobile column, `height: auto` scaled
+from the image's own portrait ratio. **The asset is genuinely 600×894** — an ID-card comparison photo
+— and the delivered PNG, fetched directly and viewed, showed why: **roughly the top quarter of the
+frame is pure white background above where the two ID cards actually start.** On a white page, at
+832px tall, that white margin reads as nothing at all — not a rendering bug, a *photograph* with dead
+space baked into its pixels, stretched to fill a narrow mobile column.
+
+### The fix — trimmed the asset, not the layout
+
+`e_trim` (a Cloudinary effect, not a crop mode — confirmed the naming again after getting it wrong
+once already tonight) against the untransformed original: **778×825**, cards edge to edge, verified by
+viewing the trimmed PNG directly before touching anything live. One reference to this asset existed
+(`cover_sections`, one row) — no other page shares it, so overwriting was safe. Same signed-overwrite
+pattern as every other asset fix tonight: `overwrite=true`, `invalidate=true`, then `media.width`/
+`height` corrected in the database (778×825 — they had held 848×1264, the untrimmed original).
+
+**Verified three ways, independently:** the raw trimmed PNG viewed directly (clean); the live page's
+SSR HTML recalculating `width="600" height="636"` from the corrected ratio without a rebuild; and a
+cache-busted re-fetch inside the same tab reading back a rendered height of 591px — matching
+558 × 825/778 to within rounding. The image now occupies roughly 591px instead of 832px on this
+column width, with no dead margin.
+
+**This tab's own screenshot stayed blank after the fix**, which needed one more check before trusting
+it: `learn.md` Part 5's exact browser-cache trap, self-inflicted this time — this same tab had loaded
+the un-fixed URL earlier in this session, so the browser served its own cached bytes despite the
+correct HTML around it. Not a real-visitor problem; nobody else has that URL cached yet. Confirmed via
+the direct curl fetch instead, which is unaffected by any browser's cache.
+
+**No code changed.** This was an asset composition problem, not a layout one — nothing in
+`CoverSections.tsx` needed touching, which is consistent with the first wrong reading having already
+ruled the layout code out correctly.
+
+### Still open
+
+**Where the two `underdev-*` images go is unanswered.** Asked once, guessed wrong (Cervello), and the
+conversation moved to the bug report before returning to it. Re-asking rather than guessing again.
+
+---
+
 ## 031240826 — 2026-08-24 04:15 — the cycle order is OS-dependent, on Moataz's correction
 
 `030240826` shipped a FIXED cycle order (System → Light → Dark → System) and its own comment argued
