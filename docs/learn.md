@@ -909,6 +909,40 @@ Each journey has an index — `Image mapping/*.xlsx`, and `docs/Cloudinary_Index
 
 ---
 
+## A sync that PARSES a page is not a sync that WRITES it
+
+Added 2026-08-24, task `045240826`.
+
+A line had to come off the Accessibility page. The reasoning applied was the standing rule —
+*Notion is the source, so edit Notion, because a database-only delete would be undone by the next
+sync.* That reasoning is right almost everywhere on this project. On this page it was **exactly
+backwards**, and acting on it alone would have left the line live on the site while every artefact
+said it had been removed.
+
+The sync run says so in its own summary, and it had been saying it all along:
+
+> `NOT YET IMPLEMENTED — comparison, accessibility and chrome pages`
+> `Comparison and accessibility pages still need a write path.`
+
+The page is **read, parsed, validated, and reported on** — it even produced a hard `failed 1` for a
+malformed image tag, which is what made it look like a page the sync owns. It is never **written**.
+Validation and persistence are separate stages and only one of them was running.
+
+**The trap is that a page with no write path looks MORE synced, not less** — it appears in the
+output, it can fail, it can be fixed and go green. `failed 0` was read as "it wrote"; it meant
+"nothing objected."
+
+**The rule: before editing Notion to change what a page shows, confirm that page has a write path.**
+The dry run names the ones that do not, in the block above the counts — read that block, not only
+the totals. Where there is no path, Notion is still the right place to fix the source *and* the
+database has to be changed as well, or the site does not move.
+
+Same shape as the stale claims in Part 6: a mechanism believed rather than run. The difference is
+that this one was not stale — it was never true for this page, and it was written into the output
+of every sync anybody had executed.
+
+---
+
 # PART 8 — WHERE THE MODEL WAS WRONG AND WAS CORRECTED
 
 Recorded so the same error is not repeated by a fresh session.

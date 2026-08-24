@@ -37,6 +37,74 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 045240826 — 2026-08-24 13:45 — the Draft line is gone, and the sync has no write path for the page it was on
+
+Moataz: *"سطر الدرافت ممكن يتشال، هو دا درافت، ممكن يتشال قبل الاطلاق."* Done — and getting
+there turned up two things that were not the task.
+
+### 1 · The Accessibility page was a HARD SYNC FAILURE, and had been
+
+The dry run refused it outright — `failed 1`, nothing written for that page at all:
+
+> `image tag ".../application-submitted-arabic-verification-choice" is unusable and was NOT written:`
+> `the paragraph also contains prose (“وقد طرحت دعم RTL بوصفه متطلبًا على مستوى النظام لا التفافًا ”)`
+
+In the Arabic Notion page a `[cld]`/`[alt]`/`[caption]` run and a sentence of prose shared **one
+paragraph**. The block would become a `<figure>` and the prose would be silently dropped, so the
+parser refuses the whole page rather than write half of it. That refusal is correct — partial media
+is worse than none.
+
+**Fixed in Notion, not in the parser** — his standing rule. The paragraph was split in two; the
+sentence is preserved **word for word**, only the block boundary moved. `failed 1` → **`failed 0`**.
+
+### 2 · ⚠️ The accessibility page HAS NO SYNC WRITE PATH — and I had this backwards
+
+The same run says it plainly, in its own summary:
+
+> `NOT YET IMPLEMENTED — comparison, accessibility and chrome pages`
+> `Comparison and accessibility pages still need a write path.`
+
+The sync **parses and validates** that page and then writes nothing. Its `page_sections` rows got
+there some other way and no sync touches them.
+
+**This inverts the reasoning I acted on in the previous turn.** I argued the Draft line had to be
+removed in Notion because a database-only delete *"would be undone by the next sync."* **The
+opposite is true here:** nothing syncs this page, so a Notion edit alone would have changed nothing
+on the site, and the line would still be live. Same class of error as the stale claims in
+`CLAUDE.md` — a mechanism assumed rather than run.
+
+**So both were done.** Notion for the source of truth, so it does not return when the write path
+lands; the database for the site as it stands today.
+
+### What was actually deleted
+
+```sql
+-- page_sections be5e0260… (page='work/egypt-acquisition/accessibility', slug='intro', locale='en')
+translations_deleted 1 | sections_deleted 1
+```
+
+The English `intro` row held **nothing but** the Draft line — it was the whole lede, not a prefix to
+it. Arabic never had an intro row. Removing it makes English match Arabic: both now open on their
+first real section at `sort_order 0`.
+
+### Verified
+
+`next build` exit 0 · sync dry run **`failed 0`** (was 1) · `page_sections` **en 14 / ar 8, `draft_hits 0`
+in both** · both locales served from a real production build: **`/en/…/accessibility` 200,
+`/ar/…/accessibility` 200, zero case-insensitive matches for "draft" in either served HTML.**
+
+`ProseSections` already renders `{intro ? … : null}`, so a page with no intro was an existing
+supported case, not one this change created.
+
+### Still open on this page
+
+- **No write path.** The page is editable in Notion and those edits do not reach the site. Anything
+  else changed there needs the same manual database step until the path exists.
+- The 6 dry-run notices are unrelated and unchanged — 4 mini case files with no outcomes table,
+  Cervello's missing targets table, and one entry handle on the Egypt cover pointing at no chapter.
+
+---
+
 ## 044240826 — 2026-08-24 13:00 — the career timeline is live, and it names no employer
 
 Moataz confirmed the transcription and supplied the domains the CV could not: **Fintech and Medical**
