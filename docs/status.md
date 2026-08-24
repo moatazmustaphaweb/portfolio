@@ -37,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 037240826 — 2026-08-24 08:10 — reverted the pairing grid; the actual fix was removing one class
+
+Moataz, after seeing every page together on the preview index: `036240826` "disrupted the
+architecture of the layout we built before" and "created a mess." Revert it, keep preview, then do
+the thing he actually asked for.
+
+### He was right, and the mistake is worth naming exactly
+
+His instruction had been: **paragraphs with a picture beside them take two thirds; paragraphs without
+take full width.** On the COVER that is a real condition — `section.media` exists or it doesn't, and
+`033240826`/`034240826` fixed it correctly there.
+
+**In a chapter there is no such condition, and this file's own comment said so** — a figure is a
+SIBLING of a paragraph, never a neighbour. So "paragraphs without a picture beside them" describes
+*every chapter paragraph*, and the whole task was: **remove the cap.** One class.
+
+Instead `036240826` invented a pairing mechanism — walking blocks, pairing prose with a following
+image into a new grid row — that **nobody asked for**, that changed the document structure of every
+chapter on the site, and that answered a question about width by rearranging content. Asking which
+pairing rule to use was the wrong question; the premise behind it was already wrong.
+
+### The revert, and its scope
+
+`git checkout cadade9~1 -- components/case-file/ChapterSections.tsx` — restored byte-for-byte, verified
+with an empty `git diff` against that baseline before touching anything further. `groupBlocks`, the
+`variant` prop, the grid rows and the `Row` types are all gone.
+
+**Preview kept**, as instructed — it is a separate feature, separate files, and it is what made this
+visible.
+
+### The actual fix: one class
+
+`max-w-measure` removed from the chapter prose `<p>`. Confirmed the whole change is a single line by
+diffing against the pre-`036240826` baseline and filtering comments:
+
+```
+-  className="max-w-measure whitespace-pre-line text-body text-fg-body"
++  className="whitespace-pre-line text-body text-fg-body"
+```
+
+**The figcaption's `max-w-measure` was deliberately left**, on line 203. A caption sits under its own
+image and is measured against it, not against the page — different element, different reason, not
+what he described.
+
+### Verified
+
+**UAE `/en/work/uae-acquisition/onboarding`** — the page he named. Paragraphs measure **952px**, up
+from ~721px, filling the container; `grid` count inside sections is **0**.
+
+**Egypt `onboarding/what-i-designed`** — the section `036240826` restructured. Back to its original
+flat sequence: 14 sibling rows in original document order, **zero grids**, every row 952px. The
+pairing is gone and nothing was left behind.
+
+`tsc` clean · `eslint` clean · `next build` exit 0, 65/65.
+
+### Not verified
+
+Arabic and mobile width, same tooling ceiling as before. And the container itself — `max-w-prose` vs
+`max-w-container`, chosen per chapter kind in `[chapter]/page.tsx` — is untouched and remains out of
+scope; what changed is only that a paragraph now fills whichever one the page already chose.
+
+---
+
 ## 036240826 — 2026-08-24 07:20 — chapters get the same two-thirds/one-third rule, and it's a real positional walk
 
 Moataz corrected the previous entry directly: he was never talking about the cover, and not about
