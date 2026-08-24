@@ -21,6 +21,7 @@
 | ~~Permanent Arabic typeface~~ | **Resolved** — LANTX (headings) + Meral Sans (body), decision 045 | — |
 | ~~Analytics retention~~ | **Resolved** — 360 days raw (migration `0014_retention_360_days.sql`) + indefinite monthly aggregates; `pg_cron` present, verified 2026-08-23 (decision 031) | — |
 | Arabic review — 8 new strings | Consent banner + the four privacy claims. `npm run export:ui-strings` regenerates the review doc | Moataz |
+| Arabic review — 2 section-link strings | `copy_section_link` → `نسخ رابط القسم`, `section_link_copied` → `تم نسخ رابط الفقرة` (migration 0051, task `039240826`). **Written from the English by the assistant, not reviewed.** Seeded so the copy-link button is not nameless in Arabic; the migration's own comment marks them | Moataz |
 | Redaction treatment (question H) | Designing against `docs/redaction-brief.md` §0. Enforcement is built; the visual treatment and `--color-redacted-*` values are pending | Moataz |
 | **Objective at statement size — TRIAL, awaiting a ruling** | Live on chapter pages, one class, no flag. Takes the h1 from 39–72% of the screen down to 10–28%. **It also removes the page's only dominant element without adding a title**, and the breadcrumb cannot carry that job — least of all in Arabic, where it wraps to four lines at 390. Keep · keep and add the chapter-name h1 (the next question) · revert. Screenshots in `~/Desktop/objective-size-trial/`, account in `docs/status.md` 2026-08-26 | Moataz |
 

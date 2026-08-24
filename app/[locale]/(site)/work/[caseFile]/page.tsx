@@ -268,7 +268,15 @@ export default async function CaseFileCover({
         without renders full width. The page no longer owns the two-column
         shape and no longer needs to split the sections to express it.
       */}
-      <CoverSections sections={detail.sections} roleLabel={ui.t("role_label")} />
+      <CoverSections
+        sections={detail.sections}
+        roleLabel={ui.t("role_label")}
+        /* Rule 1: both strings from `ui_strings`, migration 0051. */
+        linkLabels={{
+          copy: ui.t("copy_section_link"),
+          copied: ui.t("section_link_copied"),
+        }}
+      />
 
       {/* The metric grid. Empty for a case file that claims no numbers. */}
       {detail.outcomes.length > 0 ? (

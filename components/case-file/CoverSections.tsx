@@ -1,4 +1,5 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { SectionLink } from "@/components/layout/SectionLink";
 import { dirForLocale } from "@/lib/content/types";
 import type { CoverSection, Locale } from "@/lib/content/types";
 
@@ -84,10 +85,17 @@ export function splitCoverSections(sections: CoverSection[]): {
 export function CoverSections({
   sections,
   roleLabel,
+  linkLabels,
 }: {
   sections: CoverSection[];
   /** `ui_strings.role_label`. Absent means the label is simply not drawn. */
   roleLabel?: string;
+  /*
+   * `ui_strings.copy_section_link` / `.section_link_copied` (migration 0051),
+   * resolved on the server and passed down. Optional: absent means no link
+   * button, so a caller that has not been updated is unaffected.
+   */
+  linkLabels?: { copy?: string; copied?: string };
 }) {
   // A slot with no paragraphs in this locale contributes nothing to read, so it
   // is not drawn as an empty heading. The sync reports it separately as an
@@ -114,6 +122,13 @@ export function CoverSections({
             <section
               key={section.id}
               /*
+               * `id` is the SLOT, matching `ChapterSections`' convention: a
+               * stable name that survives a re-sync and a reworded heading,
+               * where a heading-derived slug survives neither. Added
+               * `039240826` so a cover section can be linked to directly.
+               */
+              id={section.slot}
+              /*
                * FULL WIDTH, BOX AND TEXT. The card was `max-w-measure-lead`
                * (42ch) and sat inside the two-thirds column with the lead image
                * beside it, leaving a band of dead space to its side.
@@ -124,7 +139,7 @@ export function CoverSections({
                * fix. Seen on screen and called; the readability trade is
                * accepted deliberately, not overlooked.
                */
-              className="mt-10 flex items-stretch overflow-hidden rounded-panel border border-strong bg-surface"
+              className="mt-10 scroll-mt-18 flex items-stretch overflow-hidden rounded-panel border border-strong bg-surface"
             >
               <div aria-hidden="true" className="w-1 shrink-0 bg-accent" />
               <div className="flex flex-col gap-3 p-card-p">
@@ -146,12 +161,25 @@ export function CoverSections({
                    * inconsistency, not as a different kind of thing. The
                    * cover's headings are one set and they are sized as one.
                    */
-                  <span
-                    className="font-mono text-section uppercase text-fg-dim"
-                    lang={section.headingLang}
-                    dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
-                  >
-                    {section.heading ?? roleLabel}
+                  <span className="font-mono text-section uppercase text-fg-dim">
+                    {/*
+                      The label text carries the language; the wrapper does not,
+                      so the button is a sibling of the text rather than sitting
+                      inside a `dir`-scoped run it has nothing to do with.
+                    */}
+                    <span
+                      lang={section.headingLang}
+                      dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
+                    >
+                      {section.heading ?? roleLabel}
+                    </span>
+                    {linkLabels ? (
+                      <SectionLink
+                        targetId={section.slot}
+                        label={linkLabels.copy}
+                        copiedLabel={linkLabels.copied}
+                      />
+                    ) : null}
                   </span>
                 ) : null}
                 <p
@@ -190,8 +218,9 @@ export function CoverSections({
           return (
             <section
               key={section.id}
+              id={section.slot}
               className={[
-                "mt-14 rounded-panel border border-DEFAULT bg-surface p-card-p",
+                "mt-14 scroll-mt-18 rounded-panel border border-DEFAULT bg-surface p-card-p",
                 section.media ? "max-w-measure-lead" : "",
               ]
                 .filter(Boolean)
@@ -206,6 +235,13 @@ export function CoverSections({
                   >
                     {section.heading}
                   </span>
+                  {linkLabels ? (
+                    <SectionLink
+                      targetId={section.slot}
+                      label={linkLabels.copy}
+                      copiedLabel={linkLabels.copied}
+                    />
+                  ) : null}
                 </h2>
               ) : null}
               <div className="mt-4 flex flex-col gap-4">
@@ -300,6 +336,13 @@ export function CoverSections({
                 >
                   {section.heading}
                 </span>
+                {linkLabels ? (
+                  <SectionLink
+                    targetId={section.slot}
+                    label={linkLabels.copy}
+                    copiedLabel={linkLabels.copied}
+                  />
+                ) : null}
               </h2>
             ) : null}
             <div className={["flex flex-col gap-4", measureClass].filter(Boolean).join(" ")}>
@@ -319,7 +362,7 @@ export function CoverSections({
 
         if (!section.media) {
           return (
-            <section key={section.id} className="mt-10">
+            <section key={section.id} id={section.slot} className="mt-10 scroll-mt-18">
               {body}
             </section>
           );
@@ -350,7 +393,11 @@ export function CoverSections({
          * decision — a column or a flag — not a measurement.
          */
         return (
-          <section key={section.id} className="mt-10 grid items-start gap-x-10 lg:grid-cols-3">
+          <section
+            key={section.id}
+            id={section.slot}
+            className="mt-10 scroll-mt-18 grid items-start gap-x-10 lg:grid-cols-3"
+          >
             <div className="lg:col-span-2">{body}</div>
             <SectionImage media={section.media} />
           </section>

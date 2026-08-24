@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { ReadingProgress } from "@/components/case-file/ReadingProgress";
+import { SectionLink } from "@/components/layout/SectionLink";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { listChapterBodies } from "@/lib/content/chapters";
@@ -220,7 +221,23 @@ export default async function LinearView({
           const headline = chapter.fields.objective ?? chapter.fields.title;
 
           return (
-            <article key={chapter.id} className="mt-18 border-t border-DEFAULT pt-10">
+            /*
+             * The anchor is the CHAPTER SLUG. On this page many chapters share
+             * one document, so an id has to be unique across all of them — the
+             * slug already is, and it is the same token the chapter's own URL
+             * uses, so `/all#onboarding` and `/onboarding` name the same thing.
+             *
+             * `scroll-mt-18` is 72px and clears the 57px sticky header.
+             * NOT `scroll-mt-24` — 24 is off this project's spacing
+             * scale, so Tailwind emits nothing and the offset computes
+             * to 0px. `ChapterSections` carried that dead value until
+             * this task measured it.
+             */
+            <article
+              key={chapter.id}
+              id={chapter.slug}
+              className="mt-18 scroll-mt-18 border-t border-DEFAULT pt-10"
+            >
               <div className="flex flex-wrap items-baseline gap-3">
                 <span className="font-mono text-micro uppercase text-fg-dim">
                   {chapterWord ? `${chapterWord} ` : ""}
@@ -245,6 +262,16 @@ export default async function LinearView({
                   >
                     {headline}
                   </Link>
+                  {/*
+                    Outside the <Link>, deliberately: nested interactive
+                    elements are invalid, and a button inside an anchor is
+                    reached by neither keyboard nor screen reader reliably.
+                  */}
+                  <SectionLink
+                    targetId={chapter.slug}
+                    label={ui.t("copy_section_link")}
+                    copiedLabel={ui.t("section_link_copied")}
+                  />
                 </h2>
               ) : null}
 

@@ -37,6 +37,90 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 039240826 — 2026-08-24 09:30 — copy-link on every section heading, and a dead offset it exposed
+
+Moataz's brief: in the detailed pre-launch review it must be possible to send someone ONE passage
+rather than describe a whole screen. Notion-style, with three differences he specified — the anchor
+is the SECTION, not every line; a 16px Iconsax link glyph in a 24px box at the control radius; and a
+toast confirming the copy on wide and mobile both.
+
+Three choices were his, asked before building: **everywhere** (chapters, covers and `/all`),
+**absolute URLs**, and **always visible, dimmed** rather than hover-only.
+
+### What shipped
+
+**`SectionLink.tsx`** — the button and its toast. **`LinkIcon.tsx`** — Iconsax `Link2`, Linear, paths
+inlined on the same terms as `ThemeIcons` and kept in its own file because that one is named for what
+it holds. **Migration 0051** — `copy_section_link` and `section_link_copied`, both locales, and the
+file added to `SEED_FILES`; `check:seed-drift` reports **96/96, no drift**, so 0047's failure mode is
+not repeated.
+
+The URL is built from `window.location` at click time, so it is right on localhost, the `.vercel.app`
+alias and the custom domain without the component knowing which, and without depending on
+`NEXT_PUBLIC_SITE_URL`, which is deliberately unset (`027240826`).
+
+`/all` needed its own id scheme: many chapters share one document there, so the anchor is the CHAPTER
+SLUG, which is unique across the page and is the same token the chapter's own URL uses —
+`/all#onboarding` and `/onboarding` name the same thing.
+
+### Two real defects found by measuring rather than looking
+
+**1 · The toast was inside the `<h2>`.** `SectionLink` returns a fragment, so its toast rendered
+inside the heading the button sits in. `h2.textContent` read **`"ContextParagraph link copied"`** the
+moment a copy succeeded — the heading's accessible name, the text a contents rail is built from, and
+what a reader copies when selecting the heading. **It looks perfect on screen either way**; it was
+caught by reading `textContent` after a click. Fixed with `createPortal` to `document.body`: the node
+leaves the heading, the state and timer stay in this component. Verified after: `"Context"` before and
+after a copy.
+
+**2 · `scroll-mt-24` has never worked, anywhere.** Chapter sections carried it since the slot model
+shipped. **`24` is not on this project's enumerated spacing scale**, which is REPLACED rather than
+extended, so Tailwind emits nothing and the offset computes to **`0px`** — measured, not inferred.
+Every anchor jump landed flush under the 57px sticky header.
+
+Pre-existing, and directly in this feature's path: the whole point is landing on the section.
+`scroll-mt-18` (72px, on-scale) replaces it in `ChapterSections` and `/all`, and is added to the four
+new cover anchors. Verified: heading now lands at **72px**, clearing the header.
+
+This is the class `docs/learn.md` already names — an off-scale spacing utility fails silently and
+looks correct in the source.
+
+### Three wrong conclusions, corrected before reporting
+
+Worth recording because each looked solid:
+
+- **"`opacity-100` isn't generated."** My rule-walker found no matching CSS rule — because it read
+  **zero rules total**, the stylesheet being CORS-blocked. Probing the utilities directly:
+  `opacity-0` → `0`, `opacity-100` → `1`. Both fine.
+- **"The toast doesn't show."** `visibilityState` is `hidden` in the automation tab, which **throttles
+  CSS transitions** — the class flipped correctly but the transition never advanced off its start
+  value. With the transition isolated, opacity → `1`.
+- **"The click handler doesn't fire."** It fired every time. `navigator.clipboard.writeText` rejects
+  with `NotAllowedError: Document is not focused` in an unfocused tab, and the component's `catch`
+  correctly stayed silent rather than claiming a copy that had not happened. The early return was the
+  designed behaviour working, not a bug.
+
+### Verified
+
+`tsc` clean · `eslint` **0** · `check:seed-drift` 96/96 · `next build` exit 0, 65/65 · **axe: zero
+violations across six surfaces** — cover, chapter and `/all`, each in both locales.
+
+Measured: button box **24×24**, glyph **16×16**, radius **6px**. Arabic reads `نسخ رابط القسم`.
+Anchors present and correct on all three surfaces.
+
+### Not verified, and one thing that needs him
+
+⚠️ **The two Arabic strings are mine, not reviewed.** `نسخ رابط القسم` and `تم نسخ رابط الفقرة` were
+written from the English and are seeded so the control is not nameless in Arabic. They are marked in
+the migration's own comment and belong with the other strings awaiting his review.
+
+**Not tested on a real phone**, and the clipboard write itself has not been exercised in a focused
+browser — the automation tab cannot be focused, so the success path was proven by stubbing only that
+one browser API while the component's own logic ran unmodified. A real click by a real person has
+focus and takes the same path.
+
+---
+
 ## 038240826 — 2026-08-24 08:40 — the same cap again, on `/all`, which is its own file
 
 Moataz, with two live URLs: paragraphs on `/work/uae-acquisition/all` and

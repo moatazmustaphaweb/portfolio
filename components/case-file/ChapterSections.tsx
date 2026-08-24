@@ -1,4 +1,5 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
 import type { ChapterSection, Locale, Media } from "@/lib/content/types";
@@ -47,7 +48,20 @@ import type { ChapterSection, Locale, Media } from "@/lib/content/types";
  * ".This is where the whole design meets its limit" and the paragraph aligns
  * right. 73 paragraphs and 31 captions did exactly that.
  */
-export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
+export function ChapterSections({
+  sections,
+  linkLabels,
+}: {
+  sections: ChapterSection[];
+  /*
+   * `ui_strings.copy_section_link` and `.section_link_copied`, resolved on the
+   * server and passed down — this component is a server component and cannot
+   * call `getUiStrings` from inside the client button. Optional: absent means
+   * no link button, which is how every caller that has not been updated keeps
+   * working unchanged.
+   */
+  linkLabels?: { copy?: string; copied?: string };
+}) {
   if (sections.length === 0) return null;
 
   return (
@@ -71,7 +85,7 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
              * heading — the old heading-derived slug survived neither.
              */
             id={section.slot}
-            className="mt-14 scroll-mt-24 border-t border-DEFAULT pt-8"
+            className="mt-14 scroll-mt-18 border-t border-DEFAULT pt-8"
             data-slot={section.slot}
           >
             {/*
@@ -81,12 +95,26 @@ export function ChapterSections({ sections }: { sections: ChapterSection[] }) {
              * heading is a label for it.
              */}
             {section.heading ? (
+              /*
+               * The button is a SIBLING of the heading text inside the <h2>,
+               * not a wrapper around it. `lang`/`dir` stay on the <h2> where
+               * they were — the heading is still one element carrying one
+               * language, and the button carries no prose of its own (its name
+               * comes from `aria-label`).
+               */
               <h2
                 lang={section.headingLang}
                 dir={section.headingLang ? dirForLocale(section.headingLang) : undefined}
                 className="font-mono text-section uppercase text-fg-dim"
               >
                 {section.heading}
+                {linkLabels ? (
+                  <SectionLink
+                    targetId={section.slot}
+                    label={linkLabels.copy}
+                    copiedLabel={linkLabels.copied}
+                  />
+                ) : null}
               </h2>
             ) : null}
 

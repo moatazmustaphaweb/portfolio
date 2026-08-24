@@ -147,6 +147,17 @@ export default async function Chapter({
    * The list follows whichever path is actually rendering, so it keeps working
    * when the page migrates onto the slot model.
    */
+  /*
+   * The copy-link strings, resolved once here and handed to every
+   * `ChapterSections` on the page. Rule 1 — the button's accessible name and
+   * its confirmation toast both come from `ui_strings` (migration 0051), never
+   * from the component.
+   */
+  const sectionLinkLabels = {
+    copy: ui.t("copy_section_link"),
+    copied: ui.t("section_link_copied"),
+  };
+
   const railItems = hasSections
     ? body
         .filter((sec) => sec.heading)
@@ -265,7 +276,7 @@ export default async function Chapter({
               reader.
             */}
             {hasSections ? (
-              <ChapterSections sections={body} />
+              <ChapterSections sections={body} linkLabels={sectionLinkLabels} />
             ) : (
               <ProseSections
                 intro={page.intro}
@@ -361,7 +372,7 @@ export default async function Chapter({
             of the chapter follows.
           */}
           {hasSections ? (
-            <ChapterSections sections={leadSections} />
+            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} />
           ) : detail.fields.context ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               {ui.t("context") ? (
@@ -419,7 +430,7 @@ export default async function Chapter({
             </div>
           ) : null}
 
-          {hasSections ? <ChapterSections sections={restSections} /> : null}
+          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} /> : null}
 
           {/*
             Evidence. The design pairs prose with masked figures; `media` is
