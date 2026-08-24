@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore, type ReactElement } from "react";
+import { useSyncExternalStore } from "react";
 
 import {
   AutoThemeIcon,
@@ -16,35 +16,36 @@ import {
 } from "@/lib/theme/store";
 
 /**
- * Theme control — System · Light · Dark, with System as the default.
+ * Theme control — one button, cycling System → Light → Dark → System.
  *
- * Labels come in as props from `ui_strings`; no copy here.
+ * Replaced the three-button radiogroup 2026-08-24, task `028240826`, on
+ * Moataz's explicit instruction after the first mobile visual pass: the
+ * header wrapped to two lines, and the theme control's three 44px targets
+ * were the largest single contributor.
  *
- * ── WHY THREE BUTTONS AND NOT A CYCLING TOGGLE ──────────────────────────────
+ * ── WHAT THE OLD COMPONENT'S OWN COMMENT ARGUED, AND WHY THIS STILL HOLDS ───
  *
- * The old control was a single button that swapped between two states and
- * labelled itself with the state you would move TO. That does not extend: with
- * three states a cycling button cannot say where you are, only where you are
- * going next, and "System" is a state whose whole meaning is what it currently
- * resolves to. Three radios say both at once.
+ * The radiogroup existed because a cycling button can announce only where you
+ * are GOING, not where you ARE — `aria-checked` on three radios said both.
+ * That is not fixed by removing the radios; it is answered a different way:
+ * `aria-label` is rebuilt on every render from `theme_toggle` + the CURRENT
+ * choice's own label (e.g. "Toggle theme: System"), so a screen reader still
+ * hears where you are, not just that a button was pressed. No new copy — both
+ * strings already exist in `ui_strings`, composed rather than invented (rule
+ * 7).
  *
- * `role="radiogroup"` with `aria-checked`, so the current state is ANNOUNCED
- * rather than conveyed by the highlight alone — the same rule the accent lives
- * under everywhere else on this site. Each option is a real button: tabbable,
- * activated by Enter or Space, and carrying the focus ring every interactive
- * element gets.
+ * Visually the icon carries the same information: it is always the CURRENT
+ * state's icon, never the state you are about to move to.
  *
- * ── STATE ───────────────────────────────────────────────────────────────────
+ * ── ORDER ─────────────────────────────────────────────────────────────────
  *
- * The control reflects the CHOICE, not the resolved theme. Those differ: with
- * System selected on a light OS, the choice is `system` and the paint is
- * `light`. Highlighting `Light` there would be a lie about what happens when
- * the OS changes.
- *
- * The pre-paint script in the root layout has already resolved and applied the
- * theme before this component exists. This only handles user-initiated
- * changes.
+ * System → Light → Dark → System. Fixed and arbitrary — a 3-cycle has no
+ * canonical direction — chosen to match the left-to-right order the old
+ * radiogroup displayed, so nothing about the mental model changes, only the
+ * control.
  */
+const ORDER: ThemeChoice[] = ["system", "light", "dark"];
+
 export function ThemeToggle({
   labels,
   ariaLabel,
@@ -58,96 +59,25 @@ export function ThemeToggle({
     getChoiceServerSnapshot,
   );
 
-  const options = (
-    [
-      { value: "system", label: labels.system, Icon: AutoThemeIcon },
-      { value: "light", label: labels.light, Icon: LightThemeIcon },
-      { value: "dark", label: labels.dark, Icon: DarkThemeIcon },
-    ] as { value: ThemeChoice; label?: string; Icon: (p: { className?: string }) => ReactElement }[]
-  ).filter((o): o is { value: ThemeChoice; label: string; Icon: (p: { className?: string }) => ReactElement } =>
-    Boolean(o.label),
-  );
+  // `choice` is null until the browser answers (server cannot know it).
+  // "system" is the correct resting icon/label for that gap: it is the
+  // default, and the pre-paint script has already applied it if nothing was
+  // explicitly chosen.
+  const current = choice ?? "system";
+  const currentLabel = labels[current];
+  const Icon =
+    current === "light" ? LightThemeIcon : current === "dark" ? DarkThemeIcon : AutoThemeIcon;
 
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const checkedIndex = options.findIndex((o) => o.value === choice);
-
-  /*
-    A radiogroup owes a keyboard contract, and half of one is worse than none:
-    arrow keys move between options and select as they go, and only one option
-    is in the tab order — a roving tabindex — so Tab enters and leaves the
-    group rather than stepping through every option. Home/End jump to the ends.
-    Enter and Space come free from using real <button> elements.
-  */
-  const onKeyDown = (event: React.KeyboardEvent, index: number) => {
-    const back = event.key === "ArrowLeft" || event.key === "ArrowUp";
-    const forward = event.key === "ArrowRight" || event.key === "ArrowDown";
-    let next: number | null = null;
-
-    if (back) next = (index - 1 + options.length) % options.length;
-    else if (forward) next = (index + 1) % options.length;
-    else if (event.key === "Home") next = 0;
-    else if (event.key === "End") next = options.length - 1;
-
-    if (next === null) return;
-    event.preventDefault();
-    setThemeChoice(options[next].value);
-    refs.current[next]?.focus();
-  };
+  const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={ariaLabel}
-      /*
-        NOT `overflow-hidden`. It would clip the 44px hit area — and clip
-        hit-testing, not just paint, so the target would look extended and
-        silently not be. The end children round themselves instead, with
-        logical `rounded-s`/`rounded-e` so it mirrors.
-      */
-      className="flex rounded-control border border-DEFAULT"
+    <button
+      type="button"
+      onClick={() => setThemeChoice(next)}
+      aria-label={ariaLabel && currentLabel ? `${ariaLabel}: ${currentLabel}` : ariaLabel}
+      className="tap-target-44 flex h-control-h-sm items-center justify-center rounded-control border border-DEFAULT px-3 text-fg-dim transition-colors hover:text-fg"
     >
-      {options.map(({ value, label, Icon }, index) => {
-        /*
-          `choice` is null until the browser answers — the server cannot know
-          it. Nothing is marked selected during SSR and hydration, which is the
-          honest rendering rather than guessing a default and correcting it.
-        */
-        const isActive = choice === value;
-
-        return (
-          <button
-            key={value}
-            ref={(node) => {
-              refs.current[index] = node;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            /* Roving: the checked option holds the tab stop. Before the
-               browser answers, the first option holds it so the group is
-               always reachable. */
-            tabIndex={index === (checkedIndex === -1 ? 0 : checkedIndex) ? 0 : -1}
-            onClick={() => setThemeChoice(value)}
-            onKeyDown={(event) => onKeyDown(event, index)}
-            /*
-              The visible text is gone; the accessible name is not. It is the
-              same `ui_strings` value the label used, so the control is still
-              named from the database in both locales (rule 1) — an icon does
-              not get to be quieter than the word it replaced.
-            */
-            aria-label={label}
-            className={[
-              "tap-target-44 flex h-control-h-sm items-center px-3 transition-colors",
-              "first:rounded-s-control last:rounded-e-control",
-              isActive
-                ? "bg-surface-raised text-fg"
-                : "text-fg-dim hover:text-fg",
-            ].join(" ")}
-          >
-            <Icon className="h-5 w-5" />
-          </button>
-        );
-      })}
-    </div>
+      <Icon className="h-5 w-5" />
+    </button>
   );
 }

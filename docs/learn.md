@@ -727,6 +727,32 @@ To rebuild one from a square master: `e_trim` to drop the transparent margin, th
 `Invalid crop_mode in transformation: trim`. Trim is an effect, `e_trim`.
 
 
+## A resized browser window's screenshot dimensions are not proof of the CSS viewport
+
+Testing a mobile-width layout fix, a window resize to 390px was followed by a screenshot that looked
+like one clean line, and that was reported as confirmation.
+
+**It was not.** `window.innerWidth`, queried directly with JS immediately after, read `606` — Chrome
+silently clamps a window resize below its own minimum content width and does not report the clamp as
+an error. The resize call still returns success. Nothing about the tool call or the screenshot's
+raw pixel count (which varies with device pixel ratio) reveals that the requested width was not
+honoured.
+
+**The check that cannot lie:** `window.innerWidth` (or a DOM element's real `getBoundingClientRect()`),
+queried via JS in the same tab, immediately after the resize. Screenshot pixel dimensions divided by
+an assumed DPR is a guess; `innerWidth` is the fact.
+
+**And a naive "did it wrap" check is easy to get backwards, too.** Comparing rounded `top` offsets
+among flex children flagged a false wrap here — two items had different heights and `items-center`
+placed their tops a few px apart with no actual line break. The real test is whether a later child's
+`top` reaches or exceeds an earlier child's `bottom`, not whether the tops merely differ.
+
+**When the tool's minimum is wider than the thing you need to test, extrapolate rather than declare
+victory at the tool's floor.** At the narrowest achievable width the layout fit with zero slack — that
+IS useful data, but it answers "what's the minimum width this needs," not "does it fit a phone." The
+two are different questions and only the second was the one being asked.
+
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.

@@ -9,6 +9,7 @@
 
 | Task | Blocked by | Owner |
 |---|---|---|
+| **Mobile header still wraps to two lines — PARTIALLY FIXED 2026-08-24** | Theme toggle collapsed 3 buttons → 1 (task `028240826`), gaps tightened. Saved ~140px, verified by real clicks and axe (0 violations, both locales). **Not enough**: minimum content width measured at ≈560–565px; a real phone is 360–430px. The next lever is `LocaleSwitch` — `"English"`/`"العربية"` in full is ~125px, the second-largest block, and the component's own comment calls full-script labelling deliberate. Abbreviate to `"EN"`/`"AR"`, or accept the wrap? Not re-tested on an actual phone since the fix | Moataz |
 | ~~0.5 query-layer verification~~ | **Resolved** — key in place, `npm run verify:content` passes | — |
 | ~~`settings.og_image`~~ | **Set 2026-08-24, task `027240826` — on trial.** A white monogram on black, 1200×630, at `og-image` on Cloudinary. Live on all eight pages checked, both locales, and the Twitter card is now `summary_large_image`. **Moataz called it a trial ("جرب كده"), so it is filled rather than settled** — the mark carries no name and no words, which is a deliberate-looking choice worth a second look before launch, not a defect | — |
 | ~~`settings.cv_url`~~ | **Not a blocker and not a thing — closed 2026-08-23.** The CV became a *request*, not a download: `CvRequestPanel` renders unconditionally in the footer and on Contact, composing a mail to `settings.email`. **Nothing reads `cv_url`.** The column stays in `settings` as an unused key | — |

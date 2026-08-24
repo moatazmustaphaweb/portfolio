@@ -37,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 028240826 — 2026-08-24 02:35 — theme toggle collapsed to one button; header still doesn't fit a real phone
+
+Moataz's first visual pass, on his own phone: dark theme, EN/AR toggle, RTL, and every cover but
+Cervello (which he's checking separately) all confirmed working. One complaint, twice repeated —
+the header wraps to two lines on mobile, and the three-button theme control is the biggest single
+contributor. His instruction was explicit: one button, cycling System → Light → Dark → System, and
+tighter spacing generally, on mobile and desktop both.
+
+### What changed
+
+**`ThemeToggle.tsx` rebuilt as a single button.** The old `role="radiogroup"` of three radios is
+gone. This reverses a decision the old component argued for **in its own comment block** — a cycling
+button can announce only where you're going, not where you are, and `aria-checked` on three radios
+said both.
+
+That argument is answered rather than dropped: `aria-label` is rebuilt every render from
+`theme_toggle` + the CURRENT choice's own `ui_strings` label — `"Toggle theme: System"` /
+`"تبديل المظهر: تلقائي"` — composed from strings that already existed, nothing invented (rule 7). The
+icon shown is always the current state's, never the destination.
+
+**Verified by clicking it, not by reading the code:** three real clicks in a live browser tab gave
+`System → Light → Dark → System`, `data-theme` and `localStorage` updating correctly at each step,
+and the third click clearing both — exactly the "system is the absence of a choice" contract
+`lib/theme/store.ts` already specified.
+
+**`SiteHeader.tsx` gaps now step up at `sm:`** rather than staying fixed — `gap-3` on mobile widening
+to `gap-6` at 640px, and similarly for the nav and controls gaps. `flex-wrap` stays as a safety net
+for a long name or the longer Arabic nav labels.
+
+### axe: zero violations, both locales
+
+Ran `axe-core` against the built header on `/en` and `/ar` via a real browser context (`jsdom` +
+in-window `eval`, not the outer Node globals — axe requires it). Zero violations on both, WCAG 2A/2AA.
+
+### The width claim, and why the first version of it was wrong
+
+A screenshot at a requested 390px window looked like one line and was reported that way in the
+moment. **It was wrong.** `window.innerWidth` read back **606px**, not 390 — Chrome enforces a
+minimum content width around there and silently clamps a narrower resize request. The screenshot's
+pixel dimensions were not proof of anything; only `window.innerWidth`, queried directly, was.
+
+**At the narrowest width this tooling can actually produce, 606px, the header fits with zero pixels
+to spare** — its right edge lands exactly on the gutter. Working back from that: minimum required
+content width is **≈560–565px**. A real phone in portrait is **360–430px**. The fix saved roughly
+140px (three 44px buttons down to one, tighter gaps) but the header still needs **130–200px more
+than a real phone has**, so it almost certainly still wraps in portrait — Moataz's own device is the
+only trustworthy confirmation of that, and this has not been re-checked against it since the fix.
+
+**The next lever, not pulled:** `LocaleSwitch` renders `"English"` / `"العربية"` in full — ~125px of
+the ~560px minimum, the second-largest block after the four nav links. Abbreviating to `"EN"`/`"AR"`
+would close most of the remaining gap. **Not done here** — the component's own comment documents
+full-script labelling as a deliberate choice ("deliberate, not a seeding mistake"), the same shape of
+decision the theme toggle just reversed, and Moataz asked for the toggle and the spacing, not this.
+Flagged rather than acted on.
+
+### Not verified
+
+**Not re-tested on an actual phone.** Everything above is either DOM measurement or a desktop browser
+window clamped to 606px, which is not a phone. And Arabic at mobile width — RTL mirrors the same
+layout budget, so the same wrap risk applies there and was not separately measured.
+
+---
+
 ## 027240826 — 2026-08-24 01:45 — og_image, filled the same night it was parked
 
 Two messages after recording it as deliberately undecided, Moataz sent one to try. It is set and it

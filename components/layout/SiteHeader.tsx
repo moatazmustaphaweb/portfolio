@@ -30,7 +30,16 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-DEFAULT bg-scrim backdrop-blur-header">
-      <div className="mx-auto flex min-h-header-h max-w-container flex-wrap items-center gap-6 px-gutter py-2">
+      {/*
+        Gaps step up at `sm` rather than staying fixed. Tightened 2026-08-24,
+        task `028240826`: at the mobile widths this header actually ships at,
+        wordmark + nav + theme + locale under the old fixed gap-6/gap-5/gap-3
+        wrapped to two lines — confirmed on a real device, not guessed from
+        the CSS. The single-button theme toggle (see ThemeToggle.tsx) removes
+        most of the width; this removes the rest. `flex-wrap` stays as the
+        safety net for a long wordmark or the longer Arabic nav labels.
+      */}
+      <div className="mx-auto flex min-h-header-h max-w-container flex-wrap items-center gap-3 px-gutter py-2 sm:gap-6">
         {/* Omitted rather than rendered blank if the setting is missing. */}
         {name ? (
           <Link href={`/${locale}`} className="tap-target-44 text-meta font-semibold text-fg sm:text-ui">
@@ -45,12 +54,12 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
           // the onward-links block at the foot of the page. See migration 0047
           // and docs/accessibility-audit.md finding 4.
           ariaLabel={ui.t("nav_main")}
-          className="flex flex-wrap items-center gap-5"
+          className="flex flex-wrap items-center gap-3 sm:gap-5"
           linkClassName="tap-target-44 text-meta text-fg-muted transition-colors hover:text-fg sm:text-ui"
         />
 
         {/* margin-inline-start:auto — mirrors correctly in RTL. */}
-        <div className="flex flex-wrap items-center gap-3 ms-auto">
+        <div className="flex flex-wrap items-center gap-2 ms-auto sm:gap-3">
           <ThemeToggle
             ariaLabel={ui.t("theme_toggle")}
             labels={{
