@@ -37,6 +37,62 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 038240826 — 2026-08-24 08:40 — the same cap again, on `/all`, which is its own file
+
+Moataz, with two live URLs: paragraphs on `/work/uae-acquisition/all` and
+`/work/egypt-acquisition/all` still don't fill the width.
+
+### Why the last fix didn't reach them
+
+`037240826` removed the cap from `ChapterSections.tsx`. **`/all` does not use that component.** It is
+its own page — `app/[locale]/(site)/work/[caseFile]/all/page.tsx`, 444 lines — that reads the same
+chapter data through `listChapterBodies` and renders its own markup, with its own eight separate
+`max-w-measure` declarations.
+
+This is the third file with the same defect (cover, chapter, now the linear view), and the reason is
+the same each time: `max-w-measure` written unconditionally on prose that has nothing beside it.
+
+### What changed — five caps, prose only
+
+| line | element | action |
+|---|---|---|
+| 153 | opening-passage wrapper | removed |
+| 186 | role section wrapper | removed |
+| 253 | chapter context paragraph | removed |
+| 281 | decision body paragraph | removed |
+| 293 | chapter result paragraph | removed |
+
+**Three caps were deliberately kept**, and they are not paragraphs: the page `<h1>` (141), each
+chapter's `<h2>` (241), and the role STATEMENT (273) — a single display-size sentence, not body
+prose. His instruction has been consistently about paragraphs; a heading set across 950px is a
+different problem and was not the one reported.
+
+**`max-w-prose` on the page container (123) was left alone.** He named it out of scope explicitly in
+the previous exchange, and it is the page-width decision rather than a paragraph one.
+
+### Verified on both URLs he sent
+
+| | |
+|---|---|
+| container | 1000px, content box **952px** after the 24px gutters |
+| UAE `/all` | every prose paragraph **952px** |
+| Egypt `/all` | **24 paragraphs**, widths only 952 / 931 / 927, **zero** still carrying `max-w-measure` |
+
+The 931 and 927 are correct and not leftovers: those paragraphs sit inside the decision inset
+(`border-s` + `ps-5`) and the role block (`border-s` + `ps-6`), so they are narrower by exactly that
+padding. Screenshotted as well as measured.
+
+`tsc` clean · `eslint` clean · `next build` exit 0, 65/65.
+
+### Not verified
+
+Arabic, mobile width. And the same class of cap has not been swept across the static pages (About,
+Philosophy, Systems, Contact) — those were checked in `034240826` and left alone deliberately, but
+they were checked against the COVER's rule, not this one. If he reports them next, that check should
+be redone rather than quoted.
+
+---
+
 ## 037240826 — 2026-08-24 08:10 — reverted the pairing grid; the actual fix was removing one class
 
 Moataz, after seeing every page together on the preview index: `036240826` "disrupted the

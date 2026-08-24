@@ -150,7 +150,7 @@ export default async function LinearView({
             `whitespace-pre-line`, which is the same collapse the cover had.
           */}
           {opening ? (
-            <div className="mt-6 flex max-w-measure flex-col gap-4">
+            <div className="mt-6 flex flex-col gap-4">
               {opening.paragraphs.map((paragraph, i) => (
                 <p
                   key={i}
@@ -183,7 +183,7 @@ export default async function LinearView({
           the one sentence that says what he personally did.
         */}
         {roleSection ? (
-          <section className="mt-10 max-w-measure border-s border-strong ps-6">
+          <section className="mt-10 border-s border-strong ps-6">
             {roleSection.heading || ui.t("role_label") ? (
               <h2
                 className="font-mono text-micro uppercase text-fg-dim"
@@ -250,7 +250,7 @@ export default async function LinearView({
 
               {chapter.fields.context ? (
                 <p
-                  className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-body"
+                  className="mt-6 whitespace-pre-line text-body text-fg-body"
                   lang={chapter.fieldLocales.context}
                   dir={chapter.fieldLocales.context ? dirForLocale(chapter.fieldLocales.context) : undefined}
                 >
@@ -278,7 +278,7 @@ export default async function LinearView({
                     </p>
                     {decision.fields.body ? (
                       <p
-                        className="mt-3 max-w-measure whitespace-pre-line text-body text-fg-body"
+                        className="mt-3 whitespace-pre-line text-body text-fg-body"
                         lang={decision.fieldLocales.body}
                         dir={decision.fieldLocales.body ? dirForLocale(decision.fieldLocales.body) : undefined}
                       >
@@ -290,7 +290,7 @@ export default async function LinearView({
               )}
 
               {chapter.fields.result ? (
-                <p className="mt-6 max-w-measure whitespace-pre-line text-body text-fg-muted">
+                <p className="mt-6 whitespace-pre-line text-body text-fg-muted">
                   {ui.t("result") ? (
                     <span className="font-mono text-micro uppercase text-fg-dim">
                       {ui.t("result")} ·{" "}
