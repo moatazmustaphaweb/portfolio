@@ -57,7 +57,13 @@ export function DeviceFrame({ children }: { children: React.ReactNode }) {
           borderRadius: 27,
           background: "white",
           border: "2px solid #E0E1E6",
-          boxShadow: "-7px 19px 39px rgba(88, 89, 92, 0.3)",
+          /*
+           * The design file's shadow is rgb(88,89,92) at 30%, and at this blur
+           * it lands as a grey slab under the device rather than as light. The
+           * geometry is kept — same offset, same blur, so the device still sits
+           * where it was drawn to sit — and only the alpha is lifted.
+           */
+          boxShadow: "-7px 19px 39px rgba(88, 89, 92, 0.12)",
         }}
       >
         <div style={{ padding: 10, borderRadius: 22, background: "#EAEAEC" }}>

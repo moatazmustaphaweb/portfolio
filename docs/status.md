@@ -64,7 +64,12 @@ read as **insets rather than as absolute rects**:
 | body | 27 | white, 2px `#E0E1E6`, 4px of padding around the bezel |
 | bezel | 22 | `#EAEAEC`, 10px of padding around the screen |
 | screen | 18 | the picture, corners rounded by `overflow: hidden` |
-| shadow | — | `-7px 19px 39px rgba(88,89,92,0.3)` — blur is 2 x stdDeviation 19.5 |
+| shadow | — | `-7px 19px 39px rgba(88,89,92,0.12)` — blur is 2 x stdDeviation 19.5 |
+
+**The shadow is the one number that is not the design's.** Moataz, on seeing it: *"you just
+need to make lighter shade."* The design file has it at 30%, and at this blur that reads as a
+grey slab under the device rather than as light. The geometry is unchanged — same offset, same
+blur, so the device still sits where it was drawn to sit — and only the alpha is lifted, to 12%.
 
 **The insets stay in absolute pixels on purpose.** A bezel is a physical part of a physical
 object. It does not get thinner because the picture is smaller, and scaling it proportionally
