@@ -1,5 +1,6 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
-import { DeviceFrame } from "@/components/media/DeviceFrame";
+import { DeviceFrame, LAPTOP_FRAME_MAX_W } from "@/components/media/DeviceFrame";
+import { PhoneFrame, PHONE_FRAME_MAX_W } from "@/components/media/PhoneFrame";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
@@ -261,7 +262,17 @@ function ChapterFigure({ media }: { media: Media | null }) {
    */
   const ratio =
     media.width && media.height ? media.height / media.width : null;
-  const device = ratio !== null && ratio < 0.9;
+  const laptop = ratio !== null && ratio < 0.9;
+  /*
+   * The phone takes the other end of the same measurement. 1.7 rather than the
+   * laptop's mirror image, because the frame is drawn around a 786x1704 screen
+   * (ratio 2.17) and anything appreciably squarer than that would sit in it
+   * with bands of bezel above and below. The 23 square-ish rows fall between
+   * the two thresholds and stay plain, which is the intended outcome: neither
+   * claim is supported by a square.
+   */
+  const phone = ratio !== null && ratio >= 1.7;
+  const device = laptop || phone;
 
   const caption = media.fields.caption;
   /*
@@ -307,7 +318,24 @@ function ChapterFigure({ media }: { media: Media | null }) {
       44 exactly — the whole point of a replaced scale is that off-system
       numbers are unreachable.
     */
-    <figure className={device ? "relative !mt-10 !mb-10" : "mt-8"}>
+    <figure
+      className={device ? "relative !mt-10 !mb-10" : "mt-8"}
+      /*
+        The figure is capped to the FRAME's own width, not left at the column's.
+
+        The floating caption centres on its positioning context, which is this
+        element. A laptop fills the column so the two agreed by accident; a
+        phone is 320px inside a 950px column, and the chip was centring hundreds
+        of pixels to the side of the device it belongs to.
+
+        `w-fit` was tried first and collapsed the figure to ZERO: the frame
+        inside is `w-full`, and a percentage width against a `fit-content`
+        parent is circular. The cap has to be a real number, so each frame
+        exports its own and this reads it — one constant with two readers
+        rather than 320 written down twice.
+      */
+      style={device ? { maxWidth: phone ? PHONE_FRAME_MAX_W : LAPTOP_FRAME_MAX_W } : undefined}
+    >
       {(() => {
         /*
           The image is identical either way. Only its container changes, so the
@@ -342,7 +370,8 @@ function ChapterFigure({ media }: { media: Media | null }) {
             }
           />
         );
-        return device ? <DeviceFrame>{img}</DeviceFrame> : img;
+        if (phone) return <PhoneFrame>{img}</PhoneFrame>;
+        return laptop ? <DeviceFrame>{img}</DeviceFrame> : img;
       })()}
       {caption ? (
         <figcaption

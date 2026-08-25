@@ -272,6 +272,68 @@ assumed: at 1800px the caption computes `position: absolute` and the figures sit
 553px it computes `static` and its box does not intersect the image's box at all (caption top
 1343, image bottom 1315).
 
+### The phone frame, from `designs/MockUp.svg`
+
+Moataz: *"maintain the same style of the frame we created for the web, not for the border
+radius. I'm talking about the lines and the colours, but the border is better to make it as is
+in the SVG."*
+
+**The style is shared because the mockup already shared it.** Read against
+`designs/Device - Macbook Pro.svg`, the phone uses the same white body, the same `#E0E1E6`
+hairline, the same `#EAEAEC` screen and a drop shadow identical to the pixel. So `PhoneFrame`
+reads the same `--device-*` tokens and inherits the dark theme — coal gradient, no shadow —
+without a line of its own. Only the notch and the lens needed new tokens, and in dark the notch
+is **darker** than the body rather than lighter: on a real phone the island is the one part
+that is always black.
+
+#### ⚠️ The laptop's absolute pixels would have been wrong here
+
+`DeviceFrame` keeps its insets in absolute px on purpose — a bezel is a physical part that does
+not thin out as the picture shrinks — and copying that decision across would have broken this
+one visibly. The mockup's outer radius is **82.5 on a body 478.42 wide**. Held at 82.5px while
+the frame renders at 320, the corner eats a quarter of the width and the phone becomes a
+lozenge. A phone is defined by its proportions in a way a laptop bezel is not.
+
+So the frame declares `container-type: inline-size` and every value is `cqw` — `1cqw` is 1% of
+the frame's own width, which is the unit the mockup is drawn in. Each number in the file is
+literally `<svg value> / 478.42`, so it can be checked against the design with a calculator
+rather than by eye. **Percentages could not do this:** `border-radius: 17%` resolves against
+each axis separately and would draw an ellipse on a box this tall.
+
+The notch and the four side buttons are both in, as asked. The buttons and the lens use `left`
+and `right`, which `rtl-guard` otherwise forbids — a deliberate exception under that skill's
+own test: a phone's volume keys do not move to the other side in Arabic.
+
+#### Two things the phone found that the laptop had hidden
+
+**The figure was never capped to the frame.** The floating caption centres on the figure box,
+and a laptop happens to fill the column so the two agreed by accident. A phone is 320px inside
+a 950px column, and the chip centred **114px off the device**. Each frame now exports its width
+and `ChapterFigure` caps the figure to it. `w-fit` was tried first and collapsed the figure to
+**zero** — the frame inside is `w-full`, and a percentage width against a `fit-content` parent
+is circular.
+
+**At its drawn width the phone is 987px tall**, a full screen of scrolling for one picture. Cap
+is 320, which renders it at 657px. Because every value is `cqw`, that is one number.
+
+#### Where it lands
+
+`height / width >= 1.7`, the other end of the laptop's measurement. Not the mirror of 0.9: the
+frame is drawn around a 786x1704 screen (2.17), and anything appreciably squarer would sit in
+it with bands of bezel above and below.
+
+| | rows |
+|---|---|
+| laptop (`< 0.9`) | 91 |
+| phone (`>= 1.7`) | 35 |
+| plain (between) | 35 |
+
+The 35 in between are the square-ish exports and stay plain, which is the intended outcome —
+neither claim is supported by a square.
+
+**Verified in a browser in both themes.** `neobiz-mobile/onboarding` renders 9 of 9 framed at
+320x657; figure centre and caption centre both 434.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
