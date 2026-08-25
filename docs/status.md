@@ -352,6 +352,34 @@ Measured at 1500px after the change: caption `position: static`, frame bottom 75
 769 — 12px of clearance, no intersection. Laptop chapters re-checked in the same pass and still
 float, 11 of 11 on `cervello/permission-architecture`.
 
+### Published, and then the launch gate was measured rather than quoted
+
+Moataz: *"اعمل publish وبعد ما يخلص خالص اعمل جدول summary ايه اللي ناقص في mvp1 نقدر ننشر
+اليوم."*
+
+Merged through PR #2 to `main` (`1e0edb2`). Production is `READY` and **verified serving the
+new work**, not merely reported as deployed: `neobiz-mobile/onboarding` returns 9 phone frames
+from the live domain.
+
+The survey is in **`docs/mvp1-launch-gate.md`**. Everything in it was measured today against
+production and the database; nothing is quoted from another document, and that is the point —
+`CLAUDE.md` has now had **five** claims rot the same way, three already recorded there and
+**two found today**:
+
+1. *"`/how-this-site-works` is Layer 2 and 404s."* It returns **200** in both locales.
+2. *"a draft slug like `/en/work/east` still renders Next's `__next_error__` shell."* It renders
+   a **real page with the slug as its `<h1>`** — a different and worse defect.
+
+**The one blocking item is a decision rather than work.** Four draft case files are live and
+readable at eight URLs, each rendering `<h1>east</h1>` over five empty paragraphs. They are not
+linked from `/work` and not in the sitemap, but they are not `noindex` either and `robots.txt`
+allows everything. Publish them, 404 them, or `noindex` them — the choice depends on open
+question B, which has never been answered.
+
+**Two claims in the file turned out far better than recorded.** The Arabic gap is **19 strings**
+in total, not the 109 chapter paragraphs `CLAUDE.md` states. `settings.og_image` is set, and the
+career timeline has 14 roles and renders — both listed there as missing.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
