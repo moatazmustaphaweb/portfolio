@@ -1,5 +1,6 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
-import { DeviceFrame } from "@/components/media/DeviceFrame";
+import { DeviceFrame, LAPTOP_FRAME_MAX_W } from "@/components/media/DeviceFrame";
+import { PhoneFrame, PHONE_FRAME_MAX_W } from "@/components/media/PhoneFrame";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
@@ -261,7 +262,17 @@ function ChapterFigure({ media }: { media: Media | null }) {
    */
   const ratio =
     media.width && media.height ? media.height / media.width : null;
-  const device = ratio !== null && ratio < 0.9;
+  const laptop = ratio !== null && ratio < 0.9;
+  /*
+   * The phone takes the other end of the same measurement. 1.7 rather than the
+   * laptop's mirror image, because the frame is drawn around a 786x1704 screen
+   * (ratio 2.17) and anything appreciably squarer than that would sit in it
+   * with bands of bezel above and below. The 23 square-ish rows fall between
+   * the two thresholds and stay plain, which is the intended outcome: neither
+   * claim is supported by a square.
+   */
+  const phone = ratio !== null && ratio >= 1.7;
+  const device = laptop || phone;
 
   const caption = media.fields.caption;
   /*
@@ -297,12 +308,34 @@ function ChapterFigure({ media }: { media: Media | null }) {
       it was solved with `display: contents`. That does not transfer — the table
       wanted the container's rhythm and this figure needs to escape it.
 
-      88px, the top of the scale rather than the middle. A framed screenshot is
-      a discrete object carrying a shadow and an overhanging caption, so the gap
-      between two of them has to clear both before they stop reading as one
-      strip.
+      40px. 88px was the first value that was ever actually APPLIED here, and
+      seeing it applied showed it was too much — the halving is a correction to
+      a number that had only ever been theoretical.
+
+      Half of 88 is 44 and 44 does not exist: the spacing scale is REPLACED, so
+      it runs 32 · 40 · 56 · 72 · 88 with nothing between. 40 is the nearest
+      step and it is the one taken. Do not reach for an arbitrary value to hit
+      44 exactly — the whole point of a replaced scale is that off-system
+      numbers are unreachable.
     */
-    <figure className={device ? "relative !mt-22 !mb-22" : "mt-8"}>
+    <figure
+      className={device ? "relative !mt-10 !mb-10" : "mt-8"}
+      /*
+        The figure is capped to the FRAME's own width, not left at the column's.
+
+        The floating caption centres on its positioning context, which is this
+        element. A laptop fills the column so the two agreed by accident; a
+        phone is 320px inside a 950px column, and the chip was centring hundreds
+        of pixels to the side of the device it belongs to.
+
+        `w-fit` was tried first and collapsed the figure to ZERO: the frame
+        inside is `w-full`, and a percentage width against a `fit-content`
+        parent is circular. The cap has to be a real number, so each frame
+        exports its own and this reads it — one constant with two readers
+        rather than 320 written down twice.
+      */
+      style={device ? { maxWidth: phone ? PHONE_FRAME_MAX_W : LAPTOP_FRAME_MAX_W } : undefined}
+    >
       {(() => {
         /*
           The image is identical either way. Only its container changes, so the
@@ -337,7 +370,8 @@ function ChapterFigure({ media }: { media: Media | null }) {
             }
           />
         );
-        return device ? <DeviceFrame>{img}</DeviceFrame> : img;
+        if (phone) return <PhoneFrame>{img}</PhoneFrame>;
+        return laptop ? <DeviceFrame>{img}</DeviceFrame> : img;
       })()}
       {caption ? (
         <figcaption
@@ -363,11 +397,34 @@ function ChapterFigure({ media }: { media: Media | null }) {
               edge, so half of it sits over the screenshot. Without an opaque
               fill the text reads against whatever pixels happen to be there.
 
-              POSITION. `inset-x-0` + `mx-auto` + `w-fit` centres it without
-              naming a physical side, so it is identical in LTR and RTL —
+              POSITION. THE CHIP FLOATS ON A LAPTOP AND NEVER ON A PHONE.
+
+              ⚠️ TWO SEPARATE REASONS, AND THEY ARE NOT THE SAME REASON.
+
+              1. NARROW VIEWPORTS. A chip covering a tenth of a 1440px
+                 screenshot covers about a third of a 390px one, and what it
+                 covers is the picture the caption exists to describe. So below
+                 `md` nothing floats. Written mobile-first — static is the base
+                 and `md:` adds the float — because the phone is where the harm
+                 was.
+
+              2. THE PHONE FRAME, AT ANY WIDTH. A laptop's bottom edge is a
+                 straight run of bezel and a chip sitting on it hides nothing.
+                 A phone's is a deep rounded chin, and the same chip covers the
+                 corner curve — the part that makes the object read as a phone
+                 at all. So a phone-framed figure keeps the static caption even
+                 on a wide screen: the whole frame stays visible, which is what
+                 it is drawn for.
+
+              Where it does float: `inset-x-0` + `mx-auto` + `w-fit` centres it
+              without naming a physical side, so LTR and RTL are identical —
               `left-1/2` with a negative translate would have been a direction
-              trap. `bottom-0 translate-y-1/2` puts its centre on the frame's
-              bottom line: centre horizontally, centred on the bottom edge.
+              trap. `bottom-0 translate-y-1/2` puts its centre on the bottom
+              line.
+
+              `md:mt-0` is not tidiness: the static caption's `mt-3` would
+              otherwise still be in the box once it goes absolute, pushing it
+              off the line it is supposed to sit on.
 
               Off-scale spacing does not exist here — the scale is REPLACED, not
               extended, so `py-1.5` would compile to nothing and the chip would
@@ -377,7 +434,14 @@ function ChapterFigure({ media }: { media: Media | null }) {
               treatment, live on one chapter while its look is being agreed.
             */
             device
-              ? "absolute inset-x-0 bottom-0 mx-auto w-fit max-w-measure translate-y-1/2 rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim"
+              ? [
+                  "mx-auto mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim",
+                  phone
+                    ? ""
+                    : "md:absolute md:inset-x-0 md:bottom-0 md:mt-0 md:translate-y-1/2",
+                ]
+                  .join(" ")
+                  .trim()
               : "mt-3 max-w-measure text-meta text-fg-muted"
           }
         >

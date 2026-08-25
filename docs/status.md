@@ -245,6 +245,113 @@ mixes desktop officer screens with portrait forms and emailers.
 written in Notion arrives NULL exactly as these 152 did, and its figure will render unframed
 whatever its shape. The backfill is a repair, not a fix, and the fix is a separate task.
 
+### 88px was too much once it was real, and the chip was covering a third of a phone
+
+Moataz, after seeing it on production: *"لما قلت لك كبر المسافات ما بين الصور، أنت كبرتها قوي.
+قللها لنص... الكابشن هو على الإطار اللي تحت، بس في الموبايل بيداري حتة من الصورة. فخليه على
+الموبايل يخرج بره الإطار. وأرى الكمبارة البي سي يفضل زي ما هو."*
+
+**The spacing goes to 40px.** Worth naming why it went up and straight back down: 88px was the
+first value ever *applied* — the earlier 32 and 56 were both outranked by `space-y-6` and never
+rendered. So the halving is not a reversal of a judgement, it is the first correction to a
+number that had only ever been theoretical. **Half of 88 is 44 and 44 does not exist:** the
+scale is REPLACED and runs 32 · 40 · 56 · 72 · 88 with nothing between, so 40 is the nearest
+step. An arbitrary value to hit 44 exactly would defeat the point of a replaced scale.
+
+**The caption stops floating below `md`.** A chip that covers a tenth of a 1440px screenshot
+covers about a third of a 390px one, and what it covers is the picture the caption exists to
+describe. On a phone it now drops out of the overlay and sits under the frame in normal flow.
+
+Written as **mobile-first**: static is the base and `md:absolute … md:translate-y-1/2` adds the
+float, rather than the float being the base and removed below. The phone is where the harm was,
+so the phone gets the plain behaviour by default. `md:mt-0` goes with it — the static caption's
+`mt-3` would otherwise survive into the absolute box and push the chip off the line.
+
+**Desktop is untouched, which he asked for explicitly.** Verified at both widths rather than
+assumed: at 1800px the caption computes `position: absolute` and the figures sit 40px apart; at
+553px it computes `static` and its box does not intersect the image's box at all (caption top
+1343, image bottom 1315).
+
+### The phone frame, from `designs/MockUp.svg`
+
+Moataz: *"maintain the same style of the frame we created for the web, not for the border
+radius. I'm talking about the lines and the colours, but the border is better to make it as is
+in the SVG."*
+
+**The style is shared because the mockup already shared it.** Read against
+`designs/Device - Macbook Pro.svg`, the phone uses the same white body, the same `#E0E1E6`
+hairline, the same `#EAEAEC` screen and a drop shadow identical to the pixel. So `PhoneFrame`
+reads the same `--device-*` tokens and inherits the dark theme — coal gradient, no shadow —
+without a line of its own. Only the notch and the lens needed new tokens, and in dark the notch
+is **darker** than the body rather than lighter: on a real phone the island is the one part
+that is always black.
+
+#### ⚠️ The laptop's absolute pixels would have been wrong here
+
+`DeviceFrame` keeps its insets in absolute px on purpose — a bezel is a physical part that does
+not thin out as the picture shrinks — and copying that decision across would have broken this
+one visibly. The mockup's outer radius is **82.5 on a body 478.42 wide**. Held at 82.5px while
+the frame renders at 320, the corner eats a quarter of the width and the phone becomes a
+lozenge. A phone is defined by its proportions in a way a laptop bezel is not.
+
+So the frame declares `container-type: inline-size` and every value is `cqw` — `1cqw` is 1% of
+the frame's own width, which is the unit the mockup is drawn in. Each number in the file is
+literally `<svg value> / 478.42`, so it can be checked against the design with a calculator
+rather than by eye. **Percentages could not do this:** `border-radius: 17%` resolves against
+each axis separately and would draw an ellipse on a box this tall.
+
+The notch and the four side buttons are both in, as asked. The buttons and the lens use `left`
+and `right`, which `rtl-guard` otherwise forbids — a deliberate exception under that skill's
+own test: a phone's volume keys do not move to the other side in Arabic.
+
+#### Two things the phone found that the laptop had hidden
+
+**The figure was never capped to the frame.** The floating caption centres on the figure box,
+and a laptop happens to fill the column so the two agreed by accident. A phone is 320px inside
+a 950px column, and the chip centred **114px off the device**. Each frame now exports its width
+and `ChapterFigure` caps the figure to it. `w-fit` was tried first and collapsed the figure to
+**zero** — the frame inside is `w-full`, and a percentage width against a `fit-content` parent
+is circular.
+
+**At its drawn width the phone is 987px tall**, a full screen of scrolling for one picture. Cap
+is 320, which renders it at 657px. Because every value is `cqw`, that is one number.
+
+#### Where it lands
+
+`height / width >= 1.7`, the other end of the laptop's measurement. Not the mirror of 0.9: the
+frame is drawn around a 786x1704 screen (2.17), and anything appreciably squarer would sit in
+it with bands of bezel above and below.
+
+| | rows |
+|---|---|
+| laptop (`< 0.9`) | 91 |
+| phone (`>= 1.7`) | 35 |
+| plain (between) | 35 |
+
+The 35 in between are the square-ish exports and stay plain, which is the intended outcome —
+neither claim is supported by a square.
+
+**Verified in a browser in both themes.** `neobiz-mobile/onboarding` renders 9 of 9 framed at
+320x657; figure centre and caption centre both 434.
+
+#### The chip does not float on a phone, at any width
+
+Moataz: *"في الموبايل افضل الكابشن يبقى تحت شوية يبين الفريم كله."*
+
+The caption already dropped out of the overlay below `md`, but that was a **viewport** rule and
+this is a different problem with the same symptom. A laptop's bottom edge is a straight run of
+bezel and a chip sitting on it hides nothing. A phone's is a deep rounded chin, and the chip
+covered the corner curve — the part that makes the object read as a phone at all. So the float
+is now the laptop's alone: a phone-framed figure keeps the static caption on a 1500px screen
+too.
+
+Two reasons, deliberately kept separate in the code rather than collapsed into one condition,
+because they would come apart the moment a third frame exists.
+
+Measured at 1500px after the change: caption `position: static`, frame bottom 757, caption top
+769 — 12px of clearance, no intersection. Laptop chapters re-checked in the same pass and still
+float, 11 of 11 on `cervello/permission-architecture`.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

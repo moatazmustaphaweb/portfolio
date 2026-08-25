@@ -42,9 +42,18 @@
  * a physical object: it does not get thinner because the picture is smaller,
  * and scaling it proportionally is what makes a frame read as a border.
  *
- * `maxWidth: 894` is the design's own outer width, so a framed picture never
- * renders larger than the frame was drawn.
+ * See `PhoneFrame` for the sibling, which shares these colours and this shadow
+ * and departs on the radii and the unit they are measured in.
  */
+
+/**
+ * The design's own outer width, so a framed picture never renders larger than
+ * the frame was drawn. EXPORTED because `ChapterFigure` caps the <figure> to
+ * the same number — the floating caption centres on the figure box, and if the
+ * two disagree the chip drifts off the device.
+ */
+export const LAPTOP_FRAME_MAX_W = 894;
+
 export function DeviceFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -54,7 +63,7 @@ export function DeviceFrame({ children }: { children: React.ReactNode }) {
        * symmetric, so nothing else mirrors.
        */
       className="me-auto w-full"
-      style={{ maxWidth: 894 }}
+      style={{ maxWidth: LAPTOP_FRAME_MAX_W }}
     >
       <div
         style={{

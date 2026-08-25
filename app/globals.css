@@ -272,6 +272,19 @@
   --device-bezel: #1a1b1d;
   --device-edge: #2e2f33;
   --device-shadow: none;
+  /*
+   * The phone's two extra surfaces (`components/media/PhoneFrame.tsx`). Its
+   * body, edge and shadow are the laptop's tokens above — the mockup uses the
+   * same white, the same #E0E1E6 and the same drop shadow — so only the notch
+   * and the camera lens need their own.
+   *
+   * In dark the notch is DARKER than the body rather than lighter. On a real
+   * phone the island is the one part that is always black, and lifting it to
+   * match the light theme's #F5F5F6 would make it the brightest thing there.
+   */
+  --device-notch: #08090a;
+  --device-notch-edge: #202124;
+  --device-lens: #3a3d42;
 
   /* --- Focus --- */
   --focus-ring-width: 2px;
@@ -324,6 +337,10 @@
     --device-bezel: #eaeaec;
     --device-edge: #e0e1e6;
     --device-shadow: -7px 19px 39px rgba(88, 89, 92, 0.12);
+    /* The notch and lens, from `designs/MockUp.svg`. */
+    --device-notch: #f5f5f6;
+    --device-notch-edge: #ececef;
+    --device-lens: #a8aeb8;
     color-scheme: light;
   }
 }
@@ -353,6 +370,10 @@
   --device-bezel: #eaeaec;
   --device-edge: #e0e1e6;
   --device-shadow: -7px 19px 39px rgba(88, 89, 92, 0.12);
+  /* The notch and lens, from `designs/MockUp.svg`. */
+  --device-notch: #f5f5f6;
+  --device-notch-edge: #ececef;
+  --device-lens: #a8aeb8;
   color-scheme: light;
 }
 
