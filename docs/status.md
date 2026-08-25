@@ -245,6 +245,33 @@ mixes desktop officer screens with portrait forms and emailers.
 written in Notion arrives NULL exactly as these 152 did, and its figure will render unframed
 whatever its shape. The backfill is a repair, not a fix, and the fix is a separate task.
 
+### 88px was too much once it was real, and the chip was covering a third of a phone
+
+Moataz, after seeing it on production: *"لما قلت لك كبر المسافات ما بين الصور، أنت كبرتها قوي.
+قللها لنص... الكابشن هو على الإطار اللي تحت، بس في الموبايل بيداري حتة من الصورة. فخليه على
+الموبايل يخرج بره الإطار. وأرى الكمبارة البي سي يفضل زي ما هو."*
+
+**The spacing goes to 40px.** Worth naming why it went up and straight back down: 88px was the
+first value ever *applied* — the earlier 32 and 56 were both outranked by `space-y-6` and never
+rendered. So the halving is not a reversal of a judgement, it is the first correction to a
+number that had only ever been theoretical. **Half of 88 is 44 and 44 does not exist:** the
+scale is REPLACED and runs 32 · 40 · 56 · 72 · 88 with nothing between, so 40 is the nearest
+step. An arbitrary value to hit 44 exactly would defeat the point of a replaced scale.
+
+**The caption stops floating below `md`.** A chip that covers a tenth of a 1440px screenshot
+covers about a third of a 390px one, and what it covers is the picture the caption exists to
+describe. On a phone it now drops out of the overlay and sits under the frame in normal flow.
+
+Written as **mobile-first**: static is the base and `md:absolute … md:translate-y-1/2` adds the
+float, rather than the float being the base and removed below. The phone is where the harm was,
+so the phone gets the plain behaviour by default. `md:mt-0` goes with it — the static caption's
+`mt-3` would otherwise survive into the absolute box and push the chip off the line.
+
+**Desktop is untouched, which he asked for explicitly.** Verified at both widths rather than
+assumed: at 1800px the caption computes `position: absolute` and the figures sit 40px apart; at
+553px it computes `static` and its box does not intersect the image's box at all (caption top
+1343, image bottom 1315).
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

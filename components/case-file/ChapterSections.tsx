@@ -297,12 +297,17 @@ function ChapterFigure({ media }: { media: Media | null }) {
       it was solved with `display: contents`. That does not transfer — the table
       wanted the container's rhythm and this figure needs to escape it.
 
-      88px, the top of the scale rather than the middle. A framed screenshot is
-      a discrete object carrying a shadow and an overhanging caption, so the gap
-      between two of them has to clear both before they stop reading as one
-      strip.
+      40px. 88px was the first value that was ever actually APPLIED here, and
+      seeing it applied showed it was too much — the halving is a correction to
+      a number that had only ever been theoretical.
+
+      Half of 88 is 44 and 44 does not exist: the spacing scale is REPLACED, so
+      it runs 32 · 40 · 56 · 72 · 88 with nothing between. 40 is the nearest
+      step and it is the one taken. Do not reach for an arbitrary value to hit
+      44 exactly — the whole point of a replaced scale is that off-system
+      numbers are unreachable.
     */
-    <figure className={device ? "relative !mt-22 !mb-22" : "mt-8"}>
+    <figure className={device ? "relative !mt-10 !mb-10" : "mt-8"}>
       {(() => {
         /*
           The image is identical either way. Only its container changes, so the
@@ -363,11 +368,25 @@ function ChapterFigure({ media }: { media: Media | null }) {
               edge, so half of it sits over the screenshot. Without an opaque
               fill the text reads against whatever pixels happen to be there.
 
-              POSITION. `inset-x-0` + `mx-auto` + `w-fit` centres it without
-              naming a physical side, so it is identical in LTR and RTL —
-              `left-1/2` with a negative translate would have been a direction
-              trap. `bottom-0 translate-y-1/2` puts its centre on the frame's
-              bottom line: centre horizontally, centred on the bottom edge.
+              POSITION, AND IT IS NOT THE SAME ON A PHONE.
+
+              From `md` up it floats: `inset-x-0` + `mx-auto` + `w-fit` centres
+              it without naming a physical side, so it is identical in LTR and
+              RTL — `left-1/2` with a negative translate would have been a
+              direction trap. `bottom-0 translate-y-1/2` puts its centre on the
+              frame's bottom line.
+
+              Below `md` it does NOT float. A chip that covers a tenth of a
+              1440px screenshot covers a third of a 320px one, and the thing it
+              covers is the picture the caption exists to describe. So on a
+              phone it drops out of the overlay and sits under the frame in
+              normal flow — the mobile default, with the floating behaviour
+              added at `md` rather than removed below it, because a phone is
+              where the harm was.
+
+              `md:mt-0` is not tidiness: the static caption's `mt-3` would
+              otherwise still be in the box once it goes absolute, pushing it
+              off the line it is supposed to sit on.
 
               Off-scale spacing does not exist here — the scale is REPLACED, not
               extended, so `py-1.5` would compile to nothing and the chip would
@@ -377,7 +396,7 @@ function ChapterFigure({ media }: { media: Media | null }) {
               treatment, live on one chapter while its look is being agreed.
             */
             device
-              ? "absolute inset-x-0 bottom-0 mx-auto w-fit max-w-measure translate-y-1/2 rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim"
+              ? "mx-auto mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim md:absolute md:inset-x-0 md:bottom-0 md:mt-0 md:translate-y-1/2"
               : "mt-3 max-w-measure text-meta text-fg-muted"
           }
         >
