@@ -428,6 +428,35 @@ And verify on the server he is watching. Verification on an ephemeral port is tr
 
 "Not tested" and "working" have been conflated on this project. A report that names its own gaps is worth more than one that reads clean.
 
+## A container that must follow its contents is CSS, not SVG
+
+Added 2026-08-25, task `009250826`, after the device frame was built twice.
+
+An SVG declares its coordinate system before it draws: the `viewBox` fixes the proportions at
+author time. So an SVG container can only crop its contents to the shape it was drawn as.
+Making one follow its contents means recomputing every coordinate per instance — and if the
+contents are HTML, they sit in a `foreignObject`, **whose inner layout is in viewBox units
+rather than CSS pixels**. That unit mismatch renders a correctly-sized image at the wrong
+scale, silently, with no error anywhere.
+
+A CSS box in normal flow already grows to whatever is inside it. Three nested `div`s with
+padding, radius and a shadow draw the same object and need no arithmetic.
+
+**The test: does the shape have to be the same every time, or does it have to fit what is put
+in it?** Fixed shape, and SVG is right. Fits its contents, and SVG is a calculation engine
+pretending to be a drawing.
+
+**Reading a design file as SVG does not mean shipping it as SVG.** The numbers are the
+design's and they transfer either way — read them as *insets* rather than as absolute rects
+and they become padding.
+
+## Absolute pixels are sometimes the correct choice, and a bezel is one
+
+Same task. The instinct on a responsive site is to scale everything proportionally. A frame's
+bezel is a physical part of a physical object: it does not get thinner because the picture is
+smaller. Scaled proportionally, it stops reading as a device and starts reading as a border.
+
+
 ---
 
 # PART 5 — THE BUG CLASSES THAT KEEP RECURRING

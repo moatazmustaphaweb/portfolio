@@ -279,14 +279,15 @@ function ChapterFigure({
             preset="gallery"
             className={
               /*
-                Framed, the picture FILLS the screen rect and is cropped to it.
-                `h-full w-full object-cover` is what makes every framed
-                screenshot the same shape; the unframed rules below are the
-                opposite intent and must not leak in, because `max-h-figure`
-                inside a fixed 786x522 box would letterbox it against the bezel.
+                Framed, the picture is NOT cropped. The frame follows its
+                contents (see `DeviceFrame`), so the image keeps its own aspect
+                ratio and the bezel wraps whatever shape arrives. An earlier
+                version forced `h-full w-full object-cover` against a fixed
+                786x522 screen; that shape is gone, and `object-cover` with no
+                height to cover collapses the picture.
               */
               device
-                ? "block h-full w-full object-cover"
+                ? "block h-auto w-full"
                 : "me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
             }
           />

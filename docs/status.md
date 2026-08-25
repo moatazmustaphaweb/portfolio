@@ -37,6 +37,72 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 009250826 - 2026-08-25 21:30 - the device frame is CSS now, and pushing is gated on a word
+
+Two things, one asked and one instructed.
+
+### The frame follows the picture, because CSS boxes do and SVG viewBoxes do not
+
+Moataz, having seen the SVG version render: *"احنا عايزين نشتغل على الـ SVG. إن هي ما تبقاش
+محدودة بمقاسات بمعنى تبقى dynamic تستوعب الصورة اللي جواها وتعملها resize على الأساس ده.
+ده ممكن ولا نرسمه بالـ CSS؟"*
+
+**CSS, and the reason is structural rather than a preference.** An SVG declares its coordinate
+system before it draws anything: the `viewBox` fixes the proportions at author time, so a
+frame drawn that way can only ever crop the picture to the shape it was drawn as. Making it
+follow its contents would mean recomputing three nested rectangles per image from the media
+row's width and height — and the picture would still be inside a `foreignObject`, whose inner
+HTML lays out in viewBox units rather than CSS pixels. That unit mismatch is exactly what made
+the screenshot render at roughly 4x scale in the version he saw.
+
+A CSS box already grows to whatever is inside it. So `components/media/DeviceFrame.tsx` is now
+three nested `div`s — body, bezel, screen — carrying the same numbers the design file carries,
+read as **insets rather than as absolute rects**:
+
+| | radius | from `designs/Device - Macbook Pro.svg` |
+|---|---|---|
+| body | 27 | white, 2px `#E0E1E6`, 4px of padding around the bezel |
+| bezel | 22 | `#EAEAEC`, 10px of padding around the screen |
+| screen | 18 | the picture, corners rounded by `overflow: hidden` |
+| shadow | — | `-7px 19px 39px rgba(88,89,92,0.3)` — blur is 2 x stdDeviation 19.5 |
+
+**The insets stay in absolute pixels on purpose.** A bezel is a physical part of a physical
+object. It does not get thinner because the picture is smaller, and scaling it proportionally
+is what makes a frame stop reading as a device and start reading as a border.
+
+`ChapterSections` no longer forces `h-full w-full object-cover` on a framed image. There is no
+fixed screen rect to cover any more, and `object-cover` with no height to cover is what
+collapsed one figure to nothing — the blank white panel above the zoomed one.
+
+**Verified in a browser, not in the diff.** `/en/work/cervello/permission-architecture` and its
+Arabic twin, on the worktree's own dev server. Every figure renders its picture whole, at its
+own aspect ratio: the wide short `instance-landing` strip (835x304) now draws a wide short
+frame instead of a blank one, and the 16:9 screens draw 16:9 frames. In `/ar` the frames sit
+against the right edge, which is `me-auto` resolving to the inline start. `tsc --noEmit` clean.
+
+**Not verified:** how the white body reads against the dark theme. It is the design's own
+colour and a laptop does not change colour with a page, so it was left alone rather than
+tokenised. That is a judgement for Moataz, not a bug.
+
+### Pushing is now gated on the word `publish`
+
+Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
+دلوقتي local، نخلص، وبنـ push آخر لما في الآخر خالص لما نستقر على الشكل النهائي. أدي المعلومة
+دي للـ DevOps Agent. خليه يمنعك من الـ Push Automatic إلا لما أنا أقول لك publish."*
+
+Written into `.claude/agents/devops.md` as a standing rule beside the existing push line,
+because a rule that lives only in a session is a rule that lasts one session.
+
+**Committing locally is unchanged and still expected at the end of a task** — this is a
+worktree, it can be deleted, and uncommitted work goes with it. **Pushing is what stops.**
+Every push to `origin` triggers a Vercel build and an email, and while a shape is still being
+agreed those emails announce work that is not finished. A brief that says "push" is not enough
+on its own; the instruction has to have come from him, in that word.
+
+**So `worktree-status-001220826` is ahead of `origin` from here on, deliberately.**
+
+---
+
 ## 008250826 - 2026-08-25 09:50 - the Relationship Manager claim, three Arabic typos, and where I stopped
 
 Moataz: *"كملوا."* The defaults I had stated were taken as approved, and the one item I had held
