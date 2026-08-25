@@ -257,7 +257,13 @@ function ChapterFigure({
   const captionLang: Locale | undefined = media.fieldLocales.caption;
 
   return (
-    <figure className="mt-8">
+    /*
+      Framed, the figure becomes the positioning context for its own caption and
+      carries extra bottom margin. The caption is taken out of flow so it can sit
+      ON the frame's bottom line, which means the figure no longer reserves room
+      for it — without `mb-10` the next paragraph runs underneath it.
+    */
+    <figure className={device ? "relative mt-8 mb-10" : "mt-8"}>
       {(() => {
         /*
           The image is identical either way. Only its container changes, so the
@@ -300,27 +306,38 @@ function ChapterFigure({
           dir={captionLang ? dirForLocale(captionLang) : undefined}
           className={
             /*
-              Framed, the caption is a chip: it hugs its own text rather than
-              running the column width, so it reads as a label attached to the
-              device above it rather than as the paragraph that follows.
+              Framed, the caption is a chip floating on the frame's bottom line.
 
-              `w-fit` is what makes it hug — a figcaption is a block element and
-              would otherwise fill the line box, and a full-width pill is not a
-              chip. `max-w-measure` still caps it, so a long caption wraps to a
-              second line inside the chip instead of running off the frame.
+              THE STYLE IS THE SITE'S CHIP, FLAT. `border border-DEFAULT px-3
+              py-1 font-mono text-micro text-fg-dim` is exactly what the gallery
+              cards, PreviewIndex, StubPage and RedactedEvidence already use —
+              one chip treatment, not a second one invented here. The single
+              departure is the radius: `rounded-none` instead of `rounded-pill`,
+              which is the flat shape asked for.
 
-              Padding is `px-3 py-1`, the same as every other pill on the site
-              (ProjectCard, PreviewIndex, RedactedEvidence). Off-scale values
-              like `py-1.5` do not exist here — the spacing scale is REPLACED,
-              not extended, so they compile to nothing and the chip silently
-              loses its padding.
+              `uppercase` is dropped with it. Every existing chip is a one-word
+              label (`FINTECH`, `NDA`) and upper-cases cleanly; a caption is a
+              sentence, and a shouted sentence is not the voice.
 
-              Unframed captions are unchanged. The chip belongs to the device
-              treatment, which is live on one chapter while its look is being
-              agreed; widening it to all 57 Egypt figures is a separate call.
+              `bg-surface` is not decoration — the chip straddles the frame's
+              edge, so half of it sits over the screenshot. Without an opaque
+              fill the text reads against whatever pixels happen to be there.
+
+              POSITION. `inset-x-0` + `mx-auto` + `w-fit` centres it without
+              naming a physical side, so it is identical in LTR and RTL —
+              `left-1/2` with a negative translate would have been a direction
+              trap. `bottom-0 translate-y-1/2` puts its centre on the frame's
+              bottom line: centre horizontally, centred on the bottom edge.
+
+              Off-scale spacing does not exist here — the scale is REPLACED, not
+              extended, so `py-1.5` would compile to nothing and the chip would
+              silently lose its padding.
+
+              Unframed captions are unchanged. This belongs to the device
+              treatment, live on one chapter while its look is being agreed.
             */
             device
-              ? "mt-3 w-fit max-w-measure rounded-pill border border-DEFAULT bg-surface px-3 py-1 text-meta text-fg-muted"
+              ? "absolute inset-x-0 bottom-0 mx-auto w-fit max-w-measure translate-y-1/2 rounded-none border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim"
               : "mt-3 max-w-measure text-meta text-fg-muted"
           }
         >

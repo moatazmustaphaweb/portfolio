@@ -89,25 +89,46 @@ against the right edge, which is `me-auto` resolving to the inline start. `tsc -
 colour and a laptop does not change colour with a page, so it was left alone rather than
 tokenised. That is a judgement for Moataz, not a bug.
 
-### The caption under a framed figure is a chip
+### The caption under a framed figure is a flat chip, floating on the frame's bottom line
 
-Moataz: *"put the caption in chip."* Under a framed figure the caption is now a pill that hugs
-its own text — `w-fit rounded-pill border bg-surface px-3 py-1`, the same padding every other
-pill on the site uses. `w-fit` is the part doing the work: a `figcaption` is a block element and
-would otherwise fill the line box, and a full-width pill is not a chip. `max-w-measure` still
-caps it, so a long caption wraps to a second line inside the chip rather than running past the
-frame.
+Moataz: *"put the caption in chip"*, then, on seeing a pill of my own invention: *"i meant the
+same style like the shapes you are using in the other screens like the cover… look where the
+chips' style in the entire website and the match is the same style"* and *"just make it flat
+style."*
 
-**Scoped to framed figures only, deliberately.** The device treatment is live on one chapter
-while its look is being agreed; the 57 Egypt figures keep their plain captions. Widening it is
-one word, and it is his call rather than a side effect of this one.
+**The correction is the useful part.** Asked for a chip, I designed one instead of finding the
+one the site already has. `ProjectCard`, `PreviewIndex`, `StubPage` and `RedactedEvidence` all
+carry the same treatment — `border border-DEFAULT px-3 py-1 font-mono text-micro text-fg-dim`
+— and a second chip vocabulary is exactly what a REPLACED token scale exists to prevent. The
+class is now that one, with a single deliberate departure: `rounded-none` in place of
+`rounded-pill`, which is the flat shape he asked for.
 
-**`py-1.5` would have compiled to nothing.** The spacing scale is REPLACED rather than extended
-(`tailwind.config.ts`), so off-scale values silently no-op and the chip would have lost its
-padding with no error anywhere. Checked the scale before writing the class rather than after.
+`uppercase` is dropped along with the radius. Every existing chip is a one-word label
+(`FINTECH`, `NDA`) and upper-cases cleanly; a caption is a sentence, and a shouted sentence is
+not the voice.
 
-Verified in a browser in both locales. In `/ar` the chip sits against the right edge and hugs
-its text there too.
+**It floats on the frame's bottom line** — `absolute inset-x-0 bottom-0 mx-auto w-fit
+translate-y-1/2`, so its centre sits on the frame's bottom edge with half of it over the
+screenshot. `inset-x-0` + `mx-auto` + `w-fit` is what centres it **without naming a physical
+side**, so LTR and RTL are identical; `left-1/2` with a negative translate would have been a
+direction trap, since Tailwind does not mirror `translate-x`.
+
+`bg-surface` is load-bearing rather than decorative here: half the chip sits over arbitrary
+screenshot pixels, and without an opaque fill the text has no guaranteed contrast.
+
+The figure gains `relative` and `mb-10`. The caption is out of flow, so the figure stops
+reserving room for it — without the margin the next paragraph runs underneath.
+
+**`py-1.5` and a `rounded-*` guess would both have failed silently.** The spacing and radius
+scales are REPLACED rather than extended (`tailwind.config.ts`), so an off-scale utility
+compiles to nothing with no error anywhere. Both were checked against the config before the
+class was written.
+
+Verified in a browser in both locales. In `/ar` the chip is centred on the same line and the
+Arabic reads correctly inside it.
+
+**Still scoped to framed figures only.** The 57 Egypt captions are untouched — the device
+treatment is live on one chapter while its look is being agreed, and widening it is his call.
 
 ### Pushing is now gated on the word `publish`
 
