@@ -265,11 +265,29 @@ function ChapterFigure({
       underneath it, and without a matching top margin two consecutive frames
       end up separated only by the overhanging chip.
 
-      `mt-14` / `mb-14` (56px) rather than the unframed `mt-8` (32px): a framed
-      screenshot is a discrete object with a shadow, and at 32px two of them
-      read as one strip rather than as two devices.
+      ⚠️ THE `!` IS LOAD-BEARING. THIS FIGURE'S PLAIN `mt-*` NEVER APPLIED.
+
+      The parent is `<div className="mt-5 space-y-6">` (line 133). `space-y-6`
+      compiles to `.space-y-6 > :not([hidden]) ~ :not([hidden])`, which outranks
+      a bare `.mt-8` on the child, so EVERY figure on every chapter has been
+      spaced at the container's 24px since it was written — the `mt-8` here was
+      dead the whole time, and so were the `mt-14` and `mb-14` that replaced it
+      earlier in this same task. `space-y` also forces `margin-bottom: 0`, which
+      is why the bottom margin never did anything either.
+
+      Measured, not reasoned: `mt-22` resolves to 88px on a bare element and to
+      24px on this figure. That gap between the two readings is the bug.
+
+      The same conflict is already documented for the table at line 195, where
+      it was solved with `display: contents`. That does not transfer — the table
+      wanted the container's rhythm and this figure needs to escape it.
+
+      88px, the top of the scale rather than the middle. A framed screenshot is
+      a discrete object carrying a shadow and an overhanging caption, so the gap
+      between two of them has to clear both before they stop reading as one
+      strip.
     */
-    <figure className={device ? "relative mt-14 mb-14" : "mt-8"}>
+    <figure className={device ? "relative !mt-22 !mb-22" : "mt-8"}>
       {(() => {
         /*
           The image is identical either way. Only its container changes, so the

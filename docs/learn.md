@@ -972,6 +972,38 @@ page in a different encoding."
 back to a span with no composed diacritics before assuming the text moved.** The same applies to
 `أً`/`ًأ` and to any letter carrying two marks.
 
+## `space-y-*` on a parent silently outranks `mt-*` on the child
+
+Added 2026-08-25, task `009250826`, after shipping the same spacing fix twice without either
+one taking effect.
+
+`space-y-6` compiles to `.space-y-6 > :not([hidden]) ~ :not([hidden])` — three selectors, so it
+beats a bare `.mt-8` on the child, which is one. It also sets `margin-bottom: 0`, so a child's
+`mb-*` is dead as well. Nothing errors. The class is in the DOM, the utility exists, the value
+is on-scale, and the margin is simply not the one that applies.
+
+**This is not the replaced-scale trap** (an off-scale utility compiling to nothing). Both traps
+end the same way — a class that is present and does nothing — but they need different checks,
+so a `class="mt-22"` that looks wrong has to be tested against both.
+
+**The check is two computed values, not one.** Read the property off the real element AND off a
+bare element carrying the same class:
+
+```js
+getComputedStyle(figure).marginTop        // 24px  ← what actually applies
+getComputedStyle(freshDiv).marginTop      // 88px  ← what the class means
+```
+
+A gap between those two numbers is an override. One number on its own proves nothing, and a
+screenshot proves less — the spacing here was reported as fixed twice, from screenshots, while
+the container's 24px never moved.
+
+**When the child must escape the container's rhythm, `!` is the honest tool** (Tailwind v3;
+v4 writes it as a suffix). `display: contents` is the other fix and solves the opposite
+problem — it makes the child *take* the container's rhythm instead of stacking a second margin
+on top of it. Both appear in `ChapterSections.tsx`, a few lines apart, for opposite reasons.
+
+
 ---
 
 # PART 6 — ENVIRONMENT TRAPS

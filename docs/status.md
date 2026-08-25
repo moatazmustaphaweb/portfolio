@@ -116,15 +116,31 @@ direction trap, since Tailwind does not mirror `translate-x`.
 `bg-surface` is load-bearing rather than decorative here: half the chip sits over arbitrary
 screenshot pixels, and without an opaque fill the text has no guaranteed contrast.
 
-The figure gains `relative` and margins on both sides, `mt-14` / `mb-14` (56px) against the
-unframed `mt-8` (32px). Moataz: *"هتسيب مسافة ما بين الصورة والصورة. عشان كده الصور مفيش ما
-بينهم مسافات خالص."* Two causes, both real — the caption is out of flow so the figure stopped
-reserving room for it, and 32px was never enough between two objects that each carry a shadow.
-At the old spacing two frames read as one strip rather than as two devices.
+### The figure spacing was reported fixed twice and never applied once
 
-**The radius is `rounded-control` (6px).** Moataz: *"حواف دائرية للجيب، مش دائرية كلية، دائرية
-يعني نص دائرية."* Softened rather than fully round — and still one of the system's three radii
-rather than a fourth number invented for this one chip.
+Moataz, twice: *"هتسيب مسافة ما بين الصورة والصورة"*, then *"add more space between images."*
+
+**He was right both times, and both of my fixes were dead on arrival.** The figure sits inside
+`<div className="mt-5 space-y-6">`. `space-y-6` compiles to
+`.space-y-6 > :not([hidden]) ~ :not([hidden])` — three selectors against a bare `.mt-8`'s one —
+so it has outranked every figure margin on every chapter since the file was written. It also
+forces `margin-bottom: 0`, so the bottom margins were dead too. The `mt-8` → `mt-14` → `mb-14`
+edits changed nothing at all, and I reported them as done from screenshots.
+
+**Caught by measuring two values instead of one:** `mt-22` resolves to **88px** on a bare
+element and resolved to **24px** on this figure. The gap between those readings is the whole
+bug; either number alone looks fine.
+
+Fixed with `!mt-22 !mb-22` — 88px, the top of the scale. A framed screenshot carries a shadow
+and an overhanging caption, so the gap has to clear both before two of them stop reading as one
+strip. Verified as 88px on all ten adjacent pairs, measured off the rendered page.
+
+`display: contents` — the fix already documented eleven lines away in the same file for the
+table — deliberately does **not** transfer. It makes a child *take* the container's rhythm; this
+figure needed to escape it. Same conflict, opposite remedies.
+
+The general lesson is in `docs/learn.md` Part 5, because this trap is a sibling of the replaced-
+scale one: both end in a class that is present, valid, and does nothing.
 
 **`py-1.5` and a `rounded-*` guess would both have failed silently.** The spacing and radius
 scales are REPLACED rather than extended (`tailwind.config.ts`), so an off-scale utility
