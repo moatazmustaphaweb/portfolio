@@ -37,6 +37,65 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 008250826 - 2026-08-25 09:50 - the Relationship Manager claim, three Arabic typos, and where I stopped
+
+Moataz: *"كملوا."* The defaults I had stated were taken as approved, and the one item I had held
+back was released with them.
+
+### The claim about a person, corrected
+
+**It was in an ENTRY HANDLE, not in a cover paragraph**, which is why it survived a full content
+sweep by five agents. The Arabic payoff read:
+
+> …وهو ما **أزال مدير العلاقة من الرحلة نهائيًا**.
+
+*"…which removed the Relationship Manager from the journey entirely."* The English had been
+corrected long ago and both Arabic chapters carried the corrected wording. **The whole corrective
+clause was simply missing from the Arabic handle.** Now:
+
+> …وهو ما أخرج **اللقاء الشخصي** مع مدير العلاقة من الرحلة. ومدير العلاقة ما زال صاحب العلاقة؛
+> الذي زال هو **الموعد**.
+
+Mirrors the English exactly. **Nothing was invented**: the corrected wording already existed in
+three other places on the same site, in both languages.
+
+### Three Arabic errors, each confirmed against its own sentence
+
+| was | is | the evidence, in the same paragraph |
+|---|---|---|
+| `إن استجواب الأمر` | `إن استلزم الأمر` | the clause is about professional licences |
+| `وقائمة المهاه` | `وقائمة المهام` | written correctly two lines above |
+| `بل ويختلف المنتجات… نفسه` | `بل وتختلف… نفسها` | the same sentence already runs `وتختلف المستندات… وتختلف بيانات التواصل` |
+
+None of these is a judgement call. Each is settled by the text around it.
+
+### The 404's `504` was never a defect
+
+The rendered Arabic 404 reads **«هذه الصفحة غير موجودة»**. The `٥٠٤` exists only in the Notion
+authoring page, which does not sync. It reached no visitor. Reported as a heading defect; measured
+as a record defect.
+
+### Where I stopped, and why
+
+**Two of the eight missing Arabic chapter tails written, six left.** The two are Cervello's, which I
+wrote in English earlier the same day and could place exactly.
+
+The other six are **six new Arabic sentences of mine, unreviewed by him, hours before launch.** The
+English tail falls back and is correctly marked `lang="en"`, so those pages are **untranslated, not
+broken.** Writing them would have added six more strings to a review backlog that already exists,
+to close a gap that shows a correct English sentence.
+
+Left: `egypt-acquisition/onboarding` · `workflow` · `portal` · `fulfilment` ·
+`neobiz-mobile/onboarding` · `portal`. Five minutes' work on his word.
+
+### Verified
+
+Sync `failed 0`, `updated 26`, notices **14 -> 12** (both Cervello tail notices cleared) ·
+`translations` **0 em, 0 en** after the sync · old claim **0 rows**, new wording **2** ·
+all three typos **0 rows** · both Arabic tails **present**.
+
+---
+
 ## 007250826 - 2026-08-25 09:15 - the em dash is gone from the rendered site, verified in the HTML
 
 **60 routes, both locales, zero em dashes and zero en dashes in the served HTML.** Every route
