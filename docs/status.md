@@ -137,6 +137,39 @@ Arabic reads correctly inside it.
 **Still scoped to framed figures only.** The 57 Egypt captions are untouched — the device
 treatment is live on one chapter while its look is being agreed, and widening it is his call.
 
+### The frame is a different object in each theme, not the same one recoloured
+
+Moataz: *"ممكن تعمل لها ألوان تـ match مع الـ light theme زي ما هي كده، وتعمل لها ألوان تـ match
+مع الـ dark theme. Dark theme من غير shadows خالص والإطار ألوانه تبقى gradient of coal أو
+black."*
+
+Four colours moved out of `DeviceFrame.tsx` and into `app/globals.css` beside the theme
+overrides — `--device-body`, `--device-bezel`, `--device-edge`, `--device-shadow` — declared in
+all three blocks (`:root` dark, the `prefers-color-scheme: light` media query, and
+`:root[data-theme="light"]`). The component holds geometry and nothing else now, and the frame
+changes with the theme without a `dark:` variant anywhere, the same way the rest of the site
+works.
+
+**Dark is not the light frame darkened, and that is the point of his instruction.** Two
+structural differences, not two shades:
+
+- **The body is a gradient**, `linear-gradient(155deg, #2b2c2f, #17181a 58%, #0d0e10)`. A flat
+  near-black rectangle on a `#000` page has no form at all; the gradient is what keeps the
+  object legible as an object once its edges stop contrasting with the page.
+- **There is no shadow.** `--device-shadow: none`. A shadow is occlusion of light, and on a
+  black page there is no light for it to occlude — it reads as a smudge rather than as depth.
+  Separation comes from the edge instead. This is why the token holds the whole `box-shadow`
+  value rather than just a colour: `none` is not a darker shadow.
+
+`background` rather than `background-color` on the body, because `background-color` cannot hold
+a gradient. The light values are still the design file's own, with the 12% shadow alpha.
+
+**Verified in both themes**, and the light one deterministically rather than by clicking a
+toggle mid-scroll: `data-theme="light"` set on the root, then the four resolved values read back
+off `getComputedStyle` — `#fff` / `#eaeaec` / `#e0e1e6` / `-7px 19px 39px #58595c1f` — and the
+page screenshotted. Two earlier readings of this were taken during a theme transition and were
+misleading in both directions.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

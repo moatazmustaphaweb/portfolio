@@ -252,6 +252,27 @@
   --duration-press-in: 60ms;
   --duration-press-out: 160ms;
 
+  /*
+   * --- The device frame (components/media/DeviceFrame.tsx) ---
+   *
+   * The laptop around a chapter screenshot. Tokenised 2026-08-25, task
+   * `009250826`, because the frame had the design file's light values written
+   * into it as literals and stayed a white slab on a black page.
+   *
+   * DARK IS NOT THE LIGHT FRAME DARKENED. Two deliberate differences:
+   *
+   *   - The body is a GRADIENT rather than a flat fill. A flat near-black
+   *     rectangle against a #000 page has no form at all; the gradient is what
+   *     keeps the object readable as an object once its edges stop contrasting.
+   *   - There is NO SHADOW. A shadow is occlusion of light, and there is no
+   *     light here for it to occlude — on a black page it reads as a smudge
+   *     rather than as depth. Separation comes from the edge instead.
+   */
+  --device-body: linear-gradient(155deg, #2b2c2f 0%, #17181a 58%, #0d0e10 100%);
+  --device-bezel: #1a1b1d;
+  --device-edge: #2e2f33;
+  --device-shadow: none;
+
   /* --- Focus --- */
   --focus-ring-width: 2px;
   --focus-offset: 2px;
@@ -293,6 +314,16 @@
      */
     --color-fg-dim: #707070;
     --color-accent: #0060df;
+    /*
+     * The device frame in light. These four ARE the design file's own values
+     * (`designs/Device - Macbook Pro.svg`), with one change: the shadow's alpha
+     * is 12% rather than its 30%, which at this blur read as a grey slab under
+     * the device rather than as light.
+     */
+    --device-body: #ffffff;
+    --device-bezel: #eaeaec;
+    --device-edge: #e0e1e6;
+    --device-shadow: -7px 19px 39px rgba(88, 89, 92, 0.12);
     color-scheme: light;
   }
 }
@@ -312,6 +343,16 @@
   /* See the note on the light-theme override above — same value, same reason. */
   --color-fg-dim: #707070;
   --color-accent: #0060df;
+  /*
+   * The device frame in light. These four ARE the design file's own values
+   * (`designs/Device - Macbook Pro.svg`), with one change: the shadow's alpha
+   * is 12% rather than its 30%, which at this blur read as a grey slab under
+   * the device rather than as light.
+   */
+  --device-body: #ffffff;
+  --device-bezel: #eaeaec;
+  --device-edge: #e0e1e6;
+  --device-shadow: -7px 19px 39px rgba(88, 89, 92, 0.12);
   color-scheme: light;
 }
 
