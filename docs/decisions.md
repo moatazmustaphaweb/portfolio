@@ -822,6 +822,42 @@ obstacle, the shape of an agent turn was.
 
 ---
 
+## 059 — Vercel's Preview environment stays unconfigured until MVP-2
+
+**Decided 2026-08-25, task `009250826`, by Moataz, in launch week.**
+
+**Decision:** the Preview environment on Vercel does not get environment variables, and preview
+builds are expected to fail, until MVP-2. His words: *"ماكانت فارقة معايا لان في mvp1
+البرودكشن هو هو البريفيو، بس هنحتاج نصلحها لما نوصل ل mvp2، في الحالة دي هيبقى في ٢ فيرجين."*
+
+**What is actually true right now**, measured across the last twenty deployments rather than
+assumed: every deployment on `main` (`target: production`) is `READY` — fifteen of them. Every
+deployment on a branch (`target: null`, Preview) is `ERROR` — five of them, the earliest
+predating this task. The failure is always the same line:
+
+```
+Error: NEXT_PUBLIC_SUPABASE_URL is not set   (lib/supabase/server.ts:25)
+```
+
+The variables are set for Production only. **Nothing about a branch's contents affects this** —
+any branch fails, whatever is on it, and a branch build failing is not evidence of a bug in the
+work.
+
+**Why it is deferred rather than fixed.** In MVP-1 there is one version of the site, so
+production *is* the preview. A second environment would be a second thing to keep in sync for
+no reader. At MVP-2 there are two versions and the distinction starts paying for itself.
+
+**What this costs, stated so it is not discovered later.** Work on a branch cannot be seen in a
+browser at a Vercel URL. It is visible on a local dev server, or after it reaches `main`. Any
+request to "see it deployed" before MVP-2 means production.
+
+**Who does it, when it happens.** Setting the variables is Moataz's, not an agent's — it means
+handling `SUPABASE_SERVICE_ROLE_KEY` and the other secrets in the Vercel dashboard. Vercel
+Settings → Environment Variables, ticking **Preview** beside Production on the existing rows.
+No agent, devops included, enters a secret into a field.
+
+---
+
 ## 058 — No em dash anywhere a visitor reads. Supersedes the em-dash half of 057
 
 **Decided 2026-08-25, task `001250826`, by Moataz, in launch week.**
