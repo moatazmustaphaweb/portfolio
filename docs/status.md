@@ -37,6 +37,196 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 007250826 - 2026-08-25 09:15 - the em dash is gone from the rendered site, verified in the HTML
+
+**60 routes, both locales, zero em dashes and zero en dashes in the served HTML.** Every route
+returns its expected status, the 404 included.
+
+This is the only number in this task that means anything. Notion and the database were both at
+zero before the site was, and both were wrong about it.
+
+### The sweep
+
+**~684 resolved by five agents plus Cervello by hand**, each one read for what the dash was doing
+rather than swapped for a comma. Moataz was explicit: *"replace with the right punctuation in the
+context, don't just replace."*
+
+| Scope | Resolved |
+|---|---|
+| Egypt | **334** |
+| Accessibility + comparisons | **120** |
+| Static pages | **95** |
+| Neobiz | **67** |
+| UAE | **38** |
+| Cervello (mine) | **~30** |
+
+Comma for an aside, full stop for a pivot with a full clause, colon for a definition or a list,
+**parentheses where the aside was itself a comma list** (all five agents reached that independently),
+a conjunction where one already carried the join, and the WORD for a range in prose.
+
+### Three rulings I got wrong and had to reverse
+
+1. **Ranges take a plain hyphen.** Produced `two weeks-one month`, which is the machine writing the
+   whole task exists to remove. Corrected: prose takes `to` / `إلى`; a bare value in a table keeps
+   the hyphen. Later sharpened again by dash-egypt: the line is **bare value versus sentence**, not
+   table versus prose.
+2. **Link labels should match their row titles.** Wrong. A bracketed reference that NAMES a row is
+   an identifier; a link label is prose. My instruction turned
+   `Egypt - Accessibility & the component library` into `Bilingual, RTL & Regulatory Comprehension`
+   and cost an agent a round of rework. Labels keep their words; only the dash resolves.
+3. **`decisionsFromBody` drops quote blocks.** It does not. `readBody` never reads them.
+
+### What the HTML found that nothing else could
+
+The database was at zero and **182 em dashes were still being served.** Three per page, constant,
+which is the shape of chrome rather than prose:
+
+| Source | Count |
+|---|---|
+| `lib/seo/metadata.ts` - the `<title>` / `og:title` / `twitter:title` separator | 174 |
+| `/all` and `/results` page titles | 22 |
+| `designs/registry.tsx` - the SVG `alt` and `description`, read by screen readers | 2 |
+| `CareerTimeline.tsx` - seven date ranges, an en dash, mine | 7 |
+
+**Every one of them is composed in code and could not have been reached by any content sweep.** The
+title separator alone is the most-seen string on the site: the browser tab, the search result and
+the link preview.
+
+### The four sibling links I broke, and the second place the dash was load-bearing
+
+`scripts/sync-notion.ts` stripped the row-title prefix with `row.title.replace(/^.*—\s*/, "")`.
+Renaming the rows to a plain hyphen stopped that matching, each case file took its FULL row title as
+its English title, and **every sibling link on every cover silently stopped resolving.**
+
+I had grepped `lib/sync/classify.ts`, found the classifier, widened it and stopped, an hour after
+writing the rule that says to grep for the field. Fixed at the source: the split now comes from
+`classifyTitle` and exists in one place. `docs/learn.md` Part 5 carries both halves.
+
+### Pages that render and cannot be reached by the sync
+
+Three, and this is now the third time this class has surfaced in one session:
+
+- `Accessibility` - listed by the sync under **NOT YET IMPLEMENTED**, published, renders.
+- `Chapter - UAE / Application Tracking` - `In MVP-1 = NO`, so out of scope, published, renders.
+- The Neobiz cover image `alt` - frozen from an earlier sync.
+
+Their corrected text sat in Notion with no way out. `0058` writes it to the database directly.
+**The write paths are still missing and belong to backend.**
+
+### Verified
+
+`next build` exit 0 · `tsc` clean · `eslint` clean · `check:seed-drift` **100/100, no drift** ·
+`test:sync` all pass · `verify:content` all pass · `translations` **0 em, 0 en** ·
+**served HTML 60/60 routes, 0 em, 0 en, 0 wrong status.**
+
+### Not verified
+
+**The sync was killed mid-run twice**, not by me. Both times it was re-run to completion afterwards
+and the final run exited 0, but if something in this environment is stopping long background jobs it
+will do it again.
+
+Nothing was looked at in a browser. The crawl reads markup, not pixels.
+
+### Open, and Moataz's
+
+**The Arabic UAE cover still claims the Relationship Manager was removed from the journey entirely.**
+The English was corrected long ago; both Arabic chapters carry the corrected wording; the cover
+alone does not. Asked twice, unanswered, untouched.
+
+Plus: **8 chapters** whose English closes with a next-chapter line the Arabic lacks, so an Arabic
+reader gets an English sentence by fallback · the 404's Arabic heading reads `504` · three Arabic
+text errors in the Neobiz onboarding chapter · `Landing` and `Classic Gallery` have no Arabic child
+page at all.
+
+---
+
+## 001250826 - 2026-08-25 07:30 - Cervello written from an interview, and the em dash comes out of the whole database
+
+Two tasks that turned into one. Moataz interviewed for Cervello's missing content, then ruled
+that the em dash leaves the site entirely, in both languages, before launch this week.
+
+### Part 1 - Cervello, written from answers rather than from the old write-up
+
+Thirteen questions, one per message, over a long session. `portfolio-voice` requires exactly this
+and names the alternative as the thing that produced eighteen unverified passages last time.
+
+**What the interview produced that no amount of reading could have:**
+
+| | |
+|---|---|
+| Reselling | The marketplace was the PM's idea and was **closed** as too big. `duplicate + transfer` shipped instead. The **customer** duplicates, so ownership never moves |
+| The `instance` layer | **His invention.** Only `organisation` existed |
+| The `team` layer | His |
+| `assets` | His. They had devices only |
+| `belongs` / `relates` | His, `inherit` and `siblings`, with the street-lighting example |
+| "It was flat" | Precisely: devices sat inside organisation and neither was called a layer. The architect had the concept and no way to express it |
+| The line of the chapter | **"I took the two dimensions and made them three."** |
+
+**And two corrections to text that was already published:**
+
+- *"It's better to be right than consistent"* is **withdrawn by its author.** It argues against
+  consistency; the argument is only about where consistency stops paying. Now
+  *"Consistency is worth keeping until it no longer fits the context."*
+- The platform is **almost zero-code, not zero-code.** The UI Builder has a code part. The old
+  portfolio page's "code-less" overstates it.
+
+**Written to Notion, EN and AR, in four pages.** Dry run after: `failed 0`, and
+`cervello/on-premises-to-cloud: 3 en, 3 ar` where it had been 2. The new decision parses in both.
+
+⚠️ **I told him Cervello had zero decisions. It had five.** I queried
+`chapter_paragraphs.kind='decision'`, which is 0 for every chapter of every case file on the site,
+because decisions live in their own `decisions` table. The content agent caught it.
+
+### Part 2 - the em dash, and the thing it was holding up
+
+**The rule is contextual, and he was explicit about it:** *"replace with the right punctuation in
+the context, don't just replace."* Comma for an aside, full stop for a pivot, colon for a
+definition or a lead-in, Arabic comma `،` in Arabic. A blanket swap would have shipped comma
+splices in his own voice.
+
+**Measured first: 728 em dashes across 490 rows**, both languages, before any were touched.
+
+**Titles: 56 changed, and the parser had to move first.** `lib/sync/classify.ts` identified every
+page type by a regex requiring `—`. Removing the dash from titles without touching the parser
+would have made the sync unable to classify a single page.
+
+**And that is not theoretical, because two pages were already broken by it.**
+`Chapter - Neobiz Mobile / Onboarding` and `Chapter - UAE / Mobile Onboarding Journey` were
+written with a plain hyphen, failed every `—` test, and fell through to `static` - which the dry
+run then reported under "NOT YET IMPLEMENTED" rather than as broken. **Six decisions, three per
+chapter, in both languages, were not being written at all.** `updated` went 19 -> 21 on the fix.
+
+The separator now accepts `[—–-]`, consumed **once, anchored at the front**. Deliberately not a
+whole-title normalisation: folding every hyphen would have corrupted `On-Premises to Cloud`,
+`Open-Source` and `AI-reader compliance`.
+
+**Five seeded strings are not in Notion**, so no sync would ever have reached them. Corrected in
+the seed files (`0003`, `0009`, `0056`) **and** in migration `0057` for the live database.
+`ui_strings.description` was left alone on purpose: only a maintainer reads it.
+
+**`/llms.txt` carried one**, in the instruction block every summarising model reads.
+
+### Verified
+
+`tsc` clean - `check:seed-drift` **100/100, no drift** - `test:sync` all pass - dry run
+`failed 0` with **identical** counts before and after the 56 renames - `Page LIKE '%—%'` returns
+**zero rows** - `ui_string`/`career_role` em dashes **zero**.
+
+### Not verified
+
+Nothing has been synced to the database or rendered. The prose sweep is running in five agents
+(`002`-`006`) and only UAE has reported. **The definitive check is still to come:** grep the
+served HTML in both locales, not Notion and not the database.
+
+### ⚠️ For Moataz, found by the UAE agent inside a punctuation task
+
+**The Arabic UAE cover still claims the Relationship Manager was removed from the journey
+entirely.** The English was corrected long ago and both Arabic chapters carry the corrected
+wording. The cover alone does not. It is a claim about a person's role and it differs between the
+two languages on the same site. **His call, asked and open.**
+
+---
+
 ## 045240826 — 2026-08-24 13:45 — the Draft line is gone, and the sync has no write path for the page it was on
 
 Moataz: *"سطر الدرافت ممكن يتشال، هو دا درافت، ممكن يتشال قبل الاطلاق."* Done — and getting

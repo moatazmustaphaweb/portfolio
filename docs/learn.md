@@ -26,6 +26,52 @@ He reads the file, not the terminal. An unchanged `status.md` is indistinguishab
 
 Generalises past this one rule: **if a standing rule is being violated, adding words to it is the weakest available fix.** Attach it to a step that cannot be skipped.
 
+## A report written as assistant text is a report nobody received
+
+Learned 2026-08-25, task `006250826`, after being recorded as an idle agent three times in a
+row while holding a finished report each time.
+
+**In a team session, plain assistant text does not reach teammates. `SendMessage` is the only
+channel out.** An agent that writes its report and ends its turn has, from the orchestrator's
+side, produced nothing — and from its own side, everything looked sent. The task was complete,
+verified and logged after the first round; two further rounds were spent on a delivery bug
+while the orchestrator reasonably concluded the scope was unstaffed and prepared to reassign it.
+
+**This is the same failure as an unchanged `status.md`, in a different pipe**, and it is worse
+in one respect: an empty status file at least *looks* empty. A report that was composed but
+never sent leaves no trace anywhere — not in the file, not in the inbox — so the work looks
+covered to the agent and abandoned to everyone else. **A silent agent is worse than a failed
+one**, because a failure gets reassigned and a silence gets waited on.
+
+**So, mechanically:** every reply to a teammate goes through `SendMessage`. The tool result
+saying `success` is the evidence that the report exists; the text in the turn is not. Same
+shape as the Notion rule in `docs/content-brief.md` — a write you did not confirm is not a
+write — and the same shape as the fix in the section above: **attach the rule to a step that
+cannot be skipped rather than restating it.** The close is not `DONE` until the send returned.
+
+### And the reason it happens is that `SendMessage` may not be in your toolset at all
+
+Added 2026-08-25, task `002250826`, by the second agent to hit this on the same day — four
+finished reports, none delivered, same shape as above.
+
+**The cause was not forgetfulness. `SendMessage` was a deferred tool**, listed by name in a
+system reminder with its schema unloaded, which means it could not be called at all. Writing
+the report as assistant text was not a lapse in following the rule — it was the only thing
+available, and nothing in the turn signalled that a channel was missing. The rule above says
+*every reply goes through `SendMessage`*; it cannot be followed by an agent that does not have
+the tool.
+
+**So the step that cannot be skipped is one earlier than the send:** on a team task, load the
+tool before you need it —
+
+```
+ToolSearch("select:SendMessage")
+```
+
+**Deferred tools are invisible until fetched, and a missing outbound channel fails silently in
+exactly the direction nobody checks.** If the tool list in front of you has no `SendMessage`
+and you are working under an orchestrator, that is the first thing to fix, not the last.
+
 ## One prompt at a time, and never below an open question
 
 He sends prompts to Claude Code verbatim. A question left open above a prompt means he sends the prompt without knowing whether it was answered.
@@ -802,6 +848,68 @@ space anything else is using. Every click after switching landed correctly.
 what the screenshot's dimensions imply? If a window was resized earlier in the session for an
 unrelated reason, a later tab in the same window can silently inherit it.
 
+
+## A character can be punctuation in one field and an identifier in another
+
+Added 2026-08-25, task `001250826`.
+
+Moataz ruled that the em dash leaves the site. The obvious reading of that is a writing rule, and
+in the prose it is one. But the same character was also **the thing `lib/sync/classify.ts` used to
+tell one kind of page from another**:
+
+```
+/^Case File Cover\s*—\s*(.+)$/i    /^Chapter\s*—\s*(.+)$/i    /^Results Table\s*—\s*(.+)$/i
+```
+
+Applying the writing rule to the Notion row titles would have left the sync unable to classify a
+single page in the database. Not fail loudly. **Classify them all as `static`**, which is a real
+kind with a real code path.
+
+**And that had already happened, to two pages, and nobody noticed.** `Chapter - Neobiz Mobile /
+Onboarding` and `Chapter - UAE / Mobile Onboarding Journey` were written with a plain hyphen
+instead of an em dash. They failed every `—` test, fell through to `static`, and the dry run
+printed them under **"NOT YET IMPLEMENTED"** — a heading that reads like a roadmap note rather
+than a defect. Six decisions, three per chapter, in both languages, were never written.
+
+**The generalisable part is the failure shape, not the dash.** A page that is silently the WRONG
+KIND is worse than a page that fails, because every count still adds up: the row is read, it is
+reported, it appears in a list, and the list has a plausible reason for it being there. `failed 0`
+was true the whole time.
+
+**Two rules come out of it:**
+
+1. **Before applying a formatting rule to a field, grep for that field being parsed.** A title, a
+   slug, a heading and a label are all things a rule might touch and a parser might read. Prose is
+   the only place where punctuation is only punctuation.
+2. **Widen the separator; never normalise the whole string.** The fix accepts `[—–-]` consumed
+   ONCE, anchored at the front. Folding every dash in the title would have corrupted the names it
+   was trying to protect — `On-Premises to Cloud`, `Open-Source`, `AI-reader compliance`. This is
+   the same shape as the guard rule already in Part 4: widen what a guard accepts, never weaken
+   what it protects.
+
+**And rule 1 is not satisfied by grepping ONE file.** I wrote the two rules above, and an hour
+later broke four sibling links with the same mistake. I had grepped `lib/sync/classify.ts`, found
+the classifier, widened it, and stopped — because that file is *where the rule lives*. The same
+split was also written inline, once, in `scripts/sync-notion.ts`:
+
+```js
+row.title.replace(/^.*—\s*/, "")   // the em dash, hard-coded, at one call site
+```
+
+It stopped matching, the full row title became each case file's English title, and every sibling
+link on every cover stopped resolving. The sync reported it honestly, as `sibling "X" matches no
+case file`, and it was still four notices in a list of ten that mostly predated the change.
+
+**So: grep for the CHARACTER across the whole codebase, not for the module that owns the rule.**
+A convention implemented twice has a second implementation precisely because someone once needed
+it somewhere the first one was not reachable. The fix was not to widen the second regex. It was to
+delete it and pass the classifier's own `name` through, so the split exists once.
+
+**A dry-run heading that sounds like a plan can be hiding a defect.** "NOT YET IMPLEMENTED" earned
+its place in that output, and it is also where two working pages went to be quietly wrong. When a
+list of "not built yet" contains something you believe IS built, that is the signal.
+
+---
 
 # PART 6 — ENVIRONMENT TRAPS
 

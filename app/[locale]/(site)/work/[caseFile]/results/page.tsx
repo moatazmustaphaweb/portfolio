@@ -64,7 +64,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale: l,
     path: `/work/${caseFile}/results`,
-    title: name && ui.t("results_table") ? `${ui.t("results_table")} — ${name}` : name,
+    title: name && ui.t("results_table") ? `${ui.t("results_table")}: ${name}` : name,
     description: detail?.summary,
   });
 }

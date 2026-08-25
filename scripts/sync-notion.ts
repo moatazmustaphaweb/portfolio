@@ -147,6 +147,8 @@ type Row = {
   order: number | null;
   kind: EntityKind;
   parent?: string;
+  /** The title with its kind prefix removed, from `classifyTitle`. */
+  name?: string;
 };
 
 const created: string[] = [];
@@ -284,6 +286,26 @@ async function fetchRows(): Promise<Row[]> {
         order: numberProp(props["Order"]),
         kind: classification.kind,
         parent: classification.parent,
+        /*
+         * The title with its KIND PREFIX REMOVED, taken from the classifier
+         * rather than re-derived here.
+         *
+         * `Case File Cover - Cervello Cloud (IoT)` -> `Cervello Cloud (IoT)`.
+         *
+         * ⚠️ This used to be an inline regex on `row.title` at the one call
+         * site that needed it, and it had an EM DASH WRITTEN INTO IT.
+         * When the row titles were converted to a plain hyphen in task
+         * `001250826` that regex stopped matching, the FULL row title became
+         * the case file's English title, and every sibling link on every cover
+         * silently stopped resolving — four of them, reported only as
+         * "matches no case file" in the sync notices.
+         *
+         * Two lessons, both already in `docs/learn.md` Part 5: a separator is
+         * an identifier as much as it is punctuation, and the same split must
+         * not be implemented twice. It lives in `classifyTitle` and nowhere
+         * else now.
+         */
+        name: "name" in classification ? classification.name : undefined,
       });
     }
 
@@ -2050,7 +2072,7 @@ async function main() {
       "case_file",
       data.id,
       "en",
-      fieldsFromBody(body, COVER_FIELDS, row.title.replace(/^.*—\s*/, "")),
+      fieldsFromBody(body, COVER_FIELDS, row.name ?? row.title),
     );
 
     if (arabic) {

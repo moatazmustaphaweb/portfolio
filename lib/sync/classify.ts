@@ -31,51 +31,88 @@ export type Classification = {
  * Rows that are build tasks or future-layer pages, not content.
  * Contract Step 1. Matched case-insensitively on the title prefix.
  */
-const SKIP_PREFIXES = [
-  "FOUNDATION —",
-  "The Door —",
-  "Result Screen —",
-  "Read —",
-  "Studio —",
-  "Experiments —",
-  "Admin —",
-  "Ask —",
-  "Cuts",
-  "This Website",
-  "Open-Source",
-  "How This Site Works",
-];
+/**
+ * The separator between a title's KIND and its NAME.
+ *
+ * Three characters, not one: em dash (`—`), en dash (`–`) and plain hyphen
+ * (`-`). The character carries no meaning here. It divides "what kind of page
+ * is this" from "which one", and which dash somebody typed is not a fact about
+ * the page. Accepting all three is what stops a title's punctuation from
+ * deciding whether the page syncs at all.
+ *
+ * ⚠️ This is deliberately NOT done by normalising the whole title. Folding
+ * every hyphen into an em dash would corrupt the NAMES: the chapter
+ * `On-Premises to Cloud`, the skip prefix `Open-Source`, the build task
+ * `AI-reader compliance`. The separator is consumed ONCE, anchored at the
+ * front, and every hyphen after it is left exactly as written.
+ *
+ * Two pages sat unrecognised because of this. `Chapter - Neobiz Mobile /
+ * Onboarding` and `Chapter - UAE / Mobile Onboarding Journey` were written
+ * with a hyphen, failed every `—` test, and fell through to `static` — which
+ * the dry run then reported as "not yet implemented" rather than as broken.
+ * A page that is silently the wrong KIND is the worst shape this bug can take,
+ * because every downstream count still adds up.
+ */
+const SEP = String.raw`\s*[—–-]\s*`;
 
-/** Normalise the various dash characters Notion titles use. */
-function normalise(title: string): string {
-  return title.replace(/[—–]/g, "—").trim();
+/** `^<kind><separator><name>` — the shape every content title has. */
+function titleRe(kind: string): RegExp {
+  return new RegExp(`^${kind}${SEP}(.+)$`, "iu");
 }
 
+/**
+ * Rows that are build tasks or future-layer pages, not content.
+ * Contract Step 1.
+ *
+ * Split in two because they are matched two different ways. The first group is
+ * a KIND and must be followed by a separator, so `Read` skips `Read - Index`
+ * without also skipping a page that merely starts with those letters. The
+ * second group is a whole-title prefix with no separator to speak of.
+ */
+const SKIP_KINDS = [
+  "FOUNDATION",
+  "The Door",
+  "Result Screen",
+  "Read",
+  "Studio",
+  "Experiments",
+  "Admin",
+  "Ask",
+];
+
+const SKIP_PREFIXES = ["Cuts", "This Website", "Open-Source", "How This Site Works"];
+
 export function classifyTitle(rawTitle: string): Classification {
-  const title = normalise(rawTitle);
+  const title = rawTitle.trim();
+
+  for (const kind of SKIP_KINDS) {
+    if (titleRe(kind).test(title)) {
+      return { kind: "skip", reason: `build task or future layer (${kind})` };
+    }
+  }
 
   for (const prefix of SKIP_PREFIXES) {
-    if (title.toLowerCase().startsWith(normalise(prefix).toLowerCase())) {
+    if (title.toLowerCase().startsWith(prefix.toLowerCase())) {
       return { kind: "skip", reason: `build task or future layer (${prefix})` };
     }
   }
 
   // Linear views are derived at render from the chapters — no row of their own.
-  if (/^Linear View\s*—/i.test(title)) {
+  if (new RegExp(`^Linear View${SEP}`, "iu").test(title)) {
     return { kind: "skip", reason: "linear view is derived at render" };
   }
 
-  let m = /^Case File Cover\s*—\s*(.+)$/i.exec(title);
+  let m = titleRe("Case File Cover").exec(title);
   if (m) return { kind: "case_file", name: m[1].trim() };
 
-  m = /^Mini Case File\s*—\s*(.+)$/i.exec(title);
+  m = titleRe("Mini Case File").exec(title);
   if (m) return { kind: "case_file", name: m[1].trim() };
 
-  m = /^Results Table\s*—\s*(.+)$/i.exec(title);
+  m = titleRe("Results Table").exec(title);
   if (m) return { kind: "targets", parent: m[1].trim(), name: m[1].trim() };
 
-  // "Chapter — {case file} / {chapter}". The parent is the segment before " / ".
-  m = /^Chapter\s*—\s*(.+)$/i.exec(title);
+  // "Chapter - {case file} / {chapter}". The parent is the segment before " / ".
+  m = titleRe("Chapter").exec(title);
   if (m) {
     const rest = m[1];
     const slash = rest.indexOf("/");
@@ -92,10 +129,10 @@ export function classifyTitle(rawTitle: string): Classification {
     };
   }
 
-  m = /^Comparison\s*—\s*(.+)$/i.exec(title);
+  m = titleRe("Comparison").exec(title);
   if (m) return { kind: "comparison", name: m[1].trim() };
 
-  m = /^Accessibility\s*—\s*(.+)$/i.exec(title);
+  m = titleRe("Accessibility").exec(title);
   if (m) return { kind: "accessibility", name: m[1].trim() };
 
   // Anything else is static page content keyed by route.

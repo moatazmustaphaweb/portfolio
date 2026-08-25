@@ -822,7 +822,55 @@ obstacle, the shape of an agent turn was.
 
 ---
 
+## 058 — No em dash anywhere a visitor reads. Supersedes the em-dash half of 057
+
+**Decided 2026-08-25, task `001250826`, by Moataz, in launch week.**
+
+**Decision:** the em dash (`—`) and the en dash (`–`) do not appear in any text a visitor
+reads, in either language. His words: *"مفيش dashes، الأسلوب بتاعي مش الأسلوب بتاع الـ machine."*
+
+**What this supersedes.** Decision 057 established that the blanket ban was asserted without
+measurement, that the measurement overturned it, and that the pivot-versus-balance test was the
+whole rule in both languages. **The measurement stands and the conclusion does not.** Measuring
+the corpus tells you what he has written; it does not tell you what he wants written. 057's other
+half — that the writing rules live in the skill alone — is untouched and still ACTIVE.
+
+**It is a contextual replacement, not a substitution.** He was explicit: *"replace with the right
+punctuation in the context, don't just replace."* A dash does different work in different
+sentences. Comma for an aside, full stop for a pivot, colon for a definition or a lead-in, a
+conjunction where one reads better, plain hyphen for a numeric range. Arabic takes `،`, never a
+Latin comma. The table lives in `.claude/skills/portfolio-voice`.
+
+**Scope, stated exactly, because a sweep with a fuzzy edge is how a real distinction gets
+flattened:**
+
+| In scope | Out of scope |
+|---|---|
+| Every string in `translations` | `docs/**`, including this file |
+| Notion page content, both languages | Code comments |
+| Notion database row titles | Commit messages |
+| Seeded `ui_strings` and `career_roles` | `ui_strings.description` |
+| `/llms.txt` output | Agent briefs and replies to Moataz |
+
+`docs/**` and code comments keep their dashes. `CLAUDE.md` already draws that line for the voice
+skill generally, and this decision does not move it.
+
+⚠️ **The dash was load-bearing in one place and it was not prose.** `lib/sync/classify.ts`
+identified every Notion page type by a regex requiring `—`. The parser was widened to accept
+`[—–-]`, consumed once and anchored at the front, **before** the 56 row titles were converted.
+Doing it in the other order would have left the sync unable to classify a single page. Two pages
+were already broken this way and were silently classified `static`. See `docs/learn.md` Part 5.
+
+**Status:** ACTIVE
+
+---
+
 ## 057 — The writing rules live in the skill alone. The em dash is not a tell, and there is no Arabic exception
+
+> ⚠️ **PARTLY SUPERSEDED by decision 058, 2026-08-25.** The em-dash conclusion below is no longer
+> the rule: Moataz banned the em dash outright in launch week. The measurement it rests on is
+> still correct, and that is the point — it measured what he *had* written, not what he *wanted*
+> written. Everything else in 057, including the single-home rule, is still ACTIVE.
 
 **Decided 2026-08-21, task `024210826`**, after the rule was measured against the
 `translations` table rather than recalled.
