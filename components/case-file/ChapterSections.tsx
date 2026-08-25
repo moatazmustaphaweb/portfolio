@@ -259,11 +259,17 @@ function ChapterFigure({
   return (
     /*
       Framed, the figure becomes the positioning context for its own caption and
-      carries extra bottom margin. The caption is taken out of flow so it can sit
-      ON the frame's bottom line, which means the figure no longer reserves room
-      for it — without `mb-10` the next paragraph runs underneath it.
+      carries its own margins on both sides. The caption is taken out of flow so
+      it can sit ON the frame's bottom line, which means the figure no longer
+      reserves room for it — without the bottom margin the next paragraph runs
+      underneath it, and without a matching top margin two consecutive frames
+      end up separated only by the overhanging chip.
+
+      `mt-14` / `mb-14` (56px) rather than the unframed `mt-8` (32px): a framed
+      screenshot is a discrete object with a shadow, and at 32px two of them
+      read as one strip rather than as two devices.
     */
-    <figure className={device ? "relative mt-8 mb-10" : "mt-8"}>
+    <figure className={device ? "relative mt-14 mb-14" : "mt-8"}>
       {(() => {
         /*
           The image is identical either way. Only its container changes, so the
@@ -312,8 +318,9 @@ function ChapterFigure({
               py-1 font-mono text-micro text-fg-dim` is exactly what the gallery
               cards, PreviewIndex, StubPage and RedactedEvidence already use —
               one chip treatment, not a second one invented here. The single
-              departure is the radius: `rounded-none` instead of `rounded-pill`,
-              which is the flat shape asked for.
+              departure is the radius: `rounded-control` (6px) instead of
+              `rounded-pill` (999px) — softened rather than fully round, and
+              still one of the system's three radii rather than a new number.
 
               `uppercase` is dropped with it. Every existing chip is a one-word
               label (`FINTECH`, `NDA`) and upper-cases cleanly; a caption is a
@@ -337,7 +344,7 @@ function ChapterFigure({
               treatment, live on one chapter while its look is being agreed.
             */
             device
-              ? "absolute inset-x-0 bottom-0 mx-auto w-fit max-w-measure translate-y-1/2 rounded-none border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim"
+              ? "absolute inset-x-0 bottom-0 mx-auto w-fit max-w-measure translate-y-1/2 rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim"
               : "mt-3 max-w-measure text-meta text-fg-muted"
           }
         >

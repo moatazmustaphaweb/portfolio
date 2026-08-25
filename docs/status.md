@@ -116,8 +116,15 @@ direction trap, since Tailwind does not mirror `translate-x`.
 `bg-surface` is load-bearing rather than decorative here: half the chip sits over arbitrary
 screenshot pixels, and without an opaque fill the text has no guaranteed contrast.
 
-The figure gains `relative` and `mb-10`. The caption is out of flow, so the figure stops
-reserving room for it — without the margin the next paragraph runs underneath.
+The figure gains `relative` and margins on both sides, `mt-14` / `mb-14` (56px) against the
+unframed `mt-8` (32px). Moataz: *"هتسيب مسافة ما بين الصورة والصورة. عشان كده الصور مفيش ما
+بينهم مسافات خالص."* Two causes, both real — the caption is out of flow so the figure stopped
+reserving room for it, and 32px was never enough between two objects that each carry a shadow.
+At the old spacing two frames read as one strip rather than as two devices.
+
+**The radius is `rounded-control` (6px).** Moataz: *"حواف دائرية للجيب، مش دائرية كلية، دائرية
+يعني نص دائرية."* Softened rather than fully round — and still one of the system's three radii
+rather than a fourth number invented for this one chip.
 
 **`py-1.5` and a `rounded-*` guess would both have failed silently.** The spacing and radius
 scales are REPLACED rather than extended (`tailwind.config.ts`), so an off-scale utility
