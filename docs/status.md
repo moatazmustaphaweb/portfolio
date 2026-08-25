@@ -334,6 +334,24 @@ neither claim is supported by a square.
 **Verified in a browser in both themes.** `neobiz-mobile/onboarding` renders 9 of 9 framed at
 320x657; figure centre and caption centre both 434.
 
+#### The chip does not float on a phone, at any width
+
+Moataz: *"في الموبايل افضل الكابشن يبقى تحت شوية يبين الفريم كله."*
+
+The caption already dropped out of the overlay below `md`, but that was a **viewport** rule and
+this is a different problem with the same symptom. A laptop's bottom edge is a straight run of
+bezel and a chip sitting on it hides nothing. A phone's is a deep rounded chin, and the chip
+covered the corner curve — the part that makes the object read as a phone at all. So the float
+is now the laptop's alone: a phone-framed figure keeps the static caption on a 1500px screen
+too.
+
+Two reasons, deliberately kept separate in the code rather than collapsed into one condition,
+because they would come apart the moment a third frame exists.
+
+Measured at 1500px after the change: caption `position: static`, frame bottom 757, caption top
+769 — 12px of clearance, no intersection. Laptop chapters re-checked in the same pass and still
+float, 11 of 11 on `cervello/permission-architecture`.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

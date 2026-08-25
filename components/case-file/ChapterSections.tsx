@@ -397,21 +397,30 @@ function ChapterFigure({ media }: { media: Media | null }) {
               edge, so half of it sits over the screenshot. Without an opaque
               fill the text reads against whatever pixels happen to be there.
 
-              POSITION, AND IT IS NOT THE SAME ON A PHONE.
+              POSITION. THE CHIP FLOATS ON A LAPTOP AND NEVER ON A PHONE.
 
-              From `md` up it floats: `inset-x-0` + `mx-auto` + `w-fit` centres
-              it without naming a physical side, so it is identical in LTR and
-              RTL — `left-1/2` with a negative translate would have been a
-              direction trap. `bottom-0 translate-y-1/2` puts its centre on the
-              frame's bottom line.
+              ⚠️ TWO SEPARATE REASONS, AND THEY ARE NOT THE SAME REASON.
 
-              Below `md` it does NOT float. A chip that covers a tenth of a
-              1440px screenshot covers a third of a 320px one, and the thing it
-              covers is the picture the caption exists to describe. So on a
-              phone it drops out of the overlay and sits under the frame in
-              normal flow — the mobile default, with the floating behaviour
-              added at `md` rather than removed below it, because a phone is
-              where the harm was.
+              1. NARROW VIEWPORTS. A chip covering a tenth of a 1440px
+                 screenshot covers about a third of a 390px one, and what it
+                 covers is the picture the caption exists to describe. So below
+                 `md` nothing floats. Written mobile-first — static is the base
+                 and `md:` adds the float — because the phone is where the harm
+                 was.
+
+              2. THE PHONE FRAME, AT ANY WIDTH. A laptop's bottom edge is a
+                 straight run of bezel and a chip sitting on it hides nothing.
+                 A phone's is a deep rounded chin, and the same chip covers the
+                 corner curve — the part that makes the object read as a phone
+                 at all. So a phone-framed figure keeps the static caption even
+                 on a wide screen: the whole frame stays visible, which is what
+                 it is drawn for.
+
+              Where it does float: `inset-x-0` + `mx-auto` + `w-fit` centres it
+              without naming a physical side, so LTR and RTL are identical —
+              `left-1/2` with a negative translate would have been a direction
+              trap. `bottom-0 translate-y-1/2` puts its centre on the bottom
+              line.
 
               `md:mt-0` is not tidiness: the static caption's `mt-3` would
               otherwise still be in the box once it goes absolute, pushing it
@@ -425,7 +434,14 @@ function ChapterFigure({ media }: { media: Media | null }) {
               treatment, live on one chapter while its look is being agreed.
             */
             device
-              ? "mx-auto mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim md:absolute md:inset-x-0 md:bottom-0 md:mt-0 md:translate-y-1/2"
+              ? [
+                  "mx-auto mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim",
+                  phone
+                    ? ""
+                    : "md:absolute md:inset-x-0 md:bottom-0 md:mt-0 md:translate-y-1/2",
+                ]
+                  .join(" ")
+                  .trim()
               : "mt-3 max-w-measure text-meta text-fg-muted"
           }
         >
