@@ -911,6 +911,40 @@ list of "not built yet" contains something you believe IS built, that is the sig
 
 ---
 
+## Notion's `update_content` reports success when only SOME of its edits matched
+
+Added 2026-08-25, task `009250826`.
+
+A single `content_updates` entry whose `old_str` does not match returns a loud
+`validation_error: No matches found`. **Send two entries, one matching and one not, and the call
+returns `{"page_id": "..."}` — success — having applied only the one that matched.**
+
+That is how a paragraph survived a deletion I had reported as done. The call carried two edits: a
+date range, which matched, and a paragraph removal, which did not. The date changed. The paragraph
+stayed. Nothing said so.
+
+**The rule: a success response from a multi-edit call is not evidence that every edit landed.**
+Re-fetch and read, or send one edit per call. The re-fetch is what found it, which is the same
+lesson as `docs/content-brief.md` §1 about batched writes and the same lesson as every other entry
+in Part 5: the write's own return value is never the verification.
+
+## Arabic diacritic ORDER breaks exact-match editing, and it looks like the text is absent
+
+Same task. `تبنٍّ` refused to match in Notion three times running. The word is correct on the page and
+correct in the string being sent. What differs is the **byte order of the two marks**: shadda
+(U+0651) before kasratan (U+064D), or the reverse. Both render identically. Neither is visibly
+wrong. An exact-match replace sees two different strings.
+
+It cost three failed calls and a wasted fetch, and the failure mode is misleading: the tool says
+*no matches found*, which reads as "that text is not on the page" rather than "that text is on the
+page in a different encoding."
+
+**When an Arabic `old_str` will not match and you can see the text on the page, cut the fragment
+back to a span with no composed diacritics before assuming the text moved.** The same applies to
+`أً`/`ًأ` and to any letter carrying two marks.
+
+---
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.

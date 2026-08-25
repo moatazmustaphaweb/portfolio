@@ -1,4 +1,5 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { DeviceFrame } from "@/components/media/DeviceFrame";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
@@ -51,8 +52,19 @@ import type { ChapterSection, Locale, Media } from "@/lib/content/types";
 export function ChapterSections({
   sections,
   linkLabels,
+  device,
 }: {
   sections: ChapterSection[];
+  /*
+   * Wrap every figure in this chapter in a laptop frame.
+   *
+   * OFF by default and switched on per chapter by the route, not by the
+   * content. It is a property of the WORK, not of the picture: Cervello is a
+   * desktop platform, so a laptop is the truthful container. The mobile case
+   * files would be lying inside one, and no `[cld]` tag should have to know
+   * which.
+   */
+  device?: boolean;
   /*
    * `ui_strings.copy_section_link` and `.section_link_copied`, resolved on the
    * server and passed down — this component is a server component and cannot
@@ -148,7 +160,13 @@ export function ChapterSections({
                   );
                 }
                 if (block.kind === "image") {
-                  return <ChapterFigure key={`f-${section.id}-${i}`} media={block.media} />;
+                  return (
+                    <ChapterFigure
+                      key={`f-${section.id}-${i}`}
+                      media={block.media}
+                      device={device}
+                    />
+                  );
                 }
                 /*
                  * ⚠️ The SAME `SectionTable` the document pages have always
@@ -221,7 +239,13 @@ export function ChapterSections({
  * `CloudinaryImage` — so this component cannot forget it and cannot override
  * it (amendment 036).
  */
-function ChapterFigure({ media }: { media: Media | null }) {
+function ChapterFigure({
+  media,
+  device,
+}: {
+  media: Media | null;
+  device?: boolean;
+}) {
   if (!media) return null;
 
   const caption = media.fields.caption;
@@ -234,11 +258,41 @@ function ChapterFigure({ media }: { media: Media | null }) {
 
   return (
     <figure className="mt-8">
-      <CloudinaryImage
-        media={media}
-        preset="gallery"
-        className="me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
-      />
+      {(() => {
+        /*
+          The image is identical either way. Only its container changes, so the
+          NDA treatment, the alt omission and the sizing rules all keep working
+          without the frame knowing anything about them.
+
+          `me-auto` moves to the FRAME when there is one: the thing that has to
+          hug the inline start is the outer edge, and leaving it on the image
+          would centre the picture inside a frame that is itself flush left.
+
+          The framed variant also drops `max-h-figure`. That cap exists to stop
+          a tall unframed screenshot becoming a wall between two paragraphs; the
+          frame already fixes the height by fixing the shape, so applying both
+          would shrink the picture away from the bezel it is supposed to fill.
+        */
+        const img = (
+          <CloudinaryImage
+            media={media}
+            preset="gallery"
+            className={
+              /*
+                Framed, the picture FILLS the screen rect and is cropped to it.
+                `h-full w-full object-cover` is what makes every framed
+                screenshot the same shape; the unframed rules below are the
+                opposite intent and must not leak in, because `max-h-figure`
+                inside a fixed 786x522 box would letterbox it against the bezel.
+              */
+              device
+                ? "block h-full w-full object-cover"
+                : "me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
+            }
+          />
+        );
+        return device ? <DeviceFrame>{img}</DeviceFrame> : img;
+      })()}
       {caption ? (
         <figcaption
           lang={captionLang}
