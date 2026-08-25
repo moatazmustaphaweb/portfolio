@@ -163,9 +163,47 @@ The concession is never a disclaimer at the end. It sits in the middle of the cl
 
 ---
 
-## The em dash, and what the rule actually is
+## The em dash: BANNED, by Moataz, 2026-08-25
 
-His writing is full of em dashes and they work. A blanket ban on them stood in `docs/learn.md` and `docs/content-brief.md` until 2026-08-21, and it broke sentences that were already right. **It was measured and it does not survive measurement:** 53 of 58 English captions carry a dash, at 4.79 per 100 words.
+**Do not write an em dash (—) or an en dash (–) in anything a visitor reads, in either language.**
+He ruled it in launch week, in his own words, and it is not a measurement question. Where a rule
+of this file and an instruction of his disagree, he wins.
+
+**It is not a find-and-replace, and he said so directly:** *"replace with the right punctuation in
+the context, don't just replace."* A dash does different work in different sentences, so read what
+it is doing and then choose:
+
+| The dash is doing | Write instead |
+|---|---|
+| **Parenthesis / aside** — a pair enclosing an interruption | commas, or parentheses where commas would read as a list |
+| **Pivot or consequence** — the second half turns or concludes | **full stop**, and a capital |
+| **Lead-in to a list, a definition or a quotation** | colon |
+| **A short emphatic tag on the end** | comma for a phrase, full stop for a full clause |
+| **Joining two clauses** | a conjunction: `and` / `so` / `because`, `و` / `فـ` / `لأن` |
+| **A numeric or date range** | plain hyphen: `25-30`, `2020-2021` |
+
+**In Arabic the comma is `،` (U+060C), never `,`.** A Latin comma inside Arabic text is a
+typographic error, and one has already shipped.
+
+**Hyphens inside words are untouched:** `On-Premises`, `zero-code`, `e-KYC`, `maker-checker`,
+`Open-Source`, `AI-reader`. **The middot `·` is not a dash** and stays everywhere it appears.
+
+⚠️ **The dash is also an identifier in one place, and that place is not prose.** Notion row titles
+used to read `Chapter — X / Y`, and `lib/sync/classify.ts` identified every page type by that
+character. The titles were converted to a plain hyphen in task `001250826` and the parser was
+widened to accept `[—–-]` first. See `docs/learn.md` Part 5, "A character can be punctuation in
+one field and an identifier in another." **Never apply this writing rule to a field a parser reads
+without checking the parser.**
+
+### The history, kept because the reversal is the lesson
+
+The rest of this section is what the file said before 2026-08-25 and is **no longer the rule.** It
+is kept because the sequence matters: a ban was asserted without measurement, the measurement
+overturned it, and then the author overruled the measurement. Measuring the corpus tells you what
+he *has* written. It does not tell you what he *wants* written, and this section once mistook the
+first for the second.
+
+His writing was full of em dashes and they worked. A blanket ban on them stood in `docs/learn.md` and `docs/content-brief.md` until 2026-08-21, and it broke sentences that were already right. **It was measured and it does not survive measurement:** 53 of 58 English captions carry a dash, at 4.79 per 100 words.
 
 **This is now the only place the rule lives.** `docs/learn.md` points here; the copies in `docs/content-brief.md` and `.claude/agents/content.md` were deleted in task `024210826` and replaced with pointers, because three copies of one rule is how three versions of it appear.
 
@@ -219,7 +257,9 @@ That is not a rendering of *The door, found*. It is the Arabic way of doing the 
 - **The accusative carries its tanween** — object, `حال` or adverb alike, not adverbs only. `شيئًا` `منتجًا` `أحدًا` `مكتوبًا` `دفعةً` `سجلًا معلقًا` as much as `نيابةً` `شفاهةً` `لاحقًا` `بنيويًا`. Corrected in task `024210826`: the rule used to read *adverbial accusatives*, and the measurement found the practice is wider and simpler than that — the most frequent marked tokens on the site are objects and `حال`, not adverbs.
 - **The tanween sits before the alif: `ًا`, not `اً`.** That is both the majority form on the site (448 against 92) and the typographically correct one. **The rule is written here; the existing text is not to be normalised in passing.** Every one of the 92 exceptions is in `page_section.body` — the static pages, which were written in a different context, not under a different convention. Fixing them is a content task with its own brief, and a sweep run as a side effect of some other work is exactly how a real distinction gets flattened.
 - Punctuation is Arabic: `،` `؛` `؟`.
-- **The em dash is not treated differently in Arabic.** The claim that it is foreign to Arabic punctuation and should be avoided stood in three files and is false about this site's own text: measured in task `024210826`, the Arabic uses it **more** per word than the English does, in every corpus that has one — 5.97 per 100 words in captions against the English 4.79, 2.04 in chapter prose against 1.58. **The pivot-versus-balance test above is the whole rule, in both languages.**
+- **The em dash is banned in Arabic exactly as it is in English** (2026-08-25, above). What
+  follows was the previous rule and is kept only as history: **the em dash was not treated
+  differently in Arabic.** The claim that it is foreign to Arabic punctuation and should be avoided stood in three files and is false about this site's own text: measured in task `024210826`, the Arabic uses it **more** per word than the English does, in every corpus that has one — 5.97 per 100 words in captions against the English 4.79, 2.04 in chapter prose against 1.58. **The pivot-versus-balance test above is the whole rule, in both languages.**
 
 ### What "original, not translated" means in practice
 

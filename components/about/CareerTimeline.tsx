@@ -133,7 +133,18 @@ export function CareerTimeline({
                  */
                 className="font-mono text-micro uppercase text-fg-dim"
               >
-                {format(role.started)} – {role.ended ? format(role.ended) : presentLabel}
+                {/*
+                  A PLAIN HYPHEN between the dates, not an en dash.
+
+                  Decision 058 bans the en dash alongside the em dash, and the
+                  rule for a range is bare-value versus sentence: this is a
+                  metadata line under a job title, so it takes the hyphen. A
+                  range inside prose takes the word instead, `to` / `إلى`.
+
+                  Seven of these were the only en dashes left in the served
+                  HTML after the whole content sweep, and they were mine.
+                */}
+                {format(role.started)} - {role.ended ? format(role.ended) : presentLabel}
               </p>
 
               {title ? (

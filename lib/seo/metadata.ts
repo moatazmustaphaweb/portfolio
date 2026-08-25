@@ -62,7 +62,21 @@ export async function pageMetadata({
   const siteName = settings.get("name");
   const ogImage = settings.get("og_image");
 
-  const resolvedTitle = title && siteName ? `${title} — ${siteName}` : (title ?? siteName);
+  /*
+   * The separator is a MIDDOT, not an em dash.
+   *
+   * Decision 058 removed the em dash from everything a visitor reads, and this
+   * line is read three times on every page: <title>, og:title and
+   * twitter:title. It is the browser tab, the search result and the link
+   * preview, which makes it the most-seen string on the site and the one place
+   * the sweep of the CONTENT could never have reached, because it is composed
+   * in code.
+   *
+   * A grep of the served HTML is what found it. 182 em dashes across 58 routes
+   * with the database already at zero, three per page, constant — a shape that
+   * says chrome rather than prose. See docs/learn.md Part 5.
+   */
+  const resolvedTitle = title && siteName ? `${title} · ${siteName}` : (title ?? siteName);
 
   const resolvedDescription =
     toDescription(description) ??

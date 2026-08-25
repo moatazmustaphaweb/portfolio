@@ -37,6 +37,550 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 009250826 - 2026-08-25 21:30 - the device frame is CSS now, and pushing is gated on a word
+
+Two things, one asked and one instructed.
+
+### The frame follows the picture, because CSS boxes do and SVG viewBoxes do not
+
+Moataz, having seen the SVG version render: *"احنا عايزين نشتغل على الـ SVG. إن هي ما تبقاش
+محدودة بمقاسات بمعنى تبقى dynamic تستوعب الصورة اللي جواها وتعملها resize على الأساس ده.
+ده ممكن ولا نرسمه بالـ CSS؟"*
+
+**CSS, and the reason is structural rather than a preference.** An SVG declares its coordinate
+system before it draws anything: the `viewBox` fixes the proportions at author time, so a
+frame drawn that way can only ever crop the picture to the shape it was drawn as. Making it
+follow its contents would mean recomputing three nested rectangles per image from the media
+row's width and height — and the picture would still be inside a `foreignObject`, whose inner
+HTML lays out in viewBox units rather than CSS pixels. That unit mismatch is exactly what made
+the screenshot render at roughly 4x scale in the version he saw.
+
+A CSS box already grows to whatever is inside it. So `components/media/DeviceFrame.tsx` is now
+three nested `div`s — body, bezel, screen — carrying the same numbers the design file carries,
+read as **insets rather than as absolute rects**:
+
+| | radius | from `designs/Device - Macbook Pro.svg` |
+|---|---|---|
+| body | 27 | white, 2px `#E0E1E6`, 4px of padding around the bezel |
+| bezel | 22 | `#EAEAEC`, 10px of padding around the screen |
+| screen | 18 | the picture, corners rounded by `overflow: hidden` |
+| shadow | — | `-7px 19px 39px rgba(88,89,92,0.12)` — blur is 2 x stdDeviation 19.5 |
+
+**The shadow is the one number that is not the design's.** Moataz, on seeing it: *"you just
+need to make lighter shade."* The design file has it at 30%, and at this blur that reads as a
+grey slab under the device rather than as light. The geometry is unchanged — same offset, same
+blur, so the device still sits where it was drawn to sit — and only the alpha is lifted, to 12%.
+
+**The insets stay in absolute pixels on purpose.** A bezel is a physical part of a physical
+object. It does not get thinner because the picture is smaller, and scaling it proportionally
+is what makes a frame stop reading as a device and start reading as a border.
+
+`ChapterSections` no longer forces `h-full w-full object-cover` on a framed image. There is no
+fixed screen rect to cover any more, and `object-cover` with no height to cover is what
+collapsed one figure to nothing — the blank white panel above the zoomed one.
+
+**Verified in a browser, not in the diff.** `/en/work/cervello/permission-architecture` and its
+Arabic twin, on the worktree's own dev server. Every figure renders its picture whole, at its
+own aspect ratio: the wide short `instance-landing` strip (835x304) now draws a wide short
+frame instead of a blank one, and the 16:9 screens draw 16:9 frames. In `/ar` the frames sit
+against the right edge, which is `me-auto` resolving to the inline start. `tsc --noEmit` clean.
+
+**Not verified:** how the white body reads against the dark theme. It is the design's own
+colour and a laptop does not change colour with a page, so it was left alone rather than
+tokenised. That is a judgement for Moataz, not a bug.
+
+### The caption under a framed figure is a flat chip, floating on the frame's bottom line
+
+Moataz: *"put the caption in chip"*, then, on seeing a pill of my own invention: *"i meant the
+same style like the shapes you are using in the other screens like the cover… look where the
+chips' style in the entire website and the match is the same style"* and *"just make it flat
+style."*
+
+**The correction is the useful part.** Asked for a chip, I designed one instead of finding the
+one the site already has. `ProjectCard`, `PreviewIndex`, `StubPage` and `RedactedEvidence` all
+carry the same treatment — `border border-DEFAULT px-3 py-1 font-mono text-micro text-fg-dim`
+— and a second chip vocabulary is exactly what a REPLACED token scale exists to prevent. The
+class is now that one, with a single deliberate departure: `rounded-none` in place of
+`rounded-pill`, which is the flat shape he asked for.
+
+`uppercase` is dropped along with the radius. Every existing chip is a one-word label
+(`FINTECH`, `NDA`) and upper-cases cleanly; a caption is a sentence, and a shouted sentence is
+not the voice.
+
+**It floats on the frame's bottom line** — `absolute inset-x-0 bottom-0 mx-auto w-fit
+translate-y-1/2`, so its centre sits on the frame's bottom edge with half of it over the
+screenshot. `inset-x-0` + `mx-auto` + `w-fit` is what centres it **without naming a physical
+side**, so LTR and RTL are identical; `left-1/2` with a negative translate would have been a
+direction trap, since Tailwind does not mirror `translate-x`.
+
+`bg-surface` is load-bearing rather than decorative here: half the chip sits over arbitrary
+screenshot pixels, and without an opaque fill the text has no guaranteed contrast.
+
+### The figure spacing was reported fixed twice and never applied once
+
+Moataz, twice: *"هتسيب مسافة ما بين الصورة والصورة"*, then *"add more space between images."*
+
+**He was right both times, and both of my fixes were dead on arrival.** The figure sits inside
+`<div className="mt-5 space-y-6">`. `space-y-6` compiles to
+`.space-y-6 > :not([hidden]) ~ :not([hidden])` — three selectors against a bare `.mt-8`'s one —
+so it has outranked every figure margin on every chapter since the file was written. It also
+forces `margin-bottom: 0`, so the bottom margins were dead too. The `mt-8` → `mt-14` → `mb-14`
+edits changed nothing at all, and I reported them as done from screenshots.
+
+**Caught by measuring two values instead of one:** `mt-22` resolves to **88px** on a bare
+element and resolved to **24px** on this figure. The gap between those readings is the whole
+bug; either number alone looks fine.
+
+Fixed with `!mt-22 !mb-22` — 88px, the top of the scale. A framed screenshot carries a shadow
+and an overhanging caption, so the gap has to clear both before two of them stop reading as one
+strip. Verified as 88px on all ten adjacent pairs, measured off the rendered page.
+
+`display: contents` — the fix already documented eleven lines away in the same file for the
+table — deliberately does **not** transfer. It makes a child *take* the container's rhythm; this
+figure needed to escape it. Same conflict, opposite remedies.
+
+The general lesson is in `docs/learn.md` Part 5, because this trap is a sibling of the replaced-
+scale one: both end in a class that is present, valid, and does nothing.
+
+**`py-1.5` and a `rounded-*` guess would both have failed silently.** The spacing and radius
+scales are REPLACED rather than extended (`tailwind.config.ts`), so an off-scale utility
+compiles to nothing with no error anywhere. Both were checked against the config before the
+class was written.
+
+Verified in a browser in both locales. In `/ar` the chip is centred on the same line and the
+Arabic reads correctly inside it.
+
+**Still scoped to framed figures only.** The 57 Egypt captions are untouched — the device
+treatment is live on one chapter while its look is being agreed, and widening it is his call.
+
+### The frame is a different object in each theme, not the same one recoloured
+
+Moataz: *"ممكن تعمل لها ألوان تـ match مع الـ light theme زي ما هي كده، وتعمل لها ألوان تـ match
+مع الـ dark theme. Dark theme من غير shadows خالص والإطار ألوانه تبقى gradient of coal أو
+black."*
+
+Four colours moved out of `DeviceFrame.tsx` and into `app/globals.css` beside the theme
+overrides — `--device-body`, `--device-bezel`, `--device-edge`, `--device-shadow` — declared in
+all three blocks (`:root` dark, the `prefers-color-scheme: light` media query, and
+`:root[data-theme="light"]`). The component holds geometry and nothing else now, and the frame
+changes with the theme without a `dark:` variant anywhere, the same way the rest of the site
+works.
+
+**Dark is not the light frame darkened, and that is the point of his instruction.** Two
+structural differences, not two shades:
+
+- **The body is a gradient**, `linear-gradient(155deg, #2b2c2f, #17181a 58%, #0d0e10)`. A flat
+  near-black rectangle on a `#000` page has no form at all; the gradient is what keeps the
+  object legible as an object once its edges stop contrasting with the page.
+- **There is no shadow.** `--device-shadow: none`. A shadow is occlusion of light, and on a
+  black page there is no light for it to occlude — it reads as a smudge rather than as depth.
+  Separation comes from the edge instead. This is why the token holds the whole `box-shadow`
+  value rather than just a colour: `none` is not a darker shadow.
+
+`background` rather than `background-color` on the body, because `background-color` cannot hold
+a gradient. The light values are still the design file's own, with the 12% shadow alpha.
+
+**Verified in both themes**, and the light one deterministically rather than by clicking a
+toggle mid-scroll: `data-theme="light"` set on the root, then the four resolved values read back
+off `getComputedStyle` — `#fff` / `#eaeaec` / `#e0e1e6` / `-7px 19px 39px #58595c1f` — and the
+page screenshotted. Two earlier readings of this were taken during a theme transition and were
+misleading in both directions.
+
+### The laptop goes on every web screen on the site, and on no phone screen
+
+Moataz: *"i need you to mark all of this like a web or computer screen and each journey has a
+web. the image should be in this frame for the mobile not."*
+
+**The route gate is gone.** It was `caseFile === "cervello" && chapter ===
+"permission-architecture"` — correct as a trial, wrong as a rule, because every journey has web
+screens in it and the mobile case files carry desktop screens too.
+
+**What decides now is the shape of the picture**, and getting there required a backfill first.
+
+#### 152 of 161 media rows had no dimensions
+
+Measured before reasoning, and it stopped the obvious approach dead: `media.width` and
+`media.height` were NULL for every chapter image — all 25 Cervello, all 38 Egypt, all 18 EGY
+NEOBIZ Mobile. Only the nine covers had any, set by hand at upload.
+
+**A second bug was hiding in the same NULLs**, and it was never reported by anyone:
+`CloudinaryImage` uses width/height to reserve the box before an image loads, and with both
+NULL it falls back to the preset width *as the height*. Every chapter figure on the site has
+been reserving a **square** and reflowing the page as each picture arrived.
+
+Migration `0060_backfill_media_dimensions.sql` writes all 160 resolvable rows from Cloudinary's
+Admin API — real values, not measured or inferred. **One row is deliberately absent:**
+`EIDVSNID_9jby0x9jby0x9jby`, which the API does not return under `image/upload`; it already
+carries 848x1264 from its own upload. An unverified dimension is worse than a NULL, because a
+NULL is visibly missing and a wrong number is not.
+
+#### Orientation, not the folder name
+
+The Cloudinary paths say "Mobile" and it is tempting to read them. **Measured, they lie:**
+inside `00. UAE NEOBIZ - Mobile - Jul 27` there are 786x1704 phone screens sitting beside
+1600x1200 and 4322x4323 boards. A folder is a filing convention, not a fact about the image.
+
+The threshold is `height / width < 0.9` — **strict on purpose**. The 161 rows fall into 91
+clearly landscape, 47 clearly portrait, and 23 square or nearly so. A square is not evidence of
+a desktop screen, so it does not get the claim. An unframed picture is merely plain; a wrongly
+framed one asserts something untrue. A row with no dimensions is left unframed for the same
+reason.
+
+#### Verified per route, by counting the rendered HTML
+
+| Route | figures | framed |
+|---|---|---|
+| `cervello/permission-architecture` | 11 | **11** |
+| `cervello/on-premises-to-cloud` | 8 | **8** |
+| `egypt-acquisition/onboarding` | 16 | **12** |
+| `neobiz-mobile/onboarding` (en) | 9 | **0** |
+| `neobiz-mobile/onboarding` (ar) | 9 | **0** |
+
+Egypt's 12 of 16 is the result being right rather than being partial: that journey genuinely
+mixes desktop officer screens with portrait forms and emailers.
+
+#### Open, and named rather than left quiet
+
+**`scripts/sync-notion.ts` still creates media rows without dimensions.** The next `[cld]` tag
+written in Notion arrives NULL exactly as these 152 did, and its figure will render unframed
+whatever its shape. The backfill is a repair, not a fix, and the fix is a separate task.
+
+### Pushing is now gated on the word `publish`
+
+Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
+دلوقتي local، نخلص، وبنـ push آخر لما في الآخر خالص لما نستقر على الشكل النهائي. أدي المعلومة
+دي للـ DevOps Agent. خليه يمنعك من الـ Push Automatic إلا لما أنا أقول لك publish."*
+
+Written into `.claude/agents/devops.md` as a standing rule beside the existing push line,
+because a rule that lives only in a session is a rule that lasts one session.
+
+**Committing locally is unchanged and still expected at the end of a task** — this is a
+worktree, it can be deleted, and uncommitted work goes with it. **Pushing is what stops.**
+Every push to `origin` triggers a Vercel build and an email, and while a shape is still being
+agreed those emails announce work that is not finished. A brief that says "push" is not enough
+on its own; the instruction has to have come from him, in that word.
+
+**So `worktree-status-001220826` is ahead of `origin` from here on, deliberately.**
+
+---
+
+## 008250826 - 2026-08-25 09:50 - the Relationship Manager claim, three Arabic typos, and where I stopped
+
+Moataz: *"كملوا."* The defaults I had stated were taken as approved, and the one item I had held
+back was released with them.
+
+### The claim about a person, corrected
+
+**It was in an ENTRY HANDLE, not in a cover paragraph**, which is why it survived a full content
+sweep by five agents. The Arabic payoff read:
+
+> …وهو ما **أزال مدير العلاقة من الرحلة نهائيًا**.
+
+*"…which removed the Relationship Manager from the journey entirely."* The English had been
+corrected long ago and both Arabic chapters carried the corrected wording. **The whole corrective
+clause was simply missing from the Arabic handle.** Now:
+
+> …وهو ما أخرج **اللقاء الشخصي** مع مدير العلاقة من الرحلة. ومدير العلاقة ما زال صاحب العلاقة؛
+> الذي زال هو **الموعد**.
+
+Mirrors the English exactly. **Nothing was invented**: the corrected wording already existed in
+three other places on the same site, in both languages.
+
+### Three Arabic errors, each confirmed against its own sentence
+
+| was | is | the evidence, in the same paragraph |
+|---|---|---|
+| `إن استجواب الأمر` | `إن استلزم الأمر` | the clause is about professional licences |
+| `وقائمة المهاه` | `وقائمة المهام` | written correctly two lines above |
+| `بل ويختلف المنتجات… نفسه` | `بل وتختلف… نفسها` | the same sentence already runs `وتختلف المستندات… وتختلف بيانات التواصل` |
+
+None of these is a judgement call. Each is settled by the text around it.
+
+### The 404's `504` was never a defect
+
+The rendered Arabic 404 reads **«هذه الصفحة غير موجودة»**. The `٥٠٤` exists only in the Notion
+authoring page, which does not sync. It reached no visitor. Reported as a heading defect; measured
+as a record defect.
+
+### Where I stopped, and why
+
+**Two of the eight missing Arabic chapter tails written, six left.** The two are Cervello's, which I
+wrote in English earlier the same day and could place exactly.
+
+The other six are **six new Arabic sentences of mine, unreviewed by him, hours before launch.** The
+English tail falls back and is correctly marked `lang="en"`, so those pages are **untranslated, not
+broken.** Writing them would have added six more strings to a review backlog that already exists,
+to close a gap that shows a correct English sentence.
+
+Left: `egypt-acquisition/onboarding` · `workflow` · `portal` · `fulfilment` ·
+`neobiz-mobile/onboarding` · `portal`. Five minutes' work on his word.
+
+### Verified
+
+Sync `failed 0`, `updated 26`, notices **14 -> 12** (both Cervello tail notices cleared) ·
+`translations` **0 em, 0 en** after the sync · old claim **0 rows**, new wording **2** ·
+all three typos **0 rows** · both Arabic tails **present**.
+
+---
+
+## 007250826 - 2026-08-25 09:15 - the em dash is gone from the rendered site, verified in the HTML
+
+**60 routes, both locales, zero em dashes and zero en dashes in the served HTML.** Every route
+returns its expected status, the 404 included.
+
+This is the only number in this task that means anything. Notion and the database were both at
+zero before the site was, and both were wrong about it.
+
+### The sweep
+
+**~684 resolved by five agents plus Cervello by hand**, each one read for what the dash was doing
+rather than swapped for a comma. Moataz was explicit: *"replace with the right punctuation in the
+context, don't just replace."*
+
+| Scope | Resolved |
+|---|---|
+| Egypt | **334** |
+| Accessibility + comparisons | **120** |
+| Static pages | **95** |
+| Neobiz | **67** |
+| UAE | **38** |
+| Cervello (mine) | **~30** |
+
+Comma for an aside, full stop for a pivot with a full clause, colon for a definition or a list,
+**parentheses where the aside was itself a comma list** (all five agents reached that independently),
+a conjunction where one already carried the join, and the WORD for a range in prose.
+
+### Three rulings I got wrong and had to reverse
+
+1. **Ranges take a plain hyphen.** Produced `two weeks-one month`, which is the machine writing the
+   whole task exists to remove. Corrected: prose takes `to` / `إلى`; a bare value in a table keeps
+   the hyphen. Later sharpened again by dash-egypt: the line is **bare value versus sentence**, not
+   table versus prose.
+2. **Link labels should match their row titles.** Wrong. A bracketed reference that NAMES a row is
+   an identifier; a link label is prose. My instruction turned
+   `Egypt - Accessibility & the component library` into `Bilingual, RTL & Regulatory Comprehension`
+   and cost an agent a round of rework. Labels keep their words; only the dash resolves.
+3. **`decisionsFromBody` drops quote blocks.** It does not. `readBody` never reads them.
+
+### What the HTML found that nothing else could
+
+The database was at zero and **182 em dashes were still being served.** Three per page, constant,
+which is the shape of chrome rather than prose:
+
+| Source | Count |
+|---|---|
+| `lib/seo/metadata.ts` - the `<title>` / `og:title` / `twitter:title` separator | 174 |
+| `/all` and `/results` page titles | 22 |
+| `designs/registry.tsx` - the SVG `alt` and `description`, read by screen readers | 2 |
+| `CareerTimeline.tsx` - seven date ranges, an en dash, mine | 7 |
+
+**Every one of them is composed in code and could not have been reached by any content sweep.** The
+title separator alone is the most-seen string on the site: the browser tab, the search result and
+the link preview.
+
+### The four sibling links I broke, and the second place the dash was load-bearing
+
+`scripts/sync-notion.ts` stripped the row-title prefix with `row.title.replace(/^.*—\s*/, "")`.
+Renaming the rows to a plain hyphen stopped that matching, each case file took its FULL row title as
+its English title, and **every sibling link on every cover silently stopped resolving.**
+
+I had grepped `lib/sync/classify.ts`, found the classifier, widened it and stopped, an hour after
+writing the rule that says to grep for the field. Fixed at the source: the split now comes from
+`classifyTitle` and exists in one place. `docs/learn.md` Part 5 carries both halves.
+
+### Pages that render and cannot be reached by the sync
+
+Three, and this is now the third time this class has surfaced in one session:
+
+- `Accessibility` - listed by the sync under **NOT YET IMPLEMENTED**, published, renders.
+- `Chapter - UAE / Application Tracking` - `In MVP-1 = NO`, so out of scope, published, renders.
+- The Neobiz cover image `alt` - frozen from an earlier sync.
+
+Their corrected text sat in Notion with no way out. `0058` writes it to the database directly.
+**The write paths are still missing and belong to backend.**
+
+### Verified
+
+`next build` exit 0 · `tsc` clean · `eslint` clean · `check:seed-drift` **100/100, no drift** ·
+`test:sync` all pass · `verify:content` all pass · `translations` **0 em, 0 en** ·
+**served HTML 60/60 routes, 0 em, 0 en, 0 wrong status.**
+
+### Not verified
+
+**The sync was killed mid-run twice**, not by me. Both times it was re-run to completion afterwards
+and the final run exited 0, but if something in this environment is stopping long background jobs it
+will do it again.
+
+Nothing was looked at in a browser. The crawl reads markup, not pixels.
+
+### Open, and Moataz's
+
+**The Arabic UAE cover still claims the Relationship Manager was removed from the journey entirely.**
+The English was corrected long ago; both Arabic chapters carry the corrected wording; the cover
+alone does not. Asked twice, unanswered, untouched.
+
+Plus: **8 chapters** whose English closes with a next-chapter line the Arabic lacks, so an Arabic
+reader gets an English sentence by fallback · the 404's Arabic heading reads `504` · three Arabic
+text errors in the Neobiz onboarding chapter · `Landing` and `Classic Gallery` have no Arabic child
+page at all.
+
+---
+
+## 001250826 - 2026-08-25 07:30 - Cervello written from an interview, and the em dash comes out of the whole database
+
+Two tasks that turned into one. Moataz interviewed for Cervello's missing content, then ruled
+that the em dash leaves the site entirely, in both languages, before launch this week.
+
+### Part 1 - Cervello, written from answers rather than from the old write-up
+
+Thirteen questions, one per message, over a long session. `portfolio-voice` requires exactly this
+and names the alternative as the thing that produced eighteen unverified passages last time.
+
+**What the interview produced that no amount of reading could have:**
+
+| | |
+|---|---|
+| Reselling | The marketplace was the PM's idea and was **closed** as too big. `duplicate + transfer` shipped instead. The **customer** duplicates, so ownership never moves |
+| The `instance` layer | **His invention.** Only `organisation` existed |
+| The `team` layer | His |
+| `assets` | His. They had devices only |
+| `belongs` / `relates` | His, `inherit` and `siblings`, with the street-lighting example |
+| "It was flat" | Precisely: devices sat inside organisation and neither was called a layer. The architect had the concept and no way to express it |
+| The line of the chapter | **"I took the two dimensions and made them three."** |
+
+**And two corrections to text that was already published:**
+
+- *"It's better to be right than consistent"* is **withdrawn by its author.** It argues against
+  consistency; the argument is only about where consistency stops paying. Now
+  *"Consistency is worth keeping until it no longer fits the context."*
+- The platform is **almost zero-code, not zero-code.** The UI Builder has a code part. The old
+  portfolio page's "code-less" overstates it.
+
+**Written to Notion, EN and AR, in four pages.** Dry run after: `failed 0`, and
+`cervello/on-premises-to-cloud: 3 en, 3 ar` where it had been 2. The new decision parses in both.
+
+⚠️ **I told him Cervello had zero decisions. It had five.** I queried
+`chapter_paragraphs.kind='decision'`, which is 0 for every chapter of every case file on the site,
+because decisions live in their own `decisions` table. The content agent caught it.
+
+### Part 2 - the em dash, and the thing it was holding up
+
+**The rule is contextual, and he was explicit about it:** *"replace with the right punctuation in
+the context, don't just replace."* Comma for an aside, full stop for a pivot, colon for a
+definition or a lead-in, Arabic comma `،` in Arabic. A blanket swap would have shipped comma
+splices in his own voice.
+
+**Measured first: 728 em dashes across 490 rows**, both languages, before any were touched.
+
+**Titles: 56 changed, and the parser had to move first.** `lib/sync/classify.ts` identified every
+page type by a regex requiring `—`. Removing the dash from titles without touching the parser
+would have made the sync unable to classify a single page.
+
+**And that is not theoretical, because two pages were already broken by it.**
+`Chapter - Neobiz Mobile / Onboarding` and `Chapter - UAE / Mobile Onboarding Journey` were
+written with a plain hyphen, failed every `—` test, and fell through to `static` - which the dry
+run then reported under "NOT YET IMPLEMENTED" rather than as broken. **Six decisions, three per
+chapter, in both languages, were not being written at all.** `updated` went 19 -> 21 on the fix.
+
+The separator now accepts `[—–-]`, consumed **once, anchored at the front**. Deliberately not a
+whole-title normalisation: folding every hyphen would have corrupted `On-Premises to Cloud`,
+`Open-Source` and `AI-reader compliance`.
+
+**Five seeded strings are not in Notion**, so no sync would ever have reached them. Corrected in
+the seed files (`0003`, `0009`, `0056`) **and** in migration `0057` for the live database.
+`ui_strings.description` was left alone on purpose: only a maintainer reads it.
+
+**`/llms.txt` carried one**, in the instruction block every summarising model reads.
+
+### Verified
+
+`tsc` clean - `check:seed-drift` **100/100, no drift** - `test:sync` all pass - dry run
+`failed 0` with **identical** counts before and after the 56 renames - `Page LIKE '%—%'` returns
+**zero rows** - `ui_string`/`career_role` em dashes **zero**.
+
+### Not verified
+
+Nothing has been synced to the database or rendered. The prose sweep is running in five agents
+(`002`-`006`) and only UAE has reported. **The definitive check is still to come:** grep the
+served HTML in both locales, not Notion and not the database.
+
+### ⚠️ For Moataz, found by the UAE agent inside a punctuation task
+
+**The Arabic UAE cover still claims the Relationship Manager was removed from the journey
+entirely.** The English was corrected long ago and both Arabic chapters carry the corrected
+wording. The cover alone does not. It is a claim about a person's role and it differs between the
+two languages on the same site. **His call, asked and open.**
+
+---
+
+## 045240826 — 2026-08-24 13:45 — the Draft line is gone, and the sync has no write path for the page it was on
+
+Moataz: *"سطر الدرافت ممكن يتشال، هو دا درافت، ممكن يتشال قبل الاطلاق."* Done — and getting
+there turned up two things that were not the task.
+
+### 1 · The Accessibility page was a HARD SYNC FAILURE, and had been
+
+The dry run refused it outright — `failed 1`, nothing written for that page at all:
+
+> `image tag ".../application-submitted-arabic-verification-choice" is unusable and was NOT written:`
+> `the paragraph also contains prose (“وقد طرحت دعم RTL بوصفه متطلبًا على مستوى النظام لا التفافًا ”)`
+
+In the Arabic Notion page a `[cld]`/`[alt]`/`[caption]` run and a sentence of prose shared **one
+paragraph**. The block would become a `<figure>` and the prose would be silently dropped, so the
+parser refuses the whole page rather than write half of it. That refusal is correct — partial media
+is worse than none.
+
+**Fixed in Notion, not in the parser** — his standing rule. The paragraph was split in two; the
+sentence is preserved **word for word**, only the block boundary moved. `failed 1` → **`failed 0`**.
+
+### 2 · ⚠️ The accessibility page HAS NO SYNC WRITE PATH — and I had this backwards
+
+The same run says it plainly, in its own summary:
+
+> `NOT YET IMPLEMENTED — comparison, accessibility and chrome pages`
+> `Comparison and accessibility pages still need a write path.`
+
+The sync **parses and validates** that page and then writes nothing. Its `page_sections` rows got
+there some other way and no sync touches them.
+
+**This inverts the reasoning I acted on in the previous turn.** I argued the Draft line had to be
+removed in Notion because a database-only delete *"would be undone by the next sync."* **The
+opposite is true here:** nothing syncs this page, so a Notion edit alone would have changed nothing
+on the site, and the line would still be live. Same class of error as the stale claims in
+`CLAUDE.md` — a mechanism assumed rather than run.
+
+**So both were done.** Notion for the source of truth, so it does not return when the write path
+lands; the database for the site as it stands today.
+
+### What was actually deleted
+
+```sql
+-- page_sections be5e0260… (page='work/egypt-acquisition/accessibility', slug='intro', locale='en')
+translations_deleted 1 | sections_deleted 1
+```
+
+The English `intro` row held **nothing but** the Draft line — it was the whole lede, not a prefix to
+it. Arabic never had an intro row. Removing it makes English match Arabic: both now open on their
+first real section at `sort_order 0`.
+
+### Verified
+
+`next build` exit 0 · sync dry run **`failed 0`** (was 1) · `page_sections` **en 14 / ar 8, `draft_hits 0`
+in both** · both locales served from a real production build: **`/en/…/accessibility` 200,
+`/ar/…/accessibility` 200, zero case-insensitive matches for "draft" in either served HTML.**
+
+`ProseSections` already renders `{intro ? … : null}`, so a page with no intro was an existing
+supported case, not one this change created.
+
+### Still open on this page
+
+- **No write path.** The page is editable in Notion and those edits do not reach the site. Anything
+  else changed there needs the same manual database step until the path exists.
+- The 6 dry-run notices are unrelated and unchanged — 4 mini case files with no outcomes table,
+  Cervello's missing targets table, and one entry handle on the Egypt cover pointing at no chapter.
+
+---
+
 ## 044240826 — 2026-08-24 13:00 — the career timeline is live, and it names no employer
 
 Moataz confirmed the transcription and supplied the domains the CV could not: **Fintech and Medical**

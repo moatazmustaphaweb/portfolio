@@ -72,8 +72,8 @@ const COVERS: Record<string, (size: CoverSize) => ReactElement> = {
           ],
         },
       ]}
-      alt="Egypt Acquisition — programme system map"
-      description="A matrix of the Egypt Acquisition programme across six delivery phases — Discovery, Structure, Review, Exception, Portal and Close. The customer-facing band carries Onboarding Journey, Document Capture & OCR, Customer Portal & Notifications, and Account Activation. The bank-facing band carries Application Workflow, Name Screening, Exception Handling, Fulfilment & AOF, and closes on six systems live. Each plate spans the phases its system operates across, so overlapping plates show systems running concurrently."
+      alt="Egypt Acquisition: programme system map"
+      description="A matrix of the Egypt Acquisition programme across six delivery phases: Discovery, Structure, Review, Exception, Portal and Close. The customer-facing band carries Onboarding Journey, Document Capture & OCR, Customer Portal & Notifications, and Account Activation. The bank-facing band carries Application Workflow, Name Screening, Exception Handling, Fulfilment & AOF, and closes on six systems live. Each plate spans the phases its system operates across, so overlapping plates show systems running concurrently."
     />
   ),
 

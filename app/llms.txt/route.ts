@@ -90,7 +90,7 @@ export async function GET() {
     "- Some imagery is redacted under NDA. The redaction is a deliberate",
     "  design treatment, not missing or broken content.",
     "- Figures are labelled projected, achieved, or not-measurable. Please",
-    "  preserve those labels when quoting them — an unlabelled figure",
+    "  preserve those labels when quoting them. An unlabelled figure",
     "  misrepresents the work.",
     "",
   );

@@ -26,6 +26,52 @@ He reads the file, not the terminal. An unchanged `status.md` is indistinguishab
 
 Generalises past this one rule: **if a standing rule is being violated, adding words to it is the weakest available fix.** Attach it to a step that cannot be skipped.
 
+## A report written as assistant text is a report nobody received
+
+Learned 2026-08-25, task `006250826`, after being recorded as an idle agent three times in a
+row while holding a finished report each time.
+
+**In a team session, plain assistant text does not reach teammates. `SendMessage` is the only
+channel out.** An agent that writes its report and ends its turn has, from the orchestrator's
+side, produced nothing — and from its own side, everything looked sent. The task was complete,
+verified and logged after the first round; two further rounds were spent on a delivery bug
+while the orchestrator reasonably concluded the scope was unstaffed and prepared to reassign it.
+
+**This is the same failure as an unchanged `status.md`, in a different pipe**, and it is worse
+in one respect: an empty status file at least *looks* empty. A report that was composed but
+never sent leaves no trace anywhere — not in the file, not in the inbox — so the work looks
+covered to the agent and abandoned to everyone else. **A silent agent is worse than a failed
+one**, because a failure gets reassigned and a silence gets waited on.
+
+**So, mechanically:** every reply to a teammate goes through `SendMessage`. The tool result
+saying `success` is the evidence that the report exists; the text in the turn is not. Same
+shape as the Notion rule in `docs/content-brief.md` — a write you did not confirm is not a
+write — and the same shape as the fix in the section above: **attach the rule to a step that
+cannot be skipped rather than restating it.** The close is not `DONE` until the send returned.
+
+### And the reason it happens is that `SendMessage` may not be in your toolset at all
+
+Added 2026-08-25, task `002250826`, by the second agent to hit this on the same day — four
+finished reports, none delivered, same shape as above.
+
+**The cause was not forgetfulness. `SendMessage` was a deferred tool**, listed by name in a
+system reminder with its schema unloaded, which means it could not be called at all. Writing
+the report as assistant text was not a lapse in following the rule — it was the only thing
+available, and nothing in the turn signalled that a channel was missing. The rule above says
+*every reply goes through `SendMessage`*; it cannot be followed by an agent that does not have
+the tool.
+
+**So the step that cannot be skipped is one earlier than the send:** on a team task, load the
+tool before you need it —
+
+```
+ToolSearch("select:SendMessage")
+```
+
+**Deferred tools are invisible until fetched, and a missing outbound channel fails silently in
+exactly the direction nobody checks.** If the tool list in front of you has no `SendMessage`
+and you are working under an orchestrator, that is the first thing to fix, not the last.
+
 ## One prompt at a time, and never below an open question
 
 He sends prompts to Claude Code verbatim. A question left open above a prompt means he sends the prompt without knowing whether it was answered.
@@ -381,6 +427,35 @@ And verify on the server he is watching. Verification on an ephemeral port is tr
 ## Say what was not verified
 
 "Not tested" and "working" have been conflated on this project. A report that names its own gaps is worth more than one that reads clean.
+
+## A container that must follow its contents is CSS, not SVG
+
+Added 2026-08-25, task `009250826`, after the device frame was built twice.
+
+An SVG declares its coordinate system before it draws: the `viewBox` fixes the proportions at
+author time. So an SVG container can only crop its contents to the shape it was drawn as.
+Making one follow its contents means recomputing every coordinate per instance — and if the
+contents are HTML, they sit in a `foreignObject`, **whose inner layout is in viewBox units
+rather than CSS pixels**. That unit mismatch renders a correctly-sized image at the wrong
+scale, silently, with no error anywhere.
+
+A CSS box in normal flow already grows to whatever is inside it. Three nested `div`s with
+padding, radius and a shadow draw the same object and need no arithmetic.
+
+**The test: does the shape have to be the same every time, or does it have to fit what is put
+in it?** Fixed shape, and SVG is right. Fits its contents, and SVG is a calculation engine
+pretending to be a drawing.
+
+**Reading a design file as SVG does not mean shipping it as SVG.** The numbers are the
+design's and they transfer either way — read them as *insets* rather than as absolute rects
+and they become padding.
+
+## Absolute pixels are sometimes the correct choice, and a bezel is one
+
+Same task. The instinct on a responsive site is to scale everything proportionally. A frame's
+bezel is a physical part of a physical object: it does not get thinner because the picture is
+smaller. Scaled proportionally, it stops reading as a device and starts reading as a border.
+
 
 ---
 
@@ -803,6 +878,134 @@ what the screenshot's dimensions imply? If a window was resized earlier in the s
 unrelated reason, a later tab in the same window can silently inherit it.
 
 
+## A character can be punctuation in one field and an identifier in another
+
+Added 2026-08-25, task `001250826`.
+
+Moataz ruled that the em dash leaves the site. The obvious reading of that is a writing rule, and
+in the prose it is one. But the same character was also **the thing `lib/sync/classify.ts` used to
+tell one kind of page from another**:
+
+```
+/^Case File Cover\s*—\s*(.+)$/i    /^Chapter\s*—\s*(.+)$/i    /^Results Table\s*—\s*(.+)$/i
+```
+
+Applying the writing rule to the Notion row titles would have left the sync unable to classify a
+single page in the database. Not fail loudly. **Classify them all as `static`**, which is a real
+kind with a real code path.
+
+**And that had already happened, to two pages, and nobody noticed.** `Chapter - Neobiz Mobile /
+Onboarding` and `Chapter - UAE / Mobile Onboarding Journey` were written with a plain hyphen
+instead of an em dash. They failed every `—` test, fell through to `static`, and the dry run
+printed them under **"NOT YET IMPLEMENTED"** — a heading that reads like a roadmap note rather
+than a defect. Six decisions, three per chapter, in both languages, were never written.
+
+**The generalisable part is the failure shape, not the dash.** A page that is silently the WRONG
+KIND is worse than a page that fails, because every count still adds up: the row is read, it is
+reported, it appears in a list, and the list has a plausible reason for it being there. `failed 0`
+was true the whole time.
+
+**Two rules come out of it:**
+
+1. **Before applying a formatting rule to a field, grep for that field being parsed.** A title, a
+   slug, a heading and a label are all things a rule might touch and a parser might read. Prose is
+   the only place where punctuation is only punctuation.
+2. **Widen the separator; never normalise the whole string.** The fix accepts `[—–-]` consumed
+   ONCE, anchored at the front. Folding every dash in the title would have corrupted the names it
+   was trying to protect — `On-Premises to Cloud`, `Open-Source`, `AI-reader compliance`. This is
+   the same shape as the guard rule already in Part 4: widen what a guard accepts, never weaken
+   what it protects.
+
+**And rule 1 is not satisfied by grepping ONE file.** I wrote the two rules above, and an hour
+later broke four sibling links with the same mistake. I had grepped `lib/sync/classify.ts`, found
+the classifier, widened it, and stopped — because that file is *where the rule lives*. The same
+split was also written inline, once, in `scripts/sync-notion.ts`:
+
+```js
+row.title.replace(/^.*—\s*/, "")   // the em dash, hard-coded, at one call site
+```
+
+It stopped matching, the full row title became each case file's English title, and every sibling
+link on every cover stopped resolving. The sync reported it honestly, as `sibling "X" matches no
+case file`, and it was still four notices in a list of ten that mostly predated the change.
+
+**So: grep for the CHARACTER across the whole codebase, not for the module that owns the rule.**
+A convention implemented twice has a second implementation precisely because someone once needed
+it somewhere the first one was not reachable. The fix was not to widen the second regex. It was to
+delete it and pass the classifier's own `name` through, so the split exists once.
+
+**A dry-run heading that sounds like a plan can be hiding a defect.** "NOT YET IMPLEMENTED" earned
+its place in that output, and it is also where two working pages went to be quietly wrong. When a
+list of "not built yet" contains something you believe IS built, that is the signal.
+
+---
+
+## Notion's `update_content` reports success when only SOME of its edits matched
+
+Added 2026-08-25, task `009250826`.
+
+A single `content_updates` entry whose `old_str` does not match returns a loud
+`validation_error: No matches found`. **Send two entries, one matching and one not, and the call
+returns `{"page_id": "..."}` — success — having applied only the one that matched.**
+
+That is how a paragraph survived a deletion I had reported as done. The call carried two edits: a
+date range, which matched, and a paragraph removal, which did not. The date changed. The paragraph
+stayed. Nothing said so.
+
+**The rule: a success response from a multi-edit call is not evidence that every edit landed.**
+Re-fetch and read, or send one edit per call. The re-fetch is what found it, which is the same
+lesson as `docs/content-brief.md` §1 about batched writes and the same lesson as every other entry
+in Part 5: the write's own return value is never the verification.
+
+## Arabic diacritic ORDER breaks exact-match editing, and it looks like the text is absent
+
+Same task. `تبنٍّ` refused to match in Notion three times running. The word is correct on the page and
+correct in the string being sent. What differs is the **byte order of the two marks**: shadda
+(U+0651) before kasratan (U+064D), or the reverse. Both render identically. Neither is visibly
+wrong. An exact-match replace sees two different strings.
+
+It cost three failed calls and a wasted fetch, and the failure mode is misleading: the tool says
+*no matches found*, which reads as "that text is not on the page" rather than "that text is on the
+page in a different encoding."
+
+**When an Arabic `old_str` will not match and you can see the text on the page, cut the fragment
+back to a span with no composed diacritics before assuming the text moved.** The same applies to
+`أً`/`ًأ` and to any letter carrying two marks.
+
+## `space-y-*` on a parent silently outranks `mt-*` on the child
+
+Added 2026-08-25, task `009250826`, after shipping the same spacing fix twice without either
+one taking effect.
+
+`space-y-6` compiles to `.space-y-6 > :not([hidden]) ~ :not([hidden])` — three selectors, so it
+beats a bare `.mt-8` on the child, which is one. It also sets `margin-bottom: 0`, so a child's
+`mb-*` is dead as well. Nothing errors. The class is in the DOM, the utility exists, the value
+is on-scale, and the margin is simply not the one that applies.
+
+**This is not the replaced-scale trap** (an off-scale utility compiling to nothing). Both traps
+end the same way — a class that is present and does nothing — but they need different checks,
+so a `class="mt-22"` that looks wrong has to be tested against both.
+
+**The check is two computed values, not one.** Read the property off the real element AND off a
+bare element carrying the same class:
+
+```js
+getComputedStyle(figure).marginTop        // 24px  ← what actually applies
+getComputedStyle(freshDiv).marginTop      // 88px  ← what the class means
+```
+
+A gap between those two numbers is an override. One number on its own proves nothing, and a
+screenshot proves less — the spacing here was reported as fixed twice, from screenshots, while
+the container's 24px never moved.
+
+**When the child must escape the container's rhythm, `!` is the honest tool** (Tailwind v3;
+v4 writes it as a suffix). `display: contents` is the other fix and solves the opposite
+problem — it makes the child *take* the container's rhythm instead of stacking a second margin
+on top of it. Both appear in `ChapterSections.tsx`, a few lines apart, for opposite reasons.
+
+
+---
+
 # PART 6 — ENVIRONMENT TRAPS
 
 Each of these cost at least one session.
@@ -906,6 +1109,40 @@ curl -s -o /dev/null -w '%{http_code}\n' -L "https://res.cloudinary.com/<cloud>/
 Each journey has an index — `Image mapping/*.xlsx`, and `docs/Cloudinary_Index_UAE_NEOBIZ_Mobile.xlsx` for this one — carrying the exact ID, the Figma node, the pixel dimensions and a resolvable URL per screen. **Ask whether one exists before deriving anything**, and if the answer is no, ask whether one is coming. Deriving is what you do after both answers are no, and even then the request is what settles it.
 
 **A related waste worth avoiding:** four screens were also exported from Figma by hand, to be uploaded later. They were already on Cloudinary at 786px, twice the resolution the Figma MCP returns, which caps at the node's natural canvas size no matter what `maxDimension` asks for.
+
+---
+
+## A sync that PARSES a page is not a sync that WRITES it
+
+Added 2026-08-24, task `045240826`.
+
+A line had to come off the Accessibility page. The reasoning applied was the standing rule —
+*Notion is the source, so edit Notion, because a database-only delete would be undone by the next
+sync.* That reasoning is right almost everywhere on this project. On this page it was **exactly
+backwards**, and acting on it alone would have left the line live on the site while every artefact
+said it had been removed.
+
+The sync run says so in its own summary, and it had been saying it all along:
+
+> `NOT YET IMPLEMENTED — comparison, accessibility and chrome pages`
+> `Comparison and accessibility pages still need a write path.`
+
+The page is **read, parsed, validated, and reported on** — it even produced a hard `failed 1` for a
+malformed image tag, which is what made it look like a page the sync owns. It is never **written**.
+Validation and persistence are separate stages and only one of them was running.
+
+**The trap is that a page with no write path looks MORE synced, not less** — it appears in the
+output, it can fail, it can be fixed and go green. `failed 0` was read as "it wrote"; it meant
+"nothing objected."
+
+**The rule: before editing Notion to change what a page shows, confirm that page has a write path.**
+The dry run names the ones that do not, in the block above the counts — read that block, not only
+the totals. Where there is no path, Notion is still the right place to fix the source *and* the
+database has to be changed as well, or the site does not move.
+
+Same shape as the stale claims in Part 6: a mechanism believed rather than run. The difference is
+that this one was not stale — it was never true for this page, and it was written into the output
+of every sync anybody had executed.
 
 ---
 

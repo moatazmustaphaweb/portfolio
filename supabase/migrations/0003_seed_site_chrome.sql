@@ -127,7 +127,7 @@ with strings(key, context, en, ar) as (values
   ('form_message',     'Contact form field',                  'Message',                'الرسالة'),
   ('form_submit',      'Contact form button',                 'Send',                   'إرسال'),
   ('form_sending',     'Submit button, pending state',        'Sending…',               'جارٍ الإرسال…'),
-  ('form_success',     'Contact form confirmation',           'Thanks — I’ll reply soon.', 'شكراً — سأردّ قريباً.'),
+  ('form_success',     'Contact form confirmation',           'Thanks. I’ll reply soon.', 'شكراً. سأردّ قريباً.'),
   ('form_error',       'Contact form failure',                'That didn’t send. Try again, or email me directly.', 'لم يتم الإرسال. حاول مرة أخرى، أو راسلني مباشرة.'),
   ('form_required',    'Validation message',                  'This field is required.', 'هذا الحقل مطلوب.'),
 
@@ -167,7 +167,7 @@ with strings(key, context, en, ar) as (values
   -- NOT seeded here — it is `settings.email`, so there is one source for it.
   ('cv_to_label',      'CV request panel — the To field label', 'To:',        'إلى:'),
   ('cv_subject_label', 'CV request panel — the Subject field label', 'Subject:', 'الموضوع:'),
-  ('cv_subject_value', 'CV request panel — the fixed subject line', 'CV request — moatazmustapha.com', 'طلب السيرة الذاتية — moatazmustapha.com'),
+  ('cv_subject_value', 'CV request panel — the fixed subject line', 'CV request: moatazmustapha.com', 'طلب السيرة الذاتية: moatazmustapha.com'),
   ('cv_greeting',      'CV request panel — the fixed greeting', 'Hi Moataz,', 'مرحباً معتز،'),
   ('cv_body',          'CV request panel — the fixed body line', 'I came across your portfolio and I''d like to see your CV.', 'اطّلعت على أعمالك وأودّ الحصول على سيرتك الذاتية.'),
   ('cv_optional_placeholder', 'CV request panel — placeholder for the one optional line', 'Optional: who you are and what this is about', 'اختياري: من أنت وسبب التواصل'),

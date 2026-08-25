@@ -1,4 +1,5 @@
 import { CloudinaryImage } from "@/components/media/CloudinaryImage";
+import { DeviceFrame } from "@/components/media/DeviceFrame";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
@@ -148,7 +149,12 @@ export function ChapterSections({
                   );
                 }
                 if (block.kind === "image") {
-                  return <ChapterFigure key={`f-${section.id}-${i}`} media={block.media} />;
+                  return (
+                    <ChapterFigure
+                      key={`f-${section.id}-${i}`}
+                      media={block.media}
+                    />
+                  );
                 }
                 /*
                  * ⚠️ The SAME `SectionTable` the document pages have always
@@ -224,6 +230,39 @@ export function ChapterSections({
 function ChapterFigure({ media }: { media: Media | null }) {
   if (!media) return null;
 
+  /*
+   * ── WHICH PICTURES GET THE LAPTOP ───────────────────────────────────────
+   *
+   * The frame is a claim: "this is a screen on a computer." So the thing that
+   * decides has to be evidence about the picture, and the only evidence there
+   * is, is its shape. A landscape screenshot is a desktop screen. A portrait
+   * one is a phone, an emailer, or a page of a form, and none of those belong
+   * inside a laptop.
+   *
+   * WHY NOT THE ROUTE. This used to be `caseFile === "cervello" && chapter ===
+   * "permission-architecture"` — a slug written into a page. It was fine as a
+   * trial and wrong as a rule: every journey has web screens in it, and the
+   * mobile case files carry desktop screens too.
+   *
+   * WHY NOT THE FOLDER NAME. Tempting, because the Cloudinary paths say
+   * "Mobile". Measured, they lie: inside `00. UAE NEOBIZ - Mobile - Jul 27`
+   * there are 786x1704 phone screens sitting beside 1600x1200 and 4322x4323
+   * boards. A folder is a filing convention, not a fact about the image.
+   *
+   * THE THRESHOLD IS DELIBERATELY STRICT. 0.9, not 1.0. Across the 161 media
+   * rows the shapes fall into 91 clearly landscape (< 0.9), 47 clearly
+   * portrait (>= 1.3), and 23 square or nearly so. A square is not evidence of
+   * a desktop screen, so it does not get the claim — an unframed picture is
+   * merely plain, while a wrongly framed one asserts something untrue.
+   *
+   * A row with no dimensions is also left unframed. Before migration 0060 that
+   * was 152 of 161 rows; if it happens again — the Notion sync still creates
+   * media without dimensions — the figures go plain rather than wrong.
+   */
+  const ratio =
+    media.width && media.height ? media.height / media.width : null;
+  const device = ratio !== null && ratio < 0.9;
+
   const caption = media.fields.caption;
   /*
    * The caption's own language. A media row referenced only by the English page
@@ -233,17 +272,114 @@ function ChapterFigure({ media }: { media: Media | null }) {
   const captionLang: Locale | undefined = media.fieldLocales.caption;
 
   return (
-    <figure className="mt-8">
-      <CloudinaryImage
-        media={media}
-        preset="gallery"
-        className="me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
-      />
+    /*
+      Framed, the figure becomes the positioning context for its own caption and
+      carries its own margins on both sides. The caption is taken out of flow so
+      it can sit ON the frame's bottom line, which means the figure no longer
+      reserves room for it — without the bottom margin the next paragraph runs
+      underneath it, and without a matching top margin two consecutive frames
+      end up separated only by the overhanging chip.
+
+      ⚠️ THE `!` IS LOAD-BEARING. THIS FIGURE'S PLAIN `mt-*` NEVER APPLIED.
+
+      The parent is `<div className="mt-5 space-y-6">` (line 133). `space-y-6`
+      compiles to `.space-y-6 > :not([hidden]) ~ :not([hidden])`, which outranks
+      a bare `.mt-8` on the child, so EVERY figure on every chapter has been
+      spaced at the container's 24px since it was written — the `mt-8` here was
+      dead the whole time, and so were the `mt-14` and `mb-14` that replaced it
+      earlier in this same task. `space-y` also forces `margin-bottom: 0`, which
+      is why the bottom margin never did anything either.
+
+      Measured, not reasoned: `mt-22` resolves to 88px on a bare element and to
+      24px on this figure. That gap between the two readings is the bug.
+
+      The same conflict is already documented for the table at line 195, where
+      it was solved with `display: contents`. That does not transfer — the table
+      wanted the container's rhythm and this figure needs to escape it.
+
+      88px, the top of the scale rather than the middle. A framed screenshot is
+      a discrete object carrying a shadow and an overhanging caption, so the gap
+      between two of them has to clear both before they stop reading as one
+      strip.
+    */
+    <figure className={device ? "relative !mt-22 !mb-22" : "mt-8"}>
+      {(() => {
+        /*
+          The image is identical either way. Only its container changes, so the
+          NDA treatment, the alt omission and the sizing rules all keep working
+          without the frame knowing anything about them.
+
+          `me-auto` moves to the FRAME when there is one: the thing that has to
+          hug the inline start is the outer edge, and leaving it on the image
+          would centre the picture inside a frame that is itself flush left.
+
+          The framed variant also drops `max-h-figure`. That cap exists to stop
+          a tall unframed screenshot becoming a wall between two paragraphs; the
+          frame already fixes the height by fixing the shape, so applying both
+          would shrink the picture away from the bezel it is supposed to fill.
+        */
+        const img = (
+          <CloudinaryImage
+            media={media}
+            preset="gallery"
+            className={
+              /*
+                Framed, the picture is NOT cropped. The frame follows its
+                contents (see `DeviceFrame`), so the image keeps its own aspect
+                ratio and the bezel wraps whatever shape arrives. An earlier
+                version forced `h-full w-full object-cover` against a fixed
+                786x522 screen; that shape is gone, and `object-cover` with no
+                height to cover collapses the picture.
+              */
+              device
+                ? "block h-auto w-full"
+                : "me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
+            }
+          />
+        );
+        return device ? <DeviceFrame>{img}</DeviceFrame> : img;
+      })()}
       {caption ? (
         <figcaption
           lang={captionLang}
           dir={captionLang ? dirForLocale(captionLang) : undefined}
-          className="mt-3 max-w-measure text-meta text-fg-muted"
+          className={
+            /*
+              Framed, the caption is a chip floating on the frame's bottom line.
+
+              THE STYLE IS THE SITE'S CHIP, FLAT. `border border-DEFAULT px-3
+              py-1 font-mono text-micro text-fg-dim` is exactly what the gallery
+              cards, PreviewIndex, StubPage and RedactedEvidence already use —
+              one chip treatment, not a second one invented here. The single
+              departure is the radius: `rounded-control` (6px) instead of
+              `rounded-pill` (999px) — softened rather than fully round, and
+              still one of the system's three radii rather than a new number.
+
+              `uppercase` is dropped with it. Every existing chip is a one-word
+              label (`FINTECH`, `NDA`) and upper-cases cleanly; a caption is a
+              sentence, and a shouted sentence is not the voice.
+
+              `bg-surface` is not decoration — the chip straddles the frame's
+              edge, so half of it sits over the screenshot. Without an opaque
+              fill the text reads against whatever pixels happen to be there.
+
+              POSITION. `inset-x-0` + `mx-auto` + `w-fit` centres it without
+              naming a physical side, so it is identical in LTR and RTL —
+              `left-1/2` with a negative translate would have been a direction
+              trap. `bottom-0 translate-y-1/2` puts its centre on the frame's
+              bottom line: centre horizontally, centred on the bottom edge.
+
+              Off-scale spacing does not exist here — the scale is REPLACED, not
+              extended, so `py-1.5` would compile to nothing and the chip would
+              silently lose its padding.
+
+              Unframed captions are unchanged. This belongs to the device
+              treatment, live on one chapter while its look is being agreed.
+            */
+            device
+              ? "absolute inset-x-0 bottom-0 mx-auto w-fit max-w-measure translate-y-1/2 rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim"
+              : "mt-3 max-w-measure text-meta text-fg-muted"
+          }
         >
           {caption}
         </figcaption>

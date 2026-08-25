@@ -113,6 +113,14 @@ git check-ignore .env.local     # must return the path
 - **Never rewrite pushed history**, never force-push, never `git reset --hard` over work
   you did not write, without an explicit instruction from Moataz for that specific action.
 - **`git push` is a separate decision from `git commit`.** Ask unless the brief said push.
+- **`push` is Moataz's word, and the word is `publish`.** Standing from 2026-08-25, task
+  `009250826`. Committing locally stays free and is still expected at the end of a task —
+  a worktree can be deleted and uncommitted work goes with it. **Pushing does not.** Every
+  push to `origin` triggers a Vercel build and an email, and while the shape of a thing is
+  still being agreed those emails announce work that is not finished. So: **commit as
+  often as the work needs, push only when Moataz says `publish`** — not when a task closes,
+  not when the build passes, not because the branch is behind. A brief that says "push" is
+  not enough on its own; the instruction has to have come from him.
 
 ## THE COMMIT TIME IS THE TIMESTAMP OF RECORD
 

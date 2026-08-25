@@ -55,4 +55,14 @@ A number that animates upward reads as measured, live, real. Animating a project
 
 ## When a number has no home
 
-Stop and ask. Do not invent a figure, do not soften an absent one into a vague phrase, and do not label something to make a table look complete. Cervello states its limits in prose — *"I have no numbers I can show you"* — and that is a valid, publishable answer.
+Stop and ask. Do not invent a figure, do not soften an absent one into a vague phrase, and do not label something to make a table look complete.
+
+**And do NOT announce the absence either.** Ruled by Moataz on 2026-08-25, launch week, reversing what this file said before: *"ما نكذبش وما نعملش fake لـ data، بس مش الصح إن إحنا نقول له في أول المشروع: خد بالك إن مفيش data."*
+
+The two halves are not the same rule. **Fabricating a number is dishonest; saying nothing about numbers is not.** A case file that opens by telling the reader what it cannot show spends its first paragraph on an apology, and the reader did not ask.
+
+This file previously quoted Cervello's *"I have no numbers I can show you"* as the model answer. **That sentence and seven like it were deleted from the site in task `009250826`**, in both languages, along with the line that apologised for the limit (*"That limits what this case file can be, and I'd rather name the limit than manufacture a result"*). What replaced them was already in the same sentence: *"What Cervello has is the method"*, *"The app is designed and internally validated"*.
+
+**What still holds, unchanged:** no invented figures, every marker explicit, `[not-measurable]` where a declared target exists and was never measured, and a blank is never correct. The ban is on the DISCLAIMER, not on the discipline.
+
+⚠️ **The sync still emits a notice** when a case file has no outcomes table and no statement about the absence (`scripts/sync-notion.ts`, Pass 3). Those notices will now fire on the case files that had such a statement and no longer do. They are notices, not failures, and the check itself wants revisiting.
