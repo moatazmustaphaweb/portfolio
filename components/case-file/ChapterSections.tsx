@@ -52,19 +52,8 @@ import type { ChapterSection, Locale, Media } from "@/lib/content/types";
 export function ChapterSections({
   sections,
   linkLabels,
-  device,
 }: {
   sections: ChapterSection[];
-  /*
-   * Wrap every figure in this chapter in a laptop frame.
-   *
-   * OFF by default and switched on per chapter by the route, not by the
-   * content. It is a property of the WORK, not of the picture: Cervello is a
-   * desktop platform, so a laptop is the truthful container. The mobile case
-   * files would be lying inside one, and no `[cld]` tag should have to know
-   * which.
-   */
-  device?: boolean;
   /*
    * `ui_strings.copy_section_link` and `.section_link_copied`, resolved on the
    * server and passed down — this component is a server component and cannot
@@ -164,7 +153,6 @@ export function ChapterSections({
                     <ChapterFigure
                       key={`f-${section.id}-${i}`}
                       media={block.media}
-                      device={device}
                     />
                   );
                 }
@@ -239,14 +227,41 @@ export function ChapterSections({
  * `CloudinaryImage` — so this component cannot forget it and cannot override
  * it (amendment 036).
  */
-function ChapterFigure({
-  media,
-  device,
-}: {
-  media: Media | null;
-  device?: boolean;
-}) {
+function ChapterFigure({ media }: { media: Media | null }) {
   if (!media) return null;
+
+  /*
+   * ── WHICH PICTURES GET THE LAPTOP ───────────────────────────────────────
+   *
+   * The frame is a claim: "this is a screen on a computer." So the thing that
+   * decides has to be evidence about the picture, and the only evidence there
+   * is, is its shape. A landscape screenshot is a desktop screen. A portrait
+   * one is a phone, an emailer, or a page of a form, and none of those belong
+   * inside a laptop.
+   *
+   * WHY NOT THE ROUTE. This used to be `caseFile === "cervello" && chapter ===
+   * "permission-architecture"` — a slug written into a page. It was fine as a
+   * trial and wrong as a rule: every journey has web screens in it, and the
+   * mobile case files carry desktop screens too.
+   *
+   * WHY NOT THE FOLDER NAME. Tempting, because the Cloudinary paths say
+   * "Mobile". Measured, they lie: inside `00. UAE NEOBIZ - Mobile - Jul 27`
+   * there are 786x1704 phone screens sitting beside 1600x1200 and 4322x4323
+   * boards. A folder is a filing convention, not a fact about the image.
+   *
+   * THE THRESHOLD IS DELIBERATELY STRICT. 0.9, not 1.0. Across the 161 media
+   * rows the shapes fall into 91 clearly landscape (< 0.9), 47 clearly
+   * portrait (>= 1.3), and 23 square or nearly so. A square is not evidence of
+   * a desktop screen, so it does not get the claim — an unframed picture is
+   * merely plain, while a wrongly framed one asserts something untrue.
+   *
+   * A row with no dimensions is also left unframed. Before migration 0060 that
+   * was 152 of 161 rows; if it happens again — the Notion sync still creates
+   * media without dimensions — the figures go plain rather than wrong.
+   */
+  const ratio =
+    media.width && media.height ? media.height / media.width : null;
+  const device = ratio !== null && ratio < 0.9;
 
   const caption = media.fields.caption;
   /*

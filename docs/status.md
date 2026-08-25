@@ -186,6 +186,65 @@ off `getComputedStyle` — `#fff` / `#eaeaec` / `#e0e1e6` / `-7px 19px 39px #585
 page screenshotted. Two earlier readings of this were taken during a theme transition and were
 misleading in both directions.
 
+### The laptop goes on every web screen on the site, and on no phone screen
+
+Moataz: *"i need you to mark all of this like a web or computer screen and each journey has a
+web. the image should be in this frame for the mobile not."*
+
+**The route gate is gone.** It was `caseFile === "cervello" && chapter ===
+"permission-architecture"` — correct as a trial, wrong as a rule, because every journey has web
+screens in it and the mobile case files carry desktop screens too.
+
+**What decides now is the shape of the picture**, and getting there required a backfill first.
+
+#### 152 of 161 media rows had no dimensions
+
+Measured before reasoning, and it stopped the obvious approach dead: `media.width` and
+`media.height` were NULL for every chapter image — all 25 Cervello, all 38 Egypt, all 18 EGY
+NEOBIZ Mobile. Only the nine covers had any, set by hand at upload.
+
+**A second bug was hiding in the same NULLs**, and it was never reported by anyone:
+`CloudinaryImage` uses width/height to reserve the box before an image loads, and with both
+NULL it falls back to the preset width *as the height*. Every chapter figure on the site has
+been reserving a **square** and reflowing the page as each picture arrived.
+
+Migration `0060_backfill_media_dimensions.sql` writes all 160 resolvable rows from Cloudinary's
+Admin API — real values, not measured or inferred. **One row is deliberately absent:**
+`EIDVSNID_9jby0x9jby0x9jby`, which the API does not return under `image/upload`; it already
+carries 848x1264 from its own upload. An unverified dimension is worse than a NULL, because a
+NULL is visibly missing and a wrong number is not.
+
+#### Orientation, not the folder name
+
+The Cloudinary paths say "Mobile" and it is tempting to read them. **Measured, they lie:**
+inside `00. UAE NEOBIZ - Mobile - Jul 27` there are 786x1704 phone screens sitting beside
+1600x1200 and 4322x4323 boards. A folder is a filing convention, not a fact about the image.
+
+The threshold is `height / width < 0.9` — **strict on purpose**. The 161 rows fall into 91
+clearly landscape, 47 clearly portrait, and 23 square or nearly so. A square is not evidence of
+a desktop screen, so it does not get the claim. An unframed picture is merely plain; a wrongly
+framed one asserts something untrue. A row with no dimensions is left unframed for the same
+reason.
+
+#### Verified per route, by counting the rendered HTML
+
+| Route | figures | framed |
+|---|---|---|
+| `cervello/permission-architecture` | 11 | **11** |
+| `cervello/on-premises-to-cloud` | 8 | **8** |
+| `egypt-acquisition/onboarding` | 16 | **12** |
+| `neobiz-mobile/onboarding` (en) | 9 | **0** |
+| `neobiz-mobile/onboarding` (ar) | 9 | **0** |
+
+Egypt's 12 of 16 is the result being right rather than being partial: that journey genuinely
+mixes desktop officer screens with portrait forms and emailers.
+
+#### Open, and named rather than left quiet
+
+**`scripts/sync-notion.ts` still creates media rows without dimensions.** The next `[cld]` tag
+written in Notion arrives NULL exactly as these 152 did, and its figure will render unframed
+whatever its shape. The backfill is a repair, not a fix, and the fix is a separate task.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

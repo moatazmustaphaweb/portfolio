@@ -93,19 +93,6 @@ export default async function Chapter({
   ]);
   if (!detail) notFound();
 
-  /*
-   * ⚠️ ONE CHAPTER, ON PURPOSE. A trial of the laptop frame from
-   * `designs/Device - Macbook Pro.svg`, live on a single page so it can be
-   * judged in place without touching the other 13 chapters if it is wrong.
-   *
-   * Gated on the ROUTE and not on the media, because the frame is a claim
-   * about the product: Cervello is a desktop platform and a laptop is the
-   * truthful container for it. Neobiz and UAE are phone apps and would be
-   * lying inside one. When this is settled, the switch becomes a column on
-   * `case_files` rather than a slug written into a route.
-   */
-  const device = caseFile === "cervello" && chapter === "permission-architecture";
-
   const isDocument = detail.kind !== "chapter";
   const caseTitle = detail.caseFile.fields.title ?? caseFile;
   const title = detail.fields.title ?? chapter;
@@ -290,7 +277,7 @@ export default async function Chapter({
               reader.
             */}
             {hasSections ? (
-              <ChapterSections sections={body} linkLabels={sectionLinkLabels} device={device} />
+              <ChapterSections sections={body} linkLabels={sectionLinkLabels} />
             ) : (
               <ProseSections
                 intro={page.intro}
@@ -386,7 +373,7 @@ export default async function Chapter({
             of the chapter follows.
           */}
           {hasSections ? (
-            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} device={device} />
+            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} />
           ) : detail.fields.context ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               {ui.t("context") ? (
@@ -466,7 +453,7 @@ export default async function Chapter({
             </div>
           ) : null}
 
-          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} device={device} /> : null}
+          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} /> : null}
 
           {/*
             Evidence. The design pairs prose with masked figures; `media` is
