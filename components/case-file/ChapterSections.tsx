@@ -298,7 +298,31 @@ function ChapterFigure({
         <figcaption
           lang={captionLang}
           dir={captionLang ? dirForLocale(captionLang) : undefined}
-          className="mt-3 max-w-measure text-meta text-fg-muted"
+          className={
+            /*
+              Framed, the caption is a chip: it hugs its own text rather than
+              running the column width, so it reads as a label attached to the
+              device above it rather than as the paragraph that follows.
+
+              `w-fit` is what makes it hug — a figcaption is a block element and
+              would otherwise fill the line box, and a full-width pill is not a
+              chip. `max-w-measure` still caps it, so a long caption wraps to a
+              second line inside the chip instead of running off the frame.
+
+              Padding is `px-3 py-1`, the same as every other pill on the site
+              (ProjectCard, PreviewIndex, RedactedEvidence). Off-scale values
+              like `py-1.5` do not exist here — the spacing scale is REPLACED,
+              not extended, so they compile to nothing and the chip silently
+              loses its padding.
+
+              Unframed captions are unchanged. The chip belongs to the device
+              treatment, which is live on one chapter while its look is being
+              agreed; widening it to all 57 Egypt figures is a separate call.
+            */
+            device
+              ? "mt-3 w-fit max-w-measure rounded-pill border border-DEFAULT bg-surface px-3 py-1 text-meta text-fg-muted"
+              : "mt-3 max-w-measure text-meta text-fg-muted"
+          }
         >
           {caption}
         </figcaption>

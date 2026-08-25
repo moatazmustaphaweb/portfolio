@@ -89,6 +89,26 @@ against the right edge, which is `me-auto` resolving to the inline start. `tsc -
 colour and a laptop does not change colour with a page, so it was left alone rather than
 tokenised. That is a judgement for Moataz, not a bug.
 
+### The caption under a framed figure is a chip
+
+Moataz: *"put the caption in chip."* Under a framed figure the caption is now a pill that hugs
+its own text — `w-fit rounded-pill border bg-surface px-3 py-1`, the same padding every other
+pill on the site uses. `w-fit` is the part doing the work: a `figcaption` is a block element and
+would otherwise fill the line box, and a full-width pill is not a chip. `max-w-measure` still
+caps it, so a long caption wraps to a second line inside the chip rather than running past the
+frame.
+
+**Scoped to framed figures only, deliberately.** The device treatment is live on one chapter
+while its look is being agreed; the 57 Egypt figures keep their plain captions. Widening it is
+one word, and it is his call rather than a side effect of this one.
+
+**`py-1.5` would have compiled to nothing.** The spacing scale is REPLACED rather than extended
+(`tailwind.config.ts`), so off-scale values silently no-op and the chip would have lost its
+padding with no error anywhere. Checked the scale before writing the class rather than after.
+
+Verified in a browser in both locales. In `/ar` the chip sits against the right edge and hugs
+its text there too.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
