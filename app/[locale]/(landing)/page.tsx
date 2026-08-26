@@ -94,14 +94,23 @@ export default async function Landing({
         HIDDEN BELOW `lg`. There is no empty half on a narrow screen; the mark
         would sit under the text and fight it.
 
-        `opacity-10` on `text-fg`: barely visible, which is what it is for. It
-        started at 50% — a true mid grey — and that read as a second element on
-        the page rather than as shading behind it.
+        `text-accent`, not `text-fg`. THE BLUE IS ALREADY HERE: the radial glow
+        twenty lines above is `--color-accent` at 16% alpha, and it sits
+        directly behind this mark. Tinting the mark with the same token means it
+        reads as part of that light rather than as a grey object laid on top of
+        it — which is what "integrated with the background" asks for. It is also
+        the only accent on the site, so this introduces no new colour.
 
-        Opacity is one of the few scales `tailwind.config.ts` does NOT replace,
-        so Tailwind's own steps apply: 0 · 5 · 10 · 20 · 25 … There is **no
-        `opacity-15`**. Reaching for one compiles to nothing and the mark
-        silently returns to full strength.
+        `opacity-20`, up from the 10 that grey needed. Blue is lighter than
+        black to the eye at the same alpha, and at 10% the mark had all but
+        vanished. The two numbers are not comparable across two hues; each was
+        set by looking.
+
+        ⚠️ Opacity is one of the few scales `tailwind.config.ts` does NOT
+        replace, so Tailwind's own steps apply: 0 · 5 · 10 · 20 · 25 … There is
+        **no `opacity-15`**. Reaching for one compiles to nothing and the mark
+        silently returns to FULL strength — the loudest possible failure for the
+        quietest element on the page.
 
         `aria-hidden` lives on the component itself, and it is decoration: the
         name is the <h1> a few lines below, so this carries nothing a reader
@@ -110,7 +119,7 @@ export default async function Landing({
       <div
         className="pointer-events-none absolute inset-y-0 end-0 hidden w-1/2 items-center justify-center lg:flex"
       >
-        <HeroMark className="h-auto w-[min(60%,340px)] text-fg opacity-10" />
+        <HeroMark className="h-auto w-[min(60%,340px)] text-accent opacity-20" />
       </div>
 
       <div className="relative mx-auto w-full max-w-container px-gutter py-section-y-hero">

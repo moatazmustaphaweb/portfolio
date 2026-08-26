@@ -611,10 +611,20 @@ copy and fight it.
 strength resolves to grey against either background — black on white, white on black — so one
 declaration covers both themes with no second value to keep in sync.
 
-**It shipped at 50% and came straight back down.** Moataz: *"make it more faded. I want it to be
-barely visible."* At half strength it read as a second element on the page rather than as
-something behind it. 10% is the value he asked for, checked in both themes because white-on-black
-carries further than black-on-white at the same alpha — it holds at 10% in both.
+**It shipped at 50% grey and ended as 20% accent blue, in two corrections.**
+
+First: *"make it more faded. I want it to be barely visible."* At half strength it read as a
+second element on the page rather than as something behind it. Down to 10%.
+
+Then: *"use shades of blue instead of the grey colour so it will be more integrated with the
+background."* **The blue was already there and I had missed it** — the radial glow twenty lines
+above the mark is `--color-accent` at 16% alpha, sitting directly behind it. Tinting the mark
+with the same token makes it read as part of that light instead of a grey object laid on top of
+it, and introduces no new colour: the accent is the only one on the site.
+
+`opacity-20`, up from the 10 that grey needed. **Blue reads lighter than black at the same
+alpha**, and at 10% the mark had all but vanished. The two numbers are not comparable across two
+hues, and each was set by looking at both themes rather than by arithmetic.
 
 ⚠️ **There is no `opacity-15`.** Opacity is one of the few scales `tailwind.config.ts` does NOT
 replace, so Tailwind's own steps apply — 0 · 5 · 10 · 20 · 25 … A reach for 15 compiles to
