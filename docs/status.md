@@ -376,6 +376,16 @@ linked from `/work` and not in the sitemap, but they are not `noindex` either an
 allows everything. Publish them, 404 them, or `noindex` them — the choice depends on open
 question B, which has never been answered.
 
+**And one item in my own survey was wrong within the hour.** Moataz: *"غلاف مصر خلصان بس هو
+مرسوم svg في الموقع، يعني اقفل النقطة دي."* Correct. I queried `cover_media_id` alone;
+`case_files` has **two** cover sources and `cover_kind` says which, with a CHECK in migration
+0026 making them exclusive. Egypt is `component` — a hand-drawn inline SVG bound to the tokens,
+so a null `cover_media_id` is the right state rather than a gap. **All four published case files
+have a cover.** Closed in `docs/mvp1-launch-gate.md`, with the correction kept in place of the
+item. The general lesson is in `docs/learn.md` Part 7: twice today a real measurement answered a
+narrower question than the one being asked, and half a question answered confidently reads
+exactly like a whole one.
+
 **Two claims in the file turned out far better than recorded.** The Arabic gap is **19 strings**
 in total, not the 109 chapter paragraphs `CLAUDE.md` states. `settings.og_image` is set, and the
 career timeline has 14 roles and renders — both listed there as missing.

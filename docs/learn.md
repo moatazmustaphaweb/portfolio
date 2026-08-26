@@ -1144,6 +1144,34 @@ Same shape as the stale claims in Part 6: a mechanism believed rather than run. 
 that this one was not stale — it was never true for this page, and it was written into the output
 of every sync anybody had executed.
 
+## Before declaring a gap, check whether the schema has a discriminator
+
+Added 2026-08-26, task `009250826`, after reporting a cover as missing that has existed for
+weeks.
+
+`case_files` has **two** cover sources and a `cover_kind` column that says which: `media` (a
+Cloudinary row) or `component` (a hand-drawn inline SVG bound to the site's tokens). A CHECK in
+migration 0026 makes them mutually exclusive. So on a `component` cover, `cover_media_id` is
+**correctly** null.
+
+The query asked `cover_media_id is not null` and the answer was read as "has a cover". It is
+not the same question, and the result looked exactly like a real gap: one row of four, on the
+case file that is the site's largest, in launch week.
+
+**The check: when a column can be legitimately null, find out what makes it legitimate before
+calling the null a gap.** A `*_kind`, `*_type`, `status` or `variant` column sitting next to the
+one being measured is the tell. `\\d table` first, then the query.
+
+**This is the general shape, not a one-off.** Twice in one day: `grep -c` counts matching LINES
+and was read as occurrences on minified HTML (2 vs 22), and `getComputedStyle` on one element
+was read as "what the class means" when a parent's `space-y-*` was overriding it. Each time the
+measurement was real and answered a narrower question than the one being asked.
+
+**Half a question answered confidently reads exactly like a whole one.** The defence is to say
+what was measured, in the same sentence as the conclusion — "0 of 4 have `cover_media_id`" would
+have invited the correction that "1 of 4 has no cover" did not.
+
+
 ---
 
 # PART 8 — WHERE THE MODEL WAS WRONG AND WAS CORRECTED

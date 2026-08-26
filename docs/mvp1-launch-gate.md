@@ -40,9 +40,22 @@ mini case files are in MVP-1 at all, which is open question B and has never been
 
 ## 2. Not blocking — visible gaps a reader could notice
 
+**One item was removed from this section on 2026-08-26, and the correction is worth keeping.**
+It read *"`egypt-acquisition` has no cover image, 1 of 4 missing."* **False, and my error rather
+than the data's.** I queried `cover_media_id` alone. There are **two** cover sources and the
+database says which: `cover_kind`. Egypt is `component`, with `cover_component =
+'egypt-acquisition'` — a hand-drawn inline SVG bound to the site's tokens, so it follows the
+theme in a way a raster cover cannot. A CHECK added in migration 0026 makes the two mutually
+exclusive, so a null `cover_media_id` on a `component` cover is the correct state, not a gap.
+
+**All four published case files have a cover.** Moataz: *"غلاف مصر خلصان بس هو مرسوم svg في
+الموقع."*
+
+The lesson is the one this file is about: half a question answered confidently reads exactly
+like a whole one.
+
 | | State | Note |
 |---|---|---|
-| **`egypt-acquisition` has no cover image** | 1 of 4 missing | `cervello`, `neobiz-mobile`, `uae-acquisition` all have one. Its gallery card renders without art. |
 | **The privacy claims render nowhere** | 0 occurrences | `privacy_no_ip`, `privacy_no_tracking`, `privacy_location`, `privacy_title` are seeded in both languages and resolved by no component. Checked `/en`, `/en/contact` and `/en/how-this-site-works` on production: zero matches. |
 | **The `Achieved` label carries two different claims** | Open | "live in production for 18 months" and "ten people in a usability lab" under one label, and the gallery card shows the label without the evidence line. The LLM read test named this as the one place the metric discipline leaks. Content and design, not purely either. |
 
@@ -98,6 +111,7 @@ Verified today by fetching the live pages, not by reading code.
 - **`settings.og_image` is set.** `CLAUDE.md` lists it as missing.
 - **The career timeline has 14 roles** in the database and renders on `/en/about`. `CLAUDE.md` says the component was never built because there was nothing to put in it.
 - **Custom domain attached and public.** `gate.moatazmustapha.com`, HTTP 200, no deployment protection.
+- **All four published case files have a cover** — three `media`, one `component`. See the note in section 2.
 
 ---
 
