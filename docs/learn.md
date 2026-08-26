@@ -1174,6 +1174,13 @@ and was read as occurrences on minified HTML (2 vs 22), and `getComputedStyle` o
 was read as "what the class means" when a parent's `space-y-*` was overriding it. Each time the
 measurement was real and answered a narrower question than the one being asked.
 
+**Never name the tooling in a string a visitor can reach.** `No Purpose is written for this page
+in Notion.` shipped to production, along with copy explaining the database, the query behaviour
+and an environment variable. They were written as if only a developer would ever see them, on
+pages that turned out to be reachable by direct link. **The absence is ours to own — *content is
+not ready yet* — not a fact about where we keep our files.** Notion, Supabase, Cloudinary, a flag
+name: none of them exist as far as a reader is concerned.
+
 **A field read from the database is not the same as the field as rendered.** Four times in one
 day now. The `achieved` status was judged as flattening five kinds of evidence into one word —
 true of the seven rows read out of `targets`, and false of the page, where every row renders

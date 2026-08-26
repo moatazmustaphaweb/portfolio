@@ -18,23 +18,24 @@ custom domain with no login wall in front of it.
 
 ---
 
-## 1. Blocking — but it is a decision, not a task
+## 1. CLOSED, 2026-08-26 — the draft pages stay as they are
 
-| | |
-|---|---|
-| **Four draft case files are live and readable** | `/en/work/east`, `/pidetaxi`, `/kshemam`, `/aam-advisor` — and the same four under `/ar`. **Eight URLs.** |
+Moataz: *"هما direct link… مش معمول ليهم listing على الـ work حاليًا، فمفيش فيهم أي مشكلة. سيبهم
+زي ما هما."*
 
-Each returns **200** and renders `<h1>east</h1>` — the raw slug as a title, over five empty
-paragraphs. They are **not** linked from `/work` and **not** in the sitemap (30 URLs, none of
-them these), so no visitor navigates to one. But they are not `noindex` either, and `robots.txt`
-allows everything, so a crawler that finds a URL will index a page whose headline is the word
-`east`.
+They are reachable only by typing the URL: not linked from `/work`, not in the sitemap. **The
+routes are unchanged and nothing is owed here.**
 
-⚠️ **`CLAUDE.md` says these 404. They do not.** That line is now false.
+⚠️ **My description of these pages was wrong and is corrected.** I reported them as
+*"`<h1>east</h1>` over five empty paragraphs"* — a raw slug rendering as a title. They are
+nothing of the kind. Each is a deliberate `StubPage`: `SITE MAP · PREVIEW · NOT BUILT YET`, with
+an explanation of what a stub is and a table of route, served path, build layer and section. I
+counted `<h1>` and `<p>` tags with `curl` and described a page I had never opened.
 
-**Three ways to close it, all small:** publish them with real content, return 404 for
-`status <> 'published'`, or add `noindex`. **The choice is Moataz's** — it depends on whether the
-mini case files are in MVP-1 at all, which is open question B and has never been answered.
+**What WAS wrong, and he caught it:** the stub copy explained the machinery — it named Notion,
+the database, the query behaviour and an environment variable, on pages a visitor can reach.
+Rewritten to `Content is not ready yet.` The rule is now in the file header and in
+`docs/learn.md` Part 7: **name what the reader is missing, never the machinery behind it.**
 
 ---
 

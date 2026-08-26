@@ -499,6 +499,43 @@ That is the one place where "the database reflects Notion" is true now and not g
 
 **Images were excluded from this review, as instructed.**
 
+### The draft pages stay. Their copy named the tooling, and that is the real defect
+
+**Two corrections, one his and one mine, and mine was the bigger one.**
+
+**His ruling on the pages themselves:** *"هما direct link، يعني هما مش معمول ليهم listing على الـ
+work حاليًا، فمفيش فيهم أي مشكلة. سيبهم زي ما هما."* They are reachable only by typing the URL,
+not linked from `/work` and not in the sitemap. **The MVP-1 blocker is closed by decision, and
+nothing is changed about the routes.**
+
+**My description of them was wrong.** I reported these as *"`<h1>east</h1>` over five empty
+paragraphs"* — a raw slug rendering as a title. **They are nothing of the kind.** Opened in a
+browser, each is a deliberate `StubPage`: `SITE MAP · PREVIEW · NOT BUILT YET`, a heading, an
+explanation of what a stub is, and a table of route, served path, build layer and section. I had
+counted `<h1>` and `<p>` tags with `curl` and described a page I had not looked at. **Fifth
+measurement error of the same shape today, and the first one where looking at the thing would
+have taken ten seconds.**
+
+**The real defect, which he caught and I had walked straight past:** the stub copy explained the
+machinery.
+
+| Was | Now |
+|---|---|
+| `No Purpose is written for this page in Notion.` | `Content is not ready yet.` |
+| `A draft case file. It is in the database and unpublished, so every query filters it out and this route 404s with the flag off. No title and no Purpose are available for it.` | `A draft case file. Its content is not ready yet, so the page is not published.` |
+| `… carrying the Purpose written for them in Notion. This page exists only when NEXT_PUBLIC_PREVIEW_STUBS is set in .env.local …` | `… carrying the purpose written for them. Nothing on this page is site content.` |
+
+His rule: *"بنكتب عليه content is not ready yet… مش بنكتب إن هو مش موجود في Notion."*
+
+**A visitor does not know Notion exists**, and these pages are reachable on the live site by
+direct link. The strings were written as if only a developer would read them — they named the
+authoring tool, the database, the query behaviour, and an environment variable. **The absence is
+ours to own, not a fact about where we keep our files.**
+
+Written into the file header as a standing rule for anything added there: name what the reader is
+missing, never the machinery behind it. Verified on the rendered page — four occurrences of *not
+ready yet*, zero of *Notion*.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
