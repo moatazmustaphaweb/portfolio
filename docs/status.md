@@ -668,6 +668,43 @@ The `<h1>` loses its `mt-6` along with it — it is now the first thing in the c
 
 `tsc` and `eslint` clean; the page verified in a browser.
 
+### MVP-1 CLOSED. `CLAUDE.md` rewritten so it stops rotting.
+
+Moataz: *"commit everything, publish website and mark mvp1 closed."*
+
+**Shipped and verified on production**, not merely deployed: PR #4 merged (`main` at `123a474`),
+and `/en` checked for **two** markers rather than one — the brand mark present (`0 0 282 278`)
+and the eyebrow pill absent. Either alone could have passed against the previous build.
+
+**`CLAUDE.md`'s CURRENT STATE is rewritten.** It still said *"the launch gate is NOT passed"* and
+carried the five claims found false today. That file is the orientation every session reads, and
+a wrong orientation is worse than none.
+
+**It now holds almost no facts, deliberately.** The rot pattern on this project is always the
+same — true when written, quoted into a brief, never re-run — so the section was rebuilt around
+**the commands that answer each question** instead of the answers: `curl` for liveness,
+`git fetch` for git, SQL for content counts, `sync:notion --dry-run` for Notion drift. A line that
+cannot be true or false cannot rot.
+
+**Two lines elsewhere were quietly impossible and are fixed:**
+
+- The definition of done required *"deployed to preview."* Preview has no environment variables
+  and every branch build fails (decision 059), so that condition could not be met by anything.
+  Now: verified on production or on a local server, never on a branch URL.
+- The Motion Layer was gated on *"after the launch gate passes."* **It has passed**, so that
+  condition is now met and the feature flag is the only one left. Recorded as a change in status,
+  explicitly not as permission to start.
+
+**What is closed, and what is honestly not:**
+
+Closed — every route 200 in both locales, the device frames, the contact form (he tested it), the
+Notion/database comparison, and a 17-route structural accessibility pass with zero findings.
+
+⚠️ Not closed and not claimed — **contrast, focus order and screen-reader behaviour have never
+been exercised.** The semantics are right; the experience is unestablished. Carried to MVP-2
+alongside the Preview environment, the sync's missing dimensions, the three pages with no write
+path, `/api/revalidate` returning 400, and the duplicate Notion page.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

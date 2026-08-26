@@ -149,75 +149,75 @@ docs/                 all project documentation
   - Not individual decisions: those go to `docs/decisions.md`. Not session outcomes: those go to `docs/status.md`. Not anything true of only one file.
   - **The test: would reading it beforehand have saved time?** If no, it does not belong there.
   - Do not restructure the file or rewrite its sections. Append to the section it belongs in. It is written the way Moataz wants to read it.
-- **Definition of done, per page:** renders from the database with zero hardcoded strings · works in `en` and `ar` with correct RTL · responsive from 320px · real content, no placeholders · images via `CloudinaryImage` · no dead ends · committed and deployed to preview.
+- **Definition of done, per page:** renders from the database with zero hardcoded strings · works in `en` and `ar` with correct RTL · responsive from 320px · real content, no placeholders · images via `CloudinaryImage` · no dead ends · committed and **verified on production**. ⚠️ It used to read *"deployed to preview"* — that is now unsatisfiable: Preview has no environment variables and every branch build fails (decision 059). Verify on `gate.moatazmustapha.com` or on a local server, never on a branch URL.
 
 ---
 
 ## CURRENT STATE
 
-*Updated 2026-08-13. Source: `docs/status.md`, which is the detail — this is the orientation.*
+*Updated 2026-08-26, task `009250826`. Source: `docs/mvp1-launch-gate.md` for the survey and
+`docs/status.md` for the detail — this is the orientation.*
 
-**Phase 0 is complete and MVP-1's page set is built.** The project is at the **launch gate**, not in foundation work. Schema, seed, Notion sync, query layer, tokens, i18n + RTL shell, Cloudinary and instrumentation all exist and are exercised. Real content is synced. Every route in the route map renders from the database in both locales, and the page compositions have been rebuilt against the twelve `.dc.html` design files.
+**MVP-1 IS CLOSED AND THE SITE IS LIVE.** `gate.moatazmustapha.com`, public, no login wall. The
+launch gate was worked through item by item on 2026-08-26 and every one is closed, tested, or
+deferred with a reason. **`docs/mvp1-launch-gate.md` is the record and it is measured, not
+quoted.** Read it before reasoning about what is left.
 
-**What passes.** 36/36 route-locale combinations return 200 against a real production build (`next build` + `next start`, not dev). Build, typecheck, sync tests and content verification all exit 0. ESLint is installed and at **zero** errors — the three `set-state-in-effect` errors are gone because the cause is gone, rewritten onto `useSyncExternalStore`, nothing suppressed. Per-page metadata, the sitemap's three missing route families, and 44px primary tap targets are all fixed. The LLM read test has been run with real content and the verdict was *"yes — interview him"*, with role clarity and metric labelling singled out as the site's strongest properties.
+⚠️ **THIS SECTION USED TO ROT, AND THAT IS WHY IT NOW HOLDS ALMOST NO FACTS.**
 
-### The launch gate is NOT passed. What it still lists as open:
+Five claims in this file were found false on 2026-08-26 alone — `media` counts, cover counts, the
+git state, `/how-this-site-works` 404ing, draft slugs rendering `__next_error__`. Every one was
+true when written, quoted into a brief afterwards, and never re-run. **The fix is the same every
+time: replace the number with the command that answers it.** Do not write a fresher count back
+in — a line that cannot be true or false cannot rot.
 
-**Never tested, in any environment** — "not tested" and "working" have been conflated on this project before, so these are listed rather than assumed:
+```
+# Is it live, and on what?
+curl -s -o /dev/null -w '%{http_code}\n' https://gate.moatazmustapha.com/en
+gh api repos/moatazmustaphaweb/portfolio/commits/main --jq '.sha[0:7]'
 
-- **The visual pass has never happened.** Not once, across multiple sessions — the browser cannot reach the local server. Everything is verified by DOM inspection only. This is the longest-standing untested claim in the project, and it is what let the 404 be reported as working for weeks.
-- **No accessibility audit.** No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised.
-- **The contact form has never been submitted through a browser.** Four route branches tested with `curl`; the rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once.
-- **ISR has never been observed working in production**, and `/api/revalidate` has never been called against a production build.
-- **Deployment — and this line no longer states whether anything is deployed.** It said *"No deploy. No Vercel project. Nothing has ever run on Vercel's runtime."* **All three were false when measured, 2026-08-23, task `018230826`:** a team, a project linked to the GitHub repo, **twenty deployments**, and a production deploy in `READY`. The site has been building on every push to `main` for weeks.
+# Git, all of it
+git fetch origin && git log origin/main..HEAD --oneline && gh auth status
 
-  **This is the third claim in this file to rot the same way** — after the git bullet above and the `media` counts below. Same mechanism every time: true when written, quoted afterwards, never re-run. So the same fix. **Run it:**
-
-  ```
-  # Vercel MCP, or the dashboard
-  list_teams → list_projects → list_deployments → get_project
-  ```
-
-  What is still true and is not a count: **there is no custom domain** — `moatazmustapha.com` is not attached, and the project answers on `*.vercel.app` only. **And the site is behind Vercel's deployment protection**, so a visitor gets a Vercel login rather than the portfolio. **Turning that off is the actual act of launching**, and it is Moataz's.
-
-  **This bullet no longer states the git state, and that is the correction.** Rewritten 2026-08-22, task `024210826`, after devops **refused to commit the previous version** of it — which had corrected one stale claim (*"the push is refused"*) while leaving a second one standing in bold two clauses earlier (*"`main` is NOT level with origin"*), inside the same sentence that forbids restating a push verdict. Both were true when written. Neither was true when read.
-
-  **The history is the lesson, so it is kept and the facts are not:** this line claimed `main` was level with origin when it was not, was corrected to claim the push was refused when it was not, and was then half-corrected in a way that contradicted itself. Three states, three tasks, one line, and every one of them was quoted into a brief rather than tested.
-
-  **So there is no git fact here to go stale.** Do not write one back in — not a commit count, not a push verdict, not an account name, not "level with origin". **Run the commands and read the answers:**
-
-  ```
-  git fetch origin && git log origin/main..HEAD --oneline
-  git ls-remote origin main && git rev-parse HEAD
-  gh auth status
-  ```
-
-  A line that cannot be true or false cannot rot. See `docs/learn.md` Part 6, the two rows on git facts in status lines — the second of which this bullet is the case study for.
-
-**Known broken or half-done:**
-
-- **`notFound()` thrown inside a locale route** (a draft slug like `/en/work/east`) still renders Next's `__next_error__` shell — no `lang`, no `dir` on `<html>`. Mitigated by `app/not-found.tsx` setting both on its own wrapper. Unmatched URLs *are* fixed and render the designed 404 in the correct locale.
-- **The `Achieved` label carries two different claims** — "live in production for 18 months" and "ten people in a usability lab" — and the gallery card shows the label without the evidence line. The read test caught this as the one place the metric discipline leaks. Content and design problem, not purely either.
-- **The privacy claims render nowhere.** `privacy_no_ip`, `privacy_no_tracking`, `privacy_location`, `privacy_title` are seeded in both languages and resolved by no component; `/how-this-site-works` is Layer 2 and 404s.
-- **Arabic falls back to English in chapter prose, not on the static pages.** Corrected 2026-08-21 against the database — the previous claim here (46 `page_sections`, 12 `entry_handles`, About/Philosophy/Systems/Contact English-only) was stale and wrong in both directions. Measured now: About 7/7, Philosophy 5/5, Contact 5/5, Systems 5/5 sections translated, and `entry_handles` at 24/24. **The static pages are done.** What remains is **109 of 248 chapter paragraphs** and roughly half the `media` alt/captions — and most of that Arabic *is written in Notion and is being dropped by the sync*, not missing. The whole `page_section` gap is one page, the accessibility page, which has 8 Arabic sections in Notion and 0 in the database. See `docs/status.md` 2026-08-21 14:15 for the per-chapter table and the three causes.
-- **`NEXT_PUBLIC_SITE_URL` is unset**, so absolute URLs emit `localhost:3000`. The helper logic is correct and a production build now warns loudly; this resolves at deploy and is a domain decision, not a code gap.
-
-**Blocked on content, not code — Moataz owns these:**
-
-Cover images — **and this line no longer states how many there are.** It said `media` has **0 rows** and that **0 of 4** case files have a cover. Measured 2026-08-22, task `001220826`: `media` has **76**, and `uae-acquisition` **has** a cover. Both halves were true when written and neither was re-tested before being quoted into a brief, which is the failure `docs/learn.md` Part 6 already names for git facts. So, the same fix as that one — run it:
-
-```sql
+# Content: what is actually in the database
 select count(*) from media;
-select slug, cover_media_id is not null as has_cover from case_files where status = 'published';
+select slug, cover_kind, cover_media_id is not null from case_files where status='published';
+
+# Notion vs the database
+npm run sync:notion -- --dry-run --all
 ```
 
-**Superseded 2026-08-23, task `019230826`: `neobiz-mobile` now has a cover, and `e_grayscale` is live on its gallery card.** The NDA treatment has been seen. What is left is `egypt-acquisition` and `cervello`, and the count is not written here for the reason above — run the query. · `settings.og_image` · **dates, employers and job titles** — the About design has had a career timeline component since before the site existed, the component was never built because there was nothing to put in it, and the read test named this gap first · Arabic review of the 11 strings written from English · mini case files in or cut (open question B) · domain + Vercel account.
+**What is known and is not a count:**
 
-The read test's sharpest finding is a **content** one and no amount of building answers it: across four case files, one is live with real users, one was never built, one is in controlled release, one is five years old with no metrics — and three of the four are the same account-opening programme at the same bank.
+- **Every route returns 200 in both locales**; unmatched URLs render the designed 404.
+- **The device frames are live** — a laptop on landscape screenshots, a phone on portrait ones,
+  decided by the picture's own aspect ratio rather than by route or folder name.
+- **The contact form works.** Moataz submitted it and the message arrived.
+- **Accessibility, structural pass: 17 routes, 0 findings.** ⚠️ **Contrast, focus order and
+  screen-reader behaviour have NOT been exercised.** The semantics are right; the experience is
+  unestablished. Do not read the pass as an audit.
+
+**Carried to MVP-2, none of it blocking a reader:**
+
+- **Vercel Preview has no environment variables** (decision 059), so **every branch build fails**
+  on `NEXT_PUBLIC_SUPABASE_URL is not set` whatever is on the branch. A red check on a PR is not
+  evidence of a problem — check what it says before repeating it.
+- **`scripts/sync-notion.ts` creates media rows without dimensions.** Migration 0060 backfilled
+  160; the next `[cld]` tag written in Notion arrives NULL and its figure renders unframed.
+- **Three pages have no sync write path** — both comparison pages and the accessibility page.
+  They match Notion today, but a future edit there will never appear and nothing reports it.
+- **`/api/revalidate` returns 400.** Nothing depends on it: every route is `server-rendered on
+  demand`, so content changes appear without it.
+- **A blank duplicate Notion page** claims the Cervello cover route and fails the sync every run.
+  Archiving it is Moataz's.
+
+**Open content questions, still his:** the four mini case files are live at direct links only,
+deliberately (they are not linked from `/work` and not in the sitemap) — whether they get real
+content is open question B.
 
 ### What is not being built
 
-MVP-1 ships plain, per decision 023. The **Motion Layer** (`docs/design/motion-system.md` v2.0) is specified and its token amendments are logged (decisions 046–048), but it is Layer 2 work: permitted only **after** the launch gate passes, in full, and only behind a feature flag (decision 047). Nothing in it may be partially implemented inside MVP-1 — not a prototype, not one page. Layers 2–5 otherwise stand as in `docs/roadmap.md`.
+MVP-1 ships plain, per decision 023. The **Motion Layer** (`docs/design/motion-system.md` v2.0) is specified and its token amendments are logged (decisions 046–048), but it is Layer 2 work: permitted only **after** the launch gate passes, in full, and only behind a feature flag (decision 047). **The gate passed on 2026-08-26**, so the first condition is met and the flag is now the only one — that is a change in status, not permission to start. Nothing in it may be partially implemented inside MVP-1 — not a prototype, not one page. Layers 2–5 otherwise stand as in `docs/roadmap.md`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
