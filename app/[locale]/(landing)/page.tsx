@@ -7,6 +7,7 @@ import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
+import { HeroMark } from "@/components/brand/HeroMark";
 
 /**
  * Landing — composed from `Home.dc.html`.
@@ -17,8 +18,11 @@ import { routing } from "@/i18n/routing";
  *  - A **radial accent glow** behind the hero. The only non-flat surface in
  *    the whole system, and the one place the accent is allowed to be ambient
  *    rather than a state marker.
- *  - An **eyebrow pill** above the name — bordered, on surface, mono.
+ *  - ~~An **eyebrow pill** above the name~~ — **removed 2026-08-26.** It was
+ *    filled with the Work section's nav label, which said the wrong thing on
+ *    this page and said it a third time. See the note at its old position.
  *  - **Two** calls to action: the work, and a way to make contact.
+ *  - The **brand mark** in the half the copy does not use (`HeroMark`).
  *
  * The eight seconds this page has are unchanged. The strings still carry the
  * message; the design just gives them somewhere to sit.
@@ -75,6 +79,52 @@ export default async function Landing({
         }}
       />
 
+      {/*
+        The brand mark, standing in the half of the hero the copy does not use.
+
+        THE HERO IS ALREADY TWO HALVES — the text is capped at
+        `max-w-measure-lead` inside a `max-w-container`, so on a wide screen the
+        inline-end half has always been empty. This fills it rather than
+        changing the layout: the copy is not moved, resized, or re-flowed, and
+        removing this element leaves the hero exactly as it was.
+
+        `end-0` and not `right-0`: the empty half is the RIGHT in English and
+        the LEFT in Arabic, because the text hugs the inline start in both. A
+        physical side would have put the mark on top of the Arabic copy. This is
+        layout, so it takes its direction from the locale — `rtl-guard`'s own
+        test — and nothing here reads `dir` to do it.
+
+        HIDDEN BELOW `lg`. There is no empty half on a narrow screen; the mark
+        would sit under the text and fight it.
+
+        `text-accent`, not `text-fg`. THE BLUE IS ALREADY HERE: the radial glow
+        twenty lines above is `--color-accent` at 16% alpha, and it sits
+        directly behind this mark. Tinting the mark with the same token means it
+        reads as part of that light rather than as a grey object laid on top of
+        it — which is what "integrated with the background" asks for. It is also
+        the only accent on the site, so this introduces no new colour.
+
+        `opacity-20`, up from the 10 that grey needed. Blue is lighter than
+        black to the eye at the same alpha, and at 10% the mark had all but
+        vanished. The two numbers are not comparable across two hues; each was
+        set by looking.
+
+        ⚠️ Opacity is one of the few scales `tailwind.config.ts` does NOT
+        replace, so Tailwind's own steps apply: 0 · 5 · 10 · 20 · 25 … There is
+        **no `opacity-15`**. Reaching for one compiles to nothing and the mark
+        silently returns to FULL strength — the loudest possible failure for the
+        quietest element on the page.
+
+        `aria-hidden` lives on the component itself, and it is decoration: the
+        name is the <h1> a few lines below, so this carries nothing a reader
+        needs.
+      */}
+      <div
+        className="pointer-events-none absolute inset-y-0 end-0 hidden w-1/2 items-center justify-center lg:flex"
+      >
+        <HeroMark className="h-auto w-[min(60%,340px)] text-accent opacity-20" />
+      </div>
+
       <div className="relative mx-auto w-full max-w-container px-gutter py-section-y-hero">
         <div className="max-w-measure-lead">
           {/*
@@ -82,13 +132,28 @@ export default async function Landing({
             missing — the fallback rule applied to the most visible page on the
             site. A blank heading here would be the first thing a recruiter saw.
           */}
-          {ui.t("case_file") ? (
-            <p className="inline-flex rounded-pill border border-DEFAULT bg-surface px-3 py-1 font-mono text-label uppercase text-fg-muted">
-              {ui.t("page_work")}
-            </p>
-          ) : null}
 
-          {name ? <h1 className="mt-6 text-hero text-fg">{name}</h1> : null}
+          {/*
+            ⚠️ THE EYEBROW PILL IS GONE. Removed 2026-08-26 at Moataz's
+            instruction, and it is not coming back with different copy unless
+            someone writes copy for it.
+
+            It rendered `page_work` — the NAVIGATION LABEL for the Work section
+            — above the name. On the landing page that asserts this page IS the
+            Work section, which it is not, and it put the same word on screen
+            three times: the nav link, the pill, and the "Work →" button below.
+
+            It also carried a real bug. The guard tested `case_file` and the
+            body printed `page_work`, so a missing `page_work` with `case_file`
+            present would have rendered an EMPTY pill — precisely the failure
+            the comment above it exists to prevent.
+
+            The design (`Home.dc.html`) did specify an eyebrow here, and that
+            file is no longer in `designs/`, so what it was meant to say cannot
+            be checked. If one returns it needs its own string, written in
+            Notion in both languages — not a nav label borrowed from elsewhere.
+          */}
+          {name ? <h1 className="text-hero text-fg">{name}</h1> : null}
 
           {/*
             The tagline states a position. It is the largest line after the

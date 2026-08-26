@@ -536,6 +536,138 @@ Written into the file header as a standing rule for anything added there: name w
 missing, never the machinery behind it. Verified on the rendered page — four occurrences of *not
 ready yet*, zero of *Notion*.
 
+### MVP-1 IS DONE. Launched 2026-08-26.
+
+Moataz: *"خلينا نقفل MVP one ونعمل الإطلاق دلوقتي. محتاجين بعد 45 دقيقة الـ website live."*
+
+**Shipped:** PR #3 merged to `main` (`2840647`), production deployed and **verified serving the
+corrected copy** — zero occurrences of `Notion` on `/en/work/east`, which is what the fix was
+for.
+
+**The contact form is tested and he tested it.** *"جربت أبعت الـ file form واشتغل ووصل
+لصندوقي."* Better evidence than the browser submission I had offered: mine would have proved the
+form posted, his proves the message arrived.
+
+**Accessibility, structural pass: 17 routes, 0 findings.** `lang` and `dir` correct on `<html>`
+in both locales · a non-empty `<title>` everywhere · exactly one `<h1>` per page · every `<img>`
+carries `alt` · every link and button has an accessible name · contact fields labelled · a skip
+link present. Run against production, not against a local build.
+
+⚠️ **And what that pass does NOT cover, said plainly because this project has conflated "not
+tested" with "working" before:** colour contrast, focus order, and screen-reader behaviour. Those
+need a real browser and more time than launch day had. **The semantics are right; whether the
+experience is has not been established.**
+
+**Three things carried into MVP-2, none of them blocking a reader today:**
+
+1. `/api/revalidate` returns **400**. Nothing depends on it — every route is
+   `server-rendered on demand`, so content changes appear without it.
+2. Both comparison pages and the accessibility page have **no sync write path**. They match
+   Notion today; a future edit there will never appear, silently.
+3. A blank duplicate Notion page fails the sync on every run. Archiving it is Moataz's.
+
+`docs/mvp1-launch-gate.md` carries the full survey, every line measured against production.
+
+### The brand mark, behind the landing hero
+
+Moataz: *"add this photo in the hero head on the home screen… it should match the colours of the
+theme… 50% grey so it looks like it's shaded, not a solid colour, low-contrast, and part of the
+background."*
+
+**`components/brand/HeroMark.tsx` is GENERATED from `designs/Logo-001858 1.svg`, not copied by
+hand.** The path data is 16KB of bezier curves and a transcription slip in it would be silent —
+there is no test on this project that would catch a mark that is subtly the wrong shape. A script
+read the design file and wrote the component.
+
+**Two transformations, and only two.**
+
+`fill="white"` on each visible `<path>` became `currentColor`, so the mark follows the theme with
+no `dark:` variant anywhere — the same mechanism the device frames use.
+
+⚠️ **`fill="white"` on the two `<mask>` elements was left alone, and that is the trap.** There,
+white is the mask channel — it means *include this pixel* — not a colour. A blanket
+find-and-replace would have emptied both masks and deleted two of the three shapes, and the
+result would still have rendered something. The generator asserts that exactly two whites
+survive.
+
+The Figma ids are namespaced on the way through (`path-1-inside-1_81_15` → `hero-mark-1`). Ids
+are document-global; two marks on one page would collide and the second would borrow the first
+one's mask.
+
+**Placement changes nothing about the hero.** The copy has always been capped at
+`max-w-measure-lead` inside a `max-w-container`, so the inline-end half was already empty. The
+mark is absolutely positioned into that half — the text is not moved, resized or reflowed, and
+deleting the element leaves the hero exactly as it was.
+
+**`end-0`, not `right-0`.** The empty half is the right in English and **the left in Arabic**,
+because the copy hugs the inline start in both. A physical side would have laid the mark over the
+Arabic text. Direction comes from the locale, which is `rtl-guard`'s own test for layout, and
+nothing here reads `dir`.
+
+Hidden below `lg`: there is no empty half on a narrow screen, and the mark would sit under the
+copy and fight it.
+
+**The colour is `text-fg` at `opacity-10`** rather than a new token. Foreground at reduced
+strength resolves to grey against either background — black on white, white on black — so one
+declaration covers both themes with no second value to keep in sync.
+
+**It shipped at 50% grey and ended as 20% accent blue, in two corrections.**
+
+First: *"make it more faded. I want it to be barely visible."* At half strength it read as a
+second element on the page rather than as something behind it. Down to 10%.
+
+Then: *"use shades of blue instead of the grey colour so it will be more integrated with the
+background."* **The blue was already there and I had missed it** — the radial glow twenty lines
+above the mark is `--color-accent` at 16% alpha, sitting directly behind it. Tinting the mark
+with the same token makes it read as part of that light instead of a grey object laid on top of
+it, and introduces no new colour: the accent is the only one on the site.
+
+`opacity-20`, up from the 10 that grey needed. **Blue reads lighter than black at the same
+alpha**, and at 10% the mark had all but vanished. The two numbers are not comparable across two
+hues, and each was set by looking at both themes rather than by arithmetic.
+
+⚠️ **There is no `opacity-15`.** Opacity is one of the few scales `tailwind.config.ts` does NOT
+replace, so Tailwind's own steps apply — 0 · 5 · 10 · 20 · 25 … A reach for 15 compiles to
+nothing and the mark silently returns to **full strength**, which is the loudest possible failure
+for the quietest element on the page.
+
+`aria-hidden`, no title: the name is the `<h1>` a few lines below, so the mark carries nothing a
+reader needs.
+
+**Verified in both locales and both themes in one pass** — 5 paths and 2 masks present in the
+DOM, 340px wide, sitting at x≈944 in English and mirrored to the left in Arabic, rendering
+white-on-black in dark with no theme-specific CSS.
+
+### The landing eyebrow pill is removed, and it was carrying a bug
+
+Moataz, reading the rendered HTML: *"why we have this element in home screen?"* then
+*"remove it."*
+
+**There was no good answer to the question, which is itself the answer.** The pill rendered
+`page_work` — the **navigation label** for the Work section — directly above the name. On the
+landing page that asserts this page *is* the Work section, and it put the same word on screen
+three times: the nav link, the pill, and the `Work →` button below it.
+
+**It also carried a real defect.** The guard tested one string and the body printed another:
+
+```jsx
+{ui.t("case_file") ? <p …>{ui.t("page_work")}</p> : null}
+```
+
+A missing `page_work` with `case_file` present would have rendered an **empty pill** — exactly
+the failure the comment three lines above it exists to prevent (*"Every line is omitted rather
+than rendered empty if its setting is missing"*). The guard had drifted from what it guards, and
+nothing would have reported it.
+
+**What is NOT claimed:** that the design was wrong. `Home.dc.html` did specify an eyebrow here,
+and that file is **no longer in `designs/`**, so what it was meant to say cannot be checked. The
+removal is of a nav label used out of place, not of the design element. Both facts are written at
+the old position so a future session does not "restore" it by pasting the label back.
+
+The `<h1>` loses its `mt-6` along with it — it is now the first thing in the column.
+
+`tsc` and `eslint` clean; the page verified in a browser.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

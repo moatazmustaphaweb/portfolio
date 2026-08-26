@@ -9,12 +9,18 @@ Two more were found today and are listed at the bottom.
 
 ---
 
-## The verdict
+## The verdict — MVP-1 IS DONE, 2026-08-26
 
-**Nothing below blocks publishing today except item 1**, and item 1 is a switch, not work.
+**Every item on this page is closed, tested, or explicitly deferred with a reason.** Nothing is
+outstanding that a visitor would meet.
 
-The site builds, deploys, serves 200 on every route in both locales, and is already live on a
-custom domain with no login wall in front of it.
+The site builds, deploys, serves 200 on every route in both locales, and is live on
+`gate.moatazmustapha.com` with no login wall in front of it.
+
+**What "done" does not mean**, stated so the word is not read as more than it is: colour
+contrast, focus order and screen-reader behaviour have not been exercised, `/api/revalidate`
+returns 400, and three pages have no sync write path so future edits to them in Notion will not
+appear. None of those blocks a reader today. All three are written down.
 
 ---
 
@@ -122,15 +128,14 @@ translated, and stops.
 
 ---
 
-## 4. Not blocking — never tested, and still never tested
-
-Listed because "not tested" and "working" have been conflated on this project before.
+## 4. Tested, 2026-08-26
 
 | | |
 |---|---|
-| **No accessibility audit** | No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised. |
-| **The contact form has never been submitted through a browser** | Four route branches tested with `curl`. The rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once. **Moataz has confirmed this is tested in MVP-1** — *"الـ form هنختبره في mvp one"* — so it is scheduled rather than deferred. It sends a real email to `CONTACT_NOTIFY_TO`, which is the whole point of the test. |
-| **ISR has never been observed working in production** | `/api/revalidate` has never been called against a production build. |
+| **The contact form** | ✅ **Moataz submitted it himself and the message arrived in his inbox.** Stronger evidence than the browser test I had offered, which would have proved the submission and not the delivery. |
+| **Accessibility, structural pass** | ✅ **17 routes, 0 findings.** `lang` and `dir` correct on `<html>` in both locales · a non-empty `<title>` on every page · exactly one `<h1>` · every `<img>` carries `alt` · every link and button has an accessible name · the contact fields are labelled · a skip link is present. |
+| ⚠️ **Accessibility, what was NOT tested** | **Colour contrast, focus order, and screen-reader behaviour.** These need a real browser and a longer pass than launch day allowed. The structural pass above says the semantics are right; it does not say the experience is. Listed so it is not mistaken for a clean audit. |
+| **ISR / `/api/revalidate`** | Still untested, and **it returned 400** when called on 2026-08-26. Nothing depends on it: every route is `server-rendered on demand`, not ISR-cached, so content changes appear immediately without it. Worth fixing, blocks nothing. |
 
 ---
 
