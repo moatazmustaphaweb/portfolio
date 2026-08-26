@@ -1144,6 +1144,61 @@ Same shape as the stale claims in Part 6: a mechanism believed rather than run. 
 that this one was not stale — it was never true for this page, and it was written into the output
 of every sync anybody had executed.
 
+## Before declaring a gap, check whether the schema has a discriminator
+
+Added 2026-08-26, task `009250826`, after reporting a cover as missing that has existed for
+weeks.
+
+`case_files` has **two** cover sources and a `cover_kind` column that says which: `media` (a
+Cloudinary row) or `component` (a hand-drawn inline SVG bound to the site's tokens). A CHECK in
+migration 0026 makes them mutually exclusive. So on a `component` cover, `cover_media_id` is
+**correctly** null.
+
+The query asked `cover_media_id is not null` and the answer was read as "has a cover". It is
+not the same question, and the result looked exactly like a real gap: one row of four, on the
+case file that is the site's largest, in launch week.
+
+**The check: when a column can be legitimately null, find out what makes it legitimate before
+calling the null a gap.** A `*_kind`, `*_type`, `status` or `variant` column sitting next to the
+one being measured is the tell. `\\d table` first, then the query.
+
+**A per-locale ROW is not a per-locale TRANSLATION.** `chapter_paragraphs` carries its own
+`locale` column: the English paragraph and its Arabic counterpart are separate rows, and an `en`
+row never has an `ar` translation because it never should. Comparing `translations` counts by
+locale therefore measures rows, not coverage — it reported a 19-string gap where the real one is
+15 paragraphs, and it hid six paragraphs that exist in Arabic and not in English. **Before
+comparing two locales, find out whether the locale lives on the row or on the translation.**
+
+**This is the general shape, not a one-off.** Three times in one day: `grep -c` counts matching LINES
+and was read as occurrences on minified HTML (2 vs 22), and `getComputedStyle` on one element
+was read as "what the class means" when a parent's `space-y-*` was overriding it. Each time the
+measurement was real and answered a narrower question than the one being asked.
+
+**Never name the tooling in a string a visitor can reach.** `No Purpose is written for this page
+in Notion.` shipped to production, along with copy explaining the database, the query behaviour
+and an environment variable. They were written as if only a developer would ever see them, on
+pages that turned out to be reachable by direct link. **The absence is ours to own — *content is
+not ready yet* — not a fact about where we keep our files.** Notion, Supabase, Cloudinary, a flag
+name: none of them exist as far as a reader is concerned.
+
+**A field read from the database is not the same as the field as rendered.** Four times in one
+day now. The `achieved` status was judged as flattening five kinds of evidence into one word —
+true of the seven rows read out of `targets`, and false of the page, where every row renders
+claim · status · note side by side. **Before calling a data shape a content problem, fetch the
+page it renders on.** The database says what exists; only the page says what a reader meets.
+
+**A difference that runs in BOTH directions is not a gap.** The Arabic paragraph audit found
+15 chapters short and 6 chapters long, and I reported the 15 and called the 6 an anomaly. Both
+numbers were one fact: translation is per page, and the two languages paragraph differently
+(decision 061). **When a "missing" count has a matching "extra" count, the model of what should
+match is wrong — not the data.** That signal was present and I explained it away, which is worse
+than not having it.
+
+**Half a question answered confidently reads exactly like a whole one.** The defence is to say
+what was measured, in the same sentence as the conclusion — "0 of 4 have `cover_media_id`" would
+have invited the correction that "1 of 4 has no cover" did not.
+
+
 ---
 
 # PART 8 — WHERE THE MODEL WAS WRONG AND WAS CORRECTED

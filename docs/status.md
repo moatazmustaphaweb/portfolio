@@ -352,6 +352,190 @@ Measured at 1500px after the change: caption `position: static`, frame bottom 75
 769 — 12px of clearance, no intersection. Laptop chapters re-checked in the same pass and still
 float, 11 of 11 on `cervello/permission-architecture`.
 
+### Published, and then the launch gate was measured rather than quoted
+
+Moataz: *"اعمل publish وبعد ما يخلص خالص اعمل جدول summary ايه اللي ناقص في mvp1 نقدر ننشر
+اليوم."*
+
+Merged through PR #2 to `main` (`1e0edb2`). Production is `READY` and **verified serving the
+new work**, not merely reported as deployed: `neobiz-mobile/onboarding` returns 9 phone frames
+from the live domain.
+
+The survey is in **`docs/mvp1-launch-gate.md`**. Everything in it was measured today against
+production and the database; nothing is quoted from another document, and that is the point —
+`CLAUDE.md` has now had **five** claims rot the same way, three already recorded there and
+**two found today**:
+
+1. *"`/how-this-site-works` is Layer 2 and 404s."* It returns **200** in both locales.
+2. *"a draft slug like `/en/work/east` still renders Next's `__next_error__` shell."* It renders
+   a **real page with the slug as its `<h1>`** — a different and worse defect.
+
+**The one blocking item is a decision rather than work.** Four draft case files are live and
+readable at eight URLs, each rendering `<h1>east</h1>` over five empty paragraphs. They are not
+linked from `/work` and not in the sitemap, but they are not `noindex` either and `robots.txt`
+allows everything. Publish them, 404 them, or `noindex` them — the choice depends on open
+question B, which has never been answered.
+
+**And one item in my own survey was wrong within the hour.** Moataz: *"غلاف مصر خلصان بس هو
+مرسوم svg في الموقع، يعني اقفل النقطة دي."* Correct. I queried `cover_media_id` alone;
+`case_files` has **two** cover sources and `cover_kind` says which, with a CHECK in migration
+0026 making them exclusive. Egypt is `component` — a hand-drawn inline SVG bound to the tokens,
+so a null `cover_media_id` is the right state rather than a gap. **All four published case files
+have a cover.** Closed in `docs/mvp1-launch-gate.md`, with the correction kept in place of the
+item. The general lesson is in `docs/learn.md` Part 7: twice today a real measurement answered a
+narrower question than the one being asked, and half a question answered confidently reads
+exactly like a whole one.
+
+**Two claims in the file turned out far better than recorded.** The Arabic gap is **19 strings**
+in total, not the 109 chapter paragraphs `CLAUDE.md` states. `settings.og_image` is set, and the
+career timeline has 14 roles and renders — both listed there as missing.
+
+### Answering the four questions, and one of them was not an MVP-1 question at all
+
+Moataz, mid-turn: *"بالك تكون شغال على حاجة مش موجودة أصلًا في mvp one. إحنا بنتكلم على mvp one
+بس."* **Correct, and it applied to the item he had just asked about.** The privacy claims belong
+to `/how-this-site-works`, whose Notion row carries `In MVP-1 = NO` and `Build Layer 2`. I had
+listed them as an MVP-1 gap. Moved to the deferred section in
+`docs/mvp1-launch-gate.md`.
+
+**There is no Notion link for them to read.** The five strings were never in Notion: they were
+written straight into `supabase/migrations/0009_seed_consent_and_privacy_copy.sql` and corrected
+in `0011`. The Notion page they belong to is blank. So the answer to *"ابعتلي لينك نوشن"* is
+that the thing being asked for does not exist, which is worth saying plainly rather than sending
+the nearest page.
+
+**⚠️ `Achieved` — I was wrong, and Moataz corrected it the same turn. See decision 060.** He
+asked whether the rule had not always been that the status says *whether* and the `note` says
+*how*, and that there is therefore no conflict. **He is right, and the error was where I
+looked:** I read the seven `achieved` rows out of the database and judged the label as though it
+rendered alone. On `/en/work/egypt-acquisition/results` every row is three adjacent cells —
+claim, status, note — so the qualification is never more than one cell from the claim. Item
+closed in the launch-gate file; `CLAUDE.md` still carries the superseded framing.
+
+What I had written, now superseded: Seven targets carry it and their own
+notes describe five different kinds of evidence — measured in a lab · observed in production by
+someone else · verifiable by opening a design file · a design decision that explicitly makes no
+performance claim · an internal review explicitly not customer evidence. The notes are honest;
+the label flattens them, and the gallery card shows the label without the note. Full table in
+the launch-gate file.
+
+**⚠️ My Arabic count was wrong and is corrected.** I reported 19 missing strings from comparing
+350 English `translations` rows against 341 Arabic. `chapter_paragraphs` has its own `locale`
+column — an English paragraph and its Arabic counterpart are **separate rows** — so that
+comparison counts rows, not coverage. Measured per locale per chapter: **15 paragraphs missing
+Arabic, and 6 paragraphs that exist in Arabic and not in English.**
+
+**10 of the 15 are one slot.** `the-interface` is 5 EN / 0 AR in **both** `onboarding` and
+`workflow`. A clean zero in two places is structural, and `lib/sync/chapter-slots.ts` already
+carries the answer in a comment: *"Its Arabic page has no `the-interface` section. That is an
+absence, not an error."* So it is **content to write in Notion**, not a sync fix — which is the
+distinction he asked for.
+
+**⚠️ And then the corrected Arabic number was wrong too. See decision 061.** Moataz: *"إحنا
+بنعمل الصفحة كلها toute… مش فقرة وفقرة… الخلفية وطريقة السرد مختلفة."* **Translation is per
+PAGE.** Two English paragraphs may be one in Arabic; one may become three. So comparing row
+counts per locale measures nothing, and the `15 missing / 6 extra` is not a gap in either
+direction.
+
+**The signal was in my own table and I explained it away.** Two chapters had MORE Arabic than
+English. A difference that runs both ways means the model of what should match is wrong, not the
+data. I reported the 15 and called the 6 an anomaly.
+
+**Measured correctly — does the chapter have Arabic at all?** **14 of 14.** The Arabic is
+complete and the launch-gate item is closed.
+
+**Four measurement errors of the same shape today**, now recorded together in `docs/learn.md`
+Part 7: a real measurement answering a narrower question than the one being asked. Three of the
+four were caught by Moataz rather than by me.
+
+**The contact form is scheduled, not deferred** — *"الـ form هنختبره في mvp one."*
+
+### Notion vs the database, compared page by page. They match.
+
+Moataz: *"اعمل compare ما بين الـ content في notion والـ content في database… لازم الـ content
+كله الموجود في notion يبقى معمول له هو هو reflection في الـ database."*
+
+**Method, because the obvious reading of the tool is wrong.** `sync:notion --dry-run --all`
+reports `updated 27`, and that is **not** a count of differences: `updated.push(...)` fires for
+every row the sync processes, unconditionally. It is a full overwrite, not a delta. So the dry
+run alone cannot answer the question. What it *does* give is Notion's shape per page, written as
+`slot(N¶ ↔ar N¶)` — and that can be compared against the database directly.
+
+**Then the sync was run for real** (`exit 0`, 32 written) so his Arabic edits landed, and the
+counts were taken again.
+
+**The counts did not move.** Identical before and after, which is itself the finding: the
+database was already current.
+
+| | Notion (from the dry run) | Database |
+|---|---|---|
+| 14 chapters, EN and AR | matches | matches |
+| 4 covers, EN and AR | matches | matches |
+
+Spot-checked by arithmetic rather than by eye — `cervello/method` is 1+1+8+7+7+6+3 = 33 EN and
+33 AR in Notion, and 33/33 in the database; `egypt/onboarding` is 47 EN / 40 AR both sides;
+`uae-acquisition`'s cover is 6 EN / 7 AR both sides. Every row agrees.
+
+**The Arabic asymmetries are Notion's own and are correct** under decision 061 — `uae`'s cover
+thesis is 2¶ in English and 3¶ in Arabic; the accessibility page has `principle-1` … `principle-6`
+as separate English sections and folds all of them into one 23¶ `what-shipped` in Arabic. The
+database reflects that faithfully, which is the point.
+
+### Two real findings, neither of them drift
+
+**1. A duplicate Notion page fails every sync run.** There are two Cervello cover pages claiming
+`/[locale]/work/cervello`. The live one is `Case File Cover - Cervello Cloud (IoT)`. The other,
+`Case File Cover - Cervello`, is **blank**, `In MVP-1 = NO`, and its own Notes say *"SUPERSEDED …
+Kept for reference only."* The sync's guard refuses it — correctly, since writing it would move
+the published case file to draft and 404 every Cervello chapter. But the run ends `failed 1`
+every time, and a permanent expected failure is how a real one gets missed. **Archiving that page
+in Notion is Moataz's action.**
+
+**2. Three pages have no write path at all.** The sync prints them under *"NOT YET IMPLEMENTED"*:
+both comparison pages and the accessibility page. Their content reached the database through
+migration `0058`, not through the sync. **They match today** — 6/9, 10/10 and 47/46 on both sides
+— but any future edit in Notion will never appear on the site, and nothing will report an error.
+That is the one place where "the database reflects Notion" is true now and not guaranteed later.
+
+**Images were excluded from this review, as instructed.**
+
+### The draft pages stay. Their copy named the tooling, and that is the real defect
+
+**Two corrections, one his and one mine, and mine was the bigger one.**
+
+**His ruling on the pages themselves:** *"هما direct link، يعني هما مش معمول ليهم listing على الـ
+work حاليًا، فمفيش فيهم أي مشكلة. سيبهم زي ما هما."* They are reachable only by typing the URL,
+not linked from `/work` and not in the sitemap. **The MVP-1 blocker is closed by decision, and
+nothing is changed about the routes.**
+
+**My description of them was wrong.** I reported these as *"`<h1>east</h1>` over five empty
+paragraphs"* — a raw slug rendering as a title. **They are nothing of the kind.** Opened in a
+browser, each is a deliberate `StubPage`: `SITE MAP · PREVIEW · NOT BUILT YET`, a heading, an
+explanation of what a stub is, and a table of route, served path, build layer and section. I had
+counted `<h1>` and `<p>` tags with `curl` and described a page I had not looked at. **Fifth
+measurement error of the same shape today, and the first one where looking at the thing would
+have taken ten seconds.**
+
+**The real defect, which he caught and I had walked straight past:** the stub copy explained the
+machinery.
+
+| Was | Now |
+|---|---|
+| `No Purpose is written for this page in Notion.` | `Content is not ready yet.` |
+| `A draft case file. It is in the database and unpublished, so every query filters it out and this route 404s with the flag off. No title and no Purpose are available for it.` | `A draft case file. Its content is not ready yet, so the page is not published.` |
+| `… carrying the Purpose written for them in Notion. This page exists only when NEXT_PUBLIC_PREVIEW_STUBS is set in .env.local …` | `… carrying the purpose written for them. Nothing on this page is site content.` |
+
+His rule: *"بنكتب عليه content is not ready yet… مش بنكتب إن هو مش موجود في Notion."*
+
+**A visitor does not know Notion exists**, and these pages are reachable on the live site by
+direct link. The strings were written as if only a developer would read them — they named the
+authoring tool, the database, the query behaviour, and an environment variable. **The absence is
+ours to own, not a fact about where we keep our files.**
+
+Written into the file header as a standing rule for anything added there: name what the reader is
+missing, never the machinery behind it. Verified on the rendered page — four occurrences of *not
+ready yet*, zero of *Notion*.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

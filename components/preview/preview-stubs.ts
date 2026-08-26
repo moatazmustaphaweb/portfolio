@@ -462,12 +462,27 @@ export function findStubRoute(segments: readonly string[]): StubRoute | undefine
  * is a local tool, not a page, and translating it would make it look like
  * something that ships. Every one of these renders marked `lang="en"
  * dir="ltr"` so it reads correctly inside the Arabic document.
+ *
+ * ⚠️ NOTHING HERE NAMES A TOOL OR A MECHANISM. Corrected 2026-08-26 by Moataz:
+ * *"لما يبقى فيه content مش موجود في Notion وإنت عايز تعمله draft في الـ
+ * website، بنكتب عليه content is not ready yet… مش بنكتب إن هو مش موجود في
+ * Notion."*
+ *
+ * These strings were written as if only a developer would ever read them, and
+ * they said so: `noPurposeNotice` named Notion, `draftNotice` explained the
+ * database and the flag, `indexLede` named the environment variable. **A
+ * visitor does not know Notion exists**, and these pages are reachable by
+ * direct link on the live site. The absence is ours to own — *content is not
+ * ready yet* — not a fact about where we keep our files.
+ *
+ * The rule holds for anything added here: name what the reader is missing,
+ * never the machinery behind it.
  */
 export const CHROME = {
   kicker: "Preview",
   indexTitle: "Site map",
   indexLede:
-    "Every page the project plans, built and unbuilt, at the route it will live on. Unbuilt pages render a stub carrying the Purpose written for them in Notion. This page exists only when NEXT_PUBLIC_PREVIEW_STUBS is set in .env.local, and nothing on it is site content.",
+    "Every page the project plans, built and unbuilt, at the route it will live on. Unbuilt pages render a stub carrying the purpose written for them. Nothing on this page is site content.",
   purposeLabel: "Purpose",
   routeLabel: "Route",
   servedLabel: "Served at",
@@ -482,9 +497,9 @@ export const CHROME = {
     "Preview scaffolding. This page does not exist — it is a placeholder standing at the route, so the shape of the site can be read before the page is written.",
   exampleSlugNotice:
     "The slug in this URL is invented so the route can be visited. There is no such thing behind it.",
-  noPurposeNotice: "No Purpose is written for this page in Notion.",
+  noPurposeNotice: "Content is not ready yet.",
   draftNotice:
-    "A draft case file. It is in the database and unpublished, so every query filters it out and this route 404s with the flag off. No title and no Purpose are available for it.",
+    "A draft case file. Its content is not ready yet, so the page is not published.",
   doorNote: "Four steps, one route.",
   backToIndex: "Site map",
   builtHeading: "MVP-1 — built",
