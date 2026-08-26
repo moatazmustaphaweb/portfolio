@@ -18,8 +18,11 @@ import { HeroMark } from "@/components/brand/HeroMark";
  *  - A **radial accent glow** behind the hero. The only non-flat surface in
  *    the whole system, and the one place the accent is allowed to be ambient
  *    rather than a state marker.
- *  - An **eyebrow pill** above the name — bordered, on surface, mono.
+ *  - ~~An **eyebrow pill** above the name~~ — **removed 2026-08-26.** It was
+ *    filled with the Work section's nav label, which said the wrong thing on
+ *    this page and said it a third time. See the note at its old position.
  *  - **Two** calls to action: the work, and a way to make contact.
+ *  - The **brand mark** in the half the copy does not use (`HeroMark`).
  *
  * The eight seconds this page has are unchanged. The strings still carry the
  * message; the design just gives them somewhere to sit.
@@ -129,13 +132,28 @@ export default async function Landing({
             missing — the fallback rule applied to the most visible page on the
             site. A blank heading here would be the first thing a recruiter saw.
           */}
-          {ui.t("case_file") ? (
-            <p className="inline-flex rounded-pill border border-DEFAULT bg-surface px-3 py-1 font-mono text-label uppercase text-fg-muted">
-              {ui.t("page_work")}
-            </p>
-          ) : null}
 
-          {name ? <h1 className="mt-6 text-hero text-fg">{name}</h1> : null}
+          {/*
+            ⚠️ THE EYEBROW PILL IS GONE. Removed 2026-08-26 at Moataz's
+            instruction, and it is not coming back with different copy unless
+            someone writes copy for it.
+
+            It rendered `page_work` — the NAVIGATION LABEL for the Work section
+            — above the name. On the landing page that asserts this page IS the
+            Work section, which it is not, and it put the same word on screen
+            three times: the nav link, the pill, and the "Work →" button below.
+
+            It also carried a real bug. The guard tested `case_file` and the
+            body printed `page_work`, so a missing `page_work` with `case_file`
+            present would have rendered an EMPTY pill — precisely the failure
+            the comment above it exists to prevent.
+
+            The design (`Home.dc.html`) did specify an eyebrow here, and that
+            file is no longer in `designs/`, so what it was meant to say cannot
+            be checked. If one returns it needs its own string, written in
+            Notion in both languages — not a nav label borrowed from elsewhere.
+          */}
+          {name ? <h1 className="text-hero text-fg">{name}</h1> : null}
 
           {/*
             The tagline states a position. It is the largest line after the

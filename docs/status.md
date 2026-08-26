@@ -638,6 +638,36 @@ reader needs.
 DOM, 340px wide, sitting at x≈944 in English and mirrored to the left in Arabic, rendering
 white-on-black in dark with no theme-specific CSS.
 
+### The landing eyebrow pill is removed, and it was carrying a bug
+
+Moataz, reading the rendered HTML: *"why we have this element in home screen?"* then
+*"remove it."*
+
+**There was no good answer to the question, which is itself the answer.** The pill rendered
+`page_work` — the **navigation label** for the Work section — directly above the name. On the
+landing page that asserts this page *is* the Work section, and it put the same word on screen
+three times: the nav link, the pill, and the `Work →` button below it.
+
+**It also carried a real defect.** The guard tested one string and the body printed another:
+
+```jsx
+{ui.t("case_file") ? <p …>{ui.t("page_work")}</p> : null}
+```
+
+A missing `page_work` with `case_file` present would have rendered an **empty pill** — exactly
+the failure the comment three lines above it exists to prevent (*"Every line is omitted rather
+than rendered empty if its setting is missing"*). The guard had drifted from what it guards, and
+nothing would have reported it.
+
+**What is NOT claimed:** that the design was wrong. `Home.dc.html` did specify an eyebrow here,
+and that file is **no longer in `designs/`**, so what it was meant to say cannot be checked. The
+removal is of a nav label used out of place, not of the design element. Both facts are written at
+the old position so a future session does not "restore" it by pasting the label back.
+
+The `<h1>` loses its `mt-6` along with it — it is now the first thing in the column.
+
+`tsc` and `eslint` clean; the page verified in a browser.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
