@@ -607,9 +607,19 @@ nothing here reads `dir`.
 Hidden below `lg`: there is no empty half on a narrow screen, and the mark would sit under the
 copy and fight it.
 
-**The "50% grey" is `text-fg` at `opacity-50`** rather than a new colour token. Half-strength
-foreground resolves to a mid grey against either background — black on white, white on black —
-so one declaration covers both themes and there is no second value to keep in sync.
+**The colour is `text-fg` at `opacity-10`** rather than a new token. Foreground at reduced
+strength resolves to grey against either background — black on white, white on black — so one
+declaration covers both themes with no second value to keep in sync.
+
+**It shipped at 50% and came straight back down.** Moataz: *"make it more faded. I want it to be
+barely visible."* At half strength it read as a second element on the page rather than as
+something behind it. 10% is the value he asked for, checked in both themes because white-on-black
+carries further than black-on-white at the same alpha — it holds at 10% in both.
+
+⚠️ **There is no `opacity-15`.** Opacity is one of the few scales `tailwind.config.ts` does NOT
+replace, so Tailwind's own steps apply — 0 · 5 · 10 · 20 · 25 … A reach for 15 compiles to
+nothing and the mark silently returns to **full strength**, which is the loudest possible failure
+for the quietest element on the page.
 
 `aria-hidden`, no title: the name is the `<h1>` a few lines below, so the mark carries nothing a
 reader needs.

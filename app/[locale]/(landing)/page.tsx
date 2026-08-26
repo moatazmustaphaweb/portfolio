@@ -94,10 +94,14 @@ export default async function Landing({
         HIDDEN BELOW `lg`. There is no empty half on a narrow screen; the mark
         would sit under the text and fight it.
 
-        `opacity-50` on `text-fg` is the "50% grey" — half-strength foreground
-        resolves to a mid grey against either theme's background, black on white
-        and white on black, without a second colour token. It reads as shading
-        rather than as a solid logo, which is the point.
+        `opacity-10` on `text-fg`: barely visible, which is what it is for. It
+        started at 50% — a true mid grey — and that read as a second element on
+        the page rather than as shading behind it.
+
+        Opacity is one of the few scales `tailwind.config.ts` does NOT replace,
+        so Tailwind's own steps apply: 0 · 5 · 10 · 20 · 25 … There is **no
+        `opacity-15`**. Reaching for one compiles to nothing and the mark
+        silently returns to full strength.
 
         `aria-hidden` lives on the component itself, and it is decoration: the
         name is the <h1> a few lines below, so this carries nothing a reader
@@ -106,7 +110,7 @@ export default async function Landing({
       <div
         className="pointer-events-none absolute inset-y-0 end-0 hidden w-1/2 items-center justify-center lg:flex"
       >
-        <HeroMark className="h-auto w-[min(60%,340px)] text-fg opacity-50" />
+        <HeroMark className="h-auto w-[min(60%,340px)] text-fg opacity-10" />
       </div>
 
       <div className="relative mx-auto w-full max-w-container px-gutter py-section-y-hero">
