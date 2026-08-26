@@ -536,6 +536,38 @@ Written into the file header as a standing rule for anything added there: name w
 missing, never the machinery behind it. Verified on the rendered page — four occurrences of *not
 ready yet*, zero of *Notion*.
 
+### MVP-1 IS DONE. Launched 2026-08-26.
+
+Moataz: *"خلينا نقفل MVP one ونعمل الإطلاق دلوقتي. محتاجين بعد 45 دقيقة الـ website live."*
+
+**Shipped:** PR #3 merged to `main` (`2840647`), production deployed and **verified serving the
+corrected copy** — zero occurrences of `Notion` on `/en/work/east`, which is what the fix was
+for.
+
+**The contact form is tested and he tested it.** *"جربت أبعت الـ file form واشتغل ووصل
+لصندوقي."* Better evidence than the browser submission I had offered: mine would have proved the
+form posted, his proves the message arrived.
+
+**Accessibility, structural pass: 17 routes, 0 findings.** `lang` and `dir` correct on `<html>`
+in both locales · a non-empty `<title>` everywhere · exactly one `<h1>` per page · every `<img>`
+carries `alt` · every link and button has an accessible name · contact fields labelled · a skip
+link present. Run against production, not against a local build.
+
+⚠️ **And what that pass does NOT cover, said plainly because this project has conflated "not
+tested" with "working" before:** colour contrast, focus order, and screen-reader behaviour. Those
+need a real browser and more time than launch day had. **The semantics are right; whether the
+experience is has not been established.**
+
+**Three things carried into MVP-2, none of them blocking a reader today:**
+
+1. `/api/revalidate` returns **400**. Nothing depends on it — every route is
+   `server-rendered on demand`, so content changes appear without it.
+2. Both comparison pages and the accessibility page have **no sync write path**. They match
+   Notion today; a future edit there will never appear, silently.
+3. A blank duplicate Notion page fails the sync on every run. Archiving it is Moataz's.
+
+`docs/mvp1-launch-gate.md` carries the full survey, every line measured against production.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
