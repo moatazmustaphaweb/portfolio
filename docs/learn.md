@@ -450,6 +450,30 @@ pretending to be a drawing.
 design's and they transfer either way — read them as *insets* rather than as absolute rects
 and they become padding.
 
+## In an SVG, `fill="white"` is sometimes not a colour
+
+Added 2026-08-26, task `009250826`, while converting a logo to theme tokens.
+
+Figma's "inside stroke" emits a `<mask fill="white">` wrapping a path. **There, white is the mask
+channel — it means *include this pixel* — not a colour.** A blanket
+`fill="white"` → `fill="currentColor"` across such a file empties every mask and deletes the
+shapes they carry, and the file still renders *something*, so it does not look like a failure.
+
+**Recolour only `<path fill="white">`. Never `<mask ... fill="white">`.** And assert the count:
+the generator for `HeroMark` checks that exactly two whites survive, so the day someone reruns it
+against a redrawn file, a changed mask count stops it rather than shipping a broken mark.
+
+**Namespace ids while you are in there.** Figma emits `path-1-inside-1_81_15`. Ids are
+document-global; a second copy of the same mark on one page collides and silently borrows the
+first one's mask.
+
+## Generate from the design file; do not retype path data
+
+Same task. A logo is 16KB of bezier curves. A hand-copied one that is subtly wrong looks
+plausible, and no test on this project inspects geometry. Write the script that reads the design
+file and emits the component, and keep the script — the next redraw is then one command instead
+of another transcription.
+
 ## Absolute pixels are sometimes the correct choice, and a bezel is one
 
 Same task. The instinct on a responsive site is to scale everything proportionally. A frame's

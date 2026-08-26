@@ -568,6 +568,56 @@ experience is has not been established.**
 
 `docs/mvp1-launch-gate.md` carries the full survey, every line measured against production.
 
+### The brand mark, behind the landing hero
+
+Moataz: *"add this photo in the hero head on the home screen… it should match the colours of the
+theme… 50% grey so it looks like it's shaded, not a solid colour, low-contrast, and part of the
+background."*
+
+**`components/brand/HeroMark.tsx` is GENERATED from `designs/Logo-001858 1.svg`, not copied by
+hand.** The path data is 16KB of bezier curves and a transcription slip in it would be silent —
+there is no test on this project that would catch a mark that is subtly the wrong shape. A script
+read the design file and wrote the component.
+
+**Two transformations, and only two.**
+
+`fill="white"` on each visible `<path>` became `currentColor`, so the mark follows the theme with
+no `dark:` variant anywhere — the same mechanism the device frames use.
+
+⚠️ **`fill="white"` on the two `<mask>` elements was left alone, and that is the trap.** There,
+white is the mask channel — it means *include this pixel* — not a colour. A blanket
+find-and-replace would have emptied both masks and deleted two of the three shapes, and the
+result would still have rendered something. The generator asserts that exactly two whites
+survive.
+
+The Figma ids are namespaced on the way through (`path-1-inside-1_81_15` → `hero-mark-1`). Ids
+are document-global; two marks on one page would collide and the second would borrow the first
+one's mask.
+
+**Placement changes nothing about the hero.** The copy has always been capped at
+`max-w-measure-lead` inside a `max-w-container`, so the inline-end half was already empty. The
+mark is absolutely positioned into that half — the text is not moved, resized or reflowed, and
+deleting the element leaves the hero exactly as it was.
+
+**`end-0`, not `right-0`.** The empty half is the right in English and **the left in Arabic**,
+because the copy hugs the inline start in both. A physical side would have laid the mark over the
+Arabic text. Direction comes from the locale, which is `rtl-guard`'s own test for layout, and
+nothing here reads `dir`.
+
+Hidden below `lg`: there is no empty half on a narrow screen, and the mark would sit under the
+copy and fight it.
+
+**The "50% grey" is `text-fg` at `opacity-50`** rather than a new colour token. Half-strength
+foreground resolves to a mid grey against either background — black on white, white on black —
+so one declaration covers both themes and there is no second value to keep in sync.
+
+`aria-hidden`, no title: the name is the `<h1>` a few lines below, so the mark carries nothing a
+reader needs.
+
+**Verified in both locales and both themes in one pass** — 5 paths and 2 masks present in the
+DOM, 340px wide, sitting at x≈944 in English and mirrored to the left in Arabic, rendering
+white-on-black in dark with no theme-specific CSS.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

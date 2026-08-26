@@ -7,6 +7,7 @@ import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
+import { HeroMark } from "@/components/brand/HeroMark";
 
 /**
  * Landing — composed from `Home.dc.html`.
@@ -74,6 +75,39 @@ export default async function Landing({
             "radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--color-accent) 16%, transparent) 0%, transparent 100%)",
         }}
       />
+
+      {/*
+        The brand mark, standing in the half of the hero the copy does not use.
+
+        THE HERO IS ALREADY TWO HALVES — the text is capped at
+        `max-w-measure-lead` inside a `max-w-container`, so on a wide screen the
+        inline-end half has always been empty. This fills it rather than
+        changing the layout: the copy is not moved, resized, or re-flowed, and
+        removing this element leaves the hero exactly as it was.
+
+        `end-0` and not `right-0`: the empty half is the RIGHT in English and
+        the LEFT in Arabic, because the text hugs the inline start in both. A
+        physical side would have put the mark on top of the Arabic copy. This is
+        layout, so it takes its direction from the locale — `rtl-guard`'s own
+        test — and nothing here reads `dir` to do it.
+
+        HIDDEN BELOW `lg`. There is no empty half on a narrow screen; the mark
+        would sit under the text and fight it.
+
+        `opacity-50` on `text-fg` is the "50% grey" — half-strength foreground
+        resolves to a mid grey against either theme's background, black on white
+        and white on black, without a second colour token. It reads as shading
+        rather than as a solid logo, which is the point.
+
+        `aria-hidden` lives on the component itself, and it is decoration: the
+        name is the <h1> a few lines below, so this carries nothing a reader
+        needs.
+      */}
+      <div
+        className="pointer-events-none absolute inset-y-0 end-0 hidden w-1/2 items-center justify-center lg:flex"
+      >
+        <HeroMark className="h-auto w-[min(60%,340px)] text-fg opacity-50" />
+      </div>
 
       <div className="relative mx-auto w-full max-w-container px-gutter py-section-y-hero">
         <div className="max-w-measure-lead">
