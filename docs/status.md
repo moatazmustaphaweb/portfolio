@@ -404,7 +404,15 @@ in `0011`. The Notion page they belong to is blank. So the answer to *"ابعت�
 that the thing being asked for does not exist, which is worth saying plainly rather than sending
 the nearest page.
 
-**`Achieved` is worse than the one-line version said.** Seven targets carry it and their own
+**⚠️ `Achieved` — I was wrong, and Moataz corrected it the same turn. See decision 060.** He
+asked whether the rule had not always been that the status says *whether* and the `note` says
+*how*, and that there is therefore no conflict. **He is right, and the error was where I
+looked:** I read the seven `achieved` rows out of the database and judged the label as though it
+rendered alone. On `/en/work/egypt-acquisition/results` every row is three adjacent cells —
+claim, status, note — so the qualification is never more than one cell from the claim. Item
+closed in the launch-gate file; `CLAUDE.md` still carries the superseded framing.
+
+What I had written, now superseded: Seven targets carry it and their own
 notes describe five different kinds of evidence — measured in a lab · observed in production by
 someone else · verifiable by opening a design file · a design decision that explicitly makes no
 performance claim · an internal review explicitly not customer evidence. The notes are honest;
@@ -423,8 +431,24 @@ carries the answer in a comment: *"Its Arabic page has no `the-interface` sectio
 absence, not an error."* So it is **content to write in Notion**, not a sync fix — which is the
 distinction he asked for.
 
-**Third measurement error of the same shape today**, now recorded together in `docs/learn.md`
-Part 7: a real measurement answering a narrower question than the one being asked.
+**⚠️ And then the corrected Arabic number was wrong too. See decision 061.** Moataz: *"إحنا
+بنعمل الصفحة كلها toute… مش فقرة وفقرة… الخلفية وطريقة السرد مختلفة."* **Translation is per
+PAGE.** Two English paragraphs may be one in Arabic; one may become three. So comparing row
+counts per locale measures nothing, and the `15 missing / 6 extra` is not a gap in either
+direction.
+
+**The signal was in my own table and I explained it away.** Two chapters had MORE Arabic than
+English. A difference that runs both ways means the model of what should match is wrong, not the
+data. I reported the 15 and called the 6 an anomaly.
+
+**Measured correctly — does the chapter have Arabic at all?** **14 of 14.** The Arabic is
+complete and the launch-gate item is closed.
+
+**Four measurement errors of the same shape today**, now recorded together in `docs/learn.md`
+Part 7: a real measurement answering a narrower question than the one being asked. Three of the
+four were caught by Moataz rather than by me.
+
+**The contact form is scheduled, not deferred** — *"الـ form هنختبره في mvp one."*
 
 ### Pushing is now gated on the word `publish`
 

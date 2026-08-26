@@ -56,72 +56,68 @@ like a whole one.
 
 | | State | Note |
 |---|---|---|
-| **`Achieved` covers five different kinds of evidence** | Open | Read out in full below — it is worse than the one-line version suggested. |
 
-### What `Achieved` is actually doing
+### `Achieved` — CLOSED, 2026-08-26, decision 060
 
-Seven targets carry `status = 'achieved'`, and the label is the same on all seven. Their own
-notes say they are not the same kind of claim at all:
+This section previously argued that `achieved` was *"five different kinds of evidence wearing
+one word."* **Wrong, and the error was where I looked.** I read the seven `achieved` rows out of
+the database and judged the label as though it appeared alone. It does not.
 
-| Case file | The claim | Its own note |
-|---|---|---|
-| egypt | ~15 minutes to complete an application | *Timed across ten prototype-testing sessions and documented* |
-| egypt | Half of tested participants began in English; nearly all switched to Arabic at the regulatory step | *Ten prototype-testing sessions* |
-| egypt | The same language-switching behaviour after go-live | *Reported by the analytics team; **not a figure I measured myself*** |
-| neobiz | Full design coverage: every case path in the ownership matrix, both languages | *Verifiable by inspection of **the design files themselves*** |
-| neobiz | The dashboard structure, case matrix, and capture model | *Design decisions … **claims about the design itself, not about its performance*** |
-| neobiz | Internal walkthrough surfaced no blocking issues | *Stakeholder validation sessions; **internal review, not customer evidence*** |
-| neobiz | Patterns adopted by later teams | *Organisational reuse, **reported to me*** |
+Measured on production, `/en/work/egypt-acquisition/results` — every row is three adjacent
+cells:
 
-**Five different things wearing one word:** measured by him in a lab · observed in production by
-someone else · verifiable by opening a file · a design decision that explicitly makes no
-performance claim · an internal review that is explicitly not customer evidence.
+```
+~15 minutes to complete an application  │ Achieved │ Timed across ten prototype-testing sessions and documented
+Half of tested participants began in English … │ Achieved │ Ten prototype-testing sessions
+The same language-switching behaviour after go-live │ Achieved │ Reported by the analytics team; not a figure I measured myself
+```
 
-**The notes are honest. The label flattens them, and the gallery card shows the label without
-the note** — three cards say `Achieved` on `/en/work` today. So the qualification disappears at
-exactly the place a recruiter skims, which is what the read test caught.
+**The status says whether. The note says how.** Two fields, two jobs, and the qualification is
+never more than one cell from the claim. Moataz: *"المهم إن هي achieved سواء هي internally ولا
+validating ولا حاجة. الـ notes هي اللي بتdescribe، فدي ما فيهاش تعارض."*
 
-**This is a content decision, not a rendering bug**, and the fix is a naming one: either the
-status vocabulary grows past three values, or the four neobiz rows move off `achieved` onto
-something truthful about design work that has not been measured in production.
+The gallery card compresses to outcome plus status with no note, because a card has one line and
+links straight to the table. Deliberate, not a leak.
+
+**`CLAUDE.md` still carries the old framing** — *"the `Achieved` label carries two different
+claims"* — and it is now superseded by decision 060.
 
 ---
 
-## 3. Arabic — the gap is 15 paragraphs, and 10 of them are one missing section
+## 3. Arabic — CLOSED, 2026-08-26, decision 061
 
-⚠️ **This section replaces a wrong count of my own, 2026-08-26.** It said *"19 strings"* from
-comparing 350 English `translations` rows against 341 Arabic ones. **That comparison is
-meaningless here.** `chapter_paragraphs` has its own `locale` column — an English paragraph and
-its Arabic counterpart are **separate rows**, so an `en` row never carries an `ar` translation
-and never should. Counting translations counted rows, not coverage. Third time today the same
-shape of error: see `docs/learn.md` Part 7.
+This section has now carried **two** wrong numbers, both mine, and the second one is the
+instructive failure.
 
-Measured properly, by comparing row counts per locale per chapter:
+**First wrong:** *"19 strings"*, from comparing 350 English `translations` rows against 341
+Arabic. `chapter_paragraphs` has its own `locale` column, so that counts rows, not coverage.
 
-| Case file | Chapter | EN | AR | |
-|---|---|---|---|---|
-| egypt-acquisition | onboarding | 47 | 40 | **−7** |
-| egypt-acquisition | workflow | 41 | 35 | **−6** |
-| egypt-acquisition | accessibility | 47 | 46 | −1 |
-| egypt-acquisition | portal | 30 | 29 | −1 |
-| egypt-acquisition | web-vs-mobile-onboarding | 6 | 9 | **+3** |
-| neobiz-mobile | portal | 8 | 11 | **+3** |
+**Second wrong:** *"15 paragraphs missing Arabic, and 6 that exist in Arabic and not in
+English"*, from comparing row counts per locale per chapter. **That measures nothing either.**
+Moataz: *"إحنا بنعمل الصفحة كلها toute… مش فقرة وفقرة… الخلفية وطريقة السرد مختلفة."*
 
-**15 paragraphs missing Arabic. And six paragraphs where the Arabic says something the English
-does not** — which is allowed under the "original, not translated" rule but is worth him
-knowing about rather than discovering.
+**Translation is per PAGE.** Two English paragraphs may be one in Arabic; one may become three.
+Decision 054 already said the Arabic is an original text rather than a rendering — if the two
+languages may explain differently, they may paragraph differently, and a row-count difference is
+the expected consequence, not a defect.
 
-### 10 of the 15 are one slot, absent by content rather than broken by code
+**The `+3` in both directions was the answer and I read it as an anomaly.** A gap that runs both
+ways is not a gap.
 
-`the-interface` is **5 EN / 0 AR in both** `onboarding` and `workflow`. A clean zero in two
-places is a structural signature, not a translation that got lost.
+### The correct measure, and the result
 
-**It is not a sync bug.** `lib/sync/chapter-slots.ts` already records the cause in a comment:
+*Does the chapter have Arabic at all?* Across all 14 published chapters:
 
-> Its Arabic page has no `the-interface` section. That is an absence, not an error.
+| | |
+|---|---|
+| Chapters with Arabic | **14 of 14** |
+| Chapters with none | **0** |
 
-So this is **content to be written in Notion**, not a fix to be made in code. The remaining five
-are ones and twos spread across four slots and need checking individually.
+**The Arabic is complete.** Nothing is owed here before launch.
+
+⚠️ **Do not rebuild the per-paragraph comparison.** It has produced a wrong answer twice — once
+as `109 of 248` in `CLAUDE.md`, once as `15 missing` today. The audit asks whether the page is
+translated, and stops.
 
 ---
 
@@ -132,7 +128,7 @@ Listed because "not tested" and "working" have been conflated on this project be
 | | |
 |---|---|
 | **No accessibility audit** | No axe, no Lighthouse, no keyboard-only walkthrough, no screen-reader pass. Semantics were written carefully and verified structurally; they have never been exercised. |
-| **The contact form has never been submitted through a browser** | Four route branches tested with `curl`. The rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once. |
+| **The contact form has never been submitted through a browser** | Four route branches tested with `curl`. The rendered form, its validation, the honeypot in a real DOM and the success state have not been clicked once. **Moataz has confirmed this is tested in MVP-1** — *"الـ form هنختبره في mvp one"* — so it is scheduled rather than deferred. It sends a real email to `CONTACT_NOTIFY_TO`, which is the whole point of the test. |
 | **ISR has never been observed working in production** | `/api/revalidate` has never been called against a production build. |
 
 ---

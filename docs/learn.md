@@ -1174,6 +1174,19 @@ and was read as occurrences on minified HTML (2 vs 22), and `getComputedStyle` o
 was read as "what the class means" when a parent's `space-y-*` was overriding it. Each time the
 measurement was real and answered a narrower question than the one being asked.
 
+**A field read from the database is not the same as the field as rendered.** Four times in one
+day now. The `achieved` status was judged as flattening five kinds of evidence into one word —
+true of the seven rows read out of `targets`, and false of the page, where every row renders
+claim · status · note side by side. **Before calling a data shape a content problem, fetch the
+page it renders on.** The database says what exists; only the page says what a reader meets.
+
+**A difference that runs in BOTH directions is not a gap.** The Arabic paragraph audit found
+15 chapters short and 6 chapters long, and I reported the 15 and called the 6 an anomaly. Both
+numbers were one fact: translation is per page, and the two languages paragraph differently
+(decision 061). **When a "missing" count has a matching "extra" count, the model of what should
+match is wrong — not the data.** That signal was present and I explained it away, which is worse
+than not having it.
+
 **Half a question answered confidently reads exactly like a whole one.** The defence is to say
 what was measured, in the same sentence as the conclusion — "0 of 4 have `cover_media_id`" would
 have invited the correction that "1 of 4 has no cover" did not.

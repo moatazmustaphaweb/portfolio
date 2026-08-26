@@ -822,6 +822,94 @@ obstacle, the shape of an agent turn was.
 
 ---
 
+## 061 — Translation is per PAGE, never per paragraph. Paragraph counts are not a coverage measure
+
+**Decided 2026-08-26, task `009250826`, by Moataz, in launch week.**
+
+**Decision:** a page in Notion is either translated or it is not. **There is no paragraph-to-
+paragraph correspondence between the two languages and there never was.** Two English paragraphs
+may be one in Arabic; one may become three. His words: *"إحنا بنعمل الصفحة كلها toute… لما أقول
+أترجم الحاجة مترجمة على notion معناها الصفحة كلها مترجمة، مش فقرة وفقرة… الخلفية وطريقة السرد
+مختلفة."*
+
+**This is decision 054's rule** — the Arabic is an original text written for an Arabic reader,
+not a rendering of the English — **stated at the level where it actually bites.** If the two
+languages are allowed to explain differently, they are allowed to paragraph differently, and a
+row-count difference is the expected consequence rather than a defect.
+
+**What this invalidates, and it was mine.** On 2026-08-26 I reported *"15 paragraphs missing
+Arabic, and 6 paragraphs that exist in Arabic and not in English"* by counting
+`chapter_paragraphs` rows per locale per chapter. **That number measures nothing.** The `+3` on
+`web-vs-mobile-onboarding` and the `+3` on `neobiz-mobile/portal` should have been the tell: a
+"gap" that runs in both directions is not a gap, it is two texts with different shapes. I read
+it as an anomaly instead of as the answer.
+
+**The correct measure, and the result.** *Does the chapter have Arabic at all?* Measured across
+all 14 published chapters:
+
+| | |
+|---|---|
+| Chapters with Arabic | **14 of 14** |
+| Chapters with none | **0** |
+
+**The Arabic is complete at the level that means anything.** The MVP-1 launch-gate item is
+closed.
+
+**What this does NOT license.** A page with *no* Arabic is still a real gap and still reported.
+`the-interface` having five English paragraphs and no Arabic section is not evidence of missing
+translation either — `lib/sync/chapter-slots.ts` already records it as *"an absence, not an
+error"*, and under this decision that is exactly what a differently-structured Arabic narrative
+looks like.
+
+**Do not rebuild the per-paragraph comparison.** It has now produced a wrong answer twice: once
+as `109 of 248` in `CLAUDE.md`, and once as `15 missing` today. Any future audit asks whether the
+page is translated, and stops there.
+
+---
+
+## 060 — `achieved` is a status, not a claim about the KIND of evidence. The note carries that
+
+**Decided 2026-08-26, task `009250826`, by Moataz, in launch week.**
+
+**Decision:** a target is `achieved` if it was achieved, and it does not matter whether that
+happened in a usability lab, in production, in an internal review, or by inspection of the
+design files. **The `note` is the field that describes which**, and it renders beside the status
+everywhere the status is presented as evidence. His words: *"المهم إن هي achieved سواء هي
+internally ولا validating ولا حاجة. الـ notes هي اللي بتdescribe، فدي ما فيهاش تعارض، ما فيهاش
+أي مشكلة."*
+
+**What this closes.** A long-standing launch-gate item, carried in `CLAUDE.md` as *"the
+`Achieved` label carries two different claims"* and restated by me on 2026-08-26 as *"five
+different kinds of evidence wearing one word."* **That framing was wrong**, and the error was in
+where I looked rather than in the data: I read the seven `achieved` rows out of the database and
+judged the label as though it appeared alone. It does not.
+
+**Measured on production, `/en/work/egypt-acquisition/results`** — every row renders as three
+adjacent cells:
+
+```
+~15 minutes to complete an application  │ Achieved │ Timed across ten prototype-testing sessions and documented
+Half of tested participants began in English … │ Achieved │ Ten prototype-testing sessions
+The same language-switching behaviour after go-live │ Achieved │ Reported by the analytics team; not a figure I measured myself
+```
+
+The qualification is never more than one cell away from the claim, and it is specific enough to
+be checked. **There is no conflict to resolve** — a three-value status vocabulary plus a free-text
+note is the design, and it is doing exactly what it was built to do.
+
+**The one nuance, recorded as fact rather than as an objection:** the gallery card on `/work`
+shows the outcome line and the status without the note, because a card is a teaser with one line
+of room and it links straight through to the full table. That is a deliberate compression, not a
+leak.
+
+**What does NOT change.** `metric-integrity` still governs every number, the three markers are
+still the only ones, and a figure without its marker is still a refusal condition. This decision
+narrows nothing about honesty; it settles that **the marker and the note are two fields doing two
+jobs**, and that asking the marker to also encode the kind of evidence would be asking one word
+to do the work of a sentence.
+
+---
+
 ## 059 — Vercel's Preview environment stays unconfigured until MVP-2
 
 **Decided 2026-08-25, task `009250826`, by Moataz, in launch week.**
