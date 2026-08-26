@@ -1,4 +1,4 @@
-# MVP-1 — what is left before launch
+# MVP-1 — CLOSED, 2026-08-26
 
 **Measured 2026-08-26, task `009250826`, against production at `gate.moatazmustapha.com` and
 against the database. Nothing here is quoted from another document.**
@@ -9,7 +9,14 @@ Two more were found today and are listed at the bottom.
 
 ---
 
-## The verdict — MVP-1 IS DONE, 2026-08-26
+## MVP-1 is closed and the site is live
+
+**Closed 2026-08-26 on Moataz's instruction**, after every item on this page was measured,
+tested, or explicitly deferred with a reason.
+
+**Live at `gate.moatazmustapha.com`** — public, no login wall, `main` at `123a474`.
+
+## The verdict
 
 **Every item on this page is closed, tested, or explicitly deferred with a reason.** Nothing is
 outstanding that a visitor would meet.
