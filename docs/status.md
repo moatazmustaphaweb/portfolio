@@ -390,6 +390,42 @@ exactly like a whole one.
 in total, not the 109 chapter paragraphs `CLAUDE.md` states. `settings.og_image` is set, and the
 career timeline has 14 roles and renders — both listed there as missing.
 
+### Answering the four questions, and one of them was not an MVP-1 question at all
+
+Moataz, mid-turn: *"بالك تكون شغال على حاجة مش موجودة أصلًا في mvp one. إحنا بنتكلم على mvp one
+بس."* **Correct, and it applied to the item he had just asked about.** The privacy claims belong
+to `/how-this-site-works`, whose Notion row carries `In MVP-1 = NO` and `Build Layer 2`. I had
+listed them as an MVP-1 gap. Moved to the deferred section in
+`docs/mvp1-launch-gate.md`.
+
+**There is no Notion link for them to read.** The five strings were never in Notion: they were
+written straight into `supabase/migrations/0009_seed_consent_and_privacy_copy.sql` and corrected
+in `0011`. The Notion page they belong to is blank. So the answer to *"ابعتلي لينك نوشن"* is
+that the thing being asked for does not exist, which is worth saying plainly rather than sending
+the nearest page.
+
+**`Achieved` is worse than the one-line version said.** Seven targets carry it and their own
+notes describe five different kinds of evidence — measured in a lab · observed in production by
+someone else · verifiable by opening a design file · a design decision that explicitly makes no
+performance claim · an internal review explicitly not customer evidence. The notes are honest;
+the label flattens them, and the gallery card shows the label without the note. Full table in
+the launch-gate file.
+
+**⚠️ My Arabic count was wrong and is corrected.** I reported 19 missing strings from comparing
+350 English `translations` rows against 341 Arabic. `chapter_paragraphs` has its own `locale`
+column — an English paragraph and its Arabic counterpart are **separate rows** — so that
+comparison counts rows, not coverage. Measured per locale per chapter: **15 paragraphs missing
+Arabic, and 6 paragraphs that exist in Arabic and not in English.**
+
+**10 of the 15 are one slot.** `the-interface` is 5 EN / 0 AR in **both** `onboarding` and
+`workflow`. A clean zero in two places is structural, and `lib/sync/chapter-slots.ts` already
+carries the answer in a comment: *"Its Arabic page has no `the-interface` section. That is an
+absence, not an error."* So it is **content to write in Notion**, not a sync fix — which is the
+distinction he asked for.
+
+**Third measurement error of the same shape today**, now recorded together in `docs/learn.md`
+Part 7: a real measurement answering a narrower question than the one being asked.
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين

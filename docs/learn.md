@@ -1162,7 +1162,14 @@ case file that is the site's largest, in launch week.
 calling the null a gap.** A `*_kind`, `*_type`, `status` or `variant` column sitting next to the
 one being measured is the tell. `\\d table` first, then the query.
 
-**This is the general shape, not a one-off.** Twice in one day: `grep -c` counts matching LINES
+**A per-locale ROW is not a per-locale TRANSLATION.** `chapter_paragraphs` carries its own
+`locale` column: the English paragraph and its Arabic counterpart are separate rows, and an `en`
+row never has an `ar` translation because it never should. Comparing `translations` counts by
+locale therefore measures rows, not coverage — it reported a 19-string gap where the real one is
+15 paragraphs, and it hid six paragraphs that exist in Arabic and not in English. **Before
+comparing two locales, find out whether the locale lives on the row or on the translation.**
+
+**This is the general shape, not a one-off.** Three times in one day: `grep -c` counts matching LINES
 and was read as occurrences on minified HTML (2 vs 22), and `getComputedStyle` on one element
 was read as "what the class means" when a parent's `space-y-*` was overriding it. Each time the
 measurement was real and answered a narrower question than the one being asked.
