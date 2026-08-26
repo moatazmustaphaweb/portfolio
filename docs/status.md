@@ -450,6 +450,55 @@ four were caught by Moataz rather than by me.
 
 **The contact form is scheduled, not deferred** — *"الـ form هنختبره في mvp one."*
 
+### Notion vs the database, compared page by page. They match.
+
+Moataz: *"اعمل compare ما بين الـ content في notion والـ content في database… لازم الـ content
+كله الموجود في notion يبقى معمول له هو هو reflection في الـ database."*
+
+**Method, because the obvious reading of the tool is wrong.** `sync:notion --dry-run --all`
+reports `updated 27`, and that is **not** a count of differences: `updated.push(...)` fires for
+every row the sync processes, unconditionally. It is a full overwrite, not a delta. So the dry
+run alone cannot answer the question. What it *does* give is Notion's shape per page, written as
+`slot(N¶ ↔ar N¶)` — and that can be compared against the database directly.
+
+**Then the sync was run for real** (`exit 0`, 32 written) so his Arabic edits landed, and the
+counts were taken again.
+
+**The counts did not move.** Identical before and after, which is itself the finding: the
+database was already current.
+
+| | Notion (from the dry run) | Database |
+|---|---|---|
+| 14 chapters, EN and AR | matches | matches |
+| 4 covers, EN and AR | matches | matches |
+
+Spot-checked by arithmetic rather than by eye — `cervello/method` is 1+1+8+7+7+6+3 = 33 EN and
+33 AR in Notion, and 33/33 in the database; `egypt/onboarding` is 47 EN / 40 AR both sides;
+`uae-acquisition`'s cover is 6 EN / 7 AR both sides. Every row agrees.
+
+**The Arabic asymmetries are Notion's own and are correct** under decision 061 — `uae`'s cover
+thesis is 2¶ in English and 3¶ in Arabic; the accessibility page has `principle-1` … `principle-6`
+as separate English sections and folds all of them into one 23¶ `what-shipped` in Arabic. The
+database reflects that faithfully, which is the point.
+
+### Two real findings, neither of them drift
+
+**1. A duplicate Notion page fails every sync run.** There are two Cervello cover pages claiming
+`/[locale]/work/cervello`. The live one is `Case File Cover - Cervello Cloud (IoT)`. The other,
+`Case File Cover - Cervello`, is **blank**, `In MVP-1 = NO`, and its own Notes say *"SUPERSEDED …
+Kept for reference only."* The sync's guard refuses it — correctly, since writing it would move
+the published case file to draft and 404 every Cervello chapter. But the run ends `failed 1`
+every time, and a permanent expected failure is how a real one gets missed. **Archiving that page
+in Notion is Moataz's action.**
+
+**2. Three pages have no write path at all.** The sync prints them under *"NOT YET IMPLEMENTED"*:
+both comparison pages and the accessibility page. Their content reached the database through
+migration `0058`, not through the sync. **They match today** — 6/9, 10/10 and 47/46 on both sides
+— but any future edit in Notion will never appear on the site, and nothing will report an error.
+That is the one place where "the database reflects Notion" is true now and not guaranteed later.
+
+**Images were excluded from this review, as instructed.**
+
 ### Pushing is now gated on the word `publish`
 
 Moataz, mid-task: *"أنا لسة بيجيلي emails pushing من الـ Vercel… ده مش اتفاقنا. إحنا شغالين
