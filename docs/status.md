@@ -37,6 +37,128 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001220926 - 2026-09-22 - Phase 2 opens with PideTaxi: interviewed, written in both languages, in Notion
+
+**Task id `001220926`, the first of 2026-09-22.** Branch is now `nightly`.
+
+### ⚠️ This entry also carries the morning's work, which went unlogged
+
+Four things were done before this entry existed and none reached `status.md`. That is the
+working-agreement failure the file itself warns about, and it is corrected here rather than
+left as a gap:
+
+- **`gh` was acting as `dabblersport` on the portfolio repo.** `git push` failed with
+  `Permission denied to dabblersport`. Switched to `moatazmustaphaweb`. Both projects had a
+  server named `github`; Claude keys connection state by name, so they toggled each other. Now
+  `github-website` (this repo, `${GITHUB_TOKEN_WEBSITE}`) and `github-dabbler` (`~/Desktop/dabbler`,
+  `${GITHUB_TOKEN_APP}`). Verified as two different GitHub identities.
+- **Branches.** `main` brought current through PR #6 (`2771bf4`). Four fully-merged branches
+  deleted at Moataz's instruction; `backup/main-old` kept because it holds **57 commits that
+  exist nowhere else**. **`nightly` created from `main`** as the preview branch; this worktree
+  now sits on it.
+- **Vercel Preview.** Only three variables are missing on Preview — `NEXT_PUBLIC_SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — and they are integration-managed,
+  which is why they were stuck on Production. Moataz is adding them himself.
+- **`NEXT_PUBLIC_PREVIEW_STUBS` is set in Vercel, Production and Preview.** Its own source file
+  says `.env.local` only. That flag, not a leak, is why the four draft case files render on
+  production. Moataz chose to leave them; it is now a known switch rather than a mystery.
+
+### Where the site actually is
+
+`gate.moatazmustapha.com` is gone. **The site is at `www.moatazmustapha.com`** (apex 308s to it),
+public, 200 in both locales. My earlier "the site is unreachable" was measured against the old
+subdomain and was wrong.
+
+### Phase 2, decided by grilling
+
+Moataz's rulings, in order: **Phase 2 = finish the missing content**, all of it — the five paused
+Cervello chapters (paused for v1, not cancelled; their Notion pages still say `SUPERSEDED` and
+need correcting) and the four mini case files. The phase does not close until all are done. Motion
+Layer and the Door wait behind it. Start with **PideTaxi**.
+
+Structural rulings that outlive this task: a new `kind` column on `case_files`, separate from
+`domain`, **multi-value** (`Case Study` · `UX` · `UI`), built **after** the content. Mini case
+files use the **same cover + chapters structure**; the tags are what distinguish them, not the
+shape. Translation is per page (decision 061 holds).
+
+### PideTaxi — what was established, and what was refused
+
+From the interview and my own checks: Spain, 2018-2019. An existing product (ARTE, Spain's
+radio-taxi association) that had aged; face-lift against ride-hailing competition. Moataz's last
+version is 4.0.1; "Face-lift" is an internal name for it. **No NDA.** iOS is the reference,
+Android the translation, **the website is also his**. Three chapters.
+
+**Refused, with reasons written into the Notion page's Notes:**
+- *"#1 in Spain"* — App Store ES shows **#45 in Travel** today, 3.0★ on ~1,500 ratings; no
+  archive supports the 2018 claim. Removed, including from the page's own `Purpose` property.
+- *Revenue* — ARTE publishes none; only estimator sites, which say they are estimates.
+- *"Kept the same design for eight years"* — the app is at **v7.7.7**, three majors past his.
+  Moataz ruled: live on both stores is the claim, nothing about design preservation. Written that way.
+- *Uber by name* — his call; "ride-hailing apps".
+
+**"Service on the fly" existed before him.** Written as *designed, not invented* — the same
+distinction Cervello draws for the instance model.
+
+### What was written, and where
+
+Eight pages in Notion, English and Arabic, Arabic as original text per decision 054:
+
+| Page | id |
+|---|---|
+| Cover (EN, replaced) | `3b3d4c6d…6775` |
+| Cover (AR) | `3e3d4c6d…176f` |
+| Chapter 1 · iOS | `3e3d4c6d…30d8` / AR `…2762` |
+| Chapter 2 · Android | `3e3d4c6d…ff9d` / AR `…94b3` |
+| Chapter 3 · Website | `3e3d4c6d…7811` / AR `…36f7` |
+
+The decisions each chapter carries: **iOS** — the payer is not always the rider (subscriber
+accounts beside cash and the cab's card terminal) · know who is coming before they arrive · a
+door short enough for a kerb, with `no taxi` designed in. **Android** — two ways to begin kept
+as two states (`No Destination` / `Defined Destination`, both with *Ride now* live), the street
+hail as a screen · the same wait in the platform's grammar. **Website** — one verifiable claim,
+then the store · icons not photographs · a second door for companies.
+
+Every observation is from the Figma files (iOS: 43 screens on four flows; Android: 96 frames
+with descriptive names) or the live site, not from the old Webflow write-up. Two invented
+sentences were caught and cut in self-review before publishing: a comparison to the old app's
+map screen and to the old website, neither of which I had seen.
+
+### Verified by the sync's own dry run
+
+```
+cover pidetaxi: what-it-is(3¶ ↔ar 3¶) · role(2 ↔ 2) · status(2 ↔ 2) · why-it-matters(2 ↔ 2)
+pidetaxi/ios:     objective · context(8¶/5img ↔ar 8¶) · result     images en:5 ar:5   decisions 3/3
+pidetaxi/android: objective · context(5¶/3img ↔ar 5¶) · result     images en:3 ar:3   decisions 2/2
+pidetaxi/website: objective · context(3¶/2img ↔ar 3¶) · result     images en:2 ar:2   decisions 3/3
+```
+
+Paragraph and image counts match one-for-one across languages. **`entry handles pidetaxi: 3 (0
+linked)` is a dry-run artifact, not an error:** the resolver reads chapters from the database and
+PideTaxi's do not exist there until the real sync writes them, which happens before handles are
+resolved. Cervello shows `3 linked` only because its rows already exist.
+
+### Three things the tooling did that are worth knowing
+
+- **`notion-create-pages` strips a leading `# H1`.** Every existing chapter carries one in its
+  body. Re-inserted on all six created pages with `insert_content` at `start`.
+- **The largest page failed twice on a closed socket.** Created small, then appended in two
+  chunks. `update_content` reported success both times it failed to land, so each write was
+  verified by fetching the page back.
+- The Notion property `Purpose` on the PideTaxi row still read *"Spain's #1-rated taxi app"* —
+  the exact claim just refused. Corrected with the content, not after it.
+
+### NOT done, and why
+
+- **No images in Cloudinary yet.** The ten `[cld]` ids are planned names
+  (`PideTaxi/iOS/login` …). Uploading is the next step and waits on Moataz's read of the text,
+  because a real sync now would create media rows pointing at nothing.
+- **Not synced to the database, not on the site.** Same reason. Notion is the source of truth
+  and it is complete; the rest follows his review.
+- **Not verified:** whether his design survives in v7.7.7, or on the live pidetaxi.es. Not
+  claimed either.
+
+---
+
 ## 009250826 - 2026-08-25 21:30 - the device frame is CSS now, and pushing is gated on a word
 
 Two things, one asked and one instructed.
