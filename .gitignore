@@ -15,6 +15,10 @@ next-env.d.ts
 # Supabase CLI scratch (version cache) — not project state
 supabase/.temp/
 
+# Timestamped backups taken before editing the config above. Local safety
+# copies, never repo state.
+.mcp.json.backup*
+
 # MCP server config — per-machine, and per-PROJECT on purpose.
 #
 # It holds no secret: the token is referenced as ${GITHUB_TOKEN_WEBSITE} and
