@@ -37,6 +37,70 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 002220926 - 2026-09-22 - The PideTaxi Arabic was a literal translation, and was rewritten
+
+**Task id `002220926`.** A correction to `001220926`, not new content.
+
+### What Moataz found
+
+He read the four Arabic pages and rejected them: *"واضح أنها ترجمة حرفية، وليست ترجمة مرتبطة
+بالسياق"*. He was right, and the entry above claimed the opposite — it says *"Arabic as original
+text per decision 054"* and that claim was false when it was written.
+
+**What made it literal was not word choice, it was structure.** Every Arabic paragraph sat at the
+same index as its English one, carried the same clause order, and translated the English metaphor
+rather than finding an Arabic one. Three that were pure English in Arabic letters:
+
+| English | what was written | what it is now |
+|---|---|---|
+| The door is short, and it does not lie | باب قصير، ولا يكذب | مدخل لا يطوّل ولا يخدع |
+| in the platform's own hand | بخط المنصة | بأسلوب المنصة |
+| three major versions on | على بُعد ثلاث نسخ | صدرت بعد نسختي ثلاثة إصدارات |
+
+### What was done
+
+All four Arabic pages rewritten from the facts, not from the English, and replaced in Notion:
+cover `3e3d4c6d…176f`, iOS `…2762`, Android `…94b3`, Website `…36f7`. The English was not touched.
+
+**What is fixed and what is free.** The `##` headings, the slot names and the `[cld]`/`[alt]`/
+`[caption]` lines are fixed — the sync matches on them. Everything else was rewritten, including
+sentence order inside a paragraph.
+
+**Paragraph counts are the constraint that is easy to miss.** The first rewrite split one English
+paragraph into two Arabic ones and the dry run caught it — `what-it-is(3¶ ↔ar 4¶)`. The two were
+merged back. **A better Arabic paragraphing is not free: the slot counts must match**, so the
+freedom is inside the paragraph, not across paragraphs.
+
+### Verified by the dry run
+
+```
+cover pidetaxi: what-it-is(3¶ ↔ar 3¶) · role(2 ↔ 2) · status(2 ↔ 2) · why-it-matters(2 ↔ 2)
+pidetaxi/ios:     objective(1 ↔ 1) · context(8¶/5img ↔ar 8¶) · result(2+1tail ↔ 2+1tail)  images 5/5
+pidetaxi/android: objective(1 ↔ 1) · context(5¶/3img ↔ar 5¶) · result(2+1tail ↔ 2+1tail)  images 3/3
+pidetaxi/website: objective(1 ↔ 1) · context(3¶/2img ↔ar 3¶) · result(1+1tail ↔ 1+1tail)  images 2/2
+decisions: ios 3 en / 3 ar · website 3 / 3 · android 2 / 2
+```
+
+`entry handles pidetaxi: 3 (0 linked)` is still the dry-run artifact explained in `001220926`.
+The **Cervello cover failure is unchanged and is not mine** — a blank duplicate Notion page claims
+the route; archiving it is Moataz's.
+
+### Two things the Notion tooling did
+
+- **`replace_content` keeps a leading `# H1`.** `notion-create-pages` strips it; replacing content
+  on an existing page does not. Worth knowing — the workaround from `001220926` is not needed here.
+- **`update_content` is atomic across its whole `content_updates` array and will not match across
+  block boundaries.** A two-op edit that merged two paragraphs failed on the second op, and the
+  first was rolled back with it. Re-running `replace_content` on the whole page is the reliable
+  move for anything structural.
+
+### NOT done
+
+- **Still no images in Cloudinary.** The ten `[cld]` ids remain planned names, so a real sync would
+  create media rows pointing at nothing. Unchanged from `001220926`, and it is the next step.
+- **Not synced to the database and not on the site.** Notion is the source of truth and both
+  languages are now correct there.
+
 ## 001220926 - 2026-09-22 - Phase 2 opens with PideTaxi: interviewed, written in both languages, in Notion
 
 **Task id `001220926`, the first of 2026-09-22.** Branch is now `nightly`.
