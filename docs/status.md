@@ -37,6 +37,69 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001230926 - 2026-09-23 - Preview builds now, and decision 059 no longer describes reality
+
+**Task id `001230926`.** First of 2026-09-23. No content changed; this is environment work.
+
+### The symptom, and what it actually was
+
+`preview.moatazmustapha.com` returned **404 `DEPLOYMENT_NOT_FOUND`**. The domain was never the
+problem: it is bound to the project with `gitBranch: "nightly"` and `verified: true`. The 404 meant
+there was **no successful deployment on the branch to serve** — the single `nightly` deployment was
+in state `ERROR`, and every branch deployment in the project's whole history was too.
+
+The build log names the cause in one line, and it is not a code failure:
+
+```
+✓ Compiled successfully in 4.4s
+  Collecting page data using 1 worker ...
+Error: Failed to collect configuration for /_not-found
+  [cause]: Error: NEXT_PUBLIC_SUPABASE_URL is not set
+      at module evaluation (lib/supabase/server.ts:25:9)
+```
+
+TypeScript and the compile both passed. It dies at page-data collection, because the variable is
+read at module evaluation.
+
+### What fixed it, and it was not the route I proposed
+
+I proposed enabling Preview from inside the Supabase integration's settings, and I was wrong about
+that UI existing. **There is no Production/Preview/Development selector in the integration** — its
+Manage page has only Overview and Settings (permissions, project access, webhooks, Remove), and
+Storage has no Supabase resource at all. Moataz checked and changed nothing.
+
+The variables were nonetheless already on Preview by the time he looked, updated minutes earlier
+alongside an integration update. Verified against the API, not the dashboard:
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`
+(`34yOHjHBzGOdeZZy`) all now carry `["production","preview"]`.
+
+**So the mechanism that moved them is not established.** The likeliest reading is that the
+integration rewrote its own variables on update. Recording the uncertainty rather than inventing a
+cause, because the next person to hit this will want to know which lever to pull.
+
+### Verified
+
+Deployment `dpl_E2QT3rTEZMAmbc2qXufW2Fjwnrtw`, branch `nightly`, commit `a467f1c`: state **READY**,
+aliased to `preview.moatazmustapha.com`. **This is the first branch build in this project's history
+that has ever succeeded.**
+
+⚠️ **Decision 059 is now out of date.** It says Preview has no environment variables and every
+branch build fails. Neither is true as of today. The decision needs amending, and until it is, it
+will be quoted into a brief and send someone the wrong way — which is the exact failure mode
+`CLAUDE.md` warns about.
+
+### What is NOT resolved
+
+**The domain is behind Vercel's login.** `/` and `/en` both return **302 to `vercel.com/sso-api`**.
+The project reads `ssoProtection: { enabled: true, deploymentType: "all_except_custom_domains" }`,
+so the exemption evidently covers production custom domains only — a branch-assigned custom domain
+is still protected. Nothing is broken; the page is simply not reachable without a Vercel session.
+**Whether to turn that off is Moataz's**, and it is a real trade: disabling Vercel Authentication
+would also make every raw preview deployment URL public.
+
+Not verified as a consequence: that the pages actually render correctly on Preview. Only that the
+build succeeded and the alias resolves. Do not read this entry as "Preview is confirmed good".
+
 ## 002220926 - 2026-09-22 - The PideTaxi Arabic was a literal translation, and was rewritten
 
 **Task id `002220926`.** A correction to `001220926`, not new content.
