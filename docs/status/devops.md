@@ -16,6 +16,21 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001211026 — 2026-10-21 05:39 — PideTaxi upload NOT done: frame mapping is ambiguous and Figma renders cannot be downloaded here
+
+**Brief:** Export the PideTaxi screens from the two Figma files and upload them to Cloudinary under `PideTaxi/{iOS,Android,Website}/...` for the ten `[cld]` ids.
+**Commits:** this entry only (local, not pushed).
+**Pushed:** no. Push is Moataz's word (`publish`); the brief's push instruction came from the orchestrator.
+**Deployed:** no.
+**Uploaded to Cloudinary:** nothing. No asset was created, overwritten or deleted.
+**Verified:** `mcp__Figma__*` connects (the `plugin:figma` server is the one that fails with the proxy 403). The ten ids, read from the three Notion chapter pages: iOS `booking-payment`, `payment-methods`, `on-the-way`, `login`, `signup-password`; Android `no-destination`, `defined-destination`, `on-the-way`; Website `hero`, `features`. The iOS file has pages `iOS`, `iOS, Face-lift`, `Hybrid`, `Service on the fly`, `Mockup`, `Symbols`; the Android file has 15 pages. Frames were inspected as thumbnails.
+**Not verified:** every mapping. The sandbox cannot fetch Figma render URLs (CONNECT to www.figma.com is denied by egress policy), so the PNG bytes cannot be downloaded to disk; only the inline preview of a screenshot is saved locally. I did not route around this.
+**Open questions (returned, unanswered):**
+1. Which iOS source is canonical? Notion says the `iOS, Face-lift` page. That page's frames are mostly Material/Android in grammar (Android status bar on the signup frames; the on-the-way frame is `B02`, `0:12094`). Page `iOS` (`0:1`) holds iOS-styled frames that match the captions word for word: `Choose Payment` `0:3592` (Cash, Tarjeta TPV, two subscribers, Mastercard), `Login` `0:2`, `Set Password` `0:1297`. Face-lift `A01` `0:9635` is also a login. Frame names on Face-lift are opaque (A01..F06).
+2. Is the 4.0.1 Android file `ALDzelqPZ8E4CulYZyXpgu` page `Booking`/`Tracking` the source for the Android three? Not inspected yet.
+3. Export route: Figma render URLs are unreachable from the sandbox. Options: Moataz exports PNG 2x by hand into a folder I can read, or he approves letting Cloudinary fetch the short-lived Figma URL server-side (unproven).
+4. Website `hero` and `features`: not in either Figma file. Source, please.
+
 ## 024210826 — 2026-08-22 00:04 — the refusal was accepted; the bullet now carries no git fact at all
 
 **Third and last entry for this task.** The two entries below it stand as written. The one
