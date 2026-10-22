@@ -16,6 +16,22 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001221026 — 2026-10-22 07:46 — Kshemam: the Figma-to-Cloudinary route works; 1 of 6 uploaded, stopped on resolution
+
+**Brief:** Upload six Kshemam Android screens from Figma `CmHDXDMGetPdhWJPqaWxev` to Cloudinary. The route: `get_screenshot` produces a short-lived render URL and Cloudinary fetches it server-side. Do the first one alone and verify it, then do the rest. Expected size 720x1600.
+**Convention matched:** existing assets (`Cervello/...`) store the full path in `public_id`, `asset_folder` empty, `display_name` = last segment, png accepted. All six target ids searched first (`public_id:Kshemam*`): 0 existed.
+**Uploaded:** `Kshemam/Android/do-you-feel-okay` ← node `86:5488`. asset_id `6244cd7d698f320f610866e9d4b0b4c5`, **360x800**, 33,203 bytes, png, `overwrite:false`, `existing:false`. The inline render was checked by eye: it is the "Do you feel okay?" screen (heart-rate and oxygen cards, 37s countdown, two buttons).
+**Not uploaded:** `symptoms` (86:5537), `circle-in-risk` (1:14998), `home-rest` (1:15683), `home-in-risk` (11:3801), `user-type` (0:2366).
+**Why stopped:** `maxDimension: 1600` caps the longer edge but does not scale up. The render is the frame's natural 1x size, 360x800, not 720x1600. If 2x is wanted, every 1x upload has to be overwritten later, and an overwrite needs Moataz's approval. So the five that are left wait on that answer. No URL was written to any file. Cloudinary recorded `original_filename` as the Figma asset's UUID, which is a filename and not a URL.
+**Commits:** this entry only, local. No `Co-Authored-By` trailer, per `.claude/agents/devops.md`. The brief asked for one.
+**Pushed:** no. The push came from the orchestrator ("Moataz has been told"), not as Moataz's `publish`.
+**Deployed:** no. Supabase, Notion, sync: not touched.
+**Not verified:** how the 360x800 asset looks when delivered through the site's presets and `PhoneFrame`.
+**Open questions (returned, unanswered):**
+1. Is 360x800 (1x) acceptable? If yes: upload the other five at 1x. If no: there has to be a 2x route (Moataz exports by hand, or another tool), and `do-you-feel-okay` has to be overwritten, which he needs to approve.
+2. The `Co-Authored-By` trailer: the brief asks for it and the devops definition forbids it. Which one wins?
+3. Push to `ccr-1c4c14b9-ly3dmt`: did Moataz say `publish`?
+
 ## 001211026 — 2026-10-21 05:39 — PideTaxi upload NOT done: frame mapping is ambiguous and Figma renders cannot be downloaded here
 
 **Brief:** Export the PideTaxi screens from the two Figma files and upload them to Cloudinary under `PideTaxi/{iOS,Android,Website}/...` for the ten `[cld]` ids.
