@@ -16,6 +16,62 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 004221026 — 2026-10-22 14:10 — `Image layout` select added; Kshemam Android set to Grid; decision images moved under their headings, EN and AR
+
+**Brief:** Moataz approved showing each Kshemam decision's screenshots as a grid, images first and
+text under them. Add `Image layout` (Select, `Stacked` and `Grid`) to the database; set `Grid` on
+"Chapter - Kshemam / Android" only. In both the EN chapter and the AR child, move every image tag in
+each `Decision ·` section to sit together under the heading, in their existing order, with the
+paragraphs after them in their existing order. No wording changes. Report any sentence the move breaks.
+
+**Read:** `docs/sync-contract.md` Step 6 (media) and the chapter-pages table; `scripts/sync-notion.ts`
+around the chapter section pass (GUARD 0, decision headings) and `decisionsFromBody`;
+`docs/content-brief.md` §1 (Notion mechanics); `docs/learn.md`, the two Notion entries in Part 5 and
+the section index only, **not in full**. Notion: the data source schema before and after; the EN chapter
+`401d4c6d-d86d-81d0-a0ef-dd44f5a605d6` and the AR child `401d4c6d-d86d-8157-8421-fb586fec2240`,
+both before and after.
+
+**Done, each confirmed by a fresh fetch:**
+- `Image layout` did not exist before this task. It now exists, options `Stacked` and `Grid`, both default colour.
+- The EN chapter has `Image layout = Grid`. No other row was touched.
+- 4 moves in total, each sent as its own single-edit `update_content` call: emergency and home, in EN and in AR.
+
+**Found, from the fetches after the move (EN ↔ AR):**
+emergency 2img + 4¶ ↔ 2img + 4¶ · circle 1 + 3 ↔ 1 + 3 (unchanged) · home 2 + 2 ↔ 2 + 2 ·
+no device 1 + 2 ↔ 1 + 2 (unchanged). In every decision section the images now come first. All six
+`[cld]` lines are byte-identical to before. `# H1` still present on both pages, and the AR child-page
+link on EN is still there. Objective, Context and Result were not touched.
+
+**Is it legal for the sync:** yes. Step 6 has no rule against consecutive tags, and the chapter pass reads
+`items` in whatever order they come. **But see the backend item below. On the current sync, this order does
+not reach the database.**
+
+**Sentences after the move, for Moataz, not rewritten:**
+- No paragraph points to a picture "above" or "below". `This one did not stay in the file` / `وهذا القرار`
+  and `It does not stop at the warning` refer to the decision and to the card, and both still read correctly.
+- One possible adjacency issue, in a caption rather than a paragraph: the `symptoms` caption opens with
+  `The second answer.` / `الجواب الثاني.` The sentence that sets up the two answers (`There are two answers.` /
+  `وللسؤال جوابان.`) now comes **after** both images. Under the old order the reader had already met it. The
+  first image's caption is about the question, so "the second answer" still makes sense alongside it, but
+  whether the caption still works is his call.
+
+**Gaps reported, not filled:** none in the content.
+
+**Belongs to someone else (backend):**
+- `Image layout` is not in `docs/sync-contract.md` and the sync does not read it. There is also no
+  column to put it in.
+- GUARD 0 in the chapter section pass sends a decision section's image tags to the **previous non-decision
+  section**, Context in this chapter. `decisionsFromBody` only stores the decision's prose. So where an image
+  sits inside a decision is lost at sync time, before and after this move alike. "Images first, text under
+  them" cannot render per decision until the decision path keeps its own figures.
+
+**Not verified:** no sync dry run and no look at the page on `:3000`. This task was Notion only, and the render
+depends on the backend work above.
+
+**Open questions:** whether the `symptoms` caption (`The second answer.` / `الجواب الثاني.`) still reads correctly with the images first.
+
+---
+
 ## 003221026 — 2026-10-22 12:40 — `Device` select added to the Notion database; Kshemam Android chapter set to Android
 
 **Brief:** Moataz approved choosing a chapter's phone frame from a new Notion property. Add `Device`
