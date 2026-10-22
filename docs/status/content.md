@@ -16,6 +16,40 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 005221026 — 2026-10-22 16:52 — PideTaxi Android: draft wording to match the chosen frames, EN and AR. Draft only, NOT written to Notion
+
+**Brief:** The two chosen Figma frames ("No Destination - Ride now", "Defined Destination - Ride now")
+contradict "changes nothing else" and the defined-destination caption. Propose minimal EN and AR edits
+(paragraph counts unchanged, no figures) for Moataz's approval. Do not write to Notion.
+
+**Read:** Notion EN chapter `3e3d4c6d-d86d-81e8-b9a3-de3fca63ff9d` and AR child
+`3e3d4c6d-d86d-8184-ae11-f9a983b694b3`, both in full (fetch reported `as of 2026-09-22T19:50`, equal
+to the AR page's last edit). `docs/content-brief.md` in full; `docs/learn.md` Parts 2 and 3 only;
+the `portfolio-voice` and `metric-integrity` skills.
+
+**Found:** 3 lines contradicted by the frames, in each language: the decision paragraph's
+"changes nothing else" sentence, the defined-destination `[alt]` (no route, no estimate row), and the
+defined-destination `[caption]` ("nothing about the trip depends on it"; also names options and
+schedule, which devops did not report on that frame). The no-destination `[alt]` and `[caption]` do
+not contradict the facts given; no change proposed. Drafts returned to the orchestrator: 3 EN + 3 AR
+replacements, no figures, no dashes, paragraph counts unchanged.
+
+**Gaps reported, not filled:**
+- "options" in the no-destination sentence (EN "payment, options, and Ride now live" / AR "والخيارات")
+  is not in devops' observation of the frame. Not contradicted, not confirmed. Left as is.
+- The ride-hailing contrast ("the price depends on it") now sits beside a frame that shows a fare
+  estimate once a destination is set. Not a contradiction as written; flagged for his reading.
+- AR no-destination alt says the button is "في الأسفل"; position not in the observation. Left.
+
+**Belongs to someone else:** nothing.
+
+**Not verified:** I did not see the frames. The Figma connector failed to connect in this session;
+every visual fact is devops' observation as relayed in the brief. Nothing written to Notion.
+
+**Open questions:** approval of the wording (Moataz's).
+
+---
+
 ## 004221026 — 2026-10-22 14:10 — `Image layout` select added; Kshemam Android set to Grid; decision images moved under their headings, EN and AR
 
 **Brief:** Moataz approved showing each Kshemam decision's screenshots as a grid, images first and
