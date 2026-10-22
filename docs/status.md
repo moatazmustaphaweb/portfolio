@@ -37,6 +37,34 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 005221026 - 2026-10-22 - PideTaxi images: iOS in, Android waits on a hand export
+
+**Task id `005221026`.** Phase 2, back to PideTaxi. App first; the two website shots are parked.
+
+- **iOS source decided: the `iOS, Face-lift` page** — Moataz confirmed Face-lift *is* the shipped
+  4.0.1. Its frames carry an Android status bar; that is what was designed. I first recommended the
+  older `iOS` page for its iOS chrome, before reading `001220926`, which records Face-lift = 4.0.1.
+  Read the interview entry before recommending a source.
+- **Five iOS screens in Cloudinary**, 750x1624, `PideTaxi/iOS/{booking-payment, payment-methods,
+  on-the-way, login, signup-password}` from A12, D01, B01, A01, A05. Moataz fixed a typo in A05
+  ("ser" -> "set") in Figma first.
+- **Android frames chosen:** `No Destination - Ride now` (13013), `Defined Destination - Ride now`
+  (13126), `Taxi on the way` (17024). The text claimed the defined state "changes nothing else";
+  13126 adds a route and a fare/distance/time row. **Wording rewritten and applied** in EN and AR
+  (decision sentence, alt, caption), approved by Moataz, no figures quoted.
+- **Android not uploaded:** Figma's server render drops text in these frames (empty address boxes,
+  blank ETA pill) — a font missing on Figma's side, so every export from this session is broken.
+  Moataz will export on his machine, where the font is installed.
+- **Upload route:** this sandbox cannot reach `api.cloudinary.com`, so a local file cannot be
+  uploaded. Moataz is adding it to Allowed domains; the next session uploads the three files he
+  attaches.
+
+Open for Moataz: `payment-methods` shows `gnicholson1k@clickbank.net` (likely dummy, real domain);
+website `hero`/`features` (pidetaxi.es is blocked here); Device/Image layout for the Android
+chapter; the PideTaxi sync. Unconfirmed against frames, left as written: "options" in the
+no-destination sentence, "في الأسفل" in the AR alt, and the Context line "the price depends on it"
+beside a frame that shows a fare estimate.
+
 ## 004221026 - 2026-10-22 - Kshemam's screenshots as a grid, chosen per chapter from Notion
 
 **Task id `004221026`.** Moataz: on this project only, screenshots three to a row on wide screens,
