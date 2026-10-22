@@ -4,7 +4,7 @@ import { PhoneFrame, PHONE_FRAME_MAX_W } from "@/components/media/PhoneFrame";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
-import type { ChapterSection, Locale, Media } from "@/lib/content/types";
+import type { ChapterSection, DeviceFrame as DeviceFrameKind, Locale, Media } from "@/lib/content/types";
 
 /**
  * A chapter's slots, rendered in the order the database holds them.
@@ -53,6 +53,7 @@ import type { ChapterSection, Locale, Media } from "@/lib/content/types";
 export function ChapterSections({
   sections,
   linkLabels,
+  deviceFrame = "iphone",
 }: {
   sections: ChapterSection[];
   /*
@@ -63,6 +64,15 @@ export function ChapterSections({
    * working unchanged.
    */
   linkLabels?: { copy?: string; copied?: string };
+  /*
+   * Which phone this chapter's PORTRAIT screenshots are framed in — authored
+   * per chapter (`chapters.device_frame`, task `003221026`). It chooses the
+   * phone's variant only: whether a picture gets a phone, a laptop or no
+   * frame is still decided by its own aspect ratio in `ChapterFigure`.
+   * Optional, default "iphone", so a caller that does not pass it renders
+   * exactly what it did before the column existed.
+   */
+  deviceFrame?: DeviceFrameKind;
 }) {
   if (sections.length === 0) return null;
 
@@ -154,6 +164,7 @@ export function ChapterSections({
                     <ChapterFigure
                       key={`f-${section.id}-${i}`}
                       media={block.media}
+                      deviceFrame={deviceFrame}
                     />
                   );
                 }
@@ -228,7 +239,13 @@ export function ChapterSections({
  * `CloudinaryImage` — so this component cannot forget it and cannot override
  * it (amendment 036).
  */
-function ChapterFigure({ media }: { media: Media | null }) {
+function ChapterFigure({
+  media,
+  deviceFrame,
+}: {
+  media: Media | null;
+  deviceFrame: DeviceFrameKind;
+}) {
   if (!media) return null;
 
   /*
@@ -370,7 +387,10 @@ function ChapterFigure({ media }: { media: Media | null }) {
             }
           />
         );
-        if (phone) return <PhoneFrame>{img}</PhoneFrame>;
+        if (phone)
+          return (
+            <PhoneFrame variant={deviceFrame === "android" ? "android" : "default"}>{img}</PhoneFrame>
+          );
         return laptop ? <DeviceFrame>{img}</DeviceFrame> : img;
       })()}
       {caption ? (

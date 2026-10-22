@@ -277,7 +277,7 @@ export default async function Chapter({
               reader.
             */}
             {hasSections ? (
-              <ChapterSections sections={body} linkLabels={sectionLinkLabels} />
+              <ChapterSections sections={body} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} />
             ) : (
               <ProseSections
                 intro={page.intro}
@@ -373,7 +373,7 @@ export default async function Chapter({
             of the chapter follows.
           */}
           {hasSections ? (
-            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} />
+            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} />
           ) : detail.fields.context ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               {ui.t("context") ? (
@@ -453,7 +453,7 @@ export default async function Chapter({
             </div>
           ) : null}
 
-          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} /> : null}
+          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} /> : null}
 
           {/*
             Evidence. The design pairs prose with masked figures; `media` is

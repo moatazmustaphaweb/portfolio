@@ -16,6 +16,46 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 003221026 — 2026-10-22 12:41 — chapter pages pass `deviceFrame`, and portrait screenshots use `variant="android"` when a chapter is set to android
+
+**Brief:** Backend now gives every chapter `deviceFrame: "iphone" | "android"`, never null, default
+"iphone". Pass it from the chapter page into `ChapterSections`, and use it to pick the
+`PhoneFrame` variant for portrait screenshots. The laptop frame and the aspect-ratio rule that
+decides phone, laptop or no frame stay as they are. With "iphone", the output must not change.
+
+**Files:**
+- `components/case-file/ChapterSections.tsx` — new optional prop `deviceFrame?: DeviceFrame`
+  (default `"iphone"`), passed down to `ChapterFigure`. Portrait figures now render
+  `<PhoneFrame variant={deviceFrame === "android" ? "android" : "default"}>`. Nothing else changed.
+- `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx` — `deviceFrame={detail.deviceFrame}`
+  added at all three `ChapterSections` call sites (lines 280, 376, 456). A grep finds no other
+  `<ChapterSections` call site in the repo.
+
+**Verified:**
+- `npx tsc --noEmit`: clean. `eslint` on both touched files: clean. Prettier flags
+  `ChapterSections.tsx`, but the HEAD version gets the same flag, so it is not new. I did not reformat it.
+- I rendered the HEAD version and the new version with `react-dom/server`, using a fixture
+  section of prose, a 720x1600 portrait figure and a 1600x1000 landscape figure.
+  HEAD output === new output with no prop === new output with `deviceFrame="iphone"`: **true,
+  byte-identical** (5246 chars). With `"android"` the output differs, and only inside the phone
+  frame: no island, smaller radii, two keys on the right. The laptop figure is byte-identical.
+- Screenshot of the android render, with tokens from `app/globals.css`:
+  `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/phone/cs/chaptersections-android.png`.
+  DOM count in it: 1 phone frame, 0 islands, 2 right-edge keys, 0 left-edge keys.
+
+**Not verified:**
+- No dev server and no real chapter: this environment has no database access. Nothing was checked on
+  `:3000`, and a chapter actually stored as `android` has never been rendered end to end.
+- The harness page has no Tailwind CSS, so figure layout and widths in the screenshot are not what
+  the site shows. The second figure in the shot shows the portrait PNG inside the laptop frame
+  only because the harness replaced every `src` with that one image. The 1440/390 widths, both
+  locales and RTL were not exercised. The frame's keys use physical `right` on purpose
+  (002221026), and that was not re-checked in `/ar` here.
+
+**Open questions:** none.
+
+---
+
 ## 002221026 — 2026-10-22 11:45 — a second phone-frame variant, `variant="android"`, built and shown, not wired
 
 **Brief:** Build a second phone frame for Moataz to look at: no Dynamic Island or lens, smaller

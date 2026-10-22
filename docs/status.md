@@ -37,6 +37,26 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 003221026 - 2026-10-22 - The chapter chooses its phone frame, from Notion
+
+**Task id `003221026`.** Moataz: use the android frame on the Kshemam chapter, chosen from Notion
+rather than from a list in code.
+
+- **Notion** (content): new Select property `Device` (`iPhone` | `Android`) on the pages database.
+  Only "Chapter - Kshemam / Android" is set (Android). Empty means iPhone. PideTaxi's Android chapter
+  is untouched; that is Moataz's call.
+- **Schema** (backend): `chapters.device_frame text not null default 'iphone'`, checked to
+  iphone|android, migration `0062`. **Applied by Moataz in the SQL editor.**
+- **Sync** (backend): reads `Device`, prints `device=` on every chapter line, raises a NOTICE for any
+  other value, survives the property being absent. A live run refuses to write if 0062 is missing.
+  `npm run test:sync` 121 pass.
+- **Render** (frontend): `ChapterSections` takes `deviceFrame`; portrait figures get
+  `PhoneFrame variant="android"` when it is android. With iphone the output is byte-identical to
+  before (react-dom/server compare). Laptop path and the aspect-ratio rule are unchanged.
+
+**Not verified:** the live sync has not run with this code, so `kshemam/android` is still `iphone`
+in the database; no page rendered end to end. Visual review is Moataz's.
+
 ## 002221026 - 2026-10-22 - A second phone frame, and a dark edge you can see
 
 **Task id `002221026`.** Moataz asked for a phone frame that fits the Android screens: no camera,
