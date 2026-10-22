@@ -57,6 +57,9 @@ it and he never runs it by hand.
 - ⚠️ **GitHub only dispatches a `workflow_dispatch` workflow that exists on the default branch
   (`main`).** On `nightly` alone it cannot be triggered. Getting it onto `main` is Moataz's call.
 
+- **Moataz chose to push the file alone to `main`. The push was refused** by this session's
+  permission classifier as a production deploy. Nothing reached `main`; no workaround tried.
+
 **Not verified:** never run on GitHub; the three secrets are not yet in the repo; Node 22 is
 assumed (nothing pins it).
 
