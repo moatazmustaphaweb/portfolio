@@ -16,6 +16,17 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 005221026 — 2026-10-22 17:04 — PideTaxi Android retry: 13013 still broken after the font fix; nothing uploaded
+
+**Third entry for this task.** The 16:53 and 16:42 entries below stand as written.
+**Brief:** Moataz replaced the missing font in `ALDzelqPZ8E4CulYZyXpgu`. Re-run the gate on `13013` with a 1x `get_screenshot`. If it is clean, check `13126` and `17024`, then export each at 2x and upload it as `PideTaxi/Android/{no-destination,defined-destination,on-the-way}`. If it is still broken, crop the defect and stop.
+**Result: still broken. Stopped at step 1.** The new render of `13013` is **pixel-identical** to the 16:52 render. Both were converted to RGB and diffed, and `getbbox()` returned `None`. A control pair with one changed pixel returned `(0,0,1,1)`, which shows the diff does catch a change. The address boxes are still empty, with fragments clipped below them. The blue pill above the pin is still empty.
+**Crops:** `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/pidetaxi/defect-13013-address-fields-retry.png`, `.../defect-13013-eta-pill-retry.png`. Render: `.../renders/android-13013-no-destination-retry.png`.
+**Not done:** `13126` and `17024` were not checked. No export was made and nothing was uploaded. `search-assets public_id:PideTaxi*` still holds only the 5 iOS assets from 16:53. The contact sheet `android-uploaded.png` was not made, because there is nothing uploaded to show.
+**Possible causes (not established):** the font change did not reach these text layers, for example a different family or weight, or text that has to be re-applied. Or the change has not been saved to the file the API reads. Or Figma's renderer is serving a cached render. One unchanged frame cannot tell these apart.
+**Commits:** this entry only, local, no trailer. **Pushed:** no. **Deployed:** no. Notion, Supabase, sync: not touched.
+**Open (returned):** the Android route. Moataz could check in Figma that the address text layers in `13013` now use the installed font. Or he could export the three frames by hand at 2x.
+
 ## 005221026 — 2026-10-22 16:53 — PideTaxi: 5 iOS screens in Cloudinary at 750x1624; Android held back on a render defect
 
 **Second entry for this task.** The 16:42 entry below stands as written. Moataz answered three of its four questions: Face-lift for iOS, A05 (he fixed the typo in Figma), and `13013`/`13126` for Android. The Website question was not part of this brief.
