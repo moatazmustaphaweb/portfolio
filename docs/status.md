@@ -55,9 +55,15 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 - **Android not uploaded:** Figma's server render drops text in these frames (empty address boxes,
   blank ETA pill) — a font missing on Figma's side, so every export from this session is broken.
   Moataz will export on his machine, where the font is installed.
-- **Upload route:** this sandbox cannot reach `api.cloudinary.com`, so a local file cannot be
-  uploaded. Moataz is adding it to Allowed domains; the next session uploads the three files he
-  attaches.
+- **Android uploaded, by fixing the render rather than exporting by hand.** Root cause found with
+  `use_figma`: the white `Surface` boolean operations behind the address boxes draw *over* their
+  text and icons in Figma's server renderer (fine in the desktop app); the ETA pill used SF Pro Text,
+  which the renderer lacks; nested text-wrapper instances collapse to 48px. Fixed **on copies only**
+  — a new page `Export (Claude)` in the Android file holds the three duplicates (Surfaces replaced
+  by plain rectangles, SF Pro -> Source Sans Pro, wrappers detached and texts widened, the 4.5
+  rating moved back inside the frame). Originals untouched. Uploaded 720x1440:
+  `PideTaxi/Android/{no-destination, defined-destination, on-the-way}`; bytes match the exports.
+  Moataz had asked never to be handed manual export or upload work again.
 
 Open for Moataz: `payment-methods` shows `gnicholson1k@clickbank.net` (likely dummy, real domain);
 website `hero`/`features` (pidetaxi.es is blocked here); Device/Image layout for the Android
