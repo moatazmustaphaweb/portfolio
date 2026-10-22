@@ -16,6 +16,42 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 004221026 — 2026-10-22 14:00 — `chapters.image_layout` from the Notion `Image layout` property: migration 0063 written (NOT applied), sync + lib/content wired, unit-tested
+
+**Brief:** a chapter-level choice of how consecutive figures render, authored in Notion as
+`Image layout` (select `Stacked` | `Grid`, empty = Stacked). Mirror 003221026 exactly: column
+with CHECK, sync reads it with the same tolerance and notice behaviour as `Device`, prints
+`layout=` beside `device=`, writes it on the upsert, same "apply 0063 first" start-up guard;
+`lib/content` exposes `imageLayout: ImageLayout` (`"stacked" | "grid"`, never null) from
+`@/lib/content/types`, reaching `detail` on the chapter page. Frontend works in parallel on
+components/ and app/ — not touched here.
+
+**Files:** `supabase/migrations/0063_chapter_image_layout.sql` (new, **NOT APPLIED** — no DB
+access from this session) · `lib/media/image-layout.ts` (new: `IMAGE_LAYOUTS`, `ImageLayout`,
+`imageLayoutOrDefault`) · `lib/sync/image-layout.ts` (new, pure: `readImageLayoutProperty`,
+which delegates to the `Device` reader so both properties tolerate the same shapes, and
+`resolveImageLayout`) · `scripts/sync-notion.ts` (Row gains `imageLayout`; start-up column
+check; one run-level notice when the property is absent; Pass 2 resolves, notices, prints
+`layout=` on both paths, writes `image_layout`) · `scripts/test-sync-logic.ts` (19 new checks) ·
+`lib/supabase/database.types.ts` (hand-added `image_layout`; not regenerated) ·
+`lib/content/types.ts` (`Chapter.imageLayout`, `export type { ImageLayout }`) ·
+`lib/content/chapters.ts` (`getChapter`) · `lib/content/case-files.ts` (cover's `chapters` /
+`pages`) · `docs/schema.md` · `docs/sync-contract.md` · this entry. Nothing committed.
+
+**Measured:** `npm run test:sync` → 140 PASS, 0 FAIL (19 new). `npx tsc --noEmit` → exit 0
+(run while frontend may be mid-edit; it reflects the tree at 14:00). `npx eslint` on the 8
+touched TS files → 0 errors, 1 warning (generated types file is eslint-ignored).
+
+**Verified:** the pure mapping (Grid/Stacked/case/empty/absent/unknown/two options/unsupported
+type/content default) by test; the whole tree type-checks with `detail.imageLayout` available.
+
+**Not verified:** 0063 has not been run against any database. No sync, dry or live — the
+sandbox has no `.env.local`, so the script stops before reading Notion. No page opened; grid
+rendering is frontend's. The `Image layout` property does not exist in Notion as far as this
+session knows; adding it is content's/Moataz's.
+
+**Open questions:** none.
+
 ## 003221026 — 2026-10-22 12:38 — `chapters.device_frame` from the Notion `Device` property: migration 0062 written (NOT applied), sync + lib/content wired, unit-tested
 
 **Brief:** Moataz decided the phone frame for a chapter's screenshots is authored per chapter

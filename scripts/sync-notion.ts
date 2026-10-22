@@ -67,6 +67,11 @@ import { formatImageRef } from "@/lib/content/image-refs";
 import { describeDrops, sift, type Sifted } from "@/lib/sync/sift";
 import { readDeviceProperty, resolveDeviceFrame, type DeviceRead } from "@/lib/sync/device-frame";
 import {
+  readImageLayoutProperty,
+  resolveImageLayout,
+  type ImageLayoutRead,
+} from "@/lib/sync/image-layout";
+import {
   parsePageSections,
   routeToPageKey,
   stripArabicScaffolding,
@@ -154,6 +159,12 @@ type Row = {
    * Android.
    */
   device: DeviceRead;
+  /**
+   * The `Image layout` property, read but not yet decided on (task
+   * `004221026`). `resolveImageLayout` in Pass 2 turns it into
+   * `chapters.image_layout` and reports anything that is not Stacked or Grid.
+   */
+  imageLayout: ImageLayoutRead;
   parent?: string;
   /** The title with its kind prefix removed, from `classifyTitle`. */
   name?: string;
@@ -293,6 +304,7 @@ async function fetchRows(): Promise<Row[]> {
         bilingual: selectName(props["Bilingual"]),
         order: numberProp(props["Order"]),
         device: readDeviceProperty(props["Device"]),
+        imageLayout: readImageLayoutProperty(props["Image layout"]),
         kind: classification.kind,
         parent: classification.parent,
         /*
@@ -1973,6 +1985,26 @@ async function main() {
   }
 
   /*
+   * `chapters.image_layout` (migration 0063), same guard and same reasoning as
+   * `device_frame` above: a live run without the column exits before Pass 1.
+   */
+  {
+    const { error } = await (await db()).from("chapters").select("image_layout").limit(1);
+    if (error) {
+      const message =
+        `chapters.image_layout is not readable (${error.message}).\n` +
+        "  Apply supabase/migrations/0063_chapter_image_layout.sql first, in the\n" +
+        "  Supabase SQL editor, then re-run the sync.";
+      if (!DRY_RUN) {
+        console.error(message);
+        process.exit(1);
+      }
+      console.log(`WARNING — ${message}\n  (dry run: continuing; nothing is written)\n`);
+      notices.push("chapters.image_layout is missing — apply migration 0063 before a live sync.");
+    }
+  }
+
+  /*
    * One line, once, when NO row on the database carries a `Device` property —
    * the state before content adds it. Every chapter then defaults to iphone,
    * which is correct by decision; the line is here so the property being
@@ -1983,6 +2015,14 @@ async function main() {
     notices.push(
       "No `Device` property on the Notion database — every chapter's device_frame is iphone. " +
         "Expected until the property is added (select: iPhone | Android).",
+    );
+  }
+
+  /* Same one-line run-level notice for `Image layout` (task 004221026). */
+  if (all.length > 0 && all.every((r) => r.imageLayout.state === "absent")) {
+    notices.push(
+      "No `Image layout` property on the Notion database — every chapter's image_layout is stacked. " +
+        "Expected until the property is added (select: Stacked | Grid).",
     );
   }
 
@@ -2194,9 +2234,12 @@ async function main() {
      */
     const device = resolveDeviceFrame(row.device);
     if (device.problem) notice(row.title, `${row.title}: ${device.problem}`);
+    // Same treatment for `Image layout` — see lib/sync/image-layout.ts.
+    const layout = resolveImageLayout(row.imageLayout);
+    if (layout.problem) notice(row.title, `${row.title}: ${layout.problem}`);
 
     if (DRY_RUN) {
-      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}`);
+      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}  layout=${layout.layout}`);
       updated.push(`chapter ${caseFile}/${slug}`);
 
       /*
@@ -2257,6 +2300,8 @@ async function main() {
           // Migration 0062. Written on every run, so clearing `Device` in
           // Notion returns a chapter to iphone rather than leaving it stuck.
           device_frame: device.frame,
+          // Migration 0063. Written on every run for the same reason.
+          image_layout: layout.layout,
         },
         { onConflict: "case_file_id,slug" },
       )
@@ -2271,7 +2316,7 @@ async function main() {
     updated.push(`chapter ${caseFile}/${slug}`);
     // Same line the dry run prints, so a live run's output can be diffed
     // against its preview (docs/learn.md Part 5, "absence is invisible").
-    console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}`);
+    console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}  layout=${layout.layout}`);
 
     const body = await readBody(row.id);
     await upsertTranslations(

@@ -32,6 +32,8 @@ import {
 } from "@/lib/sync/static-pages";
 import { readDeviceProperty, resolveDeviceFrame } from "@/lib/sync/device-frame";
 import { deviceFrameOrDefault } from "@/lib/media/device-frame";
+import { readImageLayoutProperty, resolveImageLayout } from "@/lib/sync/image-layout";
+import { imageLayoutOrDefault } from "@/lib/media/image-layout";
 
 let failures = 0;
 
@@ -622,6 +624,43 @@ eq("content: undefined column -> iphone", deviceFrameOrDefault(undefined), "ipho
 eq("content: null -> iphone", deviceFrameOrDefault(null), "iphone");
 eq("content: android kept", deviceFrameOrDefault("android"), "android");
 eq("content: junk -> iphone", deviceFrameOrDefault("Android"), "iphone");
+
+/* --------------------------- chapter Image layout -> image_layout (0063) -- */
+
+console.log("\nChapter Image layout property (task 004221026)");
+
+const layoutOf = (prop: unknown) => resolveImageLayout(readImageLayoutProperty(prop));
+
+eq("select Grid -> grid", layoutOf(sel("Grid")), { layout: "grid", problem: null });
+eq("select Stacked -> stacked", layoutOf(sel("Stacked")), { layout: "stacked", problem: null });
+eq("layout case-insensitive and trimmed", layoutOf(sel("  GRID ")).layout, "grid");
+eq("text grid -> grid", layoutOf(txt("grid")), { layout: "grid", problem: null });
+eq("empty layout select -> stacked, no notice", layoutOf(sel(null)), { layout: "stacked", problem: null });
+eq("empty layout text -> stacked, no notice", layoutOf(txt("")), { layout: "stacked", problem: null });
+
+// The property does not exist on the database yet. Must not throw.
+eq("layout property ABSENT reads as absent", readImageLayoutProperty(undefined), { state: "absent" });
+eq("layout property ABSENT -> stacked, no per-row notice", layoutOf(undefined), { layout: "stacked", problem: null });
+
+// Defaulted AND reported — never silently mapped.
+const carousel = layoutOf(sel("Carousel"));
+eq("unknown layout -> stacked", carousel.layout, "stacked");
+check("unknown layout IS REPORTED, naming the value", carousel.problem?.includes('"Carousel"') === true, String(carousel.problem));
+check("a typo (Gird) is not silently read as Grid", layoutOf(sel("Gird")).problem !== null);
+
+const bothLayouts = layoutOf({ type: "multi_select", multi_select: [{ name: "Stacked" }, { name: "Grid" }] });
+check("two layout options are reported, not chosen between", bothLayouts.problem !== null, String(bothLayouts.problem));
+eq("one layout multi_select option is read", layoutOf({ type: "multi_select", multi_select: [{ name: "Grid" }] }).layout, "grid");
+
+const layoutBox = layoutOf({ type: "checkbox", checkbox: true });
+check("an unsupported layout property type is reported", layoutBox.problem?.includes("checkbox") === true, String(layoutBox.problem));
+check("the layout notice names Image layout, not Device", layoutBox.problem?.startsWith("Image layout") === true, String(layoutBox.problem));
+
+// Content-layer default: before 0063 the column is simply missing from the row.
+eq("content: undefined layout column -> stacked", imageLayoutOrDefault(undefined), "stacked");
+eq("content: null layout -> stacked", imageLayoutOrDefault(null), "stacked");
+eq("content: grid kept", imageLayoutOrDefault("grid"), "grid");
+eq("content: junk layout -> stacked", imageLayoutOrDefault("Grid"), "stacked");
 
 console.log(
   failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
