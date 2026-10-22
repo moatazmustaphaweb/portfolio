@@ -54,8 +54,15 @@ rather than from a list in code.
   `PhoneFrame variant="android"` when it is android. With iphone the output is byte-identical to
   before (react-dom/server compare). Laptop path and the aspect-ratio rule are unchanged.
 
-**Not verified:** the live sync has not run with this code, so `kshemam/android` is still `iphone`
-in the database; no page rendered end to end. Visual review is Moataz's.
+**Synced.** Moataz ran the live sync on the `nightly` code: `kshemam/android device=android`, every
+other chapter `device=iphone`, kshemam `published`, entry handles 3 linked, failed 0.
+
+⚠️ A local trap on the way: `git checkout nightly` failed because `nightly` is checked out in a
+worktree (`.claude/worktrees/status-001220826`), so the following `git pull origin nightly` merged
+nightly into his local **main**. Nothing was pushed; `main` was reset to `origin/main` and his two
+stashed status edits restored. Pushing that local main would have shipped everything to production.
+
+**Not verified:** the android frame on the live page; visual review is Moataz's.
 
 ## 002221026 - 2026-10-22 - A second phone frame, and a dark edge you can see
 
