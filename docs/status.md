@@ -80,9 +80,18 @@ person; a follower enters without a band). One cover, one chapter `kshemam/andro
   Dabbler org, and rebinding it would break Dabbler. Environment variables are visible to anyone on
   the environment and are not for keys. Open: whether Network secrets can serve the sync.
 
+### Published, after the first build showed a stub
+
+The first `nightly` build served the cover as a draft placeholder and the chapter as 404: the sync
+sets `status = published` only when Notion **Content ready = Done** (`scripts/sync-notion.ts:1953`),
+and both rows were not. Moataz approved publishing; both rows set to Done, re-synced (failed 0), and
+`nightly` rebuilt. Published means it is in the `/work` gallery and the sitemap, and it reaches
+`www` with the next `main` build.
+
 ### Not verified
 
-- `/work/kshemam` rendering — needs the `nightly` build this entry ships with.
+- `/work/kshemam` rendering after the second build: Vercel reads were denied to this session and
+  the preview host is unreachable from it.
 - Entry handles linked to the chapter: the real-run notice is gone, but no query confirmed it.
 - Visual review is Moataz's.
 
