@@ -16,6 +16,20 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001221026 — 2026-10-22 07:49 — Kshemam at 2x: 2 of 6 uploaded, then stopped by Figma's MCP call limit
+
+**Second entry for this task.** The 07:46 entry below stands as written. Its three questions are answered: 2x for all six, with the overwrite of `do-you-feel-okay` approved by Moataz. The devops definition wins over the brief, so no trailer. The orchestrator pushes the session branch, so this commit stays local.
+**Brief:** For each of the six: `download_assets` with `defaultFormat png` and `defaultScale 2`, then pass the `export` URL to Cloudinary. `do-you-feel-okay` with `overwrite:true` and `invalidate:true`, that one only. The other five with `overwrite:false`. Do the first alone and verify it is 720x1600.
+**Uploaded and verified** (`get-asset-details`):
+- `Kshemam/Android/do-you-feel-okay` ← `86:5488`. Asset `6244cd7d698f320f610866e9d4b0b4c5`, same id as before with a new version, `overwritten:true`. **720x1600**, 70,053 bytes (matches the export's `sizeBytes`), png.
+- `Kshemam/Android/symptoms` ← `86:5537`. Asset `f0790fb9b5a38ded502a4b834b6ecd83`, `existing:false`. **720x1600**, 58,110 bytes (matches the export), png.
+**Screens checked by eye** (thumbnails, before any upload): `86:5537` is the symptoms entry with quick actions. `1:14998` is a circle member's detail, "Lindsey in risk". `1:15683` is home, "You are doing well Today". `11:3801` is home, "You are in risk". `0:2366` is "Connect smart devices" with Connect devices and Track my circle health. All five match the map.
+**Not uploaded:** `circle-in-risk` (1:14998), `home-rest` (1:15683), `home-in-risk` (11:3801), `user-type` (0:2366).
+**Why stopped:** the third `download_assets` call (`1:14998`) returned *"You've reached the Figma MCP tool call limit on the Starter plan."* Five thumbnails, two exports and the earlier screenshot used up the allowance. The four left need 4 export calls once the limit resets or the plan changes, or Moataz exports PNG @2x by hand. I did not route around the limit. `search-assets public_id:Kshemam*` now shows exactly two assets, both 720x1600.
+**Commits:** this entry only, local, no trailer. **Pushed:** no; the orchestrator pushes. **Deployed:** no. Supabase, Notion, sync: not touched. No URL was written to any file.
+**Not verified:** how the 2x assets look through the site's presets and `PhoneFrame`. Whether the CDN invalidation of the old 1x `do-you-feel-okay` has propagated. Nothing references it yet, so it does not matter.
+**Open question (returned):** route for the four left: wait for the Figma limit to reset, or a hand export from Moataz?
+
 ## 001221026 — 2026-10-22 07:46 — Kshemam: the Figma-to-Cloudinary route works; 1 of 6 uploaded, stopped on resolution
 
 **Brief:** Upload six Kshemam Android screens from Figma `CmHDXDMGetPdhWJPqaWxev` to Cloudinary. The route: `get_screenshot` produces a short-lived render URL and Cloudinary fetches it server-side. Do the first one alone and verify it, then do the rest. Expected size 720x1600.
