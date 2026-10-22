@@ -16,6 +16,38 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001221026 — 2026-10-22 — Kshemam measurement BLOCKED: the portfolio database is not reachable from this session; 0061 written, NOT applied
+
+**Brief:** after Moataz's live `sync:notion --only=kshemam` (0 created / 30 updated / 0 failed),
+measure Kshemam's rows (case file, chapters, sections per locale, entry-handle resolution,
+`Kshemam/%` media dims and alt/caption, decisions per locale), then backfill 720x1600 on the
+six Android screens if NULL, following 0060, applied via the Supabase MCP.
+
+**Files:** `supabase/migrations/0061_backfill_kshemam_media_dimensions.sql` (new, **NOT
+APPLIED**, uncommitted) · this entry. Nothing else touched; no sync run; nothing committed.
+
+**Measured:** nothing from the portfolio database. The Supabase MCP in this sandbox lists
+two projects only: `Dabbler-draft` (`ekmhrxdwgegxkdkdukgq`, INACTIVE) and `Dabbler`
+(`wtncuzcskpigqpmnxwws`). On `Dabbler`, `to_regclass` for `case_files`, `media` and
+`translations` all return NULL, so it is not this site. No project ref for the portfolio
+appears anywhere in the repo, and there is no `.env.local`.
+
+**Verified:** `scripts/sync-notion.ts:1207-1213` still upserts `media` with only
+`cloudinary_public_id` and `redacted`, so the six Kshemam rows will have been created with NULL
+dims, and a later sync will not overwrite a backfill. 0061 updates only those six
+public_ids, and only where width AND height are both NULL. It is idempotent.
+
+**Not verified:** every row the brief asked for. Whether the rows are actually NULL, whether
+the stored public_ids match `Kshemam/Android/<name>` exactly (case and path), and whether the
+three entry handles resolve to the android chapter. 0061 has not run, so it has not been
+read back.
+
+**Open questions:** how should backend reach the portfolio project? Connect the MCP to the
+account that owns it, or give its project ref. Alternatively, Moataz could run the measurement
+SQL and 0061 himself.
+
+---
+
 ## 015230826 — 2026-08-23 22:32 — the Arabic accessibility page and the workflow chapter's three Arabic decisions are on the site; the per-locale model now covers all four tables
 
 **Brief:** bring `page_sections` and `decisions` onto the per-locale model, the way
