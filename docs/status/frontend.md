@@ -16,6 +16,51 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 002221026 — 2026-10-22 11:45 — a second phone-frame variant, `variant="android"`, built and shown, not wired
+
+**Brief:** Build a second phone frame for Moataz to look at: no Dynamic Island or lens, smaller
+corners, bezel fitted to the 720x1600 Kshemam screens, Android-style keys on the right edge
+that do not mirror. The default stays exactly as it is, frame selection is not touched, and no
+page uses the new variant. Show both side by side in light and dark.
+
+**Files:**
+- `components/media/PhoneFrame.tsx` — new optional prop `variant?: "default" | "android"`,
+  default `"default"`. The per-variant numbers live in one `GEOMETRY` table. The island moved
+  into its own `DynamicIsland` function, unchanged. The header records the new variant's
+  numbers and why it is named after what the object is.
+
+**Variant numbers** (in mockup units of 478.42, so as % of width): body r 48 (10.0%, against
+the default's 17.2%), ring r 42.1, screen r 26. Each radius is the one outside it minus the
+inset, so the rings stay concentric. Insets 5.9 / 15.09 on all four sides. Power key at y 250 /
+h 72 and volume rocker at y 352 / h 150, both on the right. At 320px: corners 32.1 / 28.2 /
+17.4px, against the default's 55.2 / 52.0 / 41.0px.
+
+**Verified:**
+- The default renders the same markup as before the change. `react-dom/server` HTML from
+  before and after the edit is byte-identical (`cmp`).
+- `npx tsc --noEmit` exits 0. `npx eslint components/media/PhoneFrame.tsx` is clean.
+- The only call site, `components/case-file/ChapterSections.tsx:373`, is unchanged and
+  passes no `variant`, so it still gets the default.
+- A scratchpad harness renders the real component and pulls the real `--device-*` tokens out
+  of `app/globals.css`. Measured in Chromium at a 320px frame with a 315x700 Kshemam home screen
+  (ratio 0.45): screen box 287.97x639.92, the same size as the image, so nothing is cropped or
+  letterboxed. The image's rendered ratio is 0.45 and its natural ratio is 0.45. The android
+  variant draws nothing over the screen (0 spans; the default draws 3). In light the body is
+  white with the shadow; in dark it is the gradient with no shadow, in both variants.
+- Under `dir="rtl"` every key keeps the same computed `left` and `right` in both variants.
+- Observed in the shot: the default's 41px screen corner clips the Android status-bar clock
+  ("12:30" shows as "!2:30"). The android variant's 17px corner does not clip it.
+
+**Not verified:** Not checked on `:3000` or any real page, because nothing is wired to the
+variant. Not checked with a real 720x1600 Cloudinary asset, since Cloudinary is unreachable from
+this sandbox; the stand-in has the same 0.45 ratio. Not checked below 320px. Whether the variant
+looks right is Moataz's call.
+
+**Open questions:** None from this task. Which frame each screen uses is still his decision.
+**Finding for devops:** `npm ci` fails because `package-lock.json` is out of sync with
+`package.json` (missing `@swc/helpers@0.5.23`). Dependencies were installed with
+`--no-package-lock`, and the lockfile was left untouched.
+
 ## 005230826 — 2026-08-23 14:30 — a local-only preview of every unbuilt page, and the site map
 
 **Brief:** Render the whole planned site map — every page the project plans, not only the ten
