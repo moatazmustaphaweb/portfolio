@@ -16,6 +16,65 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001221026 — 2026-10-22 07:45 — Kshemam written in Notion, cover + one chapter, EN and AR, from the interview facts only
+
+**Brief:** Fill the blank Kshemam mini case file cover and create one chapter (Android), each
+with an Arabic child page, from the facts relayed from Moataz's 2026-10-21/22 interview and
+nothing else. PideTaxi as structural template. Set cover Bilingual, Purpose (no award), Notes.
+
+**Read:** `CLAUDE.md`, `docs/learn.md` (full), `docs/content-brief.md`, `docs/sync-contract.md`,
+`.claude/skills/portfolio-voice`, `.claude/skills/metric-integrity`, `origin/nightly:docs/status.md`
+entries 001220926 and 002220926, `supabase/migrations/0032` (cover slot aliases),
+`lib/sync/classify.ts`, `lib/sync/handles.ts` (`resolveHandleTarget`), the entry-handle pass in
+`scripts/sync-notion.ts`. Notion: PideTaxi cover EN/AR and iOS chapter EN/AR; the blank Kshemam row.
+`docs/agents.md` skimmed, not read in full.
+
+**Written (Notion, every page fetched back after writing):**
+
+| Page | id |
+|---|---|
+| Cover EN (filled) `Mini Case File - Kshemam HealthCare` | `3b3d4c6d-d86d-81ac-a5d7-fdd84fb5d4b6` |
+| Cover AR `النسخة العربية — الغلاف (Kshemam)` | `401d4c6d-d86d-8177-8c20-e9baade3ef56` |
+| Chapter EN `Chapter - Kshemam / Android`, Order 1 | `401d4c6d-d86d-81d0-a0ef-dd44f5a605d6` |
+| Chapter AR `النسخة العربية — الفصل الأول: Android` | `401d4c6d-d86d-8157-8421-fb586fec2240` |
+
+**Found / counted from the fetched pages (EN ↔ AR):**
+cover: what-it-is 1¶↔1¶ · role 2↔2 · status 1↔1 · entry handles 3↔3 (all `Chapter 1.`).
+chapter: objective 1↔1 · context 2↔2 · decisions 4↔4 · result 1↔1 · no tail.
+Decision bodies: emergency 4¶/2img ↔ 4¶/2img · circle 3/1 ↔ 3/1 · home 2/2 ↔ 2/2 · no-device 2/1 ↔ 2/1.
+`[cld]` 6 EN, 6 AR, same six ids, each with `[alt]` and `[caption]`. No em or en dash in any prose.
+
+**Tooling, as predicted:** `notion-create-pages` stripped the leading `# H1` on all three created
+pages; re-inserted with `insert_content` at start and confirmed by fetch. `replace_content` on the
+existing cover kept it.
+
+**Self-review deletions:** two layout claims not in the facts (EN "under one line", AR alt
+"وتحتها") were rewritten after re-reading against the facts list.
+
+**Gaps reported, not filled:**
+- **No `why-it-matters` section.** PideTaxi has one; the facts give no reason why Kshemam matters
+  in the portfolio, and the only Arabic alias available (`ولماذا يهم رغم ذلك`) presumes a
+  concession that does not exist here. Omitted, not written.
+- **No cover image slot**: the PideTaxi cover has none, so none was added.
+- **Cover `Required Content` still reads "Single-chapter format + scaled Results Table"** and
+  `Content ready` still reads `Not started`. Both contradict the brief/what is now on the page;
+  neither was named in the brief, so neither was changed.
+
+**Belongs to someone else:**
+- devops: the six `Kshemam/Android/*` public ids are planned names, NOT uploaded; none has returned
+  200. A real sync before upload creates media rows pointing at nothing.
+- backend: none found. Chapter parent resolves by Route (`/work/kshemam`), so the cover name
+  `Kshemam HealthCare` vs chapter title `Kshemam` is not a problem.
+
+**Not verified:** no `.env.local` in this worktree, so **no dry run was run**; counts above are
+from reading the fetched pages. Figma MCP failed to connect, so alt text describes the screens
+from the interview facts, not from looking at the frames (exact readings on the countdown screen
+are therefore not named). The site was not opened. Nothing synced.
+
+**Open questions:** none blocking. Moataz's read of the text is the next step.
+
+---
+
 ## 002250826 — 2026-08-25 12:10 — Egypt Acquisition em-dash pass: 334 dashes resolved by function across twelve pages; zero left
 
 **Brief:** Remove every em dash (—) and en dash (–) a visitor reads from the six Egypt
