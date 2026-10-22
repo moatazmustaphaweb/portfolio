@@ -13,7 +13,9 @@
  * (dx -7, dy 19, stdDeviation 19.5, rgb(88,89,92) @ 30%). So the phone reads
  * the same `--device-*` tokens the laptop does and inherits its dark theme —
  * coal gradient, no shadow — for free. Only the notch and the camera lens
- * needed tokens of their own.
+ * needed tokens of their own — and, since task `002221026`, the hairlines:
+ * `--device-phone-edge` is `--device-edge` in light and a lighter grey in
+ * dark, where the shared edge vanished into the body gradient.
  *
  * NOT SHARED: the radii. A laptop's corners are a small constant; a phone's
  * are 17% of its width, and that is the difference between the two objects
@@ -177,8 +179,8 @@ function SideButton({ side, top, height }: Button) {
         height,
         width: pc(3.6),
         background: "var(--device-bezel)",
-        borderTop: `${pc(1)} solid var(--device-edge)`,
-        borderBottom: `${pc(1)} solid var(--device-edge)`,
+        borderTop: `${pc(1)} solid var(--device-phone-edge)`,
+        borderBottom: `${pc(1)} solid var(--device-phone-edge)`,
         // Rounded on the outer end only, the way a real key is.
         borderRadius:
           side === "left"
@@ -285,7 +287,7 @@ export function PhoneFrame({
             padding: g.bodyPadding,
             borderRadius: g.bodyRadius,
             background: "var(--device-body)",
-            border: `${pc(1)} solid var(--device-edge)`,
+            border: `${pc(1)} solid var(--device-phone-edge)`,
             boxShadow: "var(--device-shadow)",
           }}
         >
@@ -296,7 +298,7 @@ export function PhoneFrame({
               padding: g.ringPadding,
               borderRadius: g.ringRadius,
               background: "var(--device-body)",
-              border: `${pc(1)} solid var(--device-edge)`,
+              border: `${pc(1)} solid var(--device-phone-edge)`,
             }}
           >
             {/* Screen. `overflow: hidden` rounds the picture's corners, so

@@ -61,6 +61,52 @@ looks right is Moataz's call.
 `package.json` (missing `@swc/helpers@0.5.23`). Dependencies were installed with
 `--no-package-lock`, and the lockfile was left untouched.
 
+### 002221026, follow-up — 2026-10-22 12:40 — dark-theme hairlines on both phone variants
+
+**Brief:** Moataz approved both variants. In dark only, make the phone's strokes visible:
+body hairline, ring hairline, and the side keys' edges. Do it through tokens. Light must stay
+identical. Say whether the laptop changes.
+
+**Files:**
+- `app/globals.css` — new token `--device-phone-edge`.
+  - Dark `:root`: `#46484e`.
+  - Both light blocks: `var(--device-edge)`.
+- `components/media/PhoneFrame.tsx` — its four `var(--device-edge)` strokes now read
+  `var(--device-phone-edge)`, and the header says why.
+- `docs/learn.md` — Part 6 row: PIL `getbbox()` on an RGBA diff reports no difference.
+
+**Why a new token:** `--device-edge` (`#2e2f33`) is shared with the laptop `DeviceFrame`, and
+in dark it is almost the same colour as the top of the body gradient (1.04:1 against `#2b2c2f`).
+The new token is used only by the phone, so **the laptop does not change**. It probably has the
+same problem in dark; I did not touch it.
+
+**Contrast:**
+
+| | against body top | against body middle | against page |
+|---|---|---|---|
+| `#2e2f33` (old) | 1.04 | 1.33 | 1.57 |
+| `#46484e` (new) | 1.53 | 1.94 | 2.3 |
+
+For comparison, light's `#E0E1E6` on white is 1.31.
+
+**Verified:**
+- `npx tsc --noEmit` exits 0. `npx eslint components/media/PhoneFrame.tsx` is clean.
+- Computed `border-top-color` in the harness: `rgb(224,225,230)` in light, `rgb(70,72,78)` in
+  dark.
+- Before/after pixel compare in RGB at 2x, frame by frame:
+  - Default light and android light: IDENTICAL.
+  - Default dark: 16,433 pixels differ. Android dark: 16,110 pixels differ.
+- An earlier RGBA compare wrongly reported all four identical. That is now the learn.md row.
+
+**Not verified:**
+- Not checked on `:3000`: the default variant is live on case-file pages, but I did not run the
+  dev server.
+- The harness sets themes on a wrapper `.theme-*` class, not through
+  `prefers-color-scheme` or `data-theme` on `<html>`.
+- The laptop in dark was not looked at.
+- The screen has no stroke of its own; the ring hairline is the one around it. I added no new
+  stroke.
+
 ## 005230826 — 2026-08-23 14:30 — a local-only preview of every unbuilt page, and the site map
 
 **Brief:** Render the whole planned site map — every page the project plans, not only the ten

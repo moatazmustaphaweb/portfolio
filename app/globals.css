@@ -285,6 +285,19 @@
   --device-notch: #08090a;
   --device-notch-edge: #202124;
   --device-lens: #3a3d42;
+  /*
+   * The phone's hairlines — body, inner ring, and the top and bottom of each
+   * side key. Added 2026-10-22, task `002221026`, because `--device-edge`
+   * (#2e2f33) is the same value as the top of the body gradient and so draws
+   * nothing on a black page. Lighter than the body by about the step the
+   * light theme's #E0E1E6 sits from its white body: visible as an edge, not
+   * read as an outline.
+   *
+   * Phone-only on purpose. The laptop keeps `--device-edge`, so this changes
+   * nothing outside `PhoneFrame`. In light it resolves to `--device-edge`
+   * itself, so the light frame is the same object as before.
+   */
+  --device-phone-edge: #46484e;
 
   /* --- Focus --- */
   --focus-ring-width: 2px;
@@ -341,6 +354,7 @@
     --device-notch: #f5f5f6;
     --device-notch-edge: #ececef;
     --device-lens: #a8aeb8;
+    --device-phone-edge: var(--device-edge);
     color-scheme: light;
   }
 }
@@ -374,6 +388,7 @@
   --device-notch: #f5f5f6;
   --device-notch-edge: #ececef;
   --device-lens: #a8aeb8;
+  --device-phone-edge: var(--device-edge);
   color-scheme: light;
 }
 
