@@ -73,6 +73,8 @@ are therefore not named). The site was not opened. Nothing synced.
 
 **Open questions:** none blocking. Moataz's read of the text is the next step.
 
+**07:45, approved edit applied:** Moataz approved the EN text with one change. The Objective said "does not answer the phone", which was unsourced because the countdown is in the app and there is no call. EN now reads "cannot answer"; AR "لم يردّ … على هاتفه" became "لم يستطع صاحب السوار أن يجيب". Still 1¶ each, and both fetched back to confirm.
+
 ---
 
 ## 002250826 — 2026-08-25 12:10 — Egypt Acquisition em-dash pass: 334 dashes resolved by function across twelve pages; zero left
