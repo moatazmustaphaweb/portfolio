@@ -65,9 +65,14 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
   `PideTaxi/Android/{no-destination, defined-destination, on-the-way}`; bytes match the exports.
   Moataz had asked never to be handed manual export or upload work again.
 
-Open for Moataz: `payment-methods` shows `gnicholson1k@clickbank.net` (likely dummy, real domain);
-website `hero`/`features` (pidetaxi.es is blocked here); Device/Image layout for the Android
-chapter; the PideTaxi sync. Unconfirmed against frames, left as written: "options" in the
+- **The email stays.** `payment-methods` shows `gnicholson1k@clickbank.net`; Moataz: it is dummy
+  data. Left in the image as designed.
+- **Frames and grid set in Notion** (Moataz chose A): Android chapter `Device=Android`,
+  `Image layout=Grid`; iOS chapter `Device=iPhone`, `Image layout=Grid`. Both still
+  `Content ready = In progress`, so a sync writes them as drafts.
+
+Open for Moataz: website `hero`/`features` (pidetaxi.es is blocked here); the PideTaxi sync, which
+needs the Supabase service key and so cannot run from this session; publishing (Content ready). Unconfirmed against frames, left as written: "options" in the
 no-destination sentence, "في الأسفل" in the AR alt, and the Context line "the price depends on it"
 beside a frame that shows a fare estimate.
 
