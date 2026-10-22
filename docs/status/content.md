@@ -16,6 +16,41 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 003221026 — 2026-10-22 12:40 — `Device` select added to the Notion database; Kshemam Android chapter set to Android
+
+**Brief:** Moataz approved choosing a chapter's phone frame from a new Notion property. Add `Device`
+(Select, options `iPhone` and `Android`) to "Portfolio — Pages & Content", set it to `Android` on
+"Chapter - Kshemam / Android", set it on no other row, touch nothing else. Spec: `docs/sync-contract.md`
+Step 2 property table, `Device` row.
+
+**Read:** `docs/sync-contract.md` (`Device` row), `docs/content-brief.md` (the write-verification
+passages only, not in full), the head of this file. Notion: the data source schema
+`collection://7a8ab2e1-08d1-4286-a4df-f2e87b85c219` before and after the change; the Kshemam Android
+chapter (`401d4c6d-d86d-81d0-a0ef-dd44f5a605d6`) before and after.
+
+**Found / done:**
+- Before: no property named `Device` existed (19 properties, none close to it). So nothing to stop on.
+- Added `Device`, type select, exactly two options `iPhone` and `Android`, default colour. Re-fetched
+  the schema: present, type `select`, those two options and no others.
+- Set `Device = Android` on the Kshemam Android chapter. Re-fetched the page: `"Device":"Android"`;
+  every other property value identical to the pre-write fetch; body text and the AR child page link
+  (`401d4c6d-d86d-8157-8421-fb586fec2240`) unchanged.
+- SQL over the whole data source for rows with a non-empty `Device`: 1 row, the Kshemam Android chapter.
+  PideTaxi's Android chapter is empty, as instructed.
+
+**Gaps reported, not filled:** whether PideTaxi's Android chapter gets `Android` is Moataz's; left empty.
+
+**Belongs to someone else:** the sync reading `Device` into `chapters.device_frame` (migration 0062)
+is backend's; the frame rendering is frontend's. Neither was run or looked at here.
+
+**Not verified:** no sync dry run, no database read, no render on `:3000`. The AR child page itself
+was not opened (only its link on the parent was seen unchanged); the property was set on the EN row only.
+`docs/learn.md` was not re-read in full for this task.
+
+**Open questions:** none.
+
+---
+
 ## 001221026 — 2026-10-22 07:45 — Kshemam written in Notion, cover + one chapter, EN and AR, from the interview facts only
 
 **Brief:** Fill the blank Kshemam mini case file cover and create one chapter (Android), each
