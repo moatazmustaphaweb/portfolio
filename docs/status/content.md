@@ -48,6 +48,8 @@ every visual fact is devops' observation as relayed in the brief. Nothing writte
 
 **Open questions:** approval of the wording (Moataz's).
 
+**Applied 2026-10-22 16:55, after Moataz approved the draft as-is (option A):** the 6 replacements were each sent as a single-edit call, and each was confirmed by a re-fetch (EN 16:53, AR 16:55). Nothing else was touched. Paragraph counts are unchanged, the EN page's link to the AR child page is intact, and the `[cld]` lines are unchanged.
+
 ---
 
 ## 004221026 — 2026-10-22 14:10 — `Image layout` select added; Kshemam Android set to Grid; decision images moved under their headings, EN and AR
