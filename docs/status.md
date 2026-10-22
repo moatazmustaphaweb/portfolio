@@ -37,6 +37,19 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 006221026 - 2026-10-22 - Sync on GitHub Actions: stopped at the permission gate
+
+**Task id `006221026`.** Moataz said "ok" to running the Notion sync from a GitHub Actions workflow
+(manual trigger, repo secrets for Notion and the Supabase service key), so the session can trigger
+it and he never runs it by hand.
+
+- **Nothing written.** The brief to devops was refused by this session's permission classifier as
+  a secret-store write: a workflow that holds the service-role key. I did not work around it; the
+  `.github/**` ownership row I drafted for `docs/agents.md` was reverted.
+- **Needs Moataz's explicit approval** of exactly this: a workflow file in the repo that reads
+  `NOTION_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from GitHub repo
+  secrets and writes to the production database when triggered.
+
 ## 005221026 - 2026-10-22 - PideTaxi images: iOS in, Android waits on a hand export
 
 **Task id `005221026`.** Phase 2, back to PideTaxi. App first; the two website shots are parked.
