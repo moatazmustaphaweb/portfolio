@@ -37,6 +37,26 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 002221026 - 2026-10-22 - A second phone frame, and a dark edge you can see
+
+**Task id `002221026`.** Moataz asked for a phone frame that fits the Android screens: no camera,
+sharper corners, the default left exactly as it is. He decides later which frame goes where.
+
+- **`<PhoneFrame variant="android">`** — no Dynamic Island, no lens; outer corner 10% of the width
+  (default 17.2%), screen corner 17px at the 320px cap (default 41px); power and volume on the right,
+  physical, not mirrored in Arabic. Holds a 720x1600 screen without cropping. **Not wired to any
+  page.** The default's markup is byte-identical (react-dom/server output compared).
+- **Dark theme, both variants:** the hairlines were near-invisible on black. New phone-only token
+  `--device-phone-edge`: `#46484e` dark (was the shared `#2e2f33`), `var(--device-edge)` in light,
+  so light is pixel-identical. The laptop frame keeps the old token and was not looked at; it likely
+  has the same faint edge in dark.
+- Approved by Moataz from side-by-side renders of the real component (scratch harness, Playwright).
+- Noticed in the render: the default's 41px screen corner clips an Android status-bar clock
+  ("12:30" shows as "!2:30"). The android variant does not.
+
+**Not verified:** on a real route. The dark change reaches the live chapter pages (they use the
+default) with this `nightly` build; visual review there is Moataz's.
+
 ## 001221026 - 2026-10-22 - Kshemam: interviewed, written in both languages, six screens, synced
 
 **Task id `001221026`** (interview opened as `003211026`). Phase 2, second mini case file. PideTaxi
