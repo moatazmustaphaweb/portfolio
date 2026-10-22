@@ -37,6 +37,32 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 004221026 - 2026-10-22 - Kshemam's screenshots as a grid, chosen per chapter from Notion
+
+**Task id `004221026`.** Moataz: on this project only, screenshots three to a row on wide screens,
+two on medium, one on small.
+
+- **Notion** (content): Select `Image layout` (`Stacked` | `Grid`); only the Kshemam chapter is Grid.
+- **Schema/sync** (backend): `chapters.image_layout` default `stacked`, migration `0063`; the sync
+  prints `layout=` beside `device=`, same guards and notices as `Device`. `test:sync` 140 pass.
+- **Render** (frontend): with `grid`, each run of 2+ consecutive figures becomes one CSS grid —
+  1 column, 2 from `md` (768), 3 from `lg` (1024). `stacked` output is byte-identical to before.
+  At 3 columns the 952px chapter column holds frames at 301px, not the 320px cap; **Moataz accepted
+  301px** over breaking the grid out to the 1200px container.
+
+⚠️ **I briefed the wrong model of the page first, and it cost a round.** I told Moataz Kshemam's
+images sat between paragraphs, so a grid could never fill three, and had content reorder the images
+in Notion. Wrong: the sync moves every image written under a `Decision ·` heading into the section
+before it (`scripts/sync-notion.ts` ~1111, GUARD 0), and decision prose is stored apart. On the site
+all six Kshemam screens were already one consecutive run in Context — a 3x2 grid as asked. The
+Notion reorder is harmless and changes nothing rendered. Read the sync before describing a page
+from its Notion source.
+
+Open, Moataz's call: the `symptoms` caption opens "The second answer.", which only makes sense next
+to the decision text it no longer sits beside (true before this task as well).
+
+**Not verified:** 0063 applied; the live sync; the page. Visual review is Moataz's.
+
 ## 003221026 - 2026-10-22 - The chapter chooses its phone frame, from Notion
 
 **Task id `003221026`.** Moataz: use the android frame on the Kshemam chapter, chosen from Notion
