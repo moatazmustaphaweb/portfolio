@@ -16,6 +16,20 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001221026 — 2026-10-22 07:59 — Kshemam: all six screens in Cloudinary at 720x1600
+
+**Third entry for this task.** The 07:49 and 07:46 entries below stand as written. Their open question is answered: Moataz moved Kshemam to his Pro team, and the new file is `486ARxBNbpqQouWLMdHCqD`. The old Starter-team file was not used.
+**Brief:** Upload the four still missing from the new file, using the same route (`download_assets` png at scale 2, then Cloudinary fetches the `export` URL) with `overwrite:false`. For `home-rest`, choose between the two frames both named "01-Home/Rest".
+**home-rest choice:** `1:2245` matches the old `1:15683` on every point listed in the brief: the green card "You are doing well Today", Health/Circle tabs, Heart rate 80 bpm, Blood sugar 45 mg/dL, Oxygen 92 %, and Home/Help/Profile navigation. `1:2286` is the same screen with the side menu open (Kshemam logo, Devices, Settings, Support, Terms, "Version 1.1") and the home screen dimmed behind it. Exactly one matches, so `1:2245` was uploaded.
+**Uploaded and verified** (`get-asset-details`; each byte count matches the export's `sizeBytes`; every thumbnail checked by eye before upload; all `existing:false`):
+- `Kshemam/Android/circle-in-risk` ← `1:2217`. Asset `6ec311b4a8fa48dc11103c9684b14bf6`, 720x1600, 73,991 bytes, png. The screen is "Lindsey in risk".
+- `Kshemam/Android/home-in-risk` ← `1:2373`. Asset `7a56fb6c1d1e172fbcf0bab322d3c178`, 720x1600, 76,960 bytes, png. The screen is "You are in risk".
+- `Kshemam/Android/user-type` ← `1:1876`. Asset `ed80b4e00967e014ee941517872fc44e`, 720x1600, 47,988 bytes, png. The screen is "Connect smart devices".
+- `Kshemam/Android/home-rest` ← `1:2245`. Asset `d15fa2e56e794c872ef90e43906d9642`, 720x1600, 74,975 bytes, png.
+**Set complete:** `search-assets public_id:Kshemam*` returns exactly 6 assets, all 720x1600 png, `asset_folder` empty. The two from 07:49 were not touched.
+**Commits:** this entry only, local, no trailer. **Pushed:** no; the orchestrator pushes. **Deployed:** no. Supabase, Notion, sync: not touched. No URL was written to any file.
+**Not verified:** how the six look on the site. They render only after the Kshemam `[cld]` tags are synced into `media`, which is not this task. The new file's frames came from a different file key than the first two screens. Their content matches by eye; I did not compare pixels.
+
 ## 001221026 — 2026-10-22 07:49 — Kshemam at 2x: 2 of 6 uploaded, then stopped by Figma's MCP call limit
 
 **Second entry for this task.** The 07:46 entry below stands as written. Its three questions are answered: 2x for all six, with the overwrite of `do-you-feel-okay` approved by Moataz. The devops definition wins over the brief, so no trailer. The orchestrator pushes the session branch, so this commit stays local.
