@@ -4,7 +4,52 @@ import { PhoneFrame, PHONE_FRAME_MAX_W } from "@/components/media/PhoneFrame";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { SectionTable } from "@/components/layout/ProseSections";
 import { dirForLocale } from "@/lib/content/types";
-import type { ChapterSection, DeviceFrame as DeviceFrameKind, Locale, Media } from "@/lib/content/types";
+import type {
+  ChapterSection,
+  DeviceFrame as DeviceFrameKind,
+  ImageLayout,
+  Locale,
+  Media,
+} from "@/lib/content/types";
+
+/**
+ * A section's blocks, with every run of 2+ consecutive RENDERABLE figures
+ * folded into one group. Used only when the chapter's layout is "grid".
+ *
+ * Renderable means `media` is present — a null-media figure renders nothing,
+ * so a run of [figure, missing, figure] is a run of two, and a run of
+ * [figure, missing] is a lone figure and renders exactly as it does stacked.
+ *
+ * Each item keeps the index it had in `blocks`, so React keys stay what the
+ * stacked renderer gives them. Grouping is by ADJACENCY in the order the
+ * database holds — never by pairing two lists — so nothing here can attach a
+ * caption or a screen to the wrong neighbour.
+ */
+type BlockUnit =
+  | { kind: "block"; block: ChapterSection["blocks"][number]; i: number }
+  | { kind: "grid"; figures: { media: Media; i: number }[] };
+
+function groupFigureRuns(blocks: ChapterSection["blocks"]): BlockUnit[] {
+  const units: BlockUnit[] = [];
+  let run: { block: ChapterSection["blocks"][number]; i: number }[] = [];
+  const flush = () => {
+    const figures = run.flatMap(({ block, i }) =>
+      block.kind === "image" && block.media ? [{ media: block.media, i }] : [],
+    );
+    if (figures.length >= 2) units.push({ kind: "grid", figures });
+    else for (const r of run) units.push({ kind: "block", ...r });
+    run = [];
+  };
+  blocks.forEach((block, i) => {
+    if (block.kind === "image") run.push({ block, i });
+    else {
+      flush();
+      units.push({ kind: "block", block, i });
+    }
+  });
+  flush();
+  return units;
+}
 
 /**
  * A chapter's slots, rendered in the order the database holds them.
@@ -54,6 +99,7 @@ export function ChapterSections({
   sections,
   linkLabels,
   deviceFrame = "iphone",
+  imageLayout = "stacked",
 }: {
   sections: ChapterSection[];
   /*
@@ -73,6 +119,13 @@ export function ChapterSections({
    * exactly what it did before the column existed.
    */
   deviceFrame?: DeviceFrameKind;
+  /*
+   * `chapters.image_layout`, task `004221026`. Optional, default "stacked",
+   * and "stacked" renders byte-for-byte what this component rendered before
+   * the prop existed — the grid path is a separate branch, not a variation
+   * of the stacked one.
+   */
+  imageLayout?: ImageLayout;
 }) {
   if (sections.length === 0) return null;
 
@@ -131,82 +184,141 @@ export function ChapterSections({
             ) : null}
 
             <div className="mt-5 space-y-6">
-              {section.blocks.map((block, i) => {
-                if (block.kind === "prose") {
-                  /*
-                   * NO `max-w-measure`. Nothing ever sits beside a chapter
-                   * paragraph — a figure here is a SIBLING, never a neighbour
-                   * (see the note above), so there is no second column for a
-                   * reading-width cap to share the row with. It was capping
-                   * every paragraph at 68ch (~721px) inside a container up to
-                   * 1152px, which is the same defect fixed on the cover in
-                   * `033240826` / `034240826`, one file over: a narrow column
-                   * with empty space beside it and nothing to explain it.
-                   *
-                   * The paragraph now fills whatever container the page gives
-                   * it. That container is NOT this file's concern and was not
-                   * touched — `[chapter]/page.tsx` still chooses `max-w-prose`
-                   * or `max-w-container` by chapter kind, exactly as before.
-                   */
-                  return (
-                    <p
-                      key={`p-${section.id}-${i}`}
-                      lang={block.lang}
-                      dir={dirForLocale(block.lang)}
-                      className="whitespace-pre-line text-body text-fg-body"
-                    >
-                      {block.text}
-                    </p>
-                  );
-                }
-                if (block.kind === "image") {
-                  return (
-                    <ChapterFigure
-                      key={`f-${section.id}-${i}`}
-                      media={block.media}
-                      deviceFrame={deviceFrame}
-                    />
-                  );
-                }
-                /*
-                 * ⚠️ The SAME `SectionTable` the document pages have always
-                 * used, fed the same tab-and-newline string. Not a
-                 * reimplementation — on the comparison pages the table IS the
-                 * page, and a second renderer would be free to drift from the
-                 * first. There is nothing here to drift.
-                 *
-                 * The wrapper carries `lang`/`dir` and `display: contents`, so
-                 * `direction` inherits into the table and an Arabic table
-                 * mirrors — row headers to the right, columns reading
-                 * right-to-left. That IS correct for an Arabic table: the
-                 * logical column order is unchanged, only its presentation.
-                 * A table served by the English fallback stays `ltr` and does
-                 * not mirror, which is the whole point of taking direction from
-                 * the text rather than the page.
-                 */
-                return (
-                  <div
-                    key={`t-${section.id}-${i}`}
-                    lang={block.lang}
-                    dir={dirForLocale(block.lang)}
-                    /*
-                     * `display: contents` — the wrapper carries the language and
-                     * then gets out of the way. A real box here would take the
-                     * parent's `space-y-6` margin while the table kept its own
-                     * `mt-10`, quietly doubling the gap above every table.
-                     * `direction` and `lang` still inherit through it.
-                     */
-                    className="contents"
-                  >
-                    <SectionTable body={block.body} />
-                  </div>
-                );
-              })}
+              {imageLayout === "grid"
+                ? groupFigureRuns(section.blocks).map((unit) =>
+                    unit.kind === "block" ? (
+                      renderBlock(section, unit.block, unit.i, deviceFrame)
+                    ) : (
+                      /*
+                       * A run of screenshots, side by side: 1 column below
+                       * `md` (768), 2 from `md`, 3 from `lg` (1024) — the
+                       * project's own breakpoints, nothing added.
+                       *
+                       * `!my-10` for the reason the framed figure carries
+                       * `!mt-10 !mb-10`: the parent's `space-y-6` outranks a
+                       * bare margin on a child, so without `!` the run would
+                       * sit 24px from its prose instead of the 40px a single
+                       * framed figure gets.
+                       *
+                       * Gap: 24px across (`gap-x-6`, the container's own
+                       * rhythm) and 40px down (`gap-y-10`, the same step as a
+                       * framed figure's margin), so the rows of a run are
+                       * spaced like the figures of a stacked chapter.
+                       *
+                       * No direction anywhere: grid auto-placement follows
+                       * `direction`, so in Arabic the first screenshot takes
+                       * the right-hand cell and the run reads right to left
+                       * without this file knowing which locale it is in.
+                       *
+                       * `items-start` because captions differ in length; a
+                       * stretched row would pad every short caption's figure
+                       * to the tallest one's height.
+                       */
+                      <div
+                        key={`g-${section.id}-${unit.figures[0].i}`}
+                        data-figure-grid=""
+                        className="!my-10 grid grid-cols-1 items-start gap-x-6 gap-y-10 md:grid-cols-2 lg:grid-cols-3"
+                      >
+                        {unit.figures.map(({ media, i }) => (
+                          <ChapterFigure
+                            key={`f-${section.id}-${i}`}
+                            media={media}
+                            deviceFrame={deviceFrame}
+                            inGrid
+                          />
+                        ))}
+                      </div>
+                    ),
+                  )
+                : section.blocks.map((block, i) => renderBlock(section, block, i, deviceFrame))}
             </div>
           </section>
         );
       })}
     </>
+  );
+}
+
+/**
+ * One block of a section — prose, figure or table — exactly as the stacked
+ * layout has always rendered it. Lifted out of the map unchanged so the grid
+ * path can render the blocks between its runs with the same code rather than
+ * a copy of it.
+ */
+function renderBlock(
+  section: ChapterSection,
+  block: ChapterSection["blocks"][number],
+  i: number,
+  deviceFrame: DeviceFrameKind,
+) {
+  if (block.kind === "prose") {
+    /*
+     * NO `max-w-measure`. Nothing ever sits beside a chapter
+     * paragraph — a figure here is a SIBLING, never a neighbour
+     * (see the note above), so there is no second column for a
+     * reading-width cap to share the row with. It was capping
+     * every paragraph at 68ch (~721px) inside a container up to
+     * 1152px, which is the same defect fixed on the cover in
+     * `033240826` / `034240826`, one file over: a narrow column
+     * with empty space beside it and nothing to explain it.
+     *
+     * The paragraph now fills whatever container the page gives
+     * it. That container is NOT this file's concern and was not
+     * touched — `[chapter]/page.tsx` still chooses `max-w-prose`
+     * or `max-w-container` by chapter kind, exactly as before.
+     */
+    return (
+      <p
+        key={`p-${section.id}-${i}`}
+        lang={block.lang}
+        dir={dirForLocale(block.lang)}
+        className="whitespace-pre-line text-body text-fg-body"
+      >
+        {block.text}
+      </p>
+    );
+  }
+  if (block.kind === "image") {
+    return (
+      <ChapterFigure
+        key={`f-${section.id}-${i}`}
+        media={block.media}
+        deviceFrame={deviceFrame}
+      />
+    );
+  }
+  /*
+   * ⚠️ The SAME `SectionTable` the document pages have always
+   * used, fed the same tab-and-newline string. Not a
+   * reimplementation — on the comparison pages the table IS the
+   * page, and a second renderer would be free to drift from the
+   * first. There is nothing here to drift.
+   *
+   * The wrapper carries `lang`/`dir` and `display: contents`, so
+   * `direction` inherits into the table and an Arabic table
+   * mirrors — row headers to the right, columns reading
+   * right-to-left. That IS correct for an Arabic table: the
+   * logical column order is unchanged, only its presentation.
+   * A table served by the English fallback stays `ltr` and does
+   * not mirror, which is the whole point of taking direction from
+   * the text rather than the page.
+   */
+  return (
+    <div
+      key={`t-${section.id}-${i}`}
+      lang={block.lang}
+      dir={dirForLocale(block.lang)}
+      /*
+       * `display: contents` — the wrapper carries the language and
+       * then gets out of the way. A real box here would take the
+       * parent's `space-y-6` margin while the table kept its own
+       * `mt-10`, quietly doubling the gap above every table.
+       * `direction` and `lang` still inherit through it.
+       */
+      className="contents"
+    >
+      <SectionTable body={block.body} />
+    </div>
   );
 }
 
@@ -242,9 +354,19 @@ export function ChapterSections({
 function ChapterFigure({
   media,
   deviceFrame,
+  inGrid = false,
 }: {
   media: Media | null;
   deviceFrame: DeviceFrameKind;
+  /*
+   * Set only by the grid path. The grid owns the spacing (its own margin and
+   * gap), so the figure drops its margins; and a framed figure fills its cell
+   * up to the frame's cap and centres there instead of hugging the start.
+   * `w-full` is what makes `mx-auto` safe: an auto-margined grid item with no
+   * width shrinks to fit-content, and the frame inside is `w-full`, which is
+   * the circular percentage that collapsed `w-fit` to zero (see below).
+   */
+  inGrid?: boolean;
 }) {
   if (!media) return null;
 
@@ -310,7 +432,7 @@ function ChapterFigure({
 
       ⚠️ THE `!` IS LOAD-BEARING. THIS FIGURE'S PLAIN `mt-*` NEVER APPLIED.
 
-      The parent is `<div className="mt-5 space-y-6">` (line 133). `space-y-6`
+      The parent is `<div className="mt-5 space-y-6">` (in `ChapterSections`). `space-y-6`
       compiles to `.space-y-6 > :not([hidden]) ~ :not([hidden])`, which outranks
       a bare `.mt-8` on the child, so EVERY figure on every chapter has been
       spaced at the container's 24px since it was written — the `mt-8` here was
@@ -321,7 +443,7 @@ function ChapterFigure({
       Measured, not reasoned: `mt-22` resolves to 88px on a bare element and to
       24px on this figure. That gap between the two readings is the bug.
 
-      The same conflict is already documented for the table at line 195, where
+      The same conflict is already documented for the table in `renderBlock`, where
       it was solved with `display: contents`. That does not transfer — the table
       wanted the container's rhythm and this figure needs to escape it.
 
@@ -336,7 +458,15 @@ function ChapterFigure({
       numbers are unreachable.
     */
     <figure
-      className={device ? "relative !mt-10 !mb-10" : "mt-8"}
+      className={
+        inGrid
+          ? device
+            ? "relative mx-auto w-full min-w-0"
+            : "min-w-0"
+          : device
+            ? "relative !mt-10 !mb-10"
+            : "mt-8"
+      }
       /*
         The figure is capped to the FRAME's own width, not left at the column's.
 

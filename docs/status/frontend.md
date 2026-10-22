@@ -16,6 +16,39 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 004221026 — 2026-10-22 14:04 — `imageLayout="grid"` sets runs of 2+ consecutive screenshots in a 1/2/3-column grid; stacked unchanged
+
+**Brief:** Per-chapter `imageLayout: "stacked" | "grid"` (backend, in parallel). When "grid", fold each run of 2+ consecutive figures in a section into one CSS grid (1 col / 2 at medium / 3 at wide); a lone figure renders as today; "stacked" byte-identical to before. Pass `imageLayout={detail.imageLayout}` at every `ChapterSections` call site. Measure whether three phone frames fit at the 320px cap at 1440, and report rather than shrink silently.
+
+**Files:** `components/case-file/ChapterSections.tsx` · `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx` (3 call sites).
+
+**What changed:** the block renderer was lifted out of the map unchanged into `renderBlock`. The stacked branch still maps over `section.blocks` with it. The grid branch runs `groupFigureRuns`, which groups by ADJACENCY, never by pairing lists. Only figures with non-null `media` count toward a run, so `[fig, missing]` stays a lone figure. A run is one `<div data-figure-grid class="!my-10 grid grid-cols-1 items-start gap-x-6 gap-y-10 md:grid-cols-2 lg:grid-cols-3">`. Breakpoints are the existing `md` 768 and `lg` 1024 from `tailwind.config.ts`; nothing was added. `ChapterFigure` takes `inGrid`: it drops the figure margins (the grid owns spacing) and, when framed, sets `relative mx-auto w-full min-w-0`, so the frame fills its cell up to its cap and centres. All properties are logical or symmetric, and auto-placement follows `direction`. The local `ImageLayout` type was dropped once backend's export appeared, and the type is now imported from `@/lib/content/types`.
+
+**Verified:**
+- `npx tsc --noEmit` exit 0 and `eslint` on both files exit 0, against backend's landed `ImageLayout`/`detail.imageLayout`.
+- Byte-identical stacked, using `react-dom/server` against a snapshot of the file from before this task. Two section mixes (prose, a 3-run, null media, landscape, square, table, an empty section and a prose-only section) × deviceFrame none/iphone/android × imageLayout omitted/"stacked": all 6 identical. Separately, "grid" on a section with no run of 2+ is identical to stacked.
+- Harness with the site's real Tailwind CSS (`npx tailwindcss -c tailwind.config.ts -i app/globals.css`), using the chapter page's container (`mx-auto px-gutter py-section-y max-w-prose`), Chromium viewport set by Playwright and `innerWidth` read back:
+  - **1440:** content column 952px, tracks 3 × 301.3px, **phone frames 301px**.
+  - **900:** column 852, tracks 2 × 414, frames 320, centred.
+  - **390:** column 342, 1 track, frames 320, centred (x=35; a stacked phone figure hugs the inline start at x=24).
+  - Grid margin-top 40px.
+  - Arabic: same widths, first figure in the rightmost cell (x=895 at 1440, x=509 at 900).
+- Screenshots: `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/grid/grid-{en,ar}-{1440,900,390}.png`.
+
+**Not verified:**
+- Not on `localhost:3000`, and not on the real Kshemam chapter. Whether 0063 is applied, whether Kshemam is set to grid, and whether content has reordered the images were not checked; the harness uses placeholder captions and images.
+- Next fonts are not loaded in the harness (fallback faces).
+- Dark theme was not shot.
+- A grid cell whose `CloudinaryImage` omits itself for a missing alt was not exercised; it would leave a caption-only cell.
+- Moataz has not looked.
+
+**Open questions:**
+1. **Three frames do not fit at the 320 cap in the prose column.** 3×320 + 2×24 gap = 1008px against a 952px column, so at `lg`+ the frames render at 301px (6% under the cap). A 16px gap still gives only 306.7. Options: (a) accept 301; (b) let the grid break out to `max-w-container` (1152px content, which fits 320 from about 1056px viewport and is 309px at 1024); (c) start 3 columns later — that does not help, because the column is 952 at every width ≥1000. Recommendation: (b), if he wants the cap held.
+2. **A run of two at 1440 fills 2 of 3 tracks and leaves the third empty** (it hugs the start). Spec-literal. The alternative is 2 columns for a run of exactly two.
+3. **Landscape in a grid:** a laptop at 301px has a 269px screen; the bezel stays in absolute px. At 900 a landscape beside a portrait leaves a tall empty area under the laptop. Shots: `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/grid/land-en-1440.png`, `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/grid/land-en-900.png`.
+
+---
+
 ## 003221026 — 2026-10-22 12:41 — chapter pages pass `deviceFrame`, and portrait screenshots use `variant="android"` when a chapter is set to android
 
 **Brief:** Backend now gives every chapter `deviceFrame: "iphone" | "android"`, never null, default
