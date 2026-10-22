@@ -16,6 +16,28 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 005221026 — 2026-10-22 16:42 — PideTaxi: ten [cld] ids mapped to Figma frames for review; 8 have candidates, the 2 Website ids cannot be captured here
+
+**Brief:** Research only. Map the ten PideTaxi `[cld]` ids to source frames and make a contact sheet for Moataz. No Cloudinary upload, no Notion or Supabase writes, no commit. This follows `001211026`, which stopped on the same ambiguity.
+**Spec read:** the `[alt]` text on the three EN chapter pages in Notion (iOS `3e3d4c6d…814b`, Android `…81e8`, Website `…819b`). The iOS page's Notes say its images come from the `iOS, Face-lift` page.
+**Figma access:** the iOS file `LurAiVLk0p1ycCUUa1KrcW` and the Android file `ALDzelqPZ8E4CulYZyXpgu` both answered, with no Starter-limit error. Calls used: 1 session, 6 metadata, 16 screenshots at maxDimension 400.
+**Mapping** (best candidate first; all iOS frames are 375x812, all Android frames 360x720):
+- `iOS/booking-payment`: **`0:10756` A12, Face-lift. High confidence.** Pickup and destination are set (Carrer de Roger de Flor, Carrer de Bailen). The sheet lists Cash, Tarjeta TPV, Subscriber 1, Subscriber 2 and Mastercard. Second: `0:3592` "Choose Payment" on page `iOS`. Its sheet is the same, but the destination is **empty**, which contradicts the alt.
+- `iOS/payment-methods`: **`0:13980` D01, Face-lift. High.** "Payment details" lists Subscriber, Master Card and Visa, with a + button. Second: `0:14087` D02, the same screen with a Remove/Edit row showing. Rejected: `0:14196`, which has no subscriber.
+- `iOS/on-the-way`: **`0:11623` B01, Face-lift. High.** It shows the Barcelona map, a route drawn to the pickup, "(2 min)", and the driver's photo, name (Anaru Hakopa), star rating and a call button. Second: `0:5477` "Taxi On the way" on page `iOS`. It has no rating and no visible route line.
+- `iOS/login`: **`0:9635` A01, Face-lift. High.** It shows the logo, email, password, "Forgot password?", Facebook and Google. Second: `0:2` "Login" on page `iOS`, which matches equally well.
+- `iOS/signup-password`: **`0:10063` A05, Face-lift. Medium.** It has one field and one button, but the subtitle on the frame reads **"Please ser your password"** (a typo). Alternative: `0:1297` "Set Password" on page `iOS`, with correct text and the iOS status bar.
+- `Android/no-destination`: `0:13013` "No Destination - Ride now" (Ride now active, Mastercard, plus an "Active Promo" pill) or `0:12807` "No Destination" (Ride now **greyed**). Medium.
+- `Android/defined-destination`: `0:13126` "Defined Destination - Ride now" (Ride now active, but it adds a route, a fare/distance/ETA row and an "Add Promo code" pill) or `0:12910` "Defined Destination" (heart present, Ride now greyed, otherwise identical to `0:12807`). Medium. **This is a pairing question.** `12807`/`12910` fit the caption's "changes nothing else", and in both Ride now looks disabled. `13013`/`13126` fit "Ride now available", but the destination state changes more than one line.
+- `Android/on-the-way`: **`0:17024` "Taxi on the way". High.** It shows the map, the route, a call button, the driver's photo and name, and a "Cancel" text action in the corner, which matches the caption. Second: `0:17115`, the extended sheet.
+- `Website/hero`, `Website/features`: **not captured.** `curl -I https://pidetaxi.es` and `https://www.pidetaxi.es` both get `CONNECT tunnel failed, response 403` from the sandbox egress proxy. I did not work around it. Neither screen is in either Figma file.
+**Styling evidence:** most `iOS, Face-lift` frames carry an **Android** status bar (■●▼ top right) and Material styling (A05, A12, B01, D01). Only A01 shows the iOS "9:41" bar. The page `iOS` (`0:1`) frames all carry the iOS bar. So following Notion's Notes (Face-lift) means the "iOS" chapter shows Android-looking chrome.
+**Render warning:** in the Android renders several text layers come out blank or mis-wrapped: the address fields in `12807` and `13013`, the estimate pill in `17024`, and "Carrer de Roger…" breaking word by word in `12910` and `13126`. That looks like a font missing on Figma's render side. If so, an export through the same route would carry the same defect. I did not test this at full size.
+**Deliverable:** `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/pidetaxi/pidetaxi-contact-sheet.png` (960x4390). The sheet is outside the repo.
+**Commits:** none (the brief said do not commit). **Pushed:** no. **Deployed:** no. Cloudinary, Notion, Supabase: not touched.
+**Not verified:** the pages `Hybrid` and `Service on the fly`, which I did not search to save calls. Whether the blank Android text survives a 2x export. Any pixel-level comparison.
+**Open questions (returned):** 1. iOS source: Face-lift (Android chrome, matches the alt best) or page `iOS` (iOS chrome)? 2. `signup-password`: A05 carries the "ser" typo; use `0:1297` instead? 3. Android booking pair: `12807`/`12910` or `13013`/`13126`? 4. Website: a hand capture from Moataz, or allow `pidetaxi.es` through the proxy?
+
 ## 001221026 — 2026-10-22 07:59 — Kshemam: all six screens in Cloudinary at 720x1600
 
 **Third entry for this task.** The 07:49 and 07:46 entries below stand as written. Their open question is answered: Moataz moved Kshemam to his Pro team, and the new file is `486ARxBNbpqQouWLMdHCqD`. The old Starter-team file was not used.
