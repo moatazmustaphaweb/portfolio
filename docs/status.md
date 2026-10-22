@@ -37,6 +37,55 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001221026 - 2026-10-22 - Kshemam: interviewed, written in both languages, six screens, synced
+
+**Task id `001221026`** (interview opened as `003211026`). Phase 2, second mini case file. PideTaxi
+is parked: its iOS frames need mapping and its website shots need capturing.
+
+### Decided in the interview, one question at a time
+
+Moataz designed all of the UX and UI; the IoT-for-eldercare idea existed before him. India, Android
+only, published on Google Play and running his design in full (later changes graphic only).
+**No award** — every note said "award-winning" and nothing sources it; removed, including the
+Notion `Purpose`. **No numbers**, so no results table. No year, no team. The emergency number on
+the design (111) is a placeholder and is not shown or written.
+
+Four decisions, in this order: **the app declares the emergency itself** (his proposal, past a brief
+that asked only for an alert: "Do you feel okay?", 60-second countdown, shipped) · **the circle
+hears at once**, symptoms included, calling services stays the user's · **the home names the
+cause** (Rest / In Risk, the readings outlined) · **no device needed** (patient and carer are one
+person; a follower enters without a band). One cover, one chapter `kshemam/android`.
+
+### Done
+
+- **Notion** (content): cover `3b3d4c6d…b4d6` + AR `401d4c6d…ef56`; chapter `401d4c6d…05d6` + AR
+  `401d4c6d…2240`. One sentence corrected after review: the objective said "does not answer the
+  phone" — there is no phone call; now "cannot answer", in both languages.
+- **Cloudinary** (devops): six screens at 720x1600 under `Kshemam/Android/…`. Route: Figma
+  `download_assets` at scale 2 → Cloudinary fetches the temporary URL server-side; this sandbox
+  reaches neither host directly. `do-you-feel-okay` was overwritten once (1x → 2x) with approval.
+- **Supabase**: Moataz ran `npm run sync:notion -- --only=kshemam` locally — failed 0, decisions
+  4 en / 4 ar, the dry-run "Chapter 1. names no chapter" notice gone. `--only=kshemam` keeps
+  PideTaxi's ten unuploaded images out of `media`.
+- **Dimensions**: migration `0061` (six rows, guarded on NULL) — **applied by Moataz in the SQL
+  editor**, not by the migration runner; verified: all six 720x1600.
+
+### What cost time, and is worth knowing
+
+- **Figma MCP limits are per FILE's team, not per user.** Kshemam sat in a Starter team (6 calls a
+  month) and ran out mid-upload; Moataz moved it to ONEBRAIN (Pro). New file key
+  `486ARxBNbpqQouWLMdHCqD`. The Notion Notes still cite the old key.
+- **`get_screenshot` never upscales** — `maxDimension` only caps. 2x needs `download_assets`.
+- **This session cannot reach the portfolio database.** The Supabase connector is bound to the
+  Dabbler org, and rebinding it would break Dabbler. Environment variables are visible to anyone on
+  the environment and are not for keys. Open: whether Network secrets can serve the sync.
+
+### Not verified
+
+- `/work/kshemam` rendering — needs the `nightly` build this entry ships with.
+- Entry handles linked to the chapter: the real-run notice is gone, but no query confirmed it.
+- Visual review is Moataz's.
+
 ## 001230926 - 2026-09-23 - Preview builds now, and decision 059 no longer describes reality
 
 **Task id `001230926`.** First of 2026-09-23. No content changed; this is environment work.
