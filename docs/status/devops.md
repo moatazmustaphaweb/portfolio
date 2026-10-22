@@ -16,6 +16,16 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 006221026 — 2026-10-22 19:09 — `.github/workflows/sync-notion.yml` written; manual trigger, three secrets; not committed
+
+**Brief:** Write a GitHub Actions workflow that runs the Notion → Supabase sync. Moataz approved it: manual trigger only, reading exactly `NOTION_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The brief said write files only. The orchestrator commits after review.
+**File:** `.github/workflows/sync-notion.yml`. It runs only on `workflow_dispatch`, on the dispatched ref, with inputs `only` (string → `--only=<v>`), `dry_run` (bool → `--dry-run`) and `all` (bool → `--all`). Inputs reach the shell through `env:` only. The script builds an argv array from them, so they are never interpolated into the script text. It sets `permissions: contents: read`, concurrency group `sync-notion` with `cancel-in-progress: false`, and `timeout-minutes: 20`. Checkout uses `persist-credentials: false`. Node 22 runs `npm ci` with the npm cache. The step runs `npx tsx --conditions=react-server scripts/sync-notion.ts` directly, with the three secrets in step `env:` only. Nothing is written to disk or echoed.
+**Secrets read: exactly three.** I checked the import graph. `scripts/sync-notion.ts` reads `NOTION_API_KEY` (line 130). Its only other env-reading import is `lib/supabase/server.ts`, loaded lazily, which reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. `lib/sync/*`, `lib/content/image-refs.ts` and `lib/media/{device-frame,image-layout}.ts` read no env. The sync stores Cloudinary `public_id`s only and makes no Cloudinary call, so it needs no cloud name. `NEXT_PUBLIC_SUPABASE_ANON_KEY` is read only by `lib/supabase/client.ts`, which the sync does not import.
+**Verified:** the YAML parses with python `yaml.safe_load`, and the `on` key is `workflow_dispatch` only. With no env, `--dry-run` exits 1 with `NOTION_API_KEY is not set.` Importing `lib/supabase/server` exits 1 with `NEXT_PUBLIC_SUPABASE_URL is not set` when that is unset, and with `SUPABASE_SERVICE_ROLE_KEY is not set` when only that is unset. I simulated the run step's argument building in bash. With no inputs it passes no args. With all inputs set it passes `--dry-run --all --only=foo`. A hostile `only` value (`x"; rm -rf / #$(id)`) arrives as one literal argv element and is not evaluated.
+**Not verified:** the workflow has not run on GitHub. It is not committed and the secrets may not exist in the repo yet. The Node version is an assumption: nothing in the repo pins one (no `.nvmrc`, no `engines`), so I chose 22, which matches the local runtime. I did not check Vercel's Node setting. I did not run a real sync or a dry run with credentials.
+**Commits:** none, as the brief said. **Pushed:** no. **Deployed:** no.
+**Open questions:** none.
+
 ## 005221026 — 2026-10-22 17:04 — PideTaxi Android retry: 13013 still broken after the font fix; nothing uploaded
 
 **Third entry for this task.** The 16:53 and 16:42 entries below stand as written.

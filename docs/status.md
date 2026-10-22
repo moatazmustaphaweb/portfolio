@@ -37,7 +37,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
-## 006221026 - 2026-10-22 - Sync on GitHub Actions: stopped at the permission gate
+## 006221026 - 2026-10-22 - Sync on GitHub Actions: workflow written, not yet runnable
 
 **Task id `006221026`.** Moataz said "ok" to running the Notion sync from a GitHub Actions workflow
 (manual trigger, repo secrets for Notion and the Supabase service key), so the session can trigger
@@ -49,6 +49,16 @@ it and he never runs it by hand.
 - **Needs Moataz's explicit approval** of exactly this: a workflow file in the repo that reads
   `NOTION_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from GitHub repo
   secrets and writes to the production database when triggered.
+- **Approved by Moataz, then written** (devops): `.github/workflows/sync-notion.yml`, manual
+  trigger only, inputs `only` / `dry_run` / `all` passed through `env:` (no `${{ }}` in the shell),
+  the three secrets in the step env only, `contents: read`, one sync at a time. devops traced every
+  import: those three are sufficient; the sync never calls Cloudinary. `.github/**` is now devops's
+  row in `docs/agents.md`.
+- ⚠️ **GitHub only dispatches a `workflow_dispatch` workflow that exists on the default branch
+  (`main`).** On `nightly` alone it cannot be triggered. Getting it onto `main` is Moataz's call.
+
+**Not verified:** never run on GitHub; the three secrets are not yet in the repo; Node 22 is
+assumed (nothing pins it).
 
 ## 005221026 - 2026-10-22 - PideTaxi images: iOS in, Android waits on a hand export
 

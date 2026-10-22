@@ -125,6 +125,7 @@ writer or says **UNOWNED** in full.
 | **`.claude/agents/*.md`** | **write** | read | read | read | read |
 | **`.claude/skills/**`** | **write** | read | read | read | read |
 | **`.claude/settings*.json`, `.mcp.json`, hook config** | read | read | read | **write** | read |
+| `.github/**` — CI workflows, including the Notion sync workflow (added `006221026`) | read | read | read | **write** | read |
 | `supabase/**` outside `migrations/` | read | read | **write** | read | read |
 | `designs/` | read | **write** | read | read | read |
 | `Image mapping/` | read | read | read | read | **write** |

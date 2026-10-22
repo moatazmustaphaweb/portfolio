@@ -1,0 +1,74 @@
+# Notion -> Supabase sync, run by hand from the Actions tab.
+#
+# Approved by Moataz in task 006221026: manual trigger only, exactly three
+# repository secrets. This writes to the PRODUCTION database unless dry_run is
+# ticked. Do not add triggers or secrets here without a new decision from him.
+#
+# Runs scripts/sync-notion.ts directly rather than `npm run sync:notion`, because
+# that script passes --env-file=.env.local, which does not exist on a runner.
+# The secrets are handed to the process through env only — never written to disk
+# and never echoed.
+
+name: Sync Notion to Supabase
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Restrict the chapter section pass to chapters matching this substring (--only=<value>). Leave empty for all."
+        type: string
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run: report every create/update/skip, write nothing (--dry-run)."
+        type: boolean
+        required: false
+        default: false
+      all:
+        description: "Include layers beyond MVP-1 (--all)."
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-notion
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the dispatched ref
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run the sync
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INPUT_ONLY: ${{ inputs.only }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_ALL: ${{ inputs.all }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=("--dry-run"); fi
+          if [ "$INPUT_ALL" = "true" ]; then args+=("--all"); fi
+          if [ -n "$INPUT_ONLY" ]; then args+=("--only=$INPUT_ONLY"); fi
+          echo "Ref: $GITHUB_REF_NAME  Args: ${args[*]:-(none)}"
+          npx tsx --conditions=react-server scripts/sync-notion.ts "${args[@]}"
