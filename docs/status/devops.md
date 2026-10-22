@@ -16,6 +16,28 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 005221026 — 2026-10-22 16:53 — PideTaxi: 5 iOS screens in Cloudinary at 750x1624; Android held back on a render defect
+
+**Second entry for this task.** The 16:42 entry below stands as written. Moataz answered three of its four questions: Face-lift for iOS, A05 (he fixed the typo in Figma), and `13013`/`13126` for Android. The Website question was not part of this brief.
+**Brief:** Upload 8 app screens at 2x. Route: `download_assets` (png, scale 2), then the `export` URL straight into Cloudinary `upload-asset`. Full path in `public_id`, `display_name` = last segment, `asset_folder` empty, `overwrite:false`. Gate: export Android `13013` first and inspect it at full size. If the text is broken, upload none of the three Android frames. Inspect each iOS frame before upload.
+**Pre-check:** `search-assets public_id:PideTaxi*` returned 0 before the first upload.
+**Inspection route changed, and it matters:** the sandbox proxy refuses `www.figma.com` (curl 403) and `res.cloudinary.com`. So **no export file could be downloaded or opened here.** Instead I inspected `get_screenshot` renders of the same nodes at their natural size (375x812 iOS, 360x720 Android). Those renders were saved locally and cropped. They come from Figma's renderer at 1x. They are **not** the 2x export files.
+**Android gate: failed. None of the three uploaded.** In `13013`, both address boxes are empty. Their text appears as clipped fragments (`▪ ▪▪ ▪▪`, `.....`) sitting under the boxes. The blue pill above the pin is empty. This is the same defect the 16:42 entry reported, still present. Crops: `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/pidetaxi/defect-13013-address-fields.png` and `.../defect-13013-eta-pill.png`. One 2x export of `13013` was made (219,065 bytes) and not uploaded. `13126` and `17024` were not exported.
+**A05 check:** the render reads **"Please set your password"** (crop: `.../check-10063-subtitle.png`).
+**Uploaded and verified** (`get-asset-details`; every stored byte count equals the export's `sizeBytes`; all 750x1624 png, `asset_folder` empty):
+- `PideTaxi/iOS/booking-payment` ← `0:10756` A12. Asset `258b560816f9a80cbff354e9d4f899ed`, 129,981 bytes.
+- `PideTaxi/iOS/payment-methods` ← `0:13980` D01. Asset `186703cae8dc953e62f6e888597fc4cb`, 33,539 bytes.
+- `PideTaxi/iOS/on-the-way` ← `0:11623` B01. Asset `116a6d1d0bf692a331763979ffcd9e70`, 594,049 bytes.
+- `PideTaxi/iOS/login` ← `0:9635` A01. Asset `d8b260e949dd650060b1ff6a601d3b9c`, 59,122 bytes.
+- `PideTaxi/iOS/signup-password` ← `0:10063` A05. Asset `2f40b6f90c4122ffd97dbdf8ce3eb294`, 42,251 bytes.
+**One irregularity, and it is mine:** on `signup-password` I added `ocr: adv_ocr` to read the subtitle off the real export. The call returned an error ("no active subscription for OCR"), **but it had already stored the asset**. The plain retry came back `existing:true`. The stored asset has one version, its bytes equal that export, and it was fetched from the same export URL. The content is right, but an error response from this tool does not mean nothing was written.
+**Set now:** `search-assets public_id:PideTaxi*` returns exactly 5.
+**Contact sheet:** `/tmp/claude-0/-home-user-portfolio/37432f93-ffd7-595b-90e1-fb93589f6bdb/scratchpad/pidetaxi/uploaded.png` (2019x946). It is built from the 1x renders above, because the export files cannot be fetched here. The sheet says so on its face.
+**Commits:** this entry only, local, no trailer. **Pushed:** no. **Deployed:** no. Notion, Supabase, sync: not touched. No URL was written to any file.
+**Not verified:** the 2x export files themselves, opened by eye. Whether the Android defect also appears in a 2x export; only the 1x render was looked at. How the five look through the site's presets and `PhoneFrame`. They render only after the PideTaxi `[cld]` tags are synced. Derivatives are not warmed.
+**Content note for Moataz, not acted on:** D01 shows `gnicholson1k@clickbank.net` under Subscriber. It looks like generated dummy data, but it is a real-looking domain on a public page.
+**Open (returned):** the three Android screens. Options: a hand export from Figma desktop, where the font is installed; installing the missing font in the file; or the page `iOS` frames. The Website pair is still open from 16:42.
+
 ## 005221026 — 2026-10-22 16:42 — PideTaxi: ten [cld] ids mapped to Figma frames for review; 8 have candidates, the 2 Website ids cannot be captured here
 
 **Brief:** Research only. Map the ten PideTaxi `[cld]` ids to source frames and make a contact sheet for Moataz. No Cloudinary upload, no Notion or Supabase writes, no commit. This follows `001211026`, which stopped on the same ambiguity.
