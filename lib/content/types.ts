@@ -1,4 +1,5 @@
 import type { Enums, Tables } from "@/lib/supabase/database.types";
+import type { DeviceFrame } from "@/lib/media/device-frame";
 
 /**
  * Domain types for the content layer.
@@ -20,6 +21,7 @@ export type TargetStatus = Enums<"target_status">;
 export type Grammar = Enums<"grammar_type">;
 export type EntityType = Enums<"entity_type">;
 export type NavLocation = Enums<"nav_location">;
+export type { DeviceFrame } from "@/lib/media/device-frame";
 
 export const LOCALES = ["en", "ar"] as const;
 export const DEFAULT_LOCALE: Locale = "en";
@@ -125,6 +127,16 @@ export type Decision = Tables<"decisions"> & {
 };
 
 export type Chapter = Tables<"chapters"> & {
+  /**
+   * Which phone frame this chapter's portrait screenshots get (task
+   * `003221026`, migration 0062). Authored in Notion as `Device`; never null
+   * here — `deviceFrameOrDefault` turns a missing or NULL `device_frame` into
+   * `"iphone"`, which is what an empty `Device` means by decision.
+   *
+   * Read THIS, not the raw `device_frame` column: the column is absent from
+   * the row until 0062 is applied, and this field is not.
+   */
+  deviceFrame: DeviceFrame;
   /** Which locale supplied each field — decision 053. */
   fieldLocales: FieldLocales;
   /**

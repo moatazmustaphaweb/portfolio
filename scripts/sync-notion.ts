@@ -65,6 +65,7 @@ import {
 } from "@/lib/sync/image-tags";
 import { formatImageRef } from "@/lib/content/image-refs";
 import { describeDrops, sift, type Sifted } from "@/lib/sync/sift";
+import { readDeviceProperty, resolveDeviceFrame, type DeviceRead } from "@/lib/sync/device-frame";
 import {
   parsePageSections,
   routeToPageKey,
@@ -146,6 +147,13 @@ type Row = {
   bilingual: string | null;
   order: number | null;
   kind: EntityKind;
+  /**
+   * The `Device` property, read but not yet decided on (task `003221026`).
+   * Only chapter-like rows use it; `resolveDeviceFrame` in Pass 2 turns it
+   * into `chapters.device_frame` and reports anything that is not iPhone or
+   * Android.
+   */
+  device: DeviceRead;
   parent?: string;
   /** The title with its kind prefix removed, from `classifyTitle`. */
   name?: string;
@@ -284,6 +292,7 @@ async function fetchRows(): Promise<Row[]> {
         buildLayer: selectName(props["Build Layer"]),
         bilingual: selectName(props["Bilingual"]),
         order: numberProp(props["Order"]),
+        device: readDeviceProperty(props["Device"]),
         kind: classification.kind,
         parent: classification.parent,
         /*
@@ -1937,6 +1946,46 @@ async function main() {
     }
   }
 
+  /*
+   * `chapters.device_frame` (migration 0062) must exist before Pass 2 writes
+   * it. Checked HERE, before anything is written, so a database that has not
+   * had 0062 applied refuses the whole run with an instruction — rather than
+   * failing every chapter upsert one by one with a raw PostgREST "column not
+   * found in the schema cache", after the case files have already been written.
+   *
+   * A dry run writes nothing, so it warns and carries on: previewing is exactly
+   * what someone does before applying a migration.
+   */
+  {
+    const { error } = await (await db()).from("chapters").select("device_frame").limit(1);
+    if (error) {
+      const message =
+        `chapters.device_frame is not readable (${error.message}).\n` +
+        "  Apply supabase/migrations/0062_chapter_device_frame.sql first, in the\n" +
+        "  Supabase SQL editor, then re-run the sync.";
+      if (!DRY_RUN) {
+        console.error(message);
+        process.exit(1);
+      }
+      console.log(`WARNING — ${message}\n  (dry run: continuing; nothing is written)\n`);
+      notices.push("chapters.device_frame is missing — apply migration 0062 before a live sync.");
+    }
+  }
+
+  /*
+   * One line, once, when NO row on the database carries a `Device` property —
+   * the state before content adds it. Every chapter then defaults to iphone,
+   * which is correct by decision; the line is here so the property being
+   * missing, misspelled (`Devices`) or renamed reads as a fact rather than as
+   * nothing. Per-row absence is not reported: it is the same fact repeated.
+   */
+  if (all.length > 0 && all.every((r) => r.device.state === "absent")) {
+    notices.push(
+      "No `Device` property on the Notion database — every chapter's device_frame is iphone. " +
+        "Expected until the property is added (select: iPhone | Android).",
+    );
+  }
+
   /* ---- Pass 1: case files ---------------------------------------------- */
 
   const caseFileIdBySlug = new Map<string, string>();
@@ -2139,8 +2188,15 @@ async function main() {
       continue;
     }
 
+    /*
+     * The phone frame, decided once per row for both paths. An unrecognised
+     * `Device` value is defaulted AND reported — see lib/sync/device-frame.ts.
+     */
+    const device = resolveDeviceFrame(row.device);
+    if (device.problem) notice(row.title, `${row.title}: ${device.problem}`);
+
     if (DRY_RUN) {
-      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}`);
+      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}`);
       updated.push(`chapter ${caseFile}/${slug}`);
 
       /*
@@ -2198,6 +2254,9 @@ async function main() {
           sort_order: row.order ?? 0,
           kind: (row.kind === "chapter" ? "chapter" : row.kind) as never,
           status: (row.contentReady === "Done" ? "published" : "draft") as never,
+          // Migration 0062. Written on every run, so clearing `Device` in
+          // Notion returns a chapter to iphone rather than leaving it stuck.
+          device_frame: device.frame,
         },
         { onConflict: "case_file_id,slug" },
       )
@@ -2210,6 +2269,9 @@ async function main() {
     }
 
     updated.push(`chapter ${caseFile}/${slug}`);
+    // Same line the dry run prints, so a live run's output can be diffed
+    // against its preview (docs/learn.md Part 5, "absence is invisible").
+    console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}`);
 
     const body = await readBody(row.id);
     await upsertTranslations(

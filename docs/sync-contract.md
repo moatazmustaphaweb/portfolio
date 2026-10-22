@@ -51,6 +51,7 @@ The `Page` property encodes the entity type in its prefix. Parse it:
 | `In MVP-1` | *(filter only)* | `__YES__` → include in the MVP-1 sync |
 | `Content ready` | `status` | `Done` → `published`; anything else → `draft` |
 | `Bilingual` | *(sync hint)* | `EN + AR full` → expect both; `EN first / AR later` → English only, no warning |
+| `Device` | `chapters.device_frame` | **Chapter rows only** (task `003221026`, migration 0062). Select (or text, status, a single multi-select option — any is read). Case-insensitive, trimmed: `Android` → `android`; `iPhone` → `iphone`; **empty → `iphone`, silently, by decision**. Any other value (`Pixel`, `iOS`, two options) → `iphone` **and a NOTICE naming the chapter and the value** — never silently mapped. A property missing from the database entirely is not an error: every chapter gets `iphone` and the run prints ONE notice saying the property is absent. Written on every upsert, so clearing it returns a chapter to `iphone`. The resolved value is printed on every chapter line, dry run and live: `chapter   kshemam/<slug>  device=android`. The sync checks for the column at start-up: a live run against a database without 0062 **exits before writing anything**, telling you to apply it; a dry run warns and continues |
 | `Est. Days`, `Blockers`, `Development Status`, `Header`, `Footer`, `Purpose`, `Required Content`, `Notes` | *(not synced)* | project-management metadata, stays in Notion |
 
 **`Required Content` is a checklist for the human, not content.** Never sync it as page copy.

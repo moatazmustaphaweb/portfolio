@@ -383,6 +383,8 @@ export type Database = {
           status: Database["public"]["Enums"]["content_status"];
           hero_media_id: string | null;
           kind: Database["public"]["Enums"]["chapter_kind"];
+          /** Migration 0062. From the Notion property `Device`; see lib/media/device-frame.ts. */
+          device_frame: "iphone" | "android";
           created_at: string;
           updated_at: string;
         };
@@ -391,6 +393,7 @@ export type Database = {
           case_file_id: string;
           slug: string;
           kind?: Database["public"]["Enums"]["chapter_kind"];
+          device_frame?: "iphone" | "android";
           sort_order?: number;
           status?: Database["public"]["Enums"]["content_status"];
           hero_media_id?: string | null;

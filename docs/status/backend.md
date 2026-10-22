@@ -16,6 +16,47 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 003221026 — 2026-10-22 12:38 — `chapters.device_frame` from the Notion `Device` property: migration 0062 written (NOT applied), sync + lib/content wired, unit-tested
+
+**Brief:** Moataz decided the phone frame for a chapter's screenshots is authored per chapter
+as the Notion property `Device` (`iPhone` | `Android`, empty = iPhone). Add the column, read
+it in the sync (select or text, case-insensitive, unknown values reported as a notice, dry run
+prints it per chapter, a missing property must not crash, explicit "apply 0062 first" when the
+column is absent), expose `deviceFrame` from `lib/content` for frontend, update the two docs.
+
+**Files:** `supabase/migrations/0062_chapter_device_frame.sql` (new, **NOT APPLIED** — this
+session cannot reach the portfolio database) · `lib/media/device-frame.ts` (new: the one
+vocabulary, `DeviceFrame`, `deviceFrameOrDefault`) · `lib/sync/device-frame.ts` (new, pure:
+`readDeviceProperty`, `resolveDeviceFrame`) · `scripts/sync-notion.ts` (Row gains `device`;
+start-up column check; Pass 2 resolves, notices, prints `device=` on both paths, writes
+`device_frame` in the upsert) · `scripts/test-sync-logic.ts` (18 new checks) ·
+`lib/supabase/database.types.ts` (hand-added `device_frame`; not regenerated — no DB access) ·
+`lib/content/types.ts` (`Chapter.deviceFrame`) · `lib/content/chapters.ts` (`getChapter`) ·
+`lib/content/case-files.ts` (cover's `chapters` / `pages`) · `docs/schema.md` ·
+`docs/sync-contract.md` · this entry. Nothing committed.
+
+**Decisions taken inside the brief, named so they can be overruled:** `text` + CHECK, not an
+enum (follows `cover_kind` 0026). A live sync against a DB without 0062 now **exits before Pass
+1** — whole run refused, not per-chapter failures after case files were written; a dry run warns
+and continues. A database with no `Device` property at all produces **one** run-level notice,
+not one per chapter. `iOS`, `Pixel`, two multi-select options, or a non-text property type →
+`iphone` plus a notice.
+
+**Measured:** `npm run test:sync` → 121 PASS, 0 FAIL (18 of them new). `npx tsc --noEmit` →
+exit 0, no output. `npx eslint` on the 8 touched TS files → 0 errors (1 warning: the generated
+types file is eslint-ignored).
+
+**Verified:** the pure mapping (Android/iPhone/empty/absent/unknown/unsupported type/content
+default) by test; the sync script type-checks and starts (stops at the missing
+`NOTION_API_KEY`, as it must in this sandbox).
+
+**Not verified:** 0062 has not been run against any database. No sync — dry or live — has run
+against Notion with this code. No page was opened; `deviceFrame` reaching a render is
+frontend's, and nothing renders it yet. The start-up check's exact PostgREST error text for a
+missing column was not observed, only that any error on `select device_frame` triggers it.
+
+**Open questions:** none.
+
 ## 001221026 — 2026-10-22 — Kshemam measurement BLOCKED: the portfolio database is not reachable from this session; 0061 written, NOT applied
 
 **Brief:** after Moataz's live `sync:notion --only=kshemam` (0 created / 30 updated / 0 failed),

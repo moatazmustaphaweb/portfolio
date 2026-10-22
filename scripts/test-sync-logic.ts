@@ -30,6 +30,8 @@ import {
   parsePageSections,
   routeToPageKey,
 } from "@/lib/sync/static-pages";
+import { readDeviceProperty, resolveDeviceFrame } from "@/lib/sync/device-frame";
+import { deviceFrameOrDefault } from "@/lib/media/device-frame";
 
 let failures = 0;
 
@@ -582,6 +584,44 @@ eq("an alias cannot overwrite a slug already claimed", aliasCollision.sections.m
 // No alias map at all is the normal case: four of the five pages have none.
 const noAliases = parsePageSections([{ heading: "Now", lines: ["Body."] }], "About");
 eq("no alias table leaves the derived slug alone", noAliases.sections[0].slug, "now");
+
+/* ------------------------------ chapter Device -> device_frame (0062) ---- */
+
+console.log("\nChapter Device property (task 003221026)");
+
+const sel = (name: string | null) => ({ type: "select", select: name === null ? null : { name } });
+const txt = (text: string) => ({ type: "rich_text", rich_text: text ? [{ plain_text: text }] : [] });
+const frameOf = (prop: unknown) => resolveDeviceFrame(readDeviceProperty(prop));
+
+eq("select Android -> android", frameOf(sel("Android")), { frame: "android", problem: null });
+eq("select iPhone -> iphone", frameOf(sel("iPhone")), { frame: "iphone", problem: null });
+eq("case-insensitive and trimmed", frameOf(sel("  ANDROID ")).frame, "android");
+eq("text Android -> android", frameOf(txt("android")), { frame: "android", problem: null });
+eq("empty select -> iphone, no notice", frameOf(sel(null)), { frame: "iphone", problem: null });
+eq("empty text -> iphone, no notice", frameOf(txt("")), { frame: "iphone", problem: null });
+
+// The property does not exist on the database yet. Must not throw.
+eq("property ABSENT reads as absent", readDeviceProperty(undefined), { state: "absent" });
+eq("property ABSENT -> iphone, no per-row notice", frameOf(undefined), { frame: "iphone", problem: null });
+
+// Defaulted AND reported — never silently mapped.
+const pixel = frameOf(sel("Pixel"));
+eq("unknown value -> iphone", pixel.frame, "iphone");
+check("unknown value IS REPORTED, naming the value", pixel.problem?.includes('"Pixel"') === true, String(pixel.problem));
+check("iOS is not silently read as iPhone", frameOf(sel("iOS")).problem !== null);
+
+const both = frameOf({ type: "multi_select", multi_select: [{ name: "iPhone" }, { name: "Android" }] });
+check("two multi_select options are reported, not chosen between", both.problem !== null, String(both.problem));
+eq("one multi_select option is read", frameOf({ type: "multi_select", multi_select: [{ name: "Android" }] }).frame, "android");
+
+const box = frameOf({ type: "checkbox", checkbox: true });
+check("an unsupported property type is reported", box.problem?.includes("checkbox") === true, String(box.problem));
+
+// Content-layer default: before 0062 the column is simply missing from the row.
+eq("content: undefined column -> iphone", deviceFrameOrDefault(undefined), "iphone");
+eq("content: null -> iphone", deviceFrameOrDefault(null), "iphone");
+eq("content: android kept", deviceFrameOrDefault("android"), "android");
+eq("content: junk -> iphone", deviceFrameOrDefault("Android"), "iphone");
 
 console.log(
   failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
