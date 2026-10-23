@@ -34,6 +34,12 @@ import { readDeviceProperty, resolveDeviceFrame } from "@/lib/sync/device-frame"
 import { deviceFrameOrDefault } from "@/lib/media/device-frame";
 import { readImageLayoutProperty, resolveImageLayout } from "@/lib/sync/image-layout";
 import { imageLayoutOrDefault } from "@/lib/media/image-layout";
+import {
+  dimensionPatch,
+  getinfoUrl,
+  needsDimensions,
+  parseGetinfo,
+} from "@/lib/sync/media-dimensions";
 
 let failures = 0;
 
@@ -661,6 +667,48 @@ eq("content: undefined layout column -> stacked", imageLayoutOrDefault(undefined
 eq("content: null layout -> stacked", imageLayoutOrDefault(null), "stacked");
 eq("content: grid kept", imageLayoutOrDefault("grid"), "grid");
 eq("content: junk layout -> stacked", imageLayoutOrDefault("Grid"), "stacked");
+
+console.log("\nMedia dimensions from Cloudinary (007231026)");
+
+// The URL: slashes kept as folder separators, everything else percent-encoded.
+eq("getinfo url, plain id",
+  getinfoUrl("vewhrkzj", "PideTaxi/iOS/booking-payment"),
+  "https://res.cloudinary.com/vewhrkzj/image/upload/fl_getinfo/PideTaxi/iOS/booking-payment");
+eq("getinfo url encodes spaces, keeps folders",
+  getinfoUrl("vewhrkzj", "Neobiz/Arabic/Post-Submit/Scheduling visit/screen (1)"),
+  "https://res.cloudinary.com/vewhrkzj/image/upload/fl_getinfo/Neobiz/Arabic/Post-Submit/Scheduling%20visit/screen%20(1)");
+check("getinfo url encodes ? and # so they cannot truncate the path",
+  !getinfoUrl("c", "a?b#c").includes("?") && !getinfoUrl("c", "a?b#c").includes("#"));
+
+// Parsing: `input` (the original) and nothing else.
+eq("parse: input read",
+  parseGetinfo({ input: { width: 750, height: 1624 }, output: { width: 375, height: 812 } }),
+  { width: 750, height: 1624 });
+check("parse: OUTPUT IS NOT A FALLBACK for a missing input",
+  "error" in parseGetinfo({ output: { width: 720, height: 1440 } }));
+check("parse: null body is an error", "error" in parseGetinfo(null));
+check("parse: string body is an error", "error" in parseGetinfo("<html>"));
+check("parse: string dimensions rejected, not coerced",
+  "error" in parseGetinfo({ input: { width: "750", height: "1624" } }));
+check("parse: zero width rejected", "error" in parseGetinfo({ input: { width: 0, height: 1624 } }));
+check("parse: fractional height rejected", "error" in parseGetinfo({ input: { width: 750, height: 1624.5 } }));
+check("parse: one dimension missing rejected", "error" in parseGetinfo({ input: { width: 750 } }));
+
+// When to fetch.
+check("needs: no row yet", needsDimensions(null));
+check("needs: both NULL", needsDimensions({ width: null, height: null }));
+check("needs: height NULL only", needsDimensions({ width: 750, height: null }));
+check("needs: width NULL only", needsDimensions({ width: null, height: 1624 }));
+check("needs: both set -> NO fetch", !needsDimensions({ width: 750, height: 1624 }));
+
+// NEVER OVERWRITE a non-NULL dimension.
+const fetched = { width: 720, height: 1440 };
+eq("patch: new row gets both", dimensionPatch(null, fetched), { width: 720, height: 1440 });
+eq("patch: both NULL gets both", dimensionPatch({ width: null, height: null }, fetched), { width: 720, height: 1440 });
+eq("patch: width set -> ONLY height written", dimensionPatch({ width: 786, height: null }, fetched), { height: 1440 });
+eq("patch: height set -> ONLY width written", dimensionPatch({ width: null, height: 1700 }, fetched), { width: 720 });
+eq("patch: both set -> NOTHING written, even when Cloudinary disagrees",
+  dimensionPatch({ width: 786, height: 1700 }, fetched), null);
 
 console.log(
   failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,

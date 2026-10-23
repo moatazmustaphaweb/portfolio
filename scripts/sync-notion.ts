@@ -76,6 +76,15 @@ import {
   routeToPageKey,
   stripArabicScaffolding,
 } from "@/lib/sync/static-pages";
+import {
+  dimensionPatch,
+  getinfoUrl,
+  needsDimensions,
+  parseGetinfo,
+  type Dimensions,
+  type StoredDimensions,
+} from "@/lib/sync/media-dimensions";
+import { CLOUDINARY_CLOUD_NAME } from "@/lib/media/cloud";
 
 /**
  * Static pages whose content is ordered prose in Notion.
@@ -1210,6 +1219,155 @@ function resolveChapterSections(
   return { sections, failures };
 }
 
+/* ------------------------------------------------- media dimensions (007231026) */
+
+/**
+ * Fill NULL `media.width` / `media.height` from Cloudinary, on every run.
+ *
+ * Until task `007231026` the sync created media rows with no dimensions, and a
+ * figure with no dimensions renders with NO DEVICE FRAME — the frame is chosen
+ * from the picture's aspect ratio. Migrations 0060 and 0061 backfilled by hand;
+ * this is the permanent replacement for that hand step.
+ *
+ * The rules, all enforced here or in `lib/sync/media-dimensions.ts`:
+ *   - fetched only when the row is new or either column is NULL;
+ *   - a non-NULL dimension is NEVER overwritten (the patch omits it, and the
+ *     UPDATE is additionally conditioned on the column still being NULL);
+ *   - a failed fetch never fails the sync — it is a NOTICE naming the public
+ *     ID, because the row itself is fine and only the frame is missing;
+ *   - one fetch per public ID per run (both locales reference the same row);
+ *   - a dry run may fetch, writes nothing, and reports what it would set;
+ *   - every row that gets dimensions is printed in the summary, so a run that
+ *     set none says so rather than saying nothing.
+ */
+const DIMENSION_TIMEOUT_MS = 8000;
+
+type DimensionFetch = Dimensions | { error: string };
+
+const dimensionFetches = new Map<string, Promise<DimensionFetch>>();
+const dimensionsHandled = new Set<string>();
+const dimensionsSet: string[] = [];
+
+function fetchDimensions(publicId: string): Promise<DimensionFetch> {
+  const cached = dimensionFetches.get(publicId);
+  if (cached) return cached;
+
+  const pending = (async (): Promise<DimensionFetch> => {
+    try {
+      const res = await fetch(getinfoUrl(CLOUDINARY_CLOUD_NAME, publicId), {
+        signal: AbortSignal.timeout(DIMENSION_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        // A transform refusal carries its reason only in this header, with an
+        // empty body (docs/learn.md, "200 raw and 400 on every transform").
+        const why = res.headers.get("x-cld-error");
+        return { error: `HTTP ${res.status}${why ? ` — ${why}` : ""}` };
+      }
+      let body: unknown;
+      try {
+        body = await res.json();
+      } catch {
+        return { error: "response was not JSON" };
+      }
+      return parseGetinfo(body);
+    } catch (err) {
+      const e = err as { name?: string; message?: string; cause?: { message?: string } };
+      if (e?.name === "TimeoutError" || e?.name === "AbortError") {
+        return { error: `no response within ${DIMENSION_TIMEOUT_MS / 1000}s` };
+      }
+      // Node's fetch reports every network failure as "fetch failed"; the
+      // useful part (DNS, refused, proxy 403) is on `cause`.
+      const cause = e?.cause?.message ? ` — ${e.cause.message}` : "";
+      return { error: `${e?.message ?? String(err)}${cause}` };
+    }
+  })();
+
+  dimensionFetches.set(publicId, pending);
+  return pending;
+}
+
+/**
+ * @param mediaId  the row to update, or null when no row exists yet (dry run only)
+ * @param stored   what the row holds now; null when no row exists yet
+ */
+async function fillMediaDimensions(
+  rowTitle: string,
+  publicId: string,
+  mediaId: string | null,
+  stored: StoredDimensions,
+): Promise<void> {
+  if (!needsDimensions(stored)) return;
+  if (dimensionsHandled.has(publicId)) return;
+  dimensionsHandled.add(publicId);
+
+  const unframed = (reason: string) =>
+    notice(rowTitle,
+      `${rowTitle}: media ${JSON.stringify(publicId)} has no width/height and ` +
+        `Cloudinary did not supply them (${reason}). It renders unframed until fixed.`,
+    );
+
+  const got = await fetchDimensions(publicId);
+  if ("error" in got) {
+    unframed(got.error);
+    return;
+  }
+
+  const patch = dimensionPatch(stored, got);
+  if (!patch) return;
+
+  if (DRY_RUN || mediaId === null) {
+    dimensionsSet.push(
+      `would set dimensions ${got.width}x${got.height} for ${publicId}` +
+        (stored === null ? " (new row)" : ""),
+    );
+    return;
+  }
+
+  let q = (await db()).from("media").update(patch).eq("id", mediaId);
+  if (patch.width !== undefined) q = q.is("width", null);
+  if (patch.height !== undefined) q = q.is("height", null);
+  const { data, error } = await q.select("width, height").maybeSingle();
+
+  // Read back: a write that returns success is not evidence it landed.
+  if (error || !data) {
+    unframed(error ? `write failed: ${error.message}` : "write matched no row");
+    return;
+  }
+  if (
+    (patch.width !== undefined && data.width !== patch.width) ||
+    (patch.height !== undefined && data.height !== patch.height)
+  ) {
+    unframed(`read back ${data.width}x${data.height}, expected ${got.width}x${got.height}`);
+    return;
+  }
+  dimensionsSet.push(`set dimensions ${data.width}x${data.height} for ${publicId}`);
+}
+
+/**
+ * Dry-run counterpart of the media write: the public IDs a chapter WOULD write,
+ * looked up read-only and passed through the same dimension check.
+ */
+async function previewMediaDimensions(rowTitle: string, publicIds: ReadonlySet<string>) {
+  for (const publicId of publicIds) {
+    if (dimensionsHandled.has(publicId)) continue;
+    const { data, error } = await (await db())
+      .from("media")
+      .select("id, width, height")
+      .eq("cloudinary_public_id", publicId)
+      .maybeSingle();
+    if (error) {
+      notice(rowTitle, `${rowTitle}: could not read media row for ${JSON.stringify(publicId)} — ${error.message}`);
+      continue;
+    }
+    await fillMediaDimensions(
+      rowTitle,
+      publicId,
+      data?.id ?? null,
+      data ? { width: data.width, height: data.height } : null,
+    );
+  }
+}
+
 /**
  * Upsert one media row and its alt + caption, for ONE locale.
  *
@@ -1223,17 +1381,31 @@ function resolveChapterSections(
  * driven by `case_files.nda`, and `redacted = true` would additionally force
  * the non-cropping `redacted` preset (decision 028) for no reason.
  */
-async function upsertMedia(tag: ImageTag, locale: "en" | "ar"): Promise<string | null> {
+async function upsertMedia(
+  rowTitle: string,
+  tag: ImageTag,
+  locale: "en" | "ar",
+): Promise<string | null> {
+  /*
+   * `width` / `height` are NOT in the upsert payload, so a conflict leaves
+   * whatever the row holds untouched. They are read back here and filled from
+   * Cloudinary only where NULL — see `fillMediaDimensions`.
+   */
   const { data, error } = await (await db())
     .from("media")
     .upsert(
       { cloudinary_public_id: tag.cld, redacted: false },
       { onConflict: "cloudinary_public_id" },
     )
-    .select("id")
+    .select("id, width, height")
     .single();
 
   if (error || !data) return null;
+
+  await fillMediaDimensions(rowTitle, tag.cld, data.id, {
+    width: data.width,
+    height: data.height,
+  });
 
   await upsertTranslations("media", data.id, locale, {
     alt: tag.alt,
@@ -1345,7 +1517,23 @@ async function writeChapterSections(opts: {
     );
   }
 
-  if (DRY_RUN) return shape;
+  if (DRY_RUN) {
+    /*
+     * The media rows this chapter would write, exactly as the write path below
+     * selects them: every English prose section, and the Arabic section on the
+     * same slot. An Arabic-only slot is not written (noticed above), so its
+     * images are not previewed either.
+     */
+    const wouldWrite = new Set<string>();
+    const arWritten = ar.sections.filter((s) => enSlots.has(s.slot));
+    for (const s of [...prose, ...arWritten]) {
+      for (const p of [...s.paragraphs, ...s.tail]) {
+        if (p.kind === "image") wouldWrite.add(p.tag.cld);
+      }
+    }
+    await previewMediaDimensions(rowTitle, wouldWrite);
+    return shape;
+  }
 
   /*
    * Replace wholesale, translations first — the polymorphic-orphan trap every
@@ -1399,7 +1587,7 @@ async function writeChapterSections(opts: {
   const bodyFor = async (para: ChapterParagraph, locale: "en" | "ar"): Promise<string | null> => {
     if (para.kind === "prose") return para.text;
     if (para.kind !== "image") return null;
-    const mediaId = await upsertMedia(para.tag, locale);
+    const mediaId = await upsertMedia(rowTitle, para.tag, locale);
     if (!mediaId) {
       fail(rowTitle, `${rowTitle}: could not write media row for ${JSON.stringify(para.tag.cld)}`);
       return null;
@@ -3350,6 +3538,16 @@ async function main() {
     console.log("\nNOTICES — not failures, but check them:\n");
     for (const n of notices) console.log(`  • ${n}`);
   }
+
+  /*
+   * Printed even when empty: a run that filled nothing says "0", so a pass that
+   * stopped running is a line that changed rather than a line that vanished.
+   */
+  console.log(
+    `\nMEDIA DIMENSIONS from Cloudinary — ${DRY_RUN ? "would set" : "set"} ${dimensionsSet.length}` +
+      (dimensionsSet.length > 0 ? ":" : ""),
+  );
+  for (const d of dimensionsSet) console.log(`  ${d}`);
 
   console.log("\n─────────────────────────────────────────");
   console.log(`created  ${created.length}`);

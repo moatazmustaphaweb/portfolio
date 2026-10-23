@@ -471,7 +471,7 @@ not there. A paragraph is a tag when its first code span opens with `[cld]`.
 
 ### What the sync does with it
 
-1. Upsert a `media` row keyed on `cloudinary_public_id`, which is unique. Re-running matches the existing row and never duplicates.
+1. Upsert a `media` row keyed on `cloudinary_public_id`, which is unique. Re-running matches the existing row and never duplicates. Fill `width` / `height` from Cloudinary where NULL — see below.
 2. Write `alt` and `caption` into `translations` with `entity_type='media'`, `entity_id = media.id`, for **the locale of the page the tag was read from**.
 3. Replace the tag, in the body text stored in `translations`, with `[image:<media.id>]`.
 
@@ -480,6 +480,38 @@ not there. A paragraph is a tag when its first code span opens with `[cld]`.
 ### `redacted` is false, always
 
 `media.redacted = false` on every row this step writes. Amendment 036 supersedes 027: these are design files carrying dummy data, the NDA treatment is a grayscale *signal* driven by `case_files.nda`, and `redacted = true` would additionally force the non-cropping `redacted` preset (decision 028) for no reason.
+
+### `width` and `height` are filled from Cloudinary
+
+*Added 2026-10-23, task `007231026`.* Until this task the sync created `media` rows with
+`width` / `height` NULL, and a figure with NULL dimensions renders **with no device frame** —
+the frame is chosen from the picture's own aspect ratio. Migrations 0060 and 0061 backfilled
+by hand. That hand step is retired: the sync fills them itself.
+
+- **When:** the row is new, or either column is NULL. A row with both set is never fetched.
+- **Source:** Cloudinary's public delivery API, no credentials —
+  `https://res.cloudinary.com/<cloud>/image/upload/fl_getinfo/<public_id>`. The cloud name is
+  `CLOUDINARY_CLOUD_NAME` from `lib/media/cloud.ts`. The response's **`input`** (the original)
+  is read; `output` describes a derived image and is never a fallback.
+- **Never overwrites.** Only a NULL column is written, and the UPDATE is conditioned on it
+  still being NULL. A value already there was put there on purpose; a re-uploaded asset at a
+  new size needs its dimensions cleared before the sync will re-read them.
+- **A failure never fails the sync.** Non-200, bad JSON, no positive integer `input.width` /
+  `input.height`, or no response within 8s is a **NOTICE** naming the public ID and saying it
+  renders unframed until fixed. A non-200 carries Cloudinary's `x-cld-error` header when
+  there is one (the >25-megapixel transform ceiling refuses `fl_getinfo` too).
+- **One fetch per public ID per run**, cached; both locales share the row.
+- **Read back.** The written values are compared against what was fetched; a mismatch or a
+  write that matched no row is a NOTICE, not a success line.
+- **Dry run** fetches, writes nothing, and reports `would set dimensions WxH for <id>`.
+- **Every run prints a `MEDIA DIMENSIONS from Cloudinary — set N` block** in the summary,
+  one line per row filled, **including when N is 0**.
+
+The pure parts (URL, response parsing, the never-overwrite patch) are in
+`lib/sync/media-dimensions.ts` and covered by `npm run test:sync`.
+
+**Scope:** only rows the chapter-section pass writes in that run. A media row no `[cld]` tag in
+the run references (a cover's, or a chapter gated out by `--only`) is not touched.
 
 ### A locale references its own screens
 

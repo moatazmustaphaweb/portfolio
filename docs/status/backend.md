@@ -16,6 +16,61 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 007231026 — 2026-10-23 18:51 — the sync fills NULL `media.width`/`height` from Cloudinary `fl_getinfo`; unit-tested, NOT run against Cloudinary or the database
+
+**Brief:** `scripts/sync-notion.ts` created `media` rows with NULL dimensions, so new figures
+render with no device frame (Kshemam patched by hand in 0061; PideTaxi's 8 new screens NULL
+now). Fix it in the sync, permanently: where a row it writes is new or has a NULL dimension,
+fetch `input.width`/`input.height` from the public, credential-free
+`res.cloudinary.com/<cloud>/image/upload/fl_getinfo/<public_id>`; never overwrite a non-NULL
+value; on any failure a NOTICE naming the public ID, never a failed sync; cache per ID; small
+timeout; dry run fetches but writes nothing and reports `would set`; one printed line per row
+set. No manual SQL.
+
+**Files:** `lib/sync/media-dimensions.ts` (new, pure: `getinfoUrl`, `parseGetinfo`,
+`needsDimensions`, `dimensionPatch`) · `scripts/sync-notion.ts` (`fetchDimensions` with 8s
+`AbortSignal.timeout` and a per-run promise cache; `fillMediaDimensions` — conditional UPDATE
+`… is null` per patched column, then read-back compared against the fetch; `upsertMedia` now
+takes `rowTitle` and selects `id, width, height`; `previewMediaDimensions` on the dry-run
+branch of `writeChapterSections`, over exactly the IDs the write path would write — English
+prose sections plus Arabic on the same slot, paragraphs and tail; a `MEDIA DIMENSIONS from
+Cloudinary — set N` summary block printed even at 0) · `scripts/test-sync-logic.ts` (21 new
+checks) · `docs/sync-contract.md` (Step 6: new subsection, and step 1 of "what the sync does")
+· this entry. No migration. Nothing committed.
+
+**Measured:** `npm run test:sync` — 161 PASS, 0 FAIL, "All sync-logic checks passed." (21 of
+them new: URL encoding keeps folder slashes and encodes spaces/`?`/`#`; `input` read, `output`
+refused as a fallback, strings/zero/fractions/missing refused; fetch needed for no row / either
+NULL, not for both set; patch writes only NULL columns and returns null when both are set even
+when Cloudinary disagrees). `npx tsc --noEmit -p .` exit 0. `npx eslint` on the three code
+files exit 0, no output.
+
+**Verified:** the failure path, once, by hand: from this sandbox `res.cloudinary.com` is
+refused by the proxy (`curl: CONNECT tunnel failed, response 403`); the same `fetch` the sync
+uses rejected with `TypeError: fetch failed`, which `fetchDimensions` turns into an error
+result and therefore a NOTICE. That is why the error now appends `err.cause.message` — Node's
+bare message names no reason.
+
+**Not verified:**
+- **No successful `fl_getinfo` response has been parsed.** The `{ input: { width, height } }`
+  shape is the brief's; it was not observed from here. The real run is on GitHub Actions.
+- **No sync run at all, dry or live** — no Notion key or database from this session. The
+  conditional UPDATE, the read-back, and the dry-run read of `media` have only been typechecked.
+- **PideTaxi's 8 rows are still NULL** until the next real sync run touches their chapters. If
+  a run uses `--only=` excluding them, they stay NULL. After the next run:
+  `select cloudinary_public_id, width, height from media where cloudinary_public_id like 'PideTaxi/%';`
+  — expected 750x1624 (iOS ×5) and 720x1440 (Android ×3), per the brief.
+- Not checked on `:3000` that the frames appear — nothing was written.
+
+**Not done, and not mine:** `CLAUDE.md` "Carried to MVP-2" still lists "creates media rows
+without dimensions" — the orchestrator's file; it should change only after a real run confirms.
+Media rows no chapter tag references in a run (covers) are outside this path, as before.
+**`docs/learn.md` not appended** — nothing here generalises beyond this script.
+
+**Open questions:** none.
+
+---
+
 ## 004221026 — 2026-10-22 14:00 — `chapters.image_layout` from the Notion `Image layout` property: migration 0063 written (NOT applied), sync + lib/content wired, unit-tested
 
 **Brief:** a chapter-level choice of how consecutive figures render, authored in Notion as
