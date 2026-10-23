@@ -52,6 +52,11 @@ with no device frame and needed a hand SQL backfill (0060, 0061). Moataz wants n
   not uploaded (pidetaxi.es is blocked here). They render unframed until uploaded.
 - `CLAUDE.md` "Carried to MVP-2" updated: this item closed, the Actions sync noted.
 
+- **Published on Moataz's word ("Both"):** `Content ready = Done` on the PideTaxi cover and the
+  iOS and Android chapters; the Website chapter stays a draft (its two images are not uploaded).
+  Run 6 synced it, success. This push to `nightly` rebuilds preview, because new chapter routes
+  need a build (`dynamicParams = false`).
+
 **Not verified:** the rendered chapters on preview. Visual review is Moataz's.
 
 ## 006221026 - 2026-10-22 - Sync on GitHub Actions: running, PideTaxi synced
