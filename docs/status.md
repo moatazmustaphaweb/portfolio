@@ -37,7 +37,7 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
-## 006221026 - 2026-10-22 - Sync on GitHub Actions: workflow written, not yet runnable
+## 006221026 - 2026-10-22 - Sync on GitHub Actions: running, PideTaxi synced
 
 **Task id `006221026`.** Moataz said "ok" to running the Notion sync from a GitHub Actions workflow
 (manual trigger, repo secrets for Notion and the Supabase service key), so the session can trigger
@@ -69,7 +69,13 @@ it and he never runs it by hand.
   masked, i.e. that repo secret is missing or misnamed. Moataz to check it.
 - **Moataz added the URL secret. Run 3 (dry run) passed:** created 0, updated 25, skipped 8,
   failed 0; PideTaxi decisions read in both languages (iOS 3, Android 2, website 3).
-- **Run 4: the live sync, `--only=pidetaxi`**, dispatched from this session at 18:42 UTC.
+- **Run 4, the live sync (`--only=pidetaxi`), passed:** created 0, updated 30, failed 0.
+  `pidetaxi/ios device=iphone layout=grid`, 5 images en and ar; `pidetaxi/android device=android
+  layout=grid`, 3 images en and ar; website 2 image refs (not yet uploaded to Cloudinary). The
+  chapters stay drafts (`Content ready = In progress`). **The sync now runs from this session
+  with no step on Moataz's Mac.**
+- ⚠️ The sync still writes media rows with NULL dimensions, so the 8 new PideTaxi figures render
+  unframed. Handed to backend as `007231026` (fill them from Cloudinary in the sync itself).
 
 **Not verified:** never run on GitHub; the three secrets are not yet in the repo; Node 22 is
 assumed (nothing pins it).
