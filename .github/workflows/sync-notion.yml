@@ -53,8 +53,10 @@ jobs:
           node-version: 22
           cache: npm
 
+      # npm install, not npm ci: the lockfile lags package.json (@swc/helpers,
+      # found on the first run, 006221026) and ci refuses; Vercel installs the same way.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run the sync
         env:

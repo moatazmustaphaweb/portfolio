@@ -110,6 +110,14 @@ The `grilling` skill's default shape is a numbered **round** — compute the fro
 
 This tightens `CLAUDE.md`'s rule that a question and a prompt never share a message; it does not replace it.
 
+## Decide the mechanics yourself; come back only for permission
+
+Learned 2026-10-23, task `006221026`, by being told outright: *"Don't back to me with a lot of questions. You're asking me for each step… start to take decision, work without stopping until you finish. If you need any permission, ask me, I will approve."*
+
+PideTaxi ran Q10 to Q15 in one evening, and most of them were **how**, not **what**: which branch carries a file, which frame goes on which chapter, which route a workflow takes to `main`. He sets the goal and the content; the route to it is ours.
+
+**Ask him for three things only:** editorial content (rule 7 and "stop and ask" still hold — words, numbers, whose work it is), an action only his account can take (a secret, a merge, a permission), and anything irreversible on production that he has not already approved. Everything else: pick the recommended option, do it, and report it in the four-part reply as done.
+
 ---
 
 # PART 2 — WRITING
