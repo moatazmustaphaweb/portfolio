@@ -202,8 +202,11 @@ npm run sync:notion -- --dry-run --all
 - **Vercel Preview has no environment variables** (decision 059), so **every branch build fails**
   on `NEXT_PUBLIC_SUPABASE_URL is not set` whatever is on the branch. A red check on a PR is not
   evidence of a problem — check what it says before repeating it.
-- **`scripts/sync-notion.ts` creates media rows without dimensions.** Migration 0060 backfilled
-  160; the next `[cld]` tag written in Notion arrives NULL and its figure renders unframed.
+- ~~The sync creates media rows without dimensions~~ — **closed by `007231026`**: chapter media
+  get width/height from Cloudinary `fl_getinfo` on sync (cover media still not covered). A tag
+  pointing at an image not yet uploaded raises a NOTICE and renders unframed.
+- **The sync runs from GitHub Actions** (`.github/workflows/sync-notion.yml`, manual dispatch on
+  `nightly`, three repo secrets) — no step on Moataz's Mac (`006221026`).
 - **Three pages have no sync write path** — both comparison pages and the accessibility page.
   They match Notion today, but a future edit there will never appear and nothing reports it.
 - **`/api/revalidate` returns 400.** Nothing depends on it: every route is `server-rendered on

@@ -37,6 +37,23 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 007231026 - 2026-10-23 - The sync fills image dimensions itself; PideTaxi framed
+
+**Task id `007231026`.** The sync wrote media rows with NULL width/height, so new figures rendered
+with no device frame and needed a hand SQL backfill (0060, 0061). Moataz wants no manual steps.
+
+- **backend:** `upsertMedia` now reads the original's size from Cloudinary's public `fl_getinfo`
+  (no credentials) for any row it writes whose dimensions are NULL. Never overwrites a set value;
+  a failed lookup is a NOTICE, never a failed sync. `lib/sync/media-dimensions.ts`, 21 new checks,
+  `test:sync` 161 pass, typecheck and lint clean. Chapter media only; cover media not covered.
+- **Verified live, run 5 on GitHub Actions:** `MEDIA DIMENSIONS from Cloudinary — set 8`, the
+  5 iOS screens 750x1624 and the 3 Android 720x1440, created 0, updated 30, failed 0.
+- **Expected NOTICES:** `PideTaxi/Website/{hero,features}` are 404 on Cloudinary, because they are
+  not uploaded (pidetaxi.es is blocked here). They render unframed until uploaded.
+- `CLAUDE.md` "Carried to MVP-2" updated: this item closed, the Actions sync noted.
+
+**Not verified:** the rendered chapters on preview. Visual review is Moataz's.
+
 ## 006221026 - 2026-10-22 - Sync on GitHub Actions: running, PideTaxi synced
 
 **Task id `006221026`.** Moataz said "ok" to running the Notion sync from a GitHub Actions workflow
