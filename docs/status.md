@@ -67,6 +67,9 @@ it and he never runs it by hand.
 - **Run 2 got through install and Notion** ("Read 72 rows, 43 in scope") and stopped at
   `NEXT_PUBLIC_SUPABASE_URL is not set`: the log shows that env empty while the other two are
   masked, i.e. that repo secret is missing or misnamed. Moataz to check it.
+- **Moataz added the URL secret. Run 3 (dry run) passed:** created 0, updated 25, skipped 8,
+  failed 0; PideTaxi decisions read in both languages (iOS 3, Android 2, website 3).
+- **Run 4: the live sync, `--only=pidetaxi`**, dispatched from this session at 18:42 UTC.
 
 **Not verified:** never run on GitHub; the three secrets are not yet in the repo; Node 22 is
 assumed (nothing pins it).
