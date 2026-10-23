@@ -64,6 +64,9 @@ it and he never runs it by hand.
   dispatched ref, so later changes go to `nightly` only.
 - **Run 1 (dry run, `--only=pidetaxi`) failed at `npm ci`:** the lockfile lags `package.json`
   (`@swc/helpers@0.5.23` missing). Switched the step to `npm install` on `nightly`.
+- **Run 2 got through install and Notion** ("Read 72 rows, 43 in scope") and stopped at
+  `NEXT_PUBLIC_SUPABASE_URL is not set`: the log shows that env empty while the other two are
+  masked, i.e. that repo secret is missing or misnamed. Moataz to check it.
 
 **Not verified:** never run on GitHub; the three secrets are not yet in the repo; Node 22 is
 assumed (nothing pins it).
