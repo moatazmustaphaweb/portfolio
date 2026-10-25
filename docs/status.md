@@ -37,6 +37,14 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 012251026 - 2026-10-25 - The hero Lottie does not animate; returned before any code
+
+**Task id `012251026`.** Moataz sent `heroanimate.lottie` to replace the hero logo. Inspected, not
+used: a Figma dotLottie of 3 PNG layers (#0070F3 baked into the pixels), 690x679, 60fps, 240
+frames, but **every transform is static** (`"a":0` on position, scale, rotation, opacity), so it
+plays as a still image. Raster colour also cannot follow the light-theme accent (#0060DF).
+Asked for a re-export with real keyframes and vector shapes. No code changed.
+
 ## 011251026 - 2026-10-25 - Grilling session: every open decision on the tracker answered
 
 **Task id `011251026`.** Moataz ran `/grill-me` over the Vision Tracker. 25 questions, one per
