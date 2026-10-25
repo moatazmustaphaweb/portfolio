@@ -910,6 +910,54 @@ to do the work of a sentence.
 
 ---
 
+## 061 — Decisions of the 2026-10-25 grilling session (task `010251026`)
+
+**Decided 2026-10-25 by Moataz, one question at a time, against the Vision Tracker.** Each line is a
+decision; the tracker row carries its execution.
+
+1. **Mini case files are part of the site** (closes open question B): listed in `/work` and the
+   sitemap; each is published when its content is complete. Kshemam and PideTaxi stand; EAST and
+   AAM follow.
+2. **The `www` cutover was his decision and the old Webflow site is closed.** Non-negotiable 13 is
+   satisfied by that record. Lighthouse is run once for the record.
+3. **Analytics disclosure:** a "Privacy" line in the footer opening a short paragraph, both
+   languages. The orchestrator drafts; he approves the wording.
+4. **The "Not built yet" placeholder pages stay public** (`NEXT_PUBLIC_PREVIEW_STUBS` stays set);
+   those sections are built after all content is finished.
+5. **Google Analytics runs on production only;** preview stops reporting into the production
+   property.
+6. **Publishing revalidates immediately:** the sync workflow calls `/api/revalidate` with
+   `REVALIDATE_SECRET` (executes decision 009).
+7. **New share image (`og_image`):** three proposals from the orchestrator, his pick; stored as a
+   Cloudinary `public_id` so the decision 028/037 guard works again.
+8. **Home intro (EN)** becomes the translation of his existing Arabic line: *"I look for simple
+   solutions that make life easier."* About's H1 is unchanged.
+9. **"Errors are attributed, not prevented"** stays in full on Philosophy; Systems keeps only that
+   first sentence (deletion, no new copy). Both languages.
+10. **UAE cover map** gains the Application Tracking line (EN and AR as approved in the session);
+    "and the tracking layer" is removed from the first line.
+11. **UAE onboarding chapter ends at submission:** its "Tracking and exceptions" section is deleted;
+    the "5 exceptions raised" image and caption move to the Application Tracking chapter. Both
+    languages.
+12. **Components:** build the chapter close / next handoff (last chapters, comparison and
+    accessibility pages get a way out); build `FeatureStrip`, with feature lists written with him;
+    `ObjectiveHeader` is amended in `architecture.md` to what exists.
+13. **Cervello's five other chapters are deferred, not cancelled;** the blank duplicate cover page
+    is archived.
+14. **Job titles stay in English** inside the Arabic timeline; cities and domains are translated.
+15. **Employer names:** Mashreq stays in the About prose; employer names are added to the career
+    timeline after he verifies the transcribed dates.
+16. **NDA treatment: full grayscale is final** (question H closed).
+17. **Chapter header:** the chapter name becomes the H1; the objective stays at statement size
+    beneath it.
+18. **UAE gets a results table** with two declared targets, both achieved: (a) apply and track on
+    mobile, evidence live in production 18+ months; (b) apply from anywhere using the phone's
+    capabilities (camera capture, EFR), with the note that native share and UAE Pass were rejected.
+
+**Status:** ACTIVE.
+
+---
+
 ## 060 — One database. Preview is a code preview only. Supersedes 059
 
 **Decided 2026-10-25, task `002251026`, by Moataz.**

@@ -37,6 +37,12 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 011251026 - 2026-10-25 - Grilling session: every open decision on the tracker answered
+
+**Task id `011251026`.** Moataz ran `/grill-me` over the Vision Tracker. 25 questions, one per
+message; all answered. Recorded as **decision 061** (18 items). Execution dispatched on `nightly`
+to backend, frontend, content and devops; tracker rows updated as each closes.
+
 ## 010251026 - 2026-10-25 - The Vision Tracker: a Notion board of every step to the vision
 
 **Task id `010251026`.** Moataz: a Notion board that tracks the steps to complete the vision (not
