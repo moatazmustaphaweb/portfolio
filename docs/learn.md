@@ -110,6 +110,17 @@ The `grilling` skill's default shape is a numbered **round** — compute the fro
 
 This tightens `CLAUDE.md`'s rule that a question and a prompt never share a message; it does not replace it.
 
+## `nightly` is the working branch; `main` is released only when Moataz says so
+
+Learned 2026-10-25, tasks `002251026`, by being stopped: *"توقف لا تدمج نايتلي في مين… أي تعديلات
+دلوقتي بنعملها احنا بنعملها على نايتلي."*
+
+All work lands on `nightly` (via the session branch). `main` is production and is released as a
+batch, on his word, never as a side effect of a task. Decision 060 says one database and preview
+is code only; that means a published chapter can show on production with older code for a while,
+and that is accepted. Do not open a `nightly` to `main` PR to "fix" it. Ask once, at most, when
+he is clearly at a release point; otherwise keep working on `nightly`.
+
 ## Decide the mechanics yourself; come back only for permission
 
 Learned 2026-10-23, task `006221026`, by being told outright: *"Don't back to me with a lot of questions. You're asking me for each step… start to take decision, work without stopping until you finish. If you need any permission, ask me, I will approve."*
