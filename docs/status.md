@@ -37,6 +37,25 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 002251026 - 2026-10-25 - Preview and production share one database; what separating them takes
+
+**Task id `002251026`.** Moataz: with a preview environment, production must not change until
+`nightly` is merged. Asked what is needed. Diagnosis only; nothing changed.
+
+- **Cause, measured:** code is already separated (`nightly` builds preview, `main` builds
+  production) but **data is not**. One Supabase project serves both: the sync workflow's secrets
+  and Production's env vars point at the same database, which is why publishing PideTaxi from
+  `nightly` made it live on `www` with `main`'s code (no Android frame, no grid; 001251026).
+  Decision 059 ("production is the preview", Preview unconfigured) is out of date: preview now
+  serves data, and Moataz's own words there foresaw this: "at MVP-2 there will be two versions".
+- **Recommended: a second Supabase project as staging** (true isolation). Needs: the project
+  (his account); Preview env vars in Vercel pointing at it (his, decision 059: no agent enters a
+  secret); a migrations workflow to replay 0001 to latest on it; the sync workflow gaining a
+  `target` input with its own secret pair, production refused unless dispatched on `main`;
+  production DB unpublishing PideTaxi until it is promoted. **Alternative:** one database with a
+  per-row "preview only" status, filtered in `lib/content`; cheaper, but not isolated.
+- Awaiting his choice. A supersession note for decision 059 is written after he decides.
+
 ## 001251026 - 2026-10-25 - Audit against the Dubai wholesale-banking CX Lead role (report only)
 
 **Task id `001251026`.** Moataz: audit the whole site against one recruiter brief (Customer &
