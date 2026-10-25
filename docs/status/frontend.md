@@ -16,13 +16,14 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
-## 012251026 — 2026-10-25 — Lottie hero mark: stopped before code, skill gates conflict with the brief
+## 012251026 — 2026-10-25 — Home hero mark is now the Lottie, behind MOTION_LAYER (decision 062)
 
-**Brief:** replace the Home `HeroMark` with the Lottie at `public/motion/hero-mark.json`, recoloured to `currentColor`, behind the Motion Layer flag, static under reduced motion.
-**Files:** this entry only. No component, flag, dependency or lockfile change.
-**Verified:** read `motion-system` + `perf-budget` skills, `docs/design/motion-system.md` §5.2/§8/§16, decision 047. Inspected the JSON: its own name is "Lottie Loader new 2", 241f @60fps (~4s), two 120-frame halves (layers 0–120, then 120–241) — built as a loader cycle. No flag exists in code yet (grep).
-**Not verified:** nothing rendered; no bundle measured (no code written).
-**Open questions:** (1) Gate 2 / Gate 7 / §8: the landing's mark is specified to form from the one field condensing; a separate Lottie mark is a second mechanism and "looks alive" fails Gate 2 — does Moataz's request override, recorded as a decision? (2) perf-budget: a second animation runtime (lottie-web, ~50–60 KB min light build) for one page — accepted? (3) Loop vs play-once: asset is a loader cycle; §5.2 forbids a loader that outlives its load — which?
+**Brief:** replace the Home `HeroMark` with `public/motion/hero-mark.json`, recoloured to `currentColor` at the existing `text-accent opacity-20`, behind the single Motion Layer flag, static on server and under reduced motion. First pass stopped on three skill conflicts; Moataz answered them in decision 062.
+**Files:** `components/brand/HeroMarkMotion.tsx` (new), `lib/motion/flag.ts` (new, `MOTION_LAYER = true`; path given by the orchestrator, outside my listed scope), `app/[locale]/(landing)/page.tsx` (swap import + call site), `app/globals.css` (`.hero-mark-motion` fill/stroke → currentColor), `package.json` + `package-lock.json` (`lottie-web@5.12.2` — devops's files, edited per brief).
+**Playback choice:** play once, hold frame 119. JSON keyframes: Bezier 19 opacity 0→100 by f70, rotation ends f80, scales back at rest by f120; f120–240 repeat the same cycle. So 0–119 ends on the full mark.
+**Verified:** `tsc --noEmit` clean; eslint on touched files clean; `npm run build` compiles, then fails collecting page data on `NEXT_PUBLIC_SUPABASE_URL is not set` (no `.env.local` here). The Lottie runtime is its own chunk (`.next/static/chunks/0stpraxlbcmso.js`): 167,778 B minified, 46,421 B gzip, referenced only from the dynamic-import loader chunk, not from any manifest.
+**Not verified:** nothing rendered — no dev server, no screenshot, no browser. Unverified: the CSS recolour on the real SVG output, the Lottie's size relative to the static mark (512 square vs 282x278; the swap is likely a visible jump in size/rotation at frame 0), the reduced-motion path, both themes, both locales. The lockfile diff also drops ~120 `"libc"` lines because this container runs npm 10.9.4; a regenerate on Moataz's npm may restore them.
+**Open questions:** none.
 
 ## 011251026 - 2026-10-25 16:43 - GA production-only, chapter title as h1, chapter close block; 404 shell diagnosed, not fixed
 

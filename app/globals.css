@@ -700,3 +700,16 @@
     margin-block-start: -22px;
   }
 }
+
+/*
+ * Home hero Lottie (decision 062): the renderer writes literal rgb() colours on
+ * each path; CSS beats presentation attributes, so every painted fill and
+ * stroke takes currentColor (the caller's text-accent). `none` is left alone,
+ * so a stroke-only shape never gains a fill and vice versa.
+ */
+.hero-mark-motion [fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+.hero-mark-motion [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+}
