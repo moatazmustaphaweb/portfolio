@@ -249,7 +249,7 @@ export function NavProgress({
       settle: (navigated) => {
         s.committed = location.pathname + location.search;
         if (s.kind === "nav") end();
-        if (navigated && s.focusOnCommit && motionAllowed()) {
+        if (navigated && s.focusOnCommit) {
           // After the commit's layout: the destination heading takes focus
           // without scrolling, so keyboard and screen-reader users land on
           // the page they asked for rather than on the link they left.

@@ -45,6 +45,25 @@ cancelled on the main buttons by a CSS specificity bug. Decision 063 recorded; l
 `public/motion/loader.json` (his mark, grey #D2D2D2, trim-path draw over 3s). Quotes: his own
 sentences from the site (his choice). Dispatched to content, backend, frontend.
 
+- **Built and live on preview (`771b19a` + focus fix).** Press state moved out of the base layer
+  (unlayered `:root :is(...)` rule); 2px accent hairline from click to commit (unflagged); behind
+  `MOTION_LAYER`: his mark over `<main>` after 300ms, a quote after 2.5s, ViewTransition moves keyed
+  on `html[data-nav]` (zoom in/out along the work hierarchy, pan for prev/next chapter, cut for the
+  locale switch). Reduced motion: static bar, no loader, instant cut, focus still moves to the h1.
+- **Verified on preview with Playwright, RSC responses held 3.2s:** bar pending at 50ms and visible
+  by 200ms; loader SVG drawing at 600ms; bar and overlay idle after commit; focus on the
+  destination h1; `/ar` bar grows from the right; no horizontal scroll; reduced motion shows no
+  loader. Screenshots in the session scratchpad.
+- **Quotes:** 7 of his sentences in migration `0065_seed_wait_quotes.sql` (one dropped: it was
+  just removed from the pages to stop repetition). **Not applied yet: Moataz runs it.** Until then
+  no quote shows, by design.
+- **Not verified:** the page-transition animations themselves (Chrome only, by eye), Safari/Firefox,
+  the press dip on the four CTAs, quotes rendering (pending 0065). Quotes on `/ar` that fell back to
+  English would be marked Arabic: `getUiStrings` drops the resolved locale (backend follow-up, not
+  reachable today since all 7 have Arabic). tokens.md needs the new nav tokens recorded.
+- **Not mine, flagged by frontend:** hardcoded `→`/`←` glyphs on the CTAs with `rtl:rotate-180`
+  break rtl-guard; left alone.
+
 ## 012251026 - 2026-10-25 - The hero Lottie does not animate; returned before any code
 
 **Task id `012251026`.** Moataz sent `heroanimate.lottie` to replace the hero logo. Inspected, not
