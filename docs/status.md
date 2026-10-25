@@ -76,7 +76,15 @@ is repeated or stalled.
   `primitives/` never built; nothing calls `/api/revalidate` on publish (routes are ISR 300s, so
   CLAUDE.md's "server-rendered on demand" is wrong); open question B (mini case files) never
   closed though two are published.
-- Live browser crawl of preview still running; this entry is completed when it returns.
+- **Live browser crawl of preview, done** (Playwright, 122 loads, both locales): 30 routes live;
+  text identical with JS off on 86/86 pages; no horizontal scroll at 375/320; NDA grayscale via
+  `e_grayscale` on the Mashreq files. Falls short: UAE `/results` 404 though it declares 4
+  outcomes (rule 4); last chapters, comparison and accessibility pages have no way out (rule 11);
+  raw `[Title]` link markup in 8 pages; 404 raw HTML has no lang/dir; AR pages carry English
+  paragraphs; `/api/events` undisclosed and preview reports into production's GA property; six
+  placeholder pages public. All added to the Vision Tracker (5 new rows).
+- **Tracker (010251026):** an Arabic `الوصف` column added and filled on all 46 rows, saying what
+  the step is and exactly what Moataz must give.
 
 ## 007251026 - 2026-10-25 - Moataz's three real items: repeated sentences, "Reported internally", "one chapter"
 

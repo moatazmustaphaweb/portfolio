@@ -16,6 +16,25 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 009251026 — 2026-10-25 12:46 — Browser inspection of preview.moatazmustapha.com against architecture v2.0 (no code change)
+
+**Brief:** Inspection and report only. I opened every route in the architecture v2.0 tree, every sitemap URL and the not-built routes on `preview.moatazmustapha.com`, in EN and AR, using local Playwright Chromium. For each I recorded status, lang/dir, the shell, navigation, images, console errors, English on AR pages, no-JS text, 375/320 overflow, analytics and cookies, and the 404. The reference changed mid-task from the scratchpad `vision.md` (v1.0) to `docs/architecture.md` v2.0, at the orchestrator's instruction.
+**Files:** `docs/status/frontend.md` (this entry) only. The scripts and outputs are in the session scratchpad (`crawl/scripts`, `crawl/data`), outside the repo.
+**Verified (measured):** 122 browser loads. 86 locale pages return 200 and 30 return 404. Every 200 page has the right `lang`/`dir`, a header, a footer and a locale switch that keeps the path. 0 console errors and 0 broken images. No-JS main text equals JS main text on 86/86 pages. No page scrolls horizontally at 375, and none at 320 on the four pages tested there. NDA case files use `e_grayscale` on 100% of their images, and non-NDA files on none. The only result statuses shown are ACHIEVED and NOT MEASURABLE. Findings:
+- The UAE results page is 404, but its cover declares 4 outcomes.
+- Entry handles that are not links: 5 (UAE ×3, Egypt ×1, PideTaxi ×1).
+- The last chapter of every case file has no forward link. The comparison and accessibility pages link back only.
+- Raw `[Title]` link markup shows in the prose of 6 EN and 2 AR pages.
+- AR pages carry English paragraphs marked `lang="en"`.
+- Six "Preview scaffolding" stub routes return 200 in English on both locales.
+- `/api/events` gets a POST on every page load before any consent, and no page text mentions it. GA loads only after the visitor clicks Allow, and it uses the production property `G-363N14SWTX`.
+- The 404 raw HTML is `<html id="__next_error__">` with no lang or dir.
+- The sitemap `<loc>` entries point at `www.moatazmustapha.com`.
+**Not verified:** Visual appearance. I took no screenshots and made no visual judgement. Contrast, focus and screen readers were not checked. FeatureStrip could not be identified in the DOM by name. The contact form was not submitted. One `POST /api/events` with `{}` was sent by curl and returned 400, so nothing was written as far as the status shows. The crawl's cookie capture read empty while a targeted run showed the `NEXT_LOCALE` cookie set, and I did not reconcile the two.
+**Open questions:** none returned. The findings are for the orchestrator to route.
+
+---
+
 ## 008251026 — 2026-10-25 11:57 — Off production, robots.txt disallows everything and every page carries `noindex, nofollow`
 
 **Brief:** `preview.moatazmustapha.com` is now a public Preview deployment serving the same content as production (decision 060), and its robots.txt allowed everything. When the deployment is not production, `app/robots.ts` must return a single rule disallowing `/` for every user agent, with no sitemap. Page metadata must carry `robots: { index: false, follow: false }` under the same condition. Production robots output must stay byte-identical.
