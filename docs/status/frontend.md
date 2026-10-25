@@ -16,6 +16,14 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 012251026 — 2026-10-25 — Lottie hero mark: stopped before code, skill gates conflict with the brief
+
+**Brief:** replace the Home `HeroMark` with the Lottie at `public/motion/hero-mark.json`, recoloured to `currentColor`, behind the Motion Layer flag, static under reduced motion.
+**Files:** this entry only. No component, flag, dependency or lockfile change.
+**Verified:** read `motion-system` + `perf-budget` skills, `docs/design/motion-system.md` §5.2/§8/§16, decision 047. Inspected the JSON: its own name is "Lottie Loader new 2", 241f @60fps (~4s), two 120-frame halves (layers 0–120, then 120–241) — built as a loader cycle. No flag exists in code yet (grep).
+**Not verified:** nothing rendered; no bundle measured (no code written).
+**Open questions:** (1) Gate 2 / Gate 7 / §8: the landing's mark is specified to form from the one field condensing; a separate Lottie mark is a second mechanism and "looks alive" fails Gate 2 — does Moataz's request override, recorded as a decision? (2) perf-budget: a second animation runtime (lottie-web, ~50–60 KB min light build) for one page — accepted? (3) Loop vs play-once: asset is a loader cycle; §5.2 forbids a loader that outlives its load — which?
+
 ## 011251026 - 2026-10-25 16:43 - GA production-only, chapter title as h1, chapter close block; 404 shell diagnosed, not fixed
 
 **Brief:** decision 061 items 5, 17, 12, plus the crawl's 404 lang/dir finding.
