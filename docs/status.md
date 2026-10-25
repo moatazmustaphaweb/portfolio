@@ -37,6 +37,14 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 013251026 - 2026-10-25 - Navigation feedback and transitions (decision 063)
+
+**Task id `013251026`.** Moataz: the site feels dead on click. Research found the real cause: in
+production pages are prefetched and cached, but nothing acknowledges a click, and press feedback is
+cancelled on the main buttons by a CSS specificity bug. Decision 063 recorded; loader asset
+`public/motion/loader.json` (his mark, grey #D2D2D2, trim-path draw over 3s). Quotes: his own
+sentences from the site (his choice). Dispatched to content, backend, frontend.
+
 ## 012251026 - 2026-10-25 - The hero Lottie does not animate; returned before any code
 
 **Task id `012251026`.** Moataz sent `heroanimate.lottie` to replace the hero logo. Inspected, not

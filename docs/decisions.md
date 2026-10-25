@@ -910,6 +910,34 @@ to do the work of a sentence.
 
 ---
 
+## 063 — Navigation feedback: press states, a pending hairline, the mark as loader, transitions
+
+**Decided 2026-10-25, task `013251026`, by Moataz:** "the website looks dead when I move from page
+to page or click any button... put animation and transition system for overall the website."
+
+**Decision:**
+1. **Press feedback is fixed and is MVP-1 legal** (a state change within the 150ms rule, tokens.md):
+   every link and button dims on press, including the four primary CTAs where a specificity bug
+   cancelled it. Not behind the flag.
+2. **A pending hairline** (2px, accent, top of viewport, grows along the reading direction, flips in
+   RTL) starts within 100ms of any internal navigation and completes on commit. CSS transform only.
+   Not behind the flag: it is feedback, not choreography.
+3. **The loader is Moataz's mark** (`public/motion/loader.json`, his Lottie), centred over `<main>`
+   only when a navigation is still pending after 300ms; it loops the draw and disappears the moment
+   the route commits, never padded. **This is an exception to motion-system §5.1/§5.3** ("no loader
+   between routes"): the field and camera remain the Layer 2 plan; this is a feedback device.
+4. **Quotes during a long wait** (pending over 2.5s): one sentence, Moataz's own, taken verbatim from
+   his published pages in both languages (`ui_strings` `wait_quote_N`). No numbers (§13).
+5. **Page transitions** with React `ViewTransition`, inside the spec's grammar and timings: header
+   anchored, content cross-resolves (≤400ms); previous/next chapter pans along the reading axis
+   (≤600ms, flips with `dir`). Containers move, content does not.
+6. Items 3 to 5 are behind `MOTION_LAYER` (decision 047). `prefers-reduced-motion` turns 3 to 5 off
+   and makes navigation an instant cut; focus moves to the destination heading.
+
+**Status:** ACTIVE.
+
+---
+
 ## 062 — The hero mark is Moataz's Lottie: a recorded exception to the motion spec
 
 **Decided 2026-10-25, task `012251026`, by Moataz** ("do anything, I need the result on the
