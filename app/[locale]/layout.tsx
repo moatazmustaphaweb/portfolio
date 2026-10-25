@@ -76,7 +76,18 @@ export default async function LocaleLayout({
 
   // Read on the server so the value is inlined; the banner is suppressed
   // entirely when GA is not configured.
-  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  /*
+   * GA runs on production only (decision 061 item 5, task 011251026). Same
+   * convention as app/robots.ts: anything other than VERCEL_ENV ===
+   * "production", unset included, counts as non-production. The gate lives
+   * here, on the server, because VERCEL_ENV is not exposed to the client
+   * bundle; with no id, GoogleAnalytics renders nothing and the consent
+   * banner is disabled. Our own /api/events (Analytics) stays everywhere.
+   */
+  const gaId =
+    process.env.VERCEL_ENV === "production"
+      ? process.env.NEXT_PUBLIC_GA_ID
+      : undefined;
 
   /*
    * <html> and <body> live in app/layout.tsx now. They had to move: without a

@@ -16,6 +16,21 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 011251026 - 2026-10-25 16:43 - GA production-only, chapter title as h1, chapter close block; 404 shell diagnosed, not fixed
+
+**Brief:** decision 061 items 5, 17, 12, plus the crawl's 404 lang/dir finding.
+**Files:** `app/[locale]/layout.tsx`, `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx`, this file.
+**Changes:**
+- GA (item 5): `gaId` is resolved only when `VERCEL_ENV === "production"` (unset = non-production, same as `app/robots.ts`). With no id, `GoogleAnalytics` renders nothing and `ConsentBanner` is disabled. The gate is in the server layout, not in the two client components, because `VERCEL_ENV` is not exposed to the client bundle. `Analytics` (/api/events) untouched.
+- Chapter header (item 17): kind=chapter now renders `<h1>` = chapter title (`text-title`), then the OBJECTIVE label and the objective as a `<p>` at `text-statement` with its own `lang`/`dir`. The label moved from the progress row to above the objective. Document pages (comparison/accessibility) already had a single h1 = title; unchanged.
+- Close block (item 12): rendered when `detail.next` is null (last chapter; comparison and accessibility pages never have `next`). Links: results table (only if `getCaseFile(...).targets.length > 0`, key `results_table`), Work gallery (`back_to_work`), `SiblingLinks` with `sibling_case_files`. No new ui_strings keys. Extra `getCaseFile` call only on end pages.
+**Verified:** `tsc --noEmit` exit 0; `eslint` on both touched files, 0 findings; no em dashes in added lines.
+**Not verified:** no `.env.local` here, so no build, no dev server, no render, no screenshots, no DOM h1 count. GA gate not observed on any deployment. The close block not seen in either locale; Arabic objective now loses the LANTX display face (it is no longer an h1), intended, unmeasured.
+**404 (not fixed):** Next 16.4.2 emits `<html id="__next_error__">` from `getErrorRSCPayload` (`next/dist/server/app-render/app-render.js`) when a notFound/error escapes the shell render with no boundary above it (e.g. root layout, blocking metadata for bots); the client then re-renders the root not-found, which is why JS adds lang/dir. It cannot be addressed inside `app/not-found.tsx`, which is never reached in that path. The documented fix is `app/global-not-found.tsx` behind `experimental.globalNotFound` in `next.config` (devops' file) plus a duplicated document shell. Which URLs the crawl saw this on is not recorded in 009251026, so it could not be reproduced here.
+**Open questions:** which 404 URLs showed the shell; whether to adopt `global-not-found` (needs devops for config).
+
+---
+
 ## 009251026 — 2026-10-25 12:46 — Browser inspection of preview.moatazmustapha.com against architecture v2.0 (no code change)
 
 **Brief:** Inspection and report only. I opened every route in the architecture v2.0 tree, every sitemap URL and the not-built routes on `preview.moatazmustapha.com`, in EN and AR, using local Playwright Chromium. For each I recorded status, lang/dir, the shell, navigation, images, console errors, English on AR pages, no-JS text, 375/320 overflow, analytics and cookies, and the 404. The reference changed mid-task from the scratchpad `vision.md` (v1.0) to `docs/architecture.md` v2.0, at the orchestrator's instruction.
