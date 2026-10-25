@@ -910,7 +910,28 @@ to do the work of a sentence.
 
 ---
 
-## 059 — Vercel's Preview environment stays unconfigured until MVP-2
+## 060 — One database. Preview is a code preview only. Supersedes 059
+
+**Decided 2026-10-25, task `002251026`, by Moataz.**
+
+**Decision:** there is one Supabase project, and it stays one. `preview.moatazmustapha.com`
+(branch `nightly`) previews **code**, not content. Published content is live on production the
+moment it is synced, whatever branch the code is on. No staging database, no per-row preview
+status, no second sync target. His words: *"الداتابيز واحدة، البريفيو بس بيبقى في الكود."*
+
+**Why:** a second database is a second thing to keep in sync for a site with one author. The
+cost of the alternative (a published chapter showing on production with older code until
+`nightly` is merged) is accepted and handled by process, not by infrastructure.
+
+**Consequence:** when a sync publishes content that depends on code only `nightly` has (a new
+frame, a new layout), merging `nightly` to `main` is part of that task, not a separate decision:
+the orchestrator opens the PR and Moataz merges it. Preview now has environment variables (it
+serves data), so 059's "every branch build fails" no longer holds; what 059 said about who
+enters secrets still does.
+
+**Status:** ACTIVE. Supersedes 059.
+
+## 059 — Vercel's Preview environment stays unconfigured until MVP-2 (SUPERSEDED by 060)
 
 **Decided 2026-08-25, task `009250826`, by Moataz, in launch week.**
 
