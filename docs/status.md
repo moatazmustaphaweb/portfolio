@@ -58,6 +58,11 @@ devops briefs from this morning (003 to 005251026) were no longer running and wr
      الأشياء أيسر على الناس.`), so only English repeats.
   2. The "errors are attributed, not prevented" principle is written twice, near word for word,
      in both languages: About / Philosophy and Systems ("The patterns that repeat").
+- **Preview made public by Moataz** (Vercel Authentication off; the project had Standard
+  Protection, `all_except_custom_domains`, which exempts production domains only). Since preview
+  now serves the same content as `www`, frontend (`008251026`) made every non-production
+  deployment block crawlers: `robots.txt` is `Disallow: /` and every page carries `noindex,
+  nofollow` unless `VERCEL_ENV === "production"`. Production robots output byte-identical.
 - **Found on the way, not his three:** many Arabic pages render English sentences (most of
   `/ar/work/egypt-acquisition/accessibility`, image captions on the AR Egypt onboarding and
   workflow chapters, a Neobiz cover line). Reported only.

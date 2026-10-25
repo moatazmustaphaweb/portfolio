@@ -9,6 +9,23 @@ import type { Locale } from "@/lib/content/types";
 
 import "./globals.css";
 
+/*
+ * ── NOINDEX OFF PRODUCTION ──────────────────────────────────────────────────
+ *
+ * Set here rather than in `app/[locale]/layout.tsx` because this is the top of
+ * every route's metadata chain, the 404 included. Metadata merges shallowly
+ * and nothing below sets `robots` except the draft preview route, which sets
+ * the same value, so every page inherits it.
+ *
+ * Same condition as `app/robots.ts`: only `VERCEL_ENV === "production"` is
+ * indexable, and unset counts as non-production. On production the key is
+ * absent, exactly as before.
+ */
+const NOINDEX: Metadata =
+  process.env.VERCEL_ENV === "production"
+    ? {}
+    : { robots: { index: false, follow: false } };
+
 /**
  * Root layout — the document.
  *
@@ -110,7 +127,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = (await getLocale()) as Locale;
   const settings = await getSettings(locale);
   const name = settings.get("name");
-  return name ? { title: name } : {};
+  return name ? { title: name, ...NOINDEX } : { ...NOINDEX };
 }
 
 export const viewport: Viewport = {

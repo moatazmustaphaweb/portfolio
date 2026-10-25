@@ -16,6 +16,29 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 008251026 — 2026-10-25 11:57 — Off production, robots.txt disallows everything and every page carries `noindex, nofollow`
+
+**Brief:** `preview.moatazmustapha.com` is now a public Preview deployment serving the same content as production (decision 060), and its robots.txt allowed everything. When the deployment is not production, `app/robots.ts` must return a single rule disallowing `/` for every user agent, with no sitemap. Page metadata must carry `robots: { index: false, follow: false }` under the same condition. Production robots output must stay byte-identical.
+
+**Files:** `app/robots.ts` · `app/layout.tsx`.
+
+**What changed:**
+- **Condition:** production is `process.env.VERCEL_ENV === "production"`. Unset counts as non-production. Vercel sets the variable on every deployment, so it is missing only on a local machine, where blocking crawlers costs nothing. The other choice fails open: a production build anywhere the variable is absent would be indexable without anyone deciding it. Nothing in `npm run build` depends on robots output.
+- **robots.ts:** an early return `{ rules: [{ userAgent: "*", disallow: "/" }] }`, with no `sitemap` and no `host`. The production branch is untouched, and the header comment states the non-production rule.
+- **Metadata:** set in **`app/layout.tsx`** (the root), not `app/[locale]/layout.tsx`. The root is the top of every route's metadata chain, the 404 included. Next merges metadata shallowly, and nothing below sets `robots` except `[...preview]/page.preview.tsx`, which sets the same value, so every page inherits it. A module-level `NOINDEX` is spread into both returns of the root `generateMetadata`. On production it is `{}`, so the key is absent exactly as before.
+
+**Verified:**
+- `npx tsc --noEmit -p .` exit 0. `npx eslint app/robots.ts app/layout.tsx` exit 0.
+- Called `robots()` through tsx with `VERCEL_ENV` = production / preview / development / unset, against both the new file and `HEAD`'s. Then serialised both through Next's own `resolveRobots`. **Production robots.txt: `cmp` identical to HEAD.** Preview, development and unset all give exactly `User-Agent: *` / `Disallow: /`.
+- Next's metadata resolver turns `{ index: false, follow: false }` into `noindex, nofollow`.
+
+**Not verified:**
+- **No page was rendered.** There is no `.env.local` in this container, so neither `next dev` on :3000 nor `npm run build` can run. The `<meta name="robots">` tag was not seen in any served HTML, in either locale, and the 404 was not checked either.
+- Not checked on `preview.moatazmustapha.com` or on production after deploy.
+- Whether Vercel's runtime `VERCEL_ENV` on the `preview.` custom domain reads `preview` was not checked. That is the documented behaviour for a branch alias.
+
+**Open questions:** none.
+
 ## 004221026 — 2026-10-22 14:04 — `imageLayout="grid"` sets runs of 2+ consecutive screenshots in a 1/2/3-column grid; stacked unchanged
 
 **Brief:** Per-chapter `imageLayout: "stacked" | "grid"` (backend, in parallel). When "grid", fold each run of 2+ consecutive figures in a section into one CSS grid (1 col / 2 at medium / 3 at wide); a lone figure renders as today; "stacked" byte-identical to before. Pass `imageLayout={detail.imageLayout}` at every `ChapterSections` call site. Measure whether three phone frames fit at the 320px cap at 1440, and report rather than shrink silently.

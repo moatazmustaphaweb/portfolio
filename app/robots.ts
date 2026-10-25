@@ -13,8 +13,33 @@ import { siteUrl } from "@/lib/seo/site";
  *
  * Named individually as well as covered by the wildcard, because being explicit
  * documents the intent to anyone reading the file later.
+ *
+ * ── EVERY DEPLOYMENT THAT IS NOT PRODUCTION DISALLOWS EVERYTHING ────────────
+ *
+ * `preview.moatazmustapha.com` is a public Preview deployment reading the same
+ * database as production (decision 060). Indexed, it is a full duplicate of
+ * the site competing with it in search. So anything other than
+ * `VERCEL_ENV === "production"` gets one rule — every user agent, disallow
+ * `/` — and no sitemap or host, so nothing points a crawler back in.
+ *
+ * Unset counts as non-production. Vercel sets the variable on every
+ * deployment, so the only place it is missing is a local machine, and a
+ * localhost robots.txt that blocks everything costs nothing. The other choice
+ * fails open: a production build anywhere the variable is absent would be
+ * indexable without anyone deciding it. The AI-crawler position above is a
+ * production position; a preview has nothing for them to read that
+ * production does not already serve.
+ *
+ * The production branch below is unchanged and must stay so. The same
+ * condition sets `noindex, nofollow` in `app/layout.tsx`.
  */
 export default function robots(): MetadataRoute.Robots {
+  if (process.env.VERCEL_ENV !== "production") {
+    return {
+      rules: [{ userAgent: "*", disallow: "/" }],
+    };
+  }
+
   const base = siteUrl();
 
   return {
