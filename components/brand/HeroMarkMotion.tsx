@@ -17,12 +17,11 @@ import { MOTION_LAYER } from "@/lib/motion/flag";
  *   `currentColor` in CSS (globals.css, `.hero-mark-motion`), so the accent and
  *   the opacity come from the caller exactly as for the static mark. Stroke
  *   shapes stay strokes and fill shapes stay fills: only the colour changes.
- * - Playback: once, then hold on frame 119 — the last frame of the first half,
- *   where all four bezier layers are at full opacity (Bezier 19 fades in by
- *   frame 70), rotation has settled (ends at 80) and scale is back at rest.
- *   Frames 120–240 repeat the same cycle, so the first half is the whole mark.
+ * - Playback: once, then hold on the last frame. The asset is Moataz's mark
+ *   drawn by trim paths (end 0 to 100 by frame 144) while the stroke thins
+ *   from 20 to 6 (by frame 180); the final frame is the complete mark.
  */
-const HOLD_FRAME = 119;
+const HOLD_FRAME = 239;
 
 export function HeroMarkMotion({ className }: { className?: string }) {
   const box = useRef<HTMLDivElement>(null);

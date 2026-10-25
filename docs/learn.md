@@ -121,6 +121,15 @@ is code only; that means a published chapter can show on production with older c
 and that is accepted. Do not open a `nightly` to `main` PR to "fix" it. Ask once, at most, when
 he is clearly at a release point; otherwise keep working on `nightly`.
 
+## Render an asset before building on it
+
+Learned 2026-10-25, task `012251026`. A share link Moataz sent as "the hero animation" was the
+LottieFiles brand loader; it was built, recoloured and deployed to preview before anyone looked
+at a frame of it, and only the preview screenshot (a solid disc) gave it away. Its JSON even named
+itself "Lottie Loader new 2". **Open every supplied asset in its own colours first** (render a
+contact sheet of frames, read its name and layer list), confirm it is what he means, then build.
+It takes a minute and it is the only check that catches a wrong file.
+
 ## Awareness lives in one board, not in the orchestrator's memory
 
 Learned 2026-10-25, task `010251026`. The vision audit found the same pattern six times: a decision

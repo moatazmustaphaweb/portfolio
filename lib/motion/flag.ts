@@ -4,4 +4,4 @@
  * component must read this constant and render its static form when off.
  * A code constant rather than an env var so reverting is one commit (062).
  */
-export const MOTION_LAYER = false;
+export const MOTION_LAYER = true;

@@ -51,6 +51,10 @@ Asked for a re-export with real keyframes and vector shapes. No code changed.
   accent it showed on preview as a solid disc. `MOTION_LAYER = false`, asset removed; the static
   mark is back. The component and the flag stay for the right file. A third-party brand mark
   must never ship as his logo.
+- **Third file is his mark, and it is live on preview.** 4 vector layers, one stroke colour
+  (#0070F3), trim paths draw the mark (end 0 to 100 by frame 144) while the stroke thins 20 to 6
+  (by frame 180). Rendered frame by frame before installing. `MOTION_LAYER = true`; plays once
+  and holds the final frame; recoloured to `--color-accent` at the mark's opacity.
 
 ## 011251026 - 2026-10-25 - Grilling session: every open decision on the tracker answered
 
