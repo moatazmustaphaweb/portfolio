@@ -55,6 +55,8 @@ Asked for a re-export with real keyframes and vector shapes. No code changed.
   (#0070F3), trim paths draw the mark (end 0 to 100 by frame 144) while the stroke thins 20 to 6
   (by frame 180). Rendered frame by frame before installing. `MOTION_LAYER = true`; plays once
   and holds the final frame; recoloured to `--color-accent` at the mark's opacity.
+  **Verified on preview in Chromium:** SVG mounts at ~0.8 s, lines drawing at 0.8 s and 1.7 s
+  (screenshots), complete mark held after; stroke rgb(0,112,243) dark, rgb(0,96,223) light.
 
 ## 011251026 - 2026-10-25 - Grilling session: every open decision on the tracker answered
 
