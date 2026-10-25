@@ -85,6 +85,14 @@ import {
   type StoredDimensions,
 } from "@/lib/sync/media-dimensions";
 import { CLOUDINARY_CLOUD_NAME } from "@/lib/media/cloud";
+import {
+  finalizeRevalidatePaths,
+  parseRevalidateUrls,
+  pathsForCaseFile,
+  pathsForChapter,
+  pathsForPage,
+  postRevalidate,
+} from "@/lib/sync/revalidate";
 
 /**
  * Static pages whose content is ordered prose in Notion.
@@ -180,6 +188,11 @@ type Row = {
 };
 
 const created: string[] = [];
+/** Locale-agnostic routes this run wrote (or, dry, would write) — lib/sync/revalidate.ts. */
+const revalidatePaths = new Set<string>();
+function touch(paths: readonly string[]) {
+  for (const p of paths) revalidatePaths.add(p);
+}
 const updated: string[] = [];
 const skipped: string[] = [];
 const failed: string[] = [];
@@ -2041,6 +2054,48 @@ function isMvp(row: { buildLayer?: string | null; inMvp: boolean }): boolean {
   return row.buildLayer === "Layer 1 — MVP-1" || row.inMvp;
 }
 
+/*
+ * Revalidate on publish — decision 061 item 6 (executes 009). Every outcome is
+ * a NOTICE, never a failure: the content is already in the database, and the
+ * ISR window (300 s) serves it regardless. A dry run prints the request instead.
+ */
+async function revalidateWrittenPaths() {
+  let paths: string[];
+  try {
+    paths = finalizeRevalidatePaths(revalidatePaths);
+  } catch (err) {
+    notices.push(`Revalidate skipped: ${err instanceof Error ? err.message : String(err)}`);
+    return;
+  }
+  const bases = parseRevalidateUrls(process.env.REVALIDATE_URLS);
+  const secret = process.env.REVALIDATE_SECRET;
+
+  console.log(
+    `\nREVALIDATE — ${paths.length} path(s), locale-agnostic (the route expands each to /en and /ar)` +
+      (paths.length > 0 ? ":" : ""),
+  );
+  for (const p of paths) console.log(`  ${p}`);
+
+  if (paths.length === 0) return;
+  if (bases.length === 0 || !secret) {
+    const missing = [bases.length === 0 && "REVALIDATE_URLS", !secret && "REVALIDATE_SECRET"]
+      .filter(Boolean)
+      .join(" and ");
+    if (DRY_RUN) console.log(`  dry run: ${missing} not set — a live run would send nothing.`);
+    else notices.push(`Revalidate skipped: ${missing} not set. Pages refresh within 300 s (ISR).`);
+    return;
+  }
+  if (DRY_RUN) {
+    for (const b of bases) console.log(`  dry run: would POST ${paths.length} path(s) to ${b}/api/revalidate`);
+    return;
+  }
+  for (const b of bases) {
+    const r = await postRevalidate(b, secret, paths);
+    console.log(`  ${r.ok ? "ok    " : "FAILED"} ${b} — ${r.detail}`);
+    if (!r.ok) notices.push(`Revalidate failed for ${b}: ${r.detail}. Pages refresh within 300 s (ISR).`);
+  }
+}
+
 async function main() {
   console.log(
     `\nNotion → Supabase sync${DRY_RUN ? "  [DRY RUN — nothing will be written]" : ""}\n`,
@@ -2263,6 +2318,7 @@ async function main() {
     if (DRY_RUN) {
       console.log(`  case_file  ${caseFile}  (${status})`);
       updated.push(`case_file ${caseFile}`);
+      touch(pathsForCaseFile(caseFile));
       // Record it so chapter parent resolution below is simulated too. Without
       // this the dry run reports chapters as syncable when a real run would
       // fail them for a missing parent — the dry run would be lying.
@@ -2343,6 +2399,7 @@ async function main() {
 
     caseFileIdBySlug.set(caseFile, data.id);
     updated.push(`case_file ${caseFile}`);
+    touch(pathsForCaseFile(caseFile));
 
     const body = await readBody(row.id);
     await upsertTranslations(
@@ -2429,6 +2486,7 @@ async function main() {
     if (DRY_RUN) {
       console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}  layout=${layout.layout}`);
       updated.push(`chapter ${caseFile}/${slug}`);
+      touch(pathsForChapter(caseFile, slug));
 
       /*
        * Chapter slots ARE resolved in a dry run, exactly as cover slots are
@@ -2502,6 +2560,7 @@ async function main() {
     }
 
     updated.push(`chapter ${caseFile}/${slug}`);
+    touch(pathsForChapter(caseFile, slug));
     // Same line the dry run prints, so a live run's output can be diffed
     // against its preview (docs/learn.md Part 5, "absence is invisible").
     console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}  layout=${layout.layout}`);
@@ -2891,6 +2950,7 @@ async function main() {
         continue;
       }
 
+      touch(pathsForCaseFile(caseFile));
       await upsertTranslations(
         isTargets ? "target" : "outcome",
         data.id,
@@ -3367,6 +3427,8 @@ async function main() {
       if (items.length > 0) perLocale.push({ locale, items });
     }
 
+    touch(pathsForPage(pageKey));
+
     if (DRY_RUN) {
       console.log(
         `  page ${pageKey}: ` +
@@ -3533,6 +3595,8 @@ async function main() {
   }
 
   /* ---- Summary ---------------------------------------------------------- */
+
+  await revalidateWrittenPaths();
 
   if (notices.length > 0) {
     console.log("\nNOTICES — not failures, but check them:\n");

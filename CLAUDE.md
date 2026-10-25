@@ -211,8 +211,9 @@ npm run sync:notion -- --dry-run --all
   `nightly`, three repo secrets) — no step on Moataz's Mac (`006221026`).
 - **Three pages have no sync write path** — both comparison pages and the accessibility page.
   They match Notion today, but a future edit there will never appear and nothing reports it.
-- **`/api/revalidate` returns 400.** Nothing depends on it: every route is `server-rendered on
-  demand`, so content changes appear without it.
+- **Pages are ISR (`revalidate = 300`), and every live sync now calls `/api/revalidate`** on
+  `www` and preview with `REVALIDATE_SECRET` (decision 061, `011251026`), so edits appear in
+  seconds. A body-less request to that route answers 400 by design; it is not a fault.
 - **A blank duplicate Notion page** claims the Cervello cover route and fails the sync every run.
   Archiving it is Moataz's.
 

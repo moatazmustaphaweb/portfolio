@@ -16,6 +16,34 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 011251026 — 2026-10-25 — sync revalidates the routes it wrote (061 item 6); migration 0064 for the EN home intro (061 item 8), NOT applied
+
+**Brief:** (A) make `scripts/sync-notion.ts` collect every route it writes and, on a live run with
+`REVALIDATE_URLS` + `REVALIDATE_SECRET` set, POST them to `<base>/api/revalidate` per base, failures
+as NOTICES; dry run prints what it would send; add the env to the workflow. (B) migration setting EN
+`settings.intro` to "I look for simple solutions that make life easier.", AR untouched. (C) name the
+CLAUDE.md sentences now false.
+
+**Files:** `lib/sync/revalidate.ts` (new, pure + injectable fetch) · `scripts/sync-notion.ts`
+(`touch()` at each write site: case file live/dry, chapter-like live/dry, outcome/target insert,
+prose page; `revalidateWrittenPaths()` before the summary) · `scripts/test-sync-logic.ts` (15 checks)
+· `.github/workflows/sync-notion.yml` (devops-owned; two env lines + header note, written at the
+orchestrator's instruction) · `supabase/migrations/0064_home_intro_en.sql` (NOT applied).
+
+**Path format:** `route.ts` takes LOCALE-AGNOSTIC paths and expands each to `/en` and `/ar` itself;
+no count limit. So the sync sends `/work/x`, not `/en/work/x` (the brief asked for both locales —
+sending them would revalidate `/en/en/...`). `finalizeRevalidatePaths` refuses a localised path.
+
+**Measured:** `npm run test:sync` all pass (15 new); `tsc --noEmit` clean; eslint on the three files clean.
+
+**Not verified:** no live or dry sync run (no NOTION_API_KEY in this container); no POST to a real
+deployment; `REVALIDATE_SECRET` repo secret existence and that it matches Vercel's; 0064 not applied
+and the live EN intro value not read (the Supabase MCP here lists only Dabbler projects).
+
+**Open questions:** none.
+
+---
+
 ## 007231026 — 2026-10-23 18:51 — the sync fills NULL `media.width`/`height` from Cloudinary `fl_getinfo`; unit-tested, NOT run against Cloudinary or the database
 
 **Brief:** `scripts/sync-notion.ts` created `media` rows with NULL dimensions, so new figures

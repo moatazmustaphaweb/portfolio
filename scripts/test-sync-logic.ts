@@ -40,6 +40,14 @@ import {
   needsDimensions,
   parseGetinfo,
 } from "@/lib/sync/media-dimensions";
+import {
+  finalizeRevalidatePaths,
+  parseRevalidateUrls,
+  pathsForCaseFile,
+  pathsForChapter,
+  pathsForPage,
+  postRevalidate,
+} from "@/lib/sync/revalidate";
 
 let failures = 0;
 
@@ -710,7 +718,51 @@ eq("patch: height set -> ONLY width written", dimensionPatch({ width: null, heig
 eq("patch: both set -> NOTHING written, even when Cloudinary disagrees",
   dimensionPatch({ width: 786, height: 1700 }, fetched), null);
 
-console.log(
-  failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
-);
-process.exit(failures === 0 ? 0 : 1);
+console.log("\nRevalidate paths (decision 061 item 6)");
+eq("case file: cover, linear, results", pathsForCaseFile("uae-onboarding"),
+  ["/work/uae-onboarding", "/work/uae-onboarding/all", "/work/uae-onboarding/results"]);
+eq("chapter: own route, cover, linear", pathsForChapter("uae-onboarding", "comparison"),
+  ["/work/uae-onboarding/comparison", "/work/uae-onboarding", "/work/uae-onboarding/all"]);
+eq("page: about/philosophy", pathsForPage("about/philosophy"), ["/about/philosophy"]);
+eq("page: stray slashes trimmed", pathsForPage("/systems/"), ["/systems"]);
+eq("nothing written -> nothing sent", finalizeRevalidatePaths([]), []);
+eq("anything written -> adds / and /work, dedupes, sorts",
+  finalizeRevalidatePaths([...pathsForCaseFile("x"), ...pathsForChapter("x", "a"), "/contact"]),
+  ["/", "/contact", "/work", "/work/x", "/work/x/a", "/work/x/all", "/work/x/results"]);
+let threw = false;
+try { finalizeRevalidatePaths(["/en/work/x"]); } catch { threw = true; }
+check("a localised path is refused (the route adds the locale itself)", threw);
+threw = false;
+try { finalizeRevalidatePaths(["work/x"]); } catch { threw = true; }
+check("a path without a leading slash is refused", threw);
+eq("urls: split, trimmed, trailing slash removed",
+  parseRevalidateUrls(" https://www.moatazmustapha.com/ ,https://preview.moatazmustapha.com,, "),
+  ["https://www.moatazmustapha.com", "https://preview.moatazmustapha.com"]);
+eq("urls: unset -> none", parseRevalidateUrls(undefined), []);
+
+async function revalidatePostChecks() {
+  let sent: { url: string; body: unknown } | null = null;
+  const okFetch = (async (url: string, init: RequestInit) => {
+    sent = { url, body: JSON.parse(String(init.body)) };
+    return new Response(JSON.stringify({ revalidated: ["/en", "/ar"] }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const ok = await postRevalidate("https://a.example", "s3cret", ["/"], okFetch);
+  check("post: ok on 200", ok.ok, ok.detail);
+  eq("post: url and body", sent, { url: "https://a.example/api/revalidate", body: { secret: "s3cret", paths: ["/"] } });
+  check("post: detail never carries the secret", !ok.detail.includes("s3cret"));
+
+  const bad = await postRevalidate("https://a.example", "s3cret", ["/"],
+    (async () => new Response('{"error":"Unauthorized"}', { status: 401 })) as unknown as typeof fetch);
+  check("post: 401 -> not ok, no throw", !bad.ok && bad.detail.startsWith("HTTP 401"), bad.detail);
+
+  const down = await postRevalidate("https://a.example", "s3cret", ["/"],
+    (async () => { throw new Error("ECONNREFUSED"); }) as unknown as typeof fetch);
+  check("post: network error -> not ok, no throw", !down.ok && down.detail === "ECONNREFUSED", down.detail);
+}
+
+revalidatePostChecks().then(() => {
+  console.log(
+    failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
+  );
+  process.exit(failures === 0 ? 0 : 1);
+});
