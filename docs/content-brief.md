@@ -98,6 +98,10 @@ Cloudinary references are stored as inline-code spans:
 
 Images uploaded into Notion carry signed S3 URLs that **expire in 300 seconds**. Never sync or re-render them, and never copy one between pages via the API — the link will work today and break tomorrow. Duplicating an image block must be done by hand in the Notion UI.
 
+**Nor deleted by API** (found `011251026`): `update_content` cannot match an uploaded `<image source="notion-file-block://…">` block, with or without its query string, so a section containing one cannot be removed as a single `old_str`. Delete the text around it in pieces and leave the image block for Moataz to remove in the UI. The sync ignores these blocks (it reads `[cld]` tags only), so a leftover one does not reach the site.
+
+**Two more write traps from the same task.** A long Arabic `old_str` spanning several paragraphs can fail to match while each paragraph matches alone: split it. And a leading `# H1` in `create-pages` content is dropped silently; the page is created without it.
+
 ### Arabic page naming
 
 Arabic versions are **child pages** under their English parent, titled:

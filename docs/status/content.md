@@ -16,6 +16,31 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 011251026 — 2026-10-25 16:47 — Decision 061 Notion edits: UAE map, onboarding/tracking move, Systems trim, UAE results table, Cervello duplicate trashed
+
+**Brief:** Apply the Notion edits Moataz approved in decision 061 (items 9, 10, 11, 13, 18), wording relayed verbatim by the orchestrator. Smallest edits, read back.
+
+**Read:** `docs/decisions.md` 061 (both entries), `CLAUDE.md`, `docs/content-brief.md` (Notion-behaviour section), `scripts/sync-notion.ts` targets pass, `lib/sync/classify.ts`. Notion, before and after: UAE cover EN `3b3d…05fe` + AR `3bad…0e20`; onboarding chapter EN `3b3d…4051` + AR `3b7d…675b`; Application Tracking EN `3c4d…5b1a` + AR `3c4d…fefa`; Systems EN `3b3d…5c6e` + AR `3bdd…bf93`; Results Table Egypt + Neobiz (EN) + Neobiz AR as templates; Cervello duplicate `3b3d…1a9f`.
+
+**Done:**
+1. UAE cover. EN first map line now ends "…the dashboard structure, and the two ownership paths." (removing ", and the tracking layer" alone left the list without its "and", so "and" moved one item earlier). New line after it, bold linked label linking `/work/uae-acquisition/application-tracking` the same way the first line links onboarding. AR: "، وطبقة المتابعة" removed; `٢ · متابعة الطلب:` line added in the bold-numbered format of `١ ·`.
+2. Onboarding chapter. EN and AR: "Tracking and exceptions" / "المتابعة والاستثناءات" heading, `[cld] …/Pre-Submition/45-…` line, both paragraphs and the section divider deleted. The `45-…` line with its EN and AR alt and caption added to Application Tracking EN and AR, directly after the `44-…` line, cld id verbatim.
+3. Systems. EN keeps "<b>Errors are attributed, not prevented.</b>" only; AR keeps "<b>الخطأ يُنسب ولا يُمنع.</b>" only. Philosophy untouched.
+4. New row "Results Table - UAE Acquisition" (`404d4c6d-d86d-81b5-9ae2-fa9c08289485`), Route `/[locale]/work/uae-acquisition (close)`, Content ready Done, EN + AR full, Layer 1, In MVP-1 yes. Heading "Every claim, and its basis" and table `Claim | Basis` copied from Neobiz; AR child `404d4c6d-d86d-81de-a3c5-c9a0ab1b2ac1` "النسخة العربية — النتائج (الإمارات)", heading "كل ادعاء، وأساسه", `الادعاء | على أي أساس`. Two rows each, `[achieved]`, wording exactly as relayed. portfolio-voice and metric-integrity: no change needed. The marker records that it happened, the note says how it is known.
+5. "Case File Cover - Cervello" (blank, Not started, superseded) moved to Notion Trash (restorable). The Cervello route now has one row only: Cervello Cloud (IoT).
+
+**Gaps reported, not filled:** The UAE results pages have no "Where this stands" or "Reflection" prose (Egypt and Neobiz have both). None was supplied, so none was written. The H1 I gave both new pages was dropped by Notion on create; they have none, and I did not add one afterwards.
+
+**Left in Notion, needs Moataz in the UI:** the uploaded image block (uae-track-dashboard-exceptions.png) is still on both onboarding pages, after the Dashboard section's divider. `update_content` cannot match uploaded image blocks. The sync ignores such blocks, so nothing reaches the site.
+
+**Belongs to someone else:** sync run + render check (backend/devops). The new results page and the moved image only reach the site after a sync. Not run.
+
+**Not verified:** the site itself (`:3000`/production), no sync dry-run. The EN cover's new link uses the same `https://app.notion.com/work/...` form the API showed for the existing onboarding link; whether both resolve the same way in the Notion UI was not checked.
+
+**Open questions:** none.
+
+---
+
 ## 001251026 — 2026-10-25 10:45 — Requirement-to-evidence audit for a CX / journey-management role brief. Report only, nothing changed
 
 **Brief:** Map a recruiter brief (client onboarding, colleague experience, servicing, trade finance, cash
