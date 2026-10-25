@@ -45,6 +45,13 @@ frames, but **every transform is static** (`"a":0` on position, scale, rotation,
 plays as a still image. Raster colour also cannot follow the light-theme accent (#0060DF).
 Asked for a re-export with real keyframes and vector shapes. No code changed.
 
+- **Second file (LottieFiles share link) was built behind `MOTION_LAYER` (decision 062), then
+  switched off.** Rendered frame by frame it is **the LottieFiles brand loader** (teal circle,
+  white "S"; the JSON names itself "Lottie Loader new 2"), not Moataz's mark. Recoloured to one
+  accent it showed on preview as a solid disc. `MOTION_LAYER = false`, asset removed; the static
+  mark is back. The component and the flag stay for the right file. A third-party brand mark
+  must never ship as his logo.
+
 ## 011251026 - 2026-10-25 - Grilling session: every open decision on the tracker answered
 
 **Task id `011251026`.** Moataz ran `/grill-me` over the Vision Tracker. 25 questions, one per
