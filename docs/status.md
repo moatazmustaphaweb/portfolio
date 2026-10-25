@@ -77,6 +77,26 @@ differently.** Checked against the docs before accepting it:
   asks for proof first. **Correction to my report:** Home has two CTAs, not one (the second CTA,
   glow and eyebrow pill were restored, status 2026-08 "Home restored"); the route map at the top of
   this file still says "one CTA" and is stale.
+- **Live check, 2026-10-25, once Moataz opened the network.** `www.moatazmustapha.com` answers 200
+  (every page above); `gate.moatazmustapha.com` has **no DNS any more** (CLAUDE.md still names it
+  as the place to verify, so that line is stale); `preview.` redirects to a Vercel SSO login, so
+  only Moataz can read it. Measured on `www`: (1) "Reported internally; covers web and mobile
+  together…" is live on the EN UAE cover; AR has the caveat only. (2) The UAE cover says "Currently
+  one chapter" and lists one chapter, directly above two chapter cards (01, 02). (3) The /work card
+  for Kshemam is its title only; PideTaxi's is its title only (no image, tag, outcome); the order
+  is UAE, Egypt, Neobiz, Cervello, Kshemam, PideTaxi. (4) "Show me what broke." is a plain block,
+  the other two handles are links; a "Results table →" link exists elsewhere on the page. (5)
+  "Request CV" is a `<button>` carrying the same classes as the mailto link beside it. (6) Home has
+  name, tagline, intro, description, two buttons and no work. **New: the Arabic is not the same
+  sentence.** Home AR is `أسعى لحلول بسيطة، تجعل الحياة أسهل`; About AR's H1 is `أنا هنا لأجعل
+  الأشياء أيسر على الناس.` Only the English repeats.
+- ⚠️ **Production is serving the PideTaxi chapters with `main`'s code.** The shared database made
+  them live on `www` when published; `main` has neither the Android frame nor the grid. Measured:
+  the iOS chapter has 5 images and the Android chapter 3, and no `grid-cols` classes in either, so
+  the Android chapter renders in the default phone frame, stacked. The Website chapter is a draft,
+  so the cover's "Chapter 3" line is text with no card. The sitemap fetched does not list PideTaxi
+  yet (cached). The frames and grid reach visitors only when `nightly` is merged to `main`, which
+  is Moataz's call.
 - **Real gaps (3, 5, 6b).** (3) a script gap, not a decision. (5) `cv_url` empty is a decision
   (`learn.md:1246`, `status.md` 001230826: the CV is requested, not downloaded), so it is not an
   item; the button looking like muted footer text is a design oversight. (6b) the repeated
