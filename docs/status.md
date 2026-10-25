@@ -48,7 +48,8 @@ to backend, frontend, content and devops; tracker rows updated as each closes.
   targets; Systems principle trimmed; chapter title as H1; close block on end pages; GA off outside
   production (banner `enabled:false` on preview); Cervello duplicate cover in Notion trash.
 - **Blocked:** revalidate-on-publish code is live but run 8 logged `REVALIDATE_SECRET not set`:
-  the GitHub repo secret is missing. **Moataz to add it.**
+  the GitHub repo secret is missing. **Moataz added it; run 9 verified:** `www` and preview
+  both answered HTTP 200, 94 localised routes revalidated each.
 - **Left by hand in Notion:** an uploaded image block on both UAE onboarding pages (API cannot
   delete it; it does not reach the site). The 404 lang/dir fix needs `global-not-found` and a
   config change (frontend's analysis); not done.
