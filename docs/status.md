@@ -56,8 +56,10 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
   per-row "preview only" status, filtered in `lib/content`; cheaper, but not isolated.
 - **Moataz's decision: neither.** One database, preview is for code only; "don't drag me into
   loops". Recorded as decision 060 (supersedes 059). Consequence: a sync that publishes content
-  needing `nightly`'s code is followed by a `nightly` to `main` PR, which he merges. PR opened for
-  the current gap (PideTaxi's frame and grid).
+  needing `nightly`'s code is followed by a `nightly` to `main` PR, which he merges. PR #8 (`nightly`
+  to `main`) was opened for the current gap, then **closed unmerged on Moataz's instruction:
+  "stop, don't merge nightly into main, we are still working on" it.** Nothing reached `main`.
+  Production keeps showing PideTaxi with the old frame until he says when to release.
 
 ## 001251026 - 2026-10-25 - Audit against the Dubai wholesale-banking CX Lead role (report only)
 
