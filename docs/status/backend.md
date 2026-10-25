@@ -16,6 +16,32 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 013251026 — 2026-10-25 — migration 0065 seeds the seven `wait_quote_N` ui_strings (decision 063 item 4), NOT applied
+
+**Brief:** write `supabase/migrations/0065_seed_wait_quotes.sql` seeding `wait_quote_1`…`wait_quote_7`
+with the EN and AR text given verbatim in the brief, in the 0052 seed shape; add it to `SEED_FILES`;
+run the drift check only if it works without a DB.
+
+**Files:** `supabase/migrations/0065_seed_wait_quotes.sql` (new) · `scripts/check-seed-drift.ts`
+(one line added to `SEED_FILES`). **No migration applied** — the SQL goes into the Supabase SQL
+editor by hand; until it does, the keys do not exist in the database.
+
+**Measured:** the drift check's own seed parser (regex and block bounds copied from
+`parseSeed`) run offline against 0065: 7 tuples parsed, 0 mismatches against the brief's strings.
+
+**Verified:** the file parses in the shape the drift check expects; quote escaping (`Moataz''s` in
+the context) round-trips.
+
+**Not verified:** `npm run check:seed-drift` was **not run** — it queries Supabase and there is no
+`.env.local` in this container. It will report the seven keys missing until 0065 is applied; that is
+expected, not drift. The "verbatim from his published pages" claim was not checked against Notion
+or the live pages here — the text was taken from the brief as given. Nothing in `components/` reads
+these keys yet.
+
+**Open questions:** none.
+
+---
+
 ## 011251026 — 2026-10-25 — sync revalidates the routes it wrote (061 item 6); migration 0064 for the EN home intro (061 item 8), NOT applied
 
 **Brief:** (A) make `scripts/sync-notion.ts` collect every route it writes and, on a live run with

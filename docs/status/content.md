@@ -16,6 +16,19 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 013251026 — 2026-10-25 19:45 — Eight wait-screen quotes selected verbatim from published pages (decision 063 item 4)
+
+**Brief:** pick 8 standalone sentences (principle or conviction, under ~20 words, no client names, no figures, no em dashes) verbatim from published EN pages, each with its exact AR counterpart from the AR child page; drop any with no AR counterpart. Output to scratchpad `quotes.json`. No Notion writes.
+**Read (Notion, fresh fetch):** Philosophy EN + `النسخة العربية — الفلسفة`; About EN + `النسخة العربية — نبذة عني`; Systems EN + `النسخة العربية — الأنظمة`; Cover Egypt EN + `الغلاف (مصر)`; Cover Neobiz EN + `نيوبيزنس موبايل: الغلاف`; Accessibility EN + `النسخة العربية — قابلية الوصول والاستخدام`; Cover Cervello EN; Cover UAE EN.
+**Found:** 8 pairs, all copied verbatim (bold/italic markup dropped only): Philosophy 4, About 2, Systems 1, Egypt cover 1. EN 5 to 13 words. None carries a digit, an em dash or an en dash; none names a client. Each AR line is the sentence on the AR page carrying the same idea; none was translated or adjusted.
+**Considered and dropped:** Systems "I don't design screens. I design the rules that produce them." (two sentences; decision 063 says one sentence; offered as alternate). Neobiz "nothing about the regulation changes…" (EN is a clause inside a longer sentence; the AR counterpart carries a hamza typo `الأستخدام` that a verbatim quote would publish). Accessibility "So I stopped arguing about language…" (opens on "So", needs its context; overlaps quote 8). Cervello "Everything I do in regulated banking today started here." and UAE "The hard part was never the form." (need their page to make sense). "Errors are attributed, not prevented" left out (the most edited line on the site in decision 061).
+**Gaps reported, not filled:** the Neobiz AR typo `بيئة الأستخدام` (should carry hamzat wasl) is reported here, not fixed; it is his text in Notion.
+**Belongs to someone else:** writing the 8 rows into `ui_strings` as `wait_quote_1..8` → backend.
+**Not verified:** I read Notion, not the live database or site. The Supabase connection here lists only the Dabbler projects, so I could not confirm these strings render on `gate.moatazmustapha.com` exactly as in Notion. Chapters (Egypt ×4, Neobiz ×2, UAE ×1, Cervello ×3) and the comparison pages were not read.
+**Open questions:** none blocking. Whether a two-sentence quote is acceptable (the Systems line) is his call if he wants it.
+
+---
+
 ## 011251026 — 2026-10-25 16:47 — Decision 061 Notion edits: UAE map, onboarding/tracking move, Systems trim, UAE results table, Cervello duplicate trashed
 
 **Brief:** Apply the Notion edits Moataz approved in decision 061 (items 9, 10, 11, 13, 18), wording relayed verbatim by the orchestrator. Smallest edits, read back.
