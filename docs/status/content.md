@@ -16,6 +16,64 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 001251026 — 2026-10-25 10:45 — Requirement-to-evidence audit for a CX / journey-management role brief. Report only, nothing changed
+
+**Brief:** Map a recruiter brief (client onboarding, colleague experience, servicing, trade finance, cash
+management, service design / journey management, business stakeholders, technology vendors and platform
+capability, UAT, user adoption) to what is written on the pages. Check two Notion-side claims: (a) whether the
+UAE "thousands of new business accounts" row still says "Reported internally"; (b) the "Currently one chapter"
+line against the UAE chapters that exist. EN and AR. Report only; no Notion writes, no code, no database.
+
+**Read:** `docs/learn.md` in full, `docs/content-brief.md` in full, `docs/brief.md`, `docs/career-history.md`,
+`docs/ui-strings-review.md`, the grep hits in `docs/decisions.md` (007), `docs/status.md` (3630-3760) and
+`docs/status/backend.md` (970-990). Notion data source `7a8ab2e1…c219`: the full row list (70 rows) by SQL, then
+45 pages fetched in full: 4 covers (Egypt, Neobiz, UAE, Cervello Cloud) + 4 AR; 13 chapters (Egypt 4, Neobiz 2,
+UAE 2, Cervello 3, PideTaxi 3 (Website = In progress), Kshemam 1) + 13 AR; Results Tables Egypt and Neobiz + 2 AR;
+Results Table Cervello (blank); both comparison pages + 2 AR; Accessibility + AR + the private prep child page;
+About, Philosophy, Systems, Contact + 4 AR; Landing, Classic Gallery, 404 (AR inline); the 4 mini case files
+(EAST and AAM are blank, Not started); the superseded Cervello cover and its 5 superseded chapters (all blank).
+Comments on the UAE cover. Fetch timestamps were 2026-08-25 for most pages, 2026-09-22 to 2026-10-23 for the
+PideTaxi and Kshemam pages.
+
+**Found (counts in the report returned to the orchestrator):** of 10 requirements, 4 STRONG (client
+onboarding, internal banking-team experience, journey mapping / service model, business stakeholder work),
+4 PARTIAL (servicing: application tracking and queries only, no post-activation servicing on any page;
+technology / platform capability: UAE Pass rejected on cost, EFR, Flex, name-screening and mandates folded in,
+but no vendor engagement written anywhere; UAT: named once, inside the Egypt "what broke" story; user
+adoption: production and behaviour evidence exists, no adoption activity is described), 2 NONE (trade finance,
+cash management: neither phrase appears on any page in either language; nearest are "importers",
+"suppliers", "buyer declaration", "debit card and cheque book", "mandates").
+(a) EN UAE cover Results row still reads `Reported internally; covers web and mobile together, so no number is
+attributed to mobile alone`. The AR cover row, the EN chapter Result row and the AR chapter row carry only the
+platform-split caveat. The docs disagree on the agreed claim wording: decision 007 locks "processing thousands
+of new business accounts monthly at peak", `content-brief.md` §4 records "achieved through the digital journey"
+as the four-draft final, the cover says "via the digital journey", the chapter says "achieved through".
+(b) Both covers still say "Currently one chapter" / "فصل واحد حاليًا" and list one chapter in the map. Two UAE
+chapters exist in Notion: Mobile Onboarding Journey (Done, In MVP-1 yes, Order 1) and Application Tracking
+(Done, In MVP-1 no, Layer 2, Order 2), both with AR children. Moataz's own inline comment on that line,
+2026-08-20: "This should be changed once create another chapter for customers portal". The onboarding
+chapter still carries its "Tracking and exceptions" section alongside the new chapter, in both languages.
+
+**Gaps reported, not filled:** every NONE and PARTIAL above; the "one chapter" line; the "Reported
+internally" note; Landing and Classic Gallery have no AR child page in Notion (where their Arabic lives was
+not established); the AR UAE cover opens with the sibling thesis the EN removed; the AR UAE chapter adds
+"وهو مفهوم لا وجود له في رحلة مصر إطلاقًا" with no EN counterpart. Nothing drafted.
+
+**Belongs to someone else:** nothing new. The "one chapter" line against a two-chapter map is a content
+decision for Moataz; whether the live map shows two chapters is a render fact not checked here.
+
+**Not verified:** nothing on `localhost:3000` or production; nothing in Supabase; UI strings read from
+`docs/ui-strings-review.md` only (generated 2026-08-13), not from the database; the three Linear View rows and
+the Door / Read / Studio / Admin / FOUNDATION rows were listed, not opened (no prose, Not started); Notion
+fetches were not re-probed for staleness.
+
+**Open questions:** returned to the orchestrator in the report (trade finance / cash management exposure,
+vendor and platform-assessment work, UAT role, adoption activity, service-design artefacts, the CX Group
+relationship, the "running it" claim on Landing, which "thousands" wording is final, whether "one chapter"
+should now read two).
+
+---
+
 ## 005221026 — 2026-10-22 16:52 — PideTaxi Android: draft wording to match the chosen frames, EN and AR. Draft only, NOT written to Notion
 
 **Brief:** The two chosen Figma frames ("No Destination - Ride now", "Defined Destination - Ride now")

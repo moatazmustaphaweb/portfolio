@@ -37,6 +37,31 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001251026 - 2026-10-25 - Audit against the Dubai wholesale-banking CX Lead role (report only)
+
+**Task id `001251026`.** Moataz: audit the whole site against one recruiter brief (Customer &
+Colleague Experience Lead, wholesale banking transformation, Dubai), map requirements to evidence,
+recommend one URL, confirm six live-site issues. Report only; nothing changed in code or Notion.
+
+- **content** read all 70 Notion rows (45 pages in full, EN and AR, published and drafts), the CV
+  transcription and the content brief; built the evidence map. **Explore** read the architecture,
+  the gallery and handle code and the migrations for the six issues. Live site unreachable here.
+- **Evidence:** STRONG on client onboarding, colleague/internal experience (Egypt only), service
+  design and journey management (by deed, not by name), stakeholder work. PARTIAL on servicing
+  (application servicing only), vendor/platform assessment (judgement written, no vendor work),
+  UAT (one sentence, inside a failure story), adoption (production evidence, no adoption activity).
+  NONE on trade finance and cash management. Nothing invented; gaps reported as questions.
+- **Path:** no new archetype (Layer 2, not built, Institution already covers a bank hirer); no
+  per-visitor mechanism exists in MVP-1 (no query params, `sort_order` never written). Recommended
+  a curated deep link to the Egypt Acquisition cover, which carries the colleague chapters, the
+  journey-mapping workshop line and the results page.
+- **Six issues:** all six confirmed, with causes and fix options. Notably (1) "Reported internally"
+  is on the EN UAE cover only, AR already correct; (2) "Currently one chapter" is stale by Moataz's
+  own Notion comment; (3) Kshemam and PideTaxi are in the gallery because he published them, and
+  show bare because the sync never writes cover media, domain or outcomes; (4) "Show me what
+  broke" is decision 038 by design, now fixable since /results exists (042).
+- Report delivered in the reply. Nine open questions returned to Moataz. No plan approved yet.
+
 ## 007231026 - 2026-10-23 - The sync fills image dimensions itself; PideTaxi framed
 
 **Task id `007231026`.** The sync wrote media rows with NULL width/height, so new figures rendered
