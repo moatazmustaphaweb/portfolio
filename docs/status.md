@@ -37,6 +37,31 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 007251026 - 2026-10-25 - Moataz's three real items: repeated sentences, "Reported internally", "one chapter"
+
+**Task id `007251026`.** Moataz cut the list to three: the repeated sentences (critical),
+"Reported internally", "Currently one chapter". Dropped on his word: cover images ("not a real
+gap for me"), the Request CV button ("it is in production, no need"). The backend, frontend and
+devops briefs from this morning (003 to 005251026) were no longer running and wrote nothing.
+
+- **"Reported internally": done in Notion.** EN UAE cover note now reads *"The figure covers web
+  and mobile together, so no single number is attributed to mobile alone"*, the final wording in
+  `content-brief.md`. AR was already right. Synced (run dispatched with `--only=uae`).
+- **"Currently one chapter": done in Notion,** both languages; the sentence that follows stays.
+  Still true after it: the map lists one chapter above two chapter cards. A map line for
+  Application Tracking is new copy, so it is Moataz's.
+- **Repeated sentences, measured on all 66 live pages, both languages.** 1,269 repeats are
+  structural (a chapter repeated on its own `/all` page, chapter objectives on the cover cards,
+  titles, "Next chapter"). The real cross-page repeats in the same language are two:
+  1. EN *"I'm here to make things easier for people."* is Home's intro and About's H1. The Arabic
+     is two different sentences (Home `أسعى لحلول بسيطة، تجعل الحياة أسهل`, About `أنا هنا لأجعل
+     الأشياء أيسر على الناس.`), so only English repeats.
+  2. The "errors are attributed, not prevented" principle is written twice, near word for word,
+     in both languages: About / Philosophy and Systems ("The patterns that repeat").
+- **Found on the way, not his three:** many Arabic pages render English sentences (most of
+  `/ar/work/egypt-acquisition/accessibility`, image captions on the AR Egypt onboarding and
+  workflow chapters, a Neobiz cover line). Reported only.
+
 ## 002251026 - 2026-10-25 - Preview and production share one database; what separating them takes
 
 **Task id `002251026`.** Moataz: with a preview environment, production must not change until
