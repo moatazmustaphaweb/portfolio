@@ -37,6 +37,28 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 010251026 - 2026-10-25 - The Vision Tracker: a Notion board of every step to the vision
+
+**Task id `010251026`.** Moataz: a Notion board that tracks the steps to complete the vision (not
+code tasks), reflects the current status against the repo docs, and is kept up to date so nothing
+is repeated or stalled.
+
+- **Created `Portfolio — Vision Tracker`** under the MOATAZ page (data source
+  `c85115bc-5173-409d-b8ae-c4ed84a36541`). Properties: Phase (MVP-1 debt, Layers 2 to 5,
+  Governance) · Status (Not started / Needs decision / In progress / Blocked / Done / Decided not
+  to do) · Kind (decision not executed · ground shifted · real gap · new build · doc correction) ·
+  Non-negotiable (the 13 of v2) · Owner · Needs Moataz · Source (repo citation) · Docs to update ·
+  Last task id · Last reviewed.
+- **41 rows written from the audits of 001251026 and 009251026**, each citing where the repo
+  records it: 6 governance, 18 MVP-1 debt (including the two Moataz parked as "decided not to
+  do"), 6 Layer 2, 6 Layer 3, 4 Layer 4, 2 Layer 5. Status reflects today: 1 done, 1 in progress,
+  2 blocked on his Arabic reviews and the redaction look, 11 needing his decision.
+- **Wired into the rules:** CLAUDE.md (doc table row and a working-agreement bullet: the row is
+  updated before `DONE`), `docs/agents.md` (orchestrator writes it, content reads it),
+  `docs/learn.md` (why one board, not memory).
+- **Not yet on the board:** findings from the live browser crawl of preview (009251026, still
+  running). They are added when it returns.
+
 ## 009251026 - 2026-10-25 - The vision text against architecture v2, and what remains (in progress)
 
 **Task id `009251026`.** Moataz supplied a "full site vision"; inspection and report only.

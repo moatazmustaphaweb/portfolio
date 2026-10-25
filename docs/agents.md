@@ -135,6 +135,7 @@ writer or says **UNOWNED** in full.
 | **`docs/content-brief.md`** | read | read | read | read | **append** |
 | `docs/status/<own>.md` | read | **write** | **write** | **write** | **write** |
 | `docs/status.md` · `TASKS.md` · `docs/agents.md` · `docs/workflows.md` | **write** | — | — | — | — |
+| Notion `Portfolio — Vision Tracker` (the board of steps to the vision, added `010251026`) | **write** | — | — | — | read |
 | `.vscode/` | **UNOWNED — nobody writes it** | **UNOWNED** | **UNOWNED** | **UNOWNED** | **UNOWNED** |
 | `app/api/contact/**` · `app/api/events/**` | read | read | **write** | read | read |
 | `app/api/revalidate/**` | read | read | read | **write** | read |

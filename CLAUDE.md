@@ -129,6 +129,7 @@ docs/                 all project documentation
 | **Writing, reviewing or auditing any content — read this first** | **`docs/content-brief.md`** — how Notion actually behaves, the writing conventions that settled in both languages, the editorial decisions and their reasoning, and where the previous content conversation was wrong. **content's file; it appends, never restructures.** An operating manual, **not a source of truth about content state** — the live page and the database win when they disagree with it |
 | Reviewing or correcting Arabic copy | `docs/ui-strings-review.md` |
 | Asking where the build stands | `docs/status.md` (the orchestrator's), plus `docs/status/{frontend,backend,devops,content}.md` |
+| **Asking what is left to reach the vision, and in what order** | **The Notion board `Portfolio — Vision Tracker`** (under MOATAZ, data source `c85115bc-5173-409d-b8ae-c4ed84a36541`): one row per step from MVP-1 debt to Layer 5, each with its kind (decision not executed · ground shifted · real gap · new build · doc correction), the non-negotiables it serves, the docs it must update and the last task id. `docs/status.md` says what happened; the board says what remains. **The orchestrator updates the touched rows before closing any task** (added `010251026`) |
 | **Routing work, or briefing an agent** | **`docs/agents.md`** — the five roles, the permission boundary, the task-id scheme, what a brief must carry |
 | A task that crosses more than one agent | `docs/workflows.md` — the known workflows, the handoffs, and the ledger |
 | Designing or implementing redaction | `docs/redaction-brief.md` |
@@ -145,6 +146,7 @@ docs/                 all project documentation
   - If a task ends with no entry, **say so explicitly in the reply** so the silence is legible as a decision rather than a failure.
   - This applies hardest to **diagnoses, refusals and questions answered** — the ones most likely to be skipped, and the ones most needed. A refusal with its reasoning is a result; an empty file is not.
   - "Do only what was asked" does not override this. Scoping instructions bound **which code to touch**; they do not suspend the log.
+- **The Vision Tracker row is updated as part of the task, the same way `status.md` is.** Every task that advances, blocks or closes a step sets that row's Status, Last task id and Last reviewed before `DONE`. A task that finds a new gap adds a row. Rows are reviewed against `docs/decisions.md` and `docs/status.md`, never the other way round: the board tracks, the repo decides.
 - **`docs/learn.md` is appended to as part of the task, the same way `status.md` is.** When something is learned that would change how the next task is approached — a bug class, a preference discovered by being corrected, an environment trap that cost a session, a rule that turned out to have an exception — add it to the **right section** of that file, in that task.
   - Not individual decisions: those go to `docs/decisions.md`. Not session outcomes: those go to `docs/status.md`. Not anything true of only one file.
   - **The test: would reading it beforehand have saved time?** If no, it does not belong there.

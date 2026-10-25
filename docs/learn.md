@@ -121,6 +121,16 @@ is code only; that means a published chapter can show on production with older c
 and that is accepted. Do not open a `nightly` to `main` PR to "fix" it. Ask once, at most, when
 he is clearly at a release point; otherwise keep working on `nightly`.
 
+## Awareness lives in one board, not in the orchestrator's memory
+
+Learned 2026-10-25, task `010251026`. The vision audit found the same pattern six times: a decision
+written in one doc, executed nowhere, and rediscovered months later as a "new" finding (revalidate on
+publish, the role+decision publish check, the artwork strings, the www cutover, open question B, the
+Cervello pause). `status.md` records what happened and `decisions.md` what was decided; neither says
+what is still open. That is what the Notion `Portfolio — Vision Tracker` is for: a row per step, its
+kind, its docs, its last task id. **Update it before closing a task, and read it before starting
+one**, so the next session does not re-audit what the last one already found.
+
 ## Decide the mechanics yourself; come back only for permission
 
 Learned 2026-10-23, task `006221026`, by being told outright: *"Don't back to me with a lot of questions. You're asking me for each step… start to take decision, work without stopping until you finish. If you need any permission, ask me, I will approve."*
