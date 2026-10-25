@@ -43,6 +43,18 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 message; all answered. Recorded as **decision 061** (18 items). Execution dispatched on `nightly`
 to backend, frontend, content and devops; tracker rows updated as each closes.
 
+- **Executed and verified on preview** after sync run 8 (updated 30, failed 0): Home EN intro
+  (migration 0064, SQL run by Moataz); UAE cover map line 2; UAE results page with two achieved
+  targets; Systems principle trimmed; chapter title as H1; close block on end pages; GA off outside
+  production (banner `enabled:false` on preview); Cervello duplicate cover in Notion trash.
+- **Blocked:** revalidate-on-publish code is live but run 8 logged `REVALIDATE_SECRET not set`:
+  the GitHub repo secret is missing. **Moataz to add it.**
+- **Left by hand in Notion:** an uploaded image block on both UAE onboarding pages (API cannot
+  delete it; it does not reach the site). The 404 lang/dir fix needs `global-not-found` and a
+  config change (frontend's analysis); not done.
+- Still to come, each put to Moataz in turn: privacy text, share image, dates table, Arabic
+  string review, feature lists, Lighthouse run. Tracker rows updated.
+
 ## 010251026 - 2026-10-25 - The Vision Tracker: a Notion board of every step to the vision
 
 **Task id `010251026`.** Moataz: a Notion board that tracks the steps to complete the vision (not
