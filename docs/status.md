@@ -62,6 +62,27 @@ recommend one URL, confirm six live-site issues. Report only; nothing changed in
   broke" is decision 038 by design, now fixable since /results exists (042).
 - Report delivered in the reply. Nine open questions returned to Moataz. No plan approved yet.
 
+**Correction from Moataz, same day: the six issues are three different kinds, and each is handled
+differently.** Checked against the docs before accepting it:
+
+- **Decisions made and not executed (1, 2).** (1) `docs/content-brief.md:263` records four drafts
+  of this row and the final: `[achieved]` plus the platform-split caveat only, with *"any basis
+  naming where the number was learned"* rejected: *"Provenance detail is interview material, not
+  visible copy."* The EN cover still carries "Reported internally;", so it contradicts a written
+  decision; the AR cover is already correct. My open question 8 was therefore half answered by the
+  brief; I asked it because the audit read decision 007 and the brief as disagreeing. (2) His
+  2026-08-20 Notion comment on "Currently one chapter" is still open: an overdue item.
+- **Working as designed, ground since changed (4, 6).** (4) decision 038 was right when written;
+  the results page (decision 042) came after. (6) the minimal Home was intentional; the read test
+  asks for proof first. **Correction to my report:** Home has two CTAs, not one (the second CTA,
+  glow and eyebrow pill were restored, status 2026-08 "Home restored"); the route map at the top of
+  this file still says "one CTA" and is stale.
+- **Real gaps (3, 5, 6b).** (3) a script gap, not a decision. (5) `cv_url` empty is a decision
+  (`learn.md:1246`, `status.md` 001230826: the CV is requested, not downloaded), so it is not an
+  item; the button looking like muted footer text is a design oversight. (6b) the repeated
+  sentence is coincidence between `settings.intro` and the About intro; two rows, no link.
+
+
 ## 007231026 - 2026-10-23 - The sync fills image dimensions itself; PideTaxi framed
 
 **Task id `007231026`.** The sync wrote media rows with NULL width/height, so new figures rendered
