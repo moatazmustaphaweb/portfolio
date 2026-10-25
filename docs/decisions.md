@@ -910,6 +910,25 @@ to do the work of a sentence.
 
 ---
 
+## 062 — The hero mark is Moataz's Lottie: a recorded exception to the motion spec
+
+**Decided 2026-10-25, task `012251026`, by Moataz** ("do anything, I need the result on the
+website"), after the three conflicts with `motion-system` / `perf-budget` were put to him.
+
+**Decision:** the Home hero mark is the Lottie he supplied (`public/motion/hero-mark.json`),
+recoloured at render to `--color-accent` at the mark's existing 20% opacity. It is an
+**exception** to `motion-system.md` §8 (the mark forming from the shared field) and to
+`perf-budget`'s one-runtime rule: the field version stays the Layer 2 plan, and `lottie-web`'s
+light build is accepted for one element, lazy-loaded so it costs nothing when motion is off.
+
+**Guards that still hold:** one flag (decision 047), a code constant so it reverts in one
+commit, **on**; `prefers-reduced-motion` and the server render show the static `HeroMark`;
+aria-hidden; no text depends on it.
+
+**Status:** ACTIVE. Exception scoped to the Home hero only.
+
+---
+
 ## 061 — Decisions of the 2026-10-25 grilling session (task `010251026`)
 
 **Decided 2026-10-25 by Moataz, one question at a time, against the Vision Tracker.** Each line is a
