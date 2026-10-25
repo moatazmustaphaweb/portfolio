@@ -193,7 +193,7 @@ export default async function Landing({
             {contactLabel ? (
               <Link
                 href={`/${l}/contact`}
-                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
               >
                 {contactLabel}
               </Link>

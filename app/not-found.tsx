@@ -108,7 +108,7 @@ export default async function NotFound() {
             {ui.t("page_contact") ? (
               <Link
                 href={`/${locale}/contact`}
-                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
               >
                 {ui.t("page_contact")}
               </Link>

@@ -195,8 +195,15 @@ const config: Config = {
     // Only colour and opacity transition. Never transform, size or shadow.
     transitionProperty: {
       none: "none",
+      /*
+       * `opacity` is in the colour set on purpose (task 013251026, decision
+       * 063 item 1). `transition-colors` sets `transition-property`, which
+       * replaced the base press rule's `transition: opacity …` on every
+       * control carrying it: the press dip still applied, but snapped instead
+       * of easing. Opacity is a state-change property under tokens.md.
+       */
       colors:
-        "color, background-color, border-color, text-decoration-color, fill, stroke",
+        "color, background-color, border-color, text-decoration-color, fill, stroke, opacity",
       opacity: "opacity",
     },
 

@@ -53,7 +53,7 @@ export async function SiteHeader({ locale }: { locale: Locale }) {
   const name = settings.get("name");
 
   return (
-    <header className="sticky top-0 z-50 border-b border-DEFAULT bg-scrim backdrop-blur-header relative">
+    <header className="site-header sticky top-0 z-50 border-b border-DEFAULT bg-scrim backdrop-blur-header relative">
       <div className="mx-auto flex min-h-header-h max-w-container items-center gap-3 px-gutter py-2 sm:gap-6">
         {/*
           FIRST on mobile, and absent on desktop. Carries the whole nav.

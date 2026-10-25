@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
@@ -8,10 +9,11 @@ import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { DocumentLanguage } from "@/components/layout/DocumentLanguage";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { NavProgress } from "@/components/motion/NavProgress";
 import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
 import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
-import type { Locale } from "@/lib/content/types";
+import { dirForLocale, type Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -74,6 +76,20 @@ export default async function LocaleLayout({
   const typedLocale = locale as Locale;
   const ui = await getUiStrings(typedLocale);
 
+  /*
+   * The loader's quotes (decision 063, item 4): every `wait_quote_N` key that
+   * resolves, in key order. None seeded, none rendered: the loader shows the
+   * mark alone. ⚠️ `lang`/`dir` are the locale's: `getUiStrings` does not say
+   * which locale supplied a label, so an English fallback on /ar would be
+   * marked Arabic. Both languages are seeded together (migration 0065).
+   */
+  const quotes = ui
+    .keys()
+    .filter((k) => /^wait_quote_\d+$/.test(k))
+    .sort((a, b) => Number(a.slice(11)) - Number(b.slice(11)))
+    .map((k) => ui.t(k))
+    .filter((q): q is string => Boolean(q && q.trim()));
+
   // Read on the server so the value is inlined; the banner is suppressed
   // entirely when GA is not configured.
   /*
@@ -112,6 +128,19 @@ export default async function LocaleLayout({
           consent to. Declining GA must not silence these.
         */}
         <Analytics locale={typedLocale} />
+
+        {/*
+          Navigation feedback (decision 063): the pending hairline, and behind
+          MOTION_LAYER the loader and the transition classifier. Client-only
+          and outside the server HTML; Suspense because it reads search params.
+        */}
+        <Suspense fallback={null}>
+          <NavProgress
+            quotes={quotes}
+            lang={typedLocale}
+            dir={dirForLocale(typedLocale)}
+          />
+        </Suspense>
 
         {/* GA: renders nothing until consent is explicitly granted. */}
         <GoogleAnalytics id={gaId} />

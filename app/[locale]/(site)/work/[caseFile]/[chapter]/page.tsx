@@ -13,6 +13,7 @@ import { getPageSections } from "@/lib/content/pages";
 import { dirForLocale } from "@/lib/content/types";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { MOTION_LAYER } from "@/lib/motion/flag";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -518,6 +519,7 @@ export default async function Chapter({
         {detail.next ? (
           <Link
             href={`/${l}/work/${caseFile}/${detail.next.slug}`}
+            transitionTypes={MOTION_LAYER ? ["nav-forward"] : undefined}
             className="flex items-center gap-5 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
           >
             <span className="flex flex-col gap-2">
@@ -553,6 +555,7 @@ export default async function Chapter({
           {detail.prev ? (
             <Link
               href={`/${l}/work/${caseFile}/${detail.prev.slug}`}
+              transitionTypes={MOTION_LAYER ? ["nav-back"] : undefined}
               className="text-ui text-fg-muted transition-colors hover:text-fg"
             >
               {ui.t("previous_chapter") ?? detail.prev.title}
@@ -582,7 +585,7 @@ export default async function Chapter({
               {ui.t("back_to_work") ? (
                 <Link
                   href={`/${l}/work`}
-                  className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+                  className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
                 >
                   {ui.t("back_to_work")}
                 </Link>

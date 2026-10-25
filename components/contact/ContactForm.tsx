@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { beginTask } from "@/components/motion/pending";
+
 /**
  * The contact form.
  *
@@ -60,6 +62,8 @@ export function ContactForm({
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("sending");
+    // The pending hairline while the request is in flight (decision 063).
+    const done = beginTask();
 
     const body = Object.fromEntries(new FormData(event.currentTarget));
     try {
@@ -71,6 +75,8 @@ export function ContactForm({
       setState(res.ok ? "sent" : "failed");
     } catch {
       setState("failed");
+    } finally {
+      done();
     }
   }
 
@@ -187,9 +193,10 @@ export function ContactForm({
           <button
             type="submit"
             disabled={state === "sending"}
-            className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg disabled:opacity-60"
+            aria-busy={state === "sending" || undefined}
+            className="inline-flex h-control-h min-w-control items-center justify-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg disabled:opacity-60"
           >
-            {state === "sending" ? strings.sending : strings.submit}
+            {state === "sending" ? (strings.sending ?? strings.submit) : strings.submit}
           </button>
         </div>
       ) : fallbackEmail ? (
@@ -200,7 +207,7 @@ export function ContactForm({
         <div>
           <a
             href={`mailto:${fallbackEmail}`}
-            className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+            className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
           >
             {fallbackEmail}
           </a>

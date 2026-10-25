@@ -253,6 +253,38 @@
   --duration-press-out: 160ms;
 
   /*
+   * --- Navigation (Motion Layer, decision 048; tokens.md MOTION) ---
+   * The camera scale, at tokens.md's values. Only the pan is read today
+   * (prev/next chapter, decision 063 item 5, which bounds it at 600ms). The
+   * zoom and lift tokens stay declared for the camera: 063 bounds the
+   * gallery/cover/chapter move at 400ms as a cross-resolve, below the zoom
+   * window, so it takes its own token rather than a retimed zoom.
+   */
+  --duration-nav-pan: 600ms;
+  --ease-nav-pan: ease-in-out;
+  --duration-nav-zoom-in: 800ms;
+  --ease-nav-zoom-in: ease-out;
+  --duration-nav-zoom-out: 700ms;
+  --ease-nav-zoom-out: ease-in-out;
+  --duration-nav-lift: 500ms;
+  --ease-nav-lift: ease-in-out;
+  /* Decision 063: the cross-resolve. Old leaves in --duration (150ms), new
+   * arrives in 250ms; the descend/ascend variant runs 400ms. Both ≤400ms. */
+  --duration-nav-resolve-in: 250ms;
+  --duration-nav-depth: 400ms;
+  --ease-nav-depth: ease-out;
+  /* Amplitudes. Containers move; content never does. */
+  --nav-pan-distance: 24px;
+  --nav-settle-distance: 6px;
+  --nav-depth-scale: 0.985;
+  /* +1 along the reading direction; flipped under dir=rtl below. */
+  --nav-axis: 1;
+  /* Pending feedback (063 items 2–4). The trickle is not a camera move. */
+  --duration-pending-trickle: 8s;
+  --duration-loader-cycle-out: 250ms;
+  --duration-loader-quote: 300ms;
+
+  /*
    * --- The device frame (components/media/DeviceFrame.tsx) ---
    *
    * The laptop around a chapter screenshot. Tokenised 2026-08-25, task
@@ -440,6 +472,17 @@
     --duration: 0ms;
     --duration-press-in: 0ms;
     --duration-press-out: 0ms;
+    /* Every navigation move becomes the Cut (tokens.md, decision 048). */
+    --duration-nav-pan: 0ms;
+    --duration-nav-zoom-in: 0ms;
+    --duration-nav-zoom-out: 0ms;
+    --duration-nav-lift: 0ms;
+    --duration-nav-resolve-in: 0ms;
+    --duration-nav-depth: 0ms;
+    /* The hairline jumps to its resting width instead of trickling. */
+    --duration-pending-trickle: 0ms;
+    --duration-loader-cycle-out: 0ms;
+    --duration-loader-quote: 0ms;
   }
   html {
     scroll-behavior: auto;
@@ -640,13 +683,8 @@
     transition: opacity var(--duration-press-out) var(--ease);
   }
 
-  a:active,
-  button:not(:disabled):active,
-  summary:active,
-  [role="button"]:not([aria-disabled="true"]):active {
-    opacity: 0.62;
-    transition-duration: var(--duration-press-in);
-  }
+  /* The pressed state itself is OUTSIDE this layer, at the end of the file.
+   * See "PRESS, THE WINNING HALF" there for why. */
 }
 
 @layer components {
@@ -712,4 +750,358 @@
 }
 .hero-mark-motion [stroke]:not([stroke="none"]) {
   stroke: currentColor;
+}
+
+/*
+ * ── PRESS, THE WINNING HALF ────────────────────────────────────────────────
+ *
+ * Task 013251026, decision 063 item 1. The pressed state used to live in
+ * `@layer base` as `a:active { opacity: .62 }` and lost on exactly the
+ * controls that matter most: the four primary CTAs carry
+ * `hover:opacity-85`, whose `:hover` selector is (0,2,0) against `a:active`'s
+ * (0,1,1) and is emitted after base, and `transition-opacity` /
+ * `transition-colors` reset the 60ms press duration to `--duration`. A press
+ * under a hovering finger therefore did nothing.
+ *
+ * Two changes, both structural rather than per call site:
+ *   - this rule is unlayered and rooted at `:root`, so it outranks every
+ *     single-state utility (`hover:`, `focus:`, `transition-*`) wherever it is
+ *     emitted, in any layer arrangement;
+ *   - `transition-colors` now includes `opacity` (tailwind.config.ts), so the
+ *     dip eases back instead of snapping.
+ *
+ * Release is `--duration-press-out` (160ms) on a bare control and
+ * `--duration` (150ms) on one carrying a `transition-*` utility; unifying
+ * them would retime every colour hover on the site. Outline buttons also
+ * take `active:border-fg` at their call sites. No scale (decision 048).
+ * Disabled controls never answer.
+ */
+:root
+  :is(
+    a,
+    button:not(:disabled),
+    summary,
+    [role="button"]:not([aria-disabled="true"])
+  ):active {
+  opacity: 0.62;
+  transition-duration: var(--duration-press-in);
+}
+
+/*
+ * ── NAVIGATION FEEDBACK (decision 063) ─────────────────────────────────────
+ *
+ * components/motion/NavProgress.tsx drives all of it. Transform and opacity
+ * only, and only on the hairline, the loader overlay and the `<main>`
+ * container: no content-level component transforms (tokens.md, decision 048).
+ */
+
+:root[dir="rtl"] {
+  --nav-axis: -1;
+}
+
+/* The hairline. Not flagged: feedback, not choreography (063 item 2). */
+.nav-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 2px;
+  z-index: 60; /* above the header's z-50 */
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  /* Grows from the reading start. `transform-origin` has no logical keyword. */
+  transform-origin: left center;
+  opacity: 0;
+  pointer-events: none;
+}
+:root[dir="rtl"] .nav-progress {
+  transform-origin: right center;
+}
+.nav-progress[data-state="pending"] {
+  /* Starts at once; becomes visible only at 100ms, so a fast commit never
+   * flashes it. */
+  animation:
+    nav-trickle var(--duration-pending-trickle) ease-out forwards,
+    nav-appear 0s linear 100ms forwards;
+}
+.nav-progress[data-state="done"] {
+  opacity: 1;
+  animation:
+    nav-complete var(--duration) ease-out forwards,
+    nav-vanish var(--duration) linear var(--duration) forwards;
+}
+@keyframes nav-trickle {
+  from { transform: scaleX(0.08); }
+  to { transform: scaleX(0.85); }
+}
+@keyframes nav-appear {
+  to { opacity: 1; }
+}
+@keyframes nav-complete {
+  from { transform: scaleX(var(--nav-from, 0.85)); }
+  to { transform: scaleX(1); }
+}
+@keyframes nav-vanish {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/*
+ * The loader (MOTION_LAYER, 063 item 3): over `<main>` only. Below the
+ * header's z-50, so the header stays usable; `pointer-events: none`, so it
+ * never blocks input either (motion-system §3.4).
+ */
+.nav-loader {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: var(--header-h);
+  inset-block-end: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding-inline: var(--gutter, 1rem);
+  background-color: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  color: var(--color-fg-muted);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--duration) var(--ease),
+    visibility 0s linear var(--duration);
+}
+.nav-loader[data-show="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--duration) var(--ease),
+    visibility 0s;
+}
+.nav-loader-mark {
+  inline-size: 7rem;
+  aspect-ratio: 281 / 277;
+  transition: opacity var(--duration-loader-cycle-out) var(--ease);
+}
+.nav-loader-mark[data-cycling="true"] {
+  opacity: 0;
+}
+.nav-loader-mark [fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+.nav-loader-mark [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+}
+.nav-loader-quote {
+  max-inline-size: 36ch;
+  text-align: center;
+  text-wrap: balance;
+  animation: nav-fade-in var(--duration-loader-quote) var(--ease) both;
+}
+
+/*
+ * ── PAGE TRANSITIONS (MOTION_LAYER, 063 item 5) ────────────────────────────
+ *
+ * React's <ViewTransition> (components/motion/MainTransition.tsx) names
+ * `<main>` `site-main` with the class `nav-main`, or `nav-pan-forward` /
+ * `nav-pan-back` for the prev/next chapter links. `html[data-nav]` says which
+ * move `nav-main` makes; NavProgress sets it before the transition and drops
+ * it after 900ms. No attribute, no animation: a cut. Under reduced motion the
+ * attribute is never set and every duration token above is 0ms.
+ */
+
+/* Clicks pass through to the live page; a transition never blocks input. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Base: a cut. Old images hidden, new ones static, groups static. The group
+ * stays put because the old page was captured at its own scroll position;
+ * see --nav-old-shift below. */
+::view-transition-group(root),
+::view-transition-group(.nav-main),
+::view-transition-group(.nav-pan-forward),
+::view-transition-group(.nav-pan-back) {
+  animation: none;
+}
+::view-transition-old(root),
+::view-transition-old(.nav-main),
+::view-transition-old(.nav-pan-forward),
+::view-transition-old(.nav-pan-back) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-new(root),
+::view-transition-new(.nav-main),
+::view-transition-new(.nav-pan-forward),
+::view-transition-new(.nav-pan-back) {
+  animation: none;
+}
+
+/* The old page leaves from where the reader was looking, not from its top. */
+::view-transition-old(.nav-main),
+::view-transition-old(.nav-pan-forward),
+::view-transition-old(.nav-pan-back) {
+  translate: 0 var(--nav-old-shift, 0px);
+  transform-origin: 50% calc(50vh - var(--nav-old-shift, 0px));
+}
+::view-transition-new(.nav-main),
+::view-transition-new(.nav-pan-forward),
+::view-transition-new(.nav-pan-back) {
+  transform-origin: 50% 50vh;
+}
+
+/* The anchors: header, hairline and loader never take part in a move. Named
+ * only while a classified navigation runs, so the header's backdrop filter is
+ * untouched the rest of the time. */
+:root[data-nav] .site-header {
+  view-transition-name: site-header;
+}
+:root[data-nav] .nav-progress {
+  view-transition-name: nav-progress;
+}
+:root[data-nav] .nav-loader {
+  view-transition-name: nav-loader;
+}
+::view-transition-group(site-header),
+::view-transition-group(nav-progress),
+::view-transition-group(nav-loader) {
+  animation: none;
+}
+::view-transition-group(site-header) {
+  z-index: 100;
+}
+::view-transition-group(nav-loader) {
+  z-index: 90;
+}
+::view-transition-group(nav-progress) {
+  z-index: 101;
+}
+::view-transition-old(site-header),
+::view-transition-old(nav-progress),
+::view-transition-old(nav-loader) {
+  display: none;
+}
+::view-transition-new(site-header),
+::view-transition-new(nav-progress),
+::view-transition-new(nav-loader) {
+  animation: none;
+}
+
+/* Default: cross-resolve. Old out in 150ms, new in over 250ms with a 6px
+ * upward settle of the container. 400ms in all. */
+:root[data-nav="resolve"]::view-transition-old(.nav-main) {
+  animation: nav-fade-out var(--duration) var(--ease) both;
+}
+:root[data-nav="resolve"]::view-transition-new(.nav-main) {
+  animation:
+    nav-fade-in var(--duration-nav-resolve-in) ease-out var(--duration) both,
+    nav-settle var(--duration-nav-resolve-in) ease-out var(--duration) both;
+}
+
+/* Descend (gallery → cover → chapter): the container resolves up to full
+ * scale. 400ms. */
+:root[data-nav="zoom-in"]::view-transition-old(.nav-main) {
+  animation: nav-fade-out var(--duration) var(--ease) both;
+}
+:root[data-nav="zoom-in"]::view-transition-new(.nav-main) {
+  animation:
+    nav-fade-in var(--duration-nav-depth) var(--ease-nav-depth) both,
+    nav-depth-in var(--duration-nav-depth) var(--ease-nav-depth) both;
+}
+
+/* Ascend: the reverse. The page being left recedes; the parent resolves. */
+:root[data-nav="zoom-out"]::view-transition-old(.nav-main) {
+  animation:
+    nav-fade-out var(--duration-nav-depth) var(--ease-nav-depth) both,
+    nav-depth-out var(--duration-nav-depth) var(--ease-nav-depth) both;
+}
+:root[data-nav="zoom-out"]::view-transition-new(.nav-main) {
+  animation: nav-fade-in var(--duration-nav-depth) var(--ease-nav-depth) both;
+}
+
+/* History (back/forward button): new content fades in; the old page, whose
+ * scroll the browser is restoring, is not shown. */
+:root[data-nav="pop"]::view-transition-new(.nav-main) {
+  animation: nav-fade-in var(--duration-nav-resolve-in) ease-out both;
+}
+
+/* Prev/next chapter: a pan along the reading axis, mirrored by --nav-axis
+ * under dir=rtl. Forward brings the next chapter in from the reading end. */
+::view-transition-old(.nav-pan-forward),
+::view-transition-new(.nav-pan-forward) {
+  --nav-pan-dir: 1;
+}
+::view-transition-old(.nav-pan-back),
+::view-transition-new(.nav-pan-back) {
+  --nav-pan-dir: -1;
+}
+:root[data-nav]::view-transition-old(.nav-pan-forward),
+:root[data-nav]::view-transition-old(.nav-pan-back) {
+  animation:
+    nav-fade-out var(--duration) ease-in both,
+    nav-pan-out var(--duration) ease-in both;
+}
+:root[data-nav]::view-transition-new(.nav-pan-forward),
+:root[data-nav]::view-transition-new(.nav-pan-back) {
+  animation:
+    nav-fade-in var(--duration-nav-resolve-in) ease-out var(--duration) both,
+    nav-pan-in var(--duration-nav-pan) var(--ease-nav-pan) both;
+}
+/* The locale switch mirrors the layout: always a cut (no data-nav rule
+ * matches "cut"), including for a pan-typed link. */
+:root[data-nav="cut"]::view-transition-old(.nav-pan-forward),
+:root[data-nav="cut"]::view-transition-old(.nav-pan-back),
+:root[data-nav="cut"]::view-transition-new(.nav-pan-forward),
+:root[data-nav="cut"]::view-transition-new(.nav-pan-back) {
+  animation: none;
+}
+
+@keyframes nav-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes nav-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes nav-settle {
+  from { transform: translateY(var(--nav-settle-distance)); }
+  to { transform: none; }
+}
+@keyframes nav-depth-in {
+  from { transform: scale(var(--nav-depth-scale)); }
+  to { transform: none; }
+}
+@keyframes nav-depth-out {
+  from { transform: none; }
+  to { transform: scale(var(--nav-depth-scale)); }
+}
+@keyframes nav-pan-out {
+  from { transform: none; }
+  to {
+    transform: translateX(
+      calc(-1 * var(--nav-axis) * var(--nav-pan-dir) * var(--nav-pan-distance))
+    );
+  }
+}
+@keyframes nav-pan-in {
+  from {
+    transform: translateX(
+      calc(var(--nav-axis) * var(--nav-pan-dir) * var(--nav-pan-distance))
+    );
+  }
+  to { transform: none; }
+}
+
+/* Belt and braces for any view transition the rules above do not classify.
+ * The classified ones are already a cut under reduced motion: NavProgress
+ * never sets data-nav, and every duration they read is a token zeroed above. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s;
+    animation-delay: 0s;
+  }
 }

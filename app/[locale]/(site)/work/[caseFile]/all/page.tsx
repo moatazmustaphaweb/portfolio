@@ -435,7 +435,7 @@ export default async function LinearView({
           <section className="mt-18">
             <Link
               href={`/${l}/work/${sibling.slug}`}
-              className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg"
+              className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg"
             >
               {ui.t("sibling_case_files") ? (
                 <span className="font-mono text-label uppercase text-fg-dim">
@@ -479,7 +479,7 @@ export default async function LinearView({
       */}
       <Link
         href={`/${l}/work/${caseFile}`}
-        className="fixed bottom-6 z-50 inline-flex h-control-h items-center gap-2 rounded-pill border border-strong bg-surface-raised px-5 text-ui text-fg-body shadow-none transition-colors hover:border-fg hover:text-fg ltr:right-6 rtl:left-6"
+        className="fixed bottom-6 z-50 inline-flex h-control-h items-center gap-2 rounded-pill border border-strong bg-surface-raised px-5 text-ui text-fg-body shadow-none transition-colors hover:border-fg active:border-fg hover:text-fg ltr:right-6 rtl:left-6"
       >
         <span aria-hidden="true" className="h-2 w-2 rounded-pill bg-accent" />
         {caseTitle}

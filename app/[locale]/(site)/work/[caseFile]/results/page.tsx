@@ -237,7 +237,7 @@ export default async function ResultsTable({
         <section className="mt-18">
           <Link
             href={`/${l}/work/${sibling.slug}`}
-            className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg hover:bg-surface-raised"
+            className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg hover:bg-surface-raised"
           >
             {ui.t("sibling_case_files") ? (
               <span className="font-mono text-label uppercase text-fg-dim">
