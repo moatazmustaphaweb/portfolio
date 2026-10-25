@@ -37,6 +37,25 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 009251026 - 2026-10-25 - The vision text against architecture v2, and what remains (in progress)
+
+**Task id `009251026`.** Moataz supplied a "full site vision"; inspection and report only.
+
+- **The text is Architecture v1.0.** `docs/architecture.md` is v2.0 and says what changed from
+  v1.0 (content to Supabase, ISR, Cloudinary, Notion, settings/navigation/ui_strings); decision
+  008 supersedes v1's content model. **Moataz: keep v2.** Not merged; no `docs/vision.md` written.
+- **Code and docs vs v2 (Explore):** every unbuilt Layer 2 to 5 route is recorded as deferred.
+  Non-negotiables that do not hold: 1 nothing hardcoded (`designs/registry.tsx` cover strings;
+  "Not built yet" placeholder pages served on production because `NEXT_PUBLIC_PREVIEW_STUBS` is
+  set in Vercel, confirmed live on `www` for /door, /for/hiring, /how-this-site-works, /studio,
+  /read); 3 role/decision publish check does not exist; 7 `og_image` is a URL; 9 analytics not
+  disclosed anywhere; 13 old-site cutover never recorded as a decision, Lighthouse never run.
+  Hold: 4, 5, 8. N/A: 10. Unrecorded gaps: ObjectiveHeader, MilestoneClose, NextCaseHandoff,
+  `primitives/` never built; nothing calls `/api/revalidate` on publish (routes are ISR 300s, so
+  CLAUDE.md's "server-rendered on demand" is wrong); open question B (mini case files) never
+  closed though two are published.
+- Live browser crawl of preview still running; this entry is completed when it returns.
+
 ## 007251026 - 2026-10-25 - Moataz's three real items: repeated sentences, "Reported internally", "one chapter"
 
 **Task id `007251026`.** Moataz cut the list to three: the repeated sentences (critical),
