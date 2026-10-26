@@ -16,6 +16,29 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 011261026 — 2026-10-26 — Bank mobile chapters set to Image layout = Grid, Device = iPhone (UAE and Egypt)
+
+**Brief:** Moataz, verbatim: "we need the grid in displaying UI in other mobile projects as we did in Kshemam and PideTaxi, all bank mobile projects for UAE and Egypt; display the mobile screens in grid with same criteria; all bank mobile projects are cross-platform so we can only display in iPhone frame." Set `Image layout = Grid` and `Device = iPhone` on the bank chapters that hold portrait mobile screens. Properties only, no text.
+**Read:** the data source schema; SQL over every `Section = Work` row (Device, Image layout, Route); full fetches of Chapter - UAE / Mobile Onboarding Journey, Chapter - UAE / Application Tracking, Chapter - Neobiz Mobile / Onboarding, Chapter - Neobiz Mobile / Customer Portal; a `[cld] Mobile` search across the data source for the rest. `docs/sync-contract.md` (`Device`, `Image layout` rows), `lib/sync/image-layout.ts`, `components/case-file/ChapterSections.tsx` (grid = runs of 2+ consecutive figures).
+**The criteria, as measured:** before this task 3 rows carried either property, all set together: Kshemam / Android (Android, Grid), PideTaxi / iOS (iPhone, Grid), PideTaxi / Android (Android, Grid). PideTaxi / Website (web screens) has both empty. So: a chapter of app screens gets Grid plus its platform's frame; a web chapter gets neither.
+**Changed (3 rows), before → after:**
+- UAE Acquisition / Mobile Onboarding Journey: (empty, empty) → Device iPhone, Image layout Grid. 7 `[cld]` mobile screens.
+- UAE Acquisition / Application Tracking: (empty, empty) → iPhone, Grid. 5 `[cld]` mobile screens.
+- Neobiz Mobile (Egypt) / Onboarding: (empty, empty) → iPhone, Grid. 9 `[cld]` mobile screens.
+Read back by SQL over the whole data source after the writes: exactly 6 rows carry either property, the 3 above plus the 3 Kshemam/PideTaxi rows, unchanged.
+**Left alone, deliberately:**
+- Neobiz Mobile / Customer Portal: it is a bank mobile chapter, but it has no `[cld]` figure at all, so there is nothing to grid. Setting it would change nothing rendered.
+- Egypt Acquisition (Web), all four chapters (Onboarding, Workflow, Portal, Fulfilment): web, staff-system and tablet screens, not phone app screens. Fulfilment carries an OTP screen from `4. BB Egypt - Fulfilment`; read as the field team's tablet flow, not a phone.
+- Comparison - Web vs Mobile / Onboarding and / Customer Portal: mixed web and mobile by design, and they have no sync write path (CLAUDE.md), so a property set there would not reach the site.
+- Covers, Results tables, Linear views, the Accessibility page: not chapters.
+- Arabic child pages: the properties live on the English database row only.
+**Gaps reported, not filled:** none written. No text touched.
+**Belongs to someone else:** a live sync (`--only=uae-acquisition`, `--only=neobiz-mobile`) to carry the values into `chapters.image_layout` / `device_frame` → backend/devops. Whether the grid fills well where figures sit between paragraphs (UAE onboarding interleaves images with decision prose; the sync folds decision-heading images into the section before) → frontend, visually Moataz's.
+**Not verified:** the sync, the database and the rendered pages. Whether every `[cld]` screen is portrait was not measured; the frame is decided by aspect ratio at render, so a landscape one would render unframed inside the grid.
+**Open questions:** none blocking. Ambiguous and left unchanged: Neobiz Customer Portal (no images) and the two comparison pages; set them only if Moataz wants it for consistency.
+
+---
+
 ## 013251026 — 2026-10-25 19:45 — Eight wait-screen quotes selected verbatim from published pages (decision 063 item 4)
 
 **Brief:** pick 8 standalone sentences (principle or conviction, under ~20 words, no client names, no figures, no em dashes) verbatim from published EN pages, each with its exact AR counterpart from the AR child page; drop any with no AR counterpart. Output to scratchpad `quotes.json`. No Notion writes.
