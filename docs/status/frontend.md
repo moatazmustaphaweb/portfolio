@@ -35,6 +35,18 @@ Two lines, not silence.
 - Nothing renders as editorial until backend's migration and sync land and the chapter's Notion `Image layout` is set to Editorial.
 **Open questions:** none.
 
+### 012261026 addendum — 2026-10-26 — editorial captions: one plain style, exact centring
+
+**Brief:** in an editorial beside row, a framed figure's caption (the second figure on UAE Application Tracking, a portrait screen in the iPhone frame) rendered as the device-frame chip (mono, micro, bordered). Every caption in the editorial text column must use the unframed caption style. Stacked and grid keep the chip. Confirm that a caption-only text column stays vertically centred on the image.
+**Files:** `components/case-file/ChapterSections.tsx` · this file.
+**Change:**
+- In `ChapterFigure`, the editorial figcaption branch no longer checks `device`. It is always `mt-3 max-w-measure text-meta text-fg-muted md:mt-0`, plus the existing `md:row-start-3 md:self-start` and the text column. That is the unframed caption's exact class string, with `md:mt-0` added. The non-editorial branches (the chip, the laptop float, the plain unframed caption) are byte-for-byte unchanged.
+- **Centring was not exact, and is now.** With no prose, the caption's `mt-3` stayed in row 3, so the centred text group was the caption plus 12px, and the caption sat 6px below the image's centre. From `md` the 12px now belongs to the prose column (`md:pb-3`, only when the figure has a caption), and the caption drops it (`md:mt-0`). Below `md` the caption keeps `mt-3` under its image. With prose and a caption the spacing is unchanged (12px). With prose and no caption no padding is added, so that case is also unchanged.
+- The brief called the normal caption style "`text-body-sm` / muted". The unframed caption in this file is `text-meta text-fg-muted` (13px, not 15px). I matched the unframed rows as the brief instructs and did not introduce `text-body-sm`.
+**Verified:** `rm -rf .next/types && npx tsc --noEmit -p .`: exit 0. `npx eslint components/case-file/ChapterSections.tsx`: exit 0. Tailwind compile emits `md:mt-0` (margin-top 0) and `md:pb-3` (`var(--space-3)`).
+**Not verified:** nothing was rendered. There is still no `.env.local` or Chrome in this container, so there is no :3000, no screenshot at 390/1440 in either locale, and no computed-style check of the caption's font or its vertical offset against the image. The 6px figure and its correction come from the grid arithmetic, not from a measurement. Preview was not inspected.
+**Open questions:** none.
+
 ## 008261026 — 2026-10-26 07:47 — one `CardArrow` primitive, body-sm, on every internal card link
 
 **Brief:** follow-up to 007261026. The chapter-card arrow was too big (`text-h3`). Make it the description size, keep it vertically centred, and put the same arrow on every internal link that renders as a card or row surface: a bordered or surface panel with a hover state, where the whole block is the link. Extract it into one server component. Exclude gallery ProjectCards, inline text links, the header nav, and buttons/CTAs.

@@ -396,6 +396,15 @@ export function ChapterSections({
                           {unit.prose.length > 0 ? (
                             <div
                               className={`min-w-0 space-y-6 md:row-start-2 ${
+                                /*
+                                  The 12px between prose and caption, owned by
+                                  the prose so a caption-only column carries no
+                                  stray margin (see the editorial figcaption).
+                                  Only when there IS a caption, or prose with
+                                  none would sit 6px above centre.
+                                */
+                                unit.media.fields.caption ? "md:pb-3" : ""
+                              } ${
                                 side === "end" ? "md:col-start-1" : "md:col-start-2"
                               }`}
                             >
@@ -822,15 +831,26 @@ function ChapterFigure({
             /*
               EDITORIAL: the caption is a cell of the pair's grid — row 3, the
               text column, directly under the prose. Never floating: it is not
-              on a frame's edge any more, it is under a paragraph. A framed
-              figure keeps the chip treatment but hugs the inline start of the
-              text column instead of centring on a frame it no longer sits on.
+              on a frame's edge any more, it is under a paragraph.
+
+              FRAMED OR NOT, IT IS THE PLAIN CAPTION (task `012261026`). The
+              chip exists because it sits ON a frame; in the text column it
+              sits under prose, and a mono chip there reads as a label beside
+              a paragraph rather than as the caption it is. Every caption in
+              the column is the unframed style, so `device` is deliberately
+              not consulted on this branch. Stacked and grid keep the chip.
             */
             editorial
               ? [
-                  device
-                    ? "mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 font-mono text-micro text-fg-dim"
-                    : "mt-3 max-w-measure text-meta text-fg-muted",
+                  /*
+                    `md:mt-0`: from `md` the 12px above the caption is the
+                    prose column's `md:pb-3`, not this margin. As a margin it
+                    stayed in row 3 when there was no prose, and the centred
+                    text group was caption + 12px, so a caption-only column
+                    sat 6px below the image's centre. Below `md` the caption
+                    is under its image again and keeps `mt-3`.
+                  */
+                  "mt-3 max-w-measure text-meta text-fg-muted md:mt-0",
                   "md:row-start-3 md:self-start",
                   textCol,
                 ].join(" ")

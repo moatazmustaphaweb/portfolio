@@ -37,6 +37,22 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 012261026 - 2026-10-26 - Editorial image layout (decision 068), first on UAE Application Tracking
+
+**Task id `012261026`.** Moataz: Application Tracking's images are finished mockups; place each beside
+its paragraph and caption, alternating sides, wide ones full width, so the page reads as designed.
+
+- **Decision 068.** `chapters.image_layout` gains `editorial` (migration 0066, run by Moataz; sync
+  vocabulary, types, docs by backend). Frontend: in an editorial chapter each figure pairs with the
+  prose since the previous figure; narrow (w/h <= 1.15) figures sit in a two-column row on md+,
+  alternating inline-end / inline-start; wide figures full width; stacked below md; logical columns
+  so Arabic mirrors. Captions in the text column use one plain style.
+- **Notion:** option Editorial added; chapter set to Editorial, Device cleared. **Found:** the chapter
+  was `In MVP-1` = no, so every sync skipped it (one image had never reached the site). Ticked.
+- **Verified on preview.moatazmustapha.com (en, ar at 1280; en at 390):** figure 1 right, 2 left, 3
+  right, two wide full width; Arabic mirrors; no horizontal scroll. Caption-style fix pushed after.
+- **Not verified:** dark theme; the caption fix on screen at the time of writing.
+
 ## 011261026 - 2026-10-26 - Bank mobile chapters: screens in a grid, iPhone frame
 
 **Task id `011261026`.** Moataz: show the mobile screens of the UAE and Egypt bank projects in a grid
