@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import type { Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
-import { HeroMark } from "@/components/brand/HeroMark";
+import { HeroMarkMotion } from "@/components/brand/HeroMarkMotion";
 
 /**
  * Landing — composed from `Home.dc.html`.
@@ -122,7 +122,7 @@ export default async function Landing({
       <div
         className="pointer-events-none absolute inset-y-0 end-0 hidden w-1/2 items-center justify-center lg:flex"
       >
-        <HeroMark className="h-auto w-[min(60%,340px)] text-accent opacity-20" />
+        <HeroMarkMotion className="w-[min(60%,340px)] text-accent opacity-20" />
       </div>
 
       <div className="relative mx-auto w-full max-w-container px-gutter py-section-y-hero">
@@ -193,7 +193,7 @@ export default async function Landing({
             {contactLabel ? (
               <Link
                 href={`/${l}/contact`}
-                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
               >
                 {contactLabel}
               </Link>

@@ -3,22 +3,27 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { ChapterSections } from "@/components/case-file/ChapterSections";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { ProseSections } from "@/components/layout/ProseSections";
+import { SiblingLinks } from "@/components/case-file/SiblingLinks";
+import { getCaseFile } from "@/lib/content/case-files";
 import { getChapter, listChapterParams } from "@/lib/content/chapters";
 import { getPageSections } from "@/lib/content/pages";
 import { dirForLocale } from "@/lib/content/types";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { MOTION_LAYER } from "@/lib/motion/flag";
 import type { Locale } from "@/lib/content/types";
 
 /**
  * Chapter — composed from `CaseChapter.dc.html`.
  *
- * The design's central move: **the h1 is the OBJECTIVE, not the chapter
- * title.** A chapter is an argument, and its headline is the thing it set out
- * to do. The title survives in the breadcrumb, where the design puts it.
+ * The h1 is the CHAPTER TITLE (decision 061 item 17, task 011251026). The
+ * design originally set the objective as the h1; it now sits directly beneath
+ * the title at statement size, as a paragraph, so the page has one heading
+ * that names it and the objective still opens the argument.
  *
  * Beats run Objective → Context → Decision → Evidence → Result, with the
  * decision in an accent-bordered card carrying a filled accent pill. That card
@@ -47,7 +52,7 @@ export const revalidate = 300;
  *
  * That distinction is the whole bug: a runtime notFound() from within a
  * rendered dynamic segment resolved to Next's built-in error shell — no lang,
- * no dir, no chrome — while an unmatched ROUTE resolves to app/not-found.tsx.
+ * no dir, no chrome — while an unmatched ROUTE resolves to app/global-not-found.tsx.
  * Every published slug is in generateStaticParams already, so nothing
  * reachable is lost; a draft slug like /work/east becomes a proper 404.
  */
@@ -97,11 +102,18 @@ export default async function Chapter({
   const caseTitle = detail.caseFile.fields.title ?? caseFile;
   const title = detail.fields.title ?? chapter;
 
+  /* Rendered beneath the h1 when present; absent objectives render nothing. */
+  const objective = detail.fields.objective ?? null;
+
   /*
-   * The design's h1. Falls back to the title when a chapter has no objective —
-   * 10 of 13 have one, and a headingless page is not an option.
+   * The close block (decision 061 item 12). Only the end of a reading path
+   * needs it: the last chapter, and comparison/accessibility pages, which never
+   * carry a `next`. Targets and siblings live on the case file, not the
+   * chapter, so the cover's loader is reused (it is request-cached).
    */
-  const headline = detail.fields.objective ?? title;
+  const isEnd = !detail.next;
+  const cover = isEnd ? await getCaseFile(caseFile, l) : null;
+  const hasResults = (cover?.targets.length ?? 0) > 0;
 
   /*
    * Sections are rendered in two runs so the decision cards keep their place in
@@ -118,8 +130,7 @@ export default async function Chapter({
   /*
    * The `objective` slot is DROPPED, not rendered.
    *
-   * `headline` above is `fields.objective` — the chapter's objective set as the
-   * h1, which is the design. The slot carries the same sentence, so rendering
+   * `objective` above is `fields.objective`, rendered beneath the h1. The slot carries the same sentence, so rendering
    * both printed the objective twice in a row, verbatim, under two identical
    * OBJECTIVE labels. Caught in the browser at /en; it is invisible in the DOM
    * checks because both copies are correct on their own.
@@ -277,7 +288,7 @@ export default async function Chapter({
               reader.
             */}
             {hasSections ? (
-              <ChapterSections sections={body} linkLabels={sectionLinkLabels} />
+              <ChapterSections sections={body} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} imageLayout={detail.imageLayout} />
             ) : (
               <ProseSections
                 intro={page.intro}
@@ -301,13 +312,7 @@ export default async function Chapter({
             The dashes are `h-px` — the system has one stroke weight, and the
             design's 2px has no token.
           */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {ui.t("objective") ? (
-              <span className="font-mono text-section uppercase text-fg-dim">
-                {ui.t("objective")}
-              </span>
-            ) : null}
-
+          <div className="flex flex-wrap items-center justify-end gap-4">
             {progress ? (
               <div className="flex shrink-0 items-center gap-3">
                 <span className="whitespace-nowrap font-mono text-label text-fg-dim">
@@ -328,32 +333,33 @@ export default async function Chapter({
           </div>
 
           {/*
-            TRIAL, 2026-08-25 — the objective at statement size instead of
-            title size. Size only; the element, the OBJECTIVE label above it
-            and everything else on the page are unchanged.
-
-            `--text-statement` over `--text-lead`, measured rather than
-            reasoned. At 390 the two are THE SAME NUMBER — 20px in English,
-            23px in Arabic, both sitting on their clamp floor — and in Arabic
-            they are identical in every property, because `:lang(ar) h1` sets
-            the leading and forces weight 400 for both. So the choice is made
-            at wide widths and by weight: at 1440 statement is 26px/500 to
-            lead's 28px/400, which is three lines against four on the longest
-            objective in both languages, and at 390 lead's 400 is the same
-            weight as the prose beneath it while statement's 500 is not.
-
-            It also matches `result` at the foot of this page, which the design
-            already sets as a statement. The two ends of the same argument.
-
-            ⚠️ This does NOT read the same way in both languages, and no token
-            can make it. `:lang(ar) h1` gives an Arabic heading the LANTX
-            display face whatever its size, so in Arabic the objective still
-            reads as a heading, only a smaller one. In English, Geist is one
-            family and 26px/500 genuinely changes the register. Making the
-            Arabic read as a statement means making it not a heading, which is
-            a structural change and a separate question.
+            The chapter title is the h1 (decision 061 item 17). The objective
+            keeps the statement size it was given on 2026-08-25, as a paragraph
+            beneath it. See git history for the earlier objective-as-h1 trial.
           */}
-          <h1 className="mt-5 max-w-measure text-statement text-fg">{headline}</h1>
+          <h1 className="mt-5 max-w-measure text-title text-fg">{title}</h1>
+
+          {/*
+            The objective, at statement size directly beneath the title. It is
+            a paragraph now, not a heading, so `:lang(ar) h1` no longer gives
+            it the display face: in both languages it reads as a statement.
+          */}
+          {objective ? (
+            <div className="mt-6">
+              {ui.t("objective") ? (
+                <p className="font-mono text-section uppercase text-fg-dim">
+                  {ui.t("objective")}
+                </p>
+              ) : null}
+              <p
+                className="mt-3 max-w-measure whitespace-pre-line text-statement text-fg"
+                lang={detail.fieldLocales.objective}
+                dir={detail.fieldLocales.objective ? dirForLocale(detail.fieldLocales.objective) : undefined}
+              >
+                {objective}
+              </p>
+            </div>
+          ) : null}
 
           {/*
             THE SLOT MODEL, WHERE IT EXISTS (migration 0035).
@@ -373,7 +379,7 @@ export default async function Chapter({
             of the chapter follows.
           */}
           {hasSections ? (
-            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} />
+            <ChapterSections sections={leadSections} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} imageLayout={detail.imageLayout} />
           ) : detail.fields.context ? (
             <section className="mt-14 border-t border-DEFAULT pt-8">
               {ui.t("context") ? (
@@ -453,7 +459,7 @@ export default async function Chapter({
             </div>
           ) : null}
 
-          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} /> : null}
+          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} imageLayout={detail.imageLayout} /> : null}
 
           {/*
             Evidence. The design pairs prose with masked figures; `media` is
@@ -514,9 +520,10 @@ export default async function Chapter({
         {detail.next ? (
           <Link
             href={`/${l}/work/${caseFile}/${detail.next.slug}`}
-            className="flex items-center gap-5 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
+            transitionTypes={MOTION_LAYER ? ["nav-forward"] : undefined}
+            className="group flex items-center gap-4 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
           >
-            <span className="flex flex-col gap-2">
+            <span className="flex min-w-0 flex-1 flex-col gap-2">
               {ui.t("next_chapter") ? (
                 <span className="font-mono text-micro uppercase text-fg-dim">
                   {ui.t("next_chapter")}
@@ -526,12 +533,7 @@ export default async function Chapter({
                 {detail.next.title}
               </span>
             </span>
-            <span
-              aria-hidden="true"
-              className="ms-auto text-h3 text-fg-muted rtl:rotate-180"
-            >
-              →
-            </span>
+            <CardArrow glyph={ui.t("arrow_forward")} />
           </Link>
         ) : null}
 
@@ -549,12 +551,51 @@ export default async function Chapter({
           {detail.prev ? (
             <Link
               href={`/${l}/work/${caseFile}/${detail.prev.slug}`}
+              transitionTypes={MOTION_LAYER ? ["nav-back"] : undefined}
               className="text-ui text-fg-muted transition-colors hover:text-fg"
             >
               {ui.t("previous_chapter") ?? detail.prev.title}
             </Link>
           ) : null}
         </div>
+
+        {/*
+          The way out at the end of a path (rule 11, no dead ends): the
+          results table when this case file declares targets, any sibling case
+          files, and the gallery. Each link renders only with its label.
+        */}
+        {isEnd ? (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-wrap gap-3">
+              {hasResults && ui.t("results_table") ? (
+                <Link
+                  href={`/${l}/work/${caseFile}/results`}
+                  className="inline-flex h-control-h items-center gap-2 rounded-control border border-fg bg-fg px-5 text-ui text-bg transition-opacity hover:opacity-85"
+                >
+                  {ui.t("results_table")}
+                  <span aria-hidden="true" className="rtl:rotate-180">
+                    →
+                  </span>
+                </Link>
+              ) : null}
+              {ui.t("back_to_work") ? (
+                <Link
+                  href={`/${l}/work`}
+                  className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
+                >
+                  {ui.t("back_to_work")}
+                </Link>
+              ) : null}
+            </div>
+            {cover ? (
+              <SiblingLinks
+                siblings={cover.siblings}
+                locale={l}
+                heading={ui.t("sibling_case_files")}
+              />
+            ) : null}
+          </div>
+        ) : null}
       </nav>
     </div>
   );

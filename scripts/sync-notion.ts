@@ -65,11 +65,34 @@ import {
 } from "@/lib/sync/image-tags";
 import { formatImageRef } from "@/lib/content/image-refs";
 import { describeDrops, sift, type Sifted } from "@/lib/sync/sift";
+import { readDeviceProperty, resolveDeviceFrame, type DeviceRead } from "@/lib/sync/device-frame";
+import {
+  readImageLayoutProperty,
+  resolveImageLayout,
+  type ImageLayoutRead,
+} from "@/lib/sync/image-layout";
 import {
   parsePageSections,
   routeToPageKey,
   stripArabicScaffolding,
 } from "@/lib/sync/static-pages";
+import {
+  dimensionPatch,
+  getinfoUrl,
+  needsDimensions,
+  parseGetinfo,
+  type Dimensions,
+  type StoredDimensions,
+} from "@/lib/sync/media-dimensions";
+import { CLOUDINARY_CLOUD_NAME } from "@/lib/media/cloud";
+import {
+  finalizeRevalidatePaths,
+  parseRevalidateUrls,
+  pathsForCaseFile,
+  pathsForChapter,
+  pathsForPage,
+  postRevalidate,
+} from "@/lib/sync/revalidate";
 
 /**
  * Static pages whose content is ordered prose in Notion.
@@ -146,12 +169,30 @@ type Row = {
   bilingual: string | null;
   order: number | null;
   kind: EntityKind;
+  /**
+   * The `Device` property, read but not yet decided on (task `003221026`).
+   * Only chapter-like rows use it; `resolveDeviceFrame` in Pass 2 turns it
+   * into `chapters.device_frame` and reports anything that is not iPhone or
+   * Android.
+   */
+  device: DeviceRead;
+  /**
+   * The `Image layout` property, read but not yet decided on (task
+   * `004221026`). `resolveImageLayout` in Pass 2 turns it into
+   * `chapters.image_layout` and reports anything that is not Stacked or Grid.
+   */
+  imageLayout: ImageLayoutRead;
   parent?: string;
   /** The title with its kind prefix removed, from `classifyTitle`. */
   name?: string;
 };
 
 const created: string[] = [];
+/** Locale-agnostic routes this run wrote (or, dry, would write) — lib/sync/revalidate.ts. */
+const revalidatePaths = new Set<string>();
+function touch(paths: readonly string[]) {
+  for (const p of paths) revalidatePaths.add(p);
+}
 const updated: string[] = [];
 const skipped: string[] = [];
 const failed: string[] = [];
@@ -284,6 +325,8 @@ async function fetchRows(): Promise<Row[]> {
         buildLayer: selectName(props["Build Layer"]),
         bilingual: selectName(props["Bilingual"]),
         order: numberProp(props["Order"]),
+        device: readDeviceProperty(props["Device"]),
+        imageLayout: readImageLayoutProperty(props["Image layout"]),
         kind: classification.kind,
         parent: classification.parent,
         /*
@@ -1189,6 +1232,155 @@ function resolveChapterSections(
   return { sections, failures };
 }
 
+/* ------------------------------------------------- media dimensions (007231026) */
+
+/**
+ * Fill NULL `media.width` / `media.height` from Cloudinary, on every run.
+ *
+ * Until task `007231026` the sync created media rows with no dimensions, and a
+ * figure with no dimensions renders with NO DEVICE FRAME — the frame is chosen
+ * from the picture's aspect ratio. Migrations 0060 and 0061 backfilled by hand;
+ * this is the permanent replacement for that hand step.
+ *
+ * The rules, all enforced here or in `lib/sync/media-dimensions.ts`:
+ *   - fetched only when the row is new or either column is NULL;
+ *   - a non-NULL dimension is NEVER overwritten (the patch omits it, and the
+ *     UPDATE is additionally conditioned on the column still being NULL);
+ *   - a failed fetch never fails the sync — it is a NOTICE naming the public
+ *     ID, because the row itself is fine and only the frame is missing;
+ *   - one fetch per public ID per run (both locales reference the same row);
+ *   - a dry run may fetch, writes nothing, and reports what it would set;
+ *   - every row that gets dimensions is printed in the summary, so a run that
+ *     set none says so rather than saying nothing.
+ */
+const DIMENSION_TIMEOUT_MS = 8000;
+
+type DimensionFetch = Dimensions | { error: string };
+
+const dimensionFetches = new Map<string, Promise<DimensionFetch>>();
+const dimensionsHandled = new Set<string>();
+const dimensionsSet: string[] = [];
+
+function fetchDimensions(publicId: string): Promise<DimensionFetch> {
+  const cached = dimensionFetches.get(publicId);
+  if (cached) return cached;
+
+  const pending = (async (): Promise<DimensionFetch> => {
+    try {
+      const res = await fetch(getinfoUrl(CLOUDINARY_CLOUD_NAME, publicId), {
+        signal: AbortSignal.timeout(DIMENSION_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        // A transform refusal carries its reason only in this header, with an
+        // empty body (docs/learn.md, "200 raw and 400 on every transform").
+        const why = res.headers.get("x-cld-error");
+        return { error: `HTTP ${res.status}${why ? ` — ${why}` : ""}` };
+      }
+      let body: unknown;
+      try {
+        body = await res.json();
+      } catch {
+        return { error: "response was not JSON" };
+      }
+      return parseGetinfo(body);
+    } catch (err) {
+      const e = err as { name?: string; message?: string; cause?: { message?: string } };
+      if (e?.name === "TimeoutError" || e?.name === "AbortError") {
+        return { error: `no response within ${DIMENSION_TIMEOUT_MS / 1000}s` };
+      }
+      // Node's fetch reports every network failure as "fetch failed"; the
+      // useful part (DNS, refused, proxy 403) is on `cause`.
+      const cause = e?.cause?.message ? ` — ${e.cause.message}` : "";
+      return { error: `${e?.message ?? String(err)}${cause}` };
+    }
+  })();
+
+  dimensionFetches.set(publicId, pending);
+  return pending;
+}
+
+/**
+ * @param mediaId  the row to update, or null when no row exists yet (dry run only)
+ * @param stored   what the row holds now; null when no row exists yet
+ */
+async function fillMediaDimensions(
+  rowTitle: string,
+  publicId: string,
+  mediaId: string | null,
+  stored: StoredDimensions,
+): Promise<void> {
+  if (!needsDimensions(stored)) return;
+  if (dimensionsHandled.has(publicId)) return;
+  dimensionsHandled.add(publicId);
+
+  const unframed = (reason: string) =>
+    notice(rowTitle,
+      `${rowTitle}: media ${JSON.stringify(publicId)} has no width/height and ` +
+        `Cloudinary did not supply them (${reason}). It renders unframed until fixed.`,
+    );
+
+  const got = await fetchDimensions(publicId);
+  if ("error" in got) {
+    unframed(got.error);
+    return;
+  }
+
+  const patch = dimensionPatch(stored, got);
+  if (!patch) return;
+
+  if (DRY_RUN || mediaId === null) {
+    dimensionsSet.push(
+      `would set dimensions ${got.width}x${got.height} for ${publicId}` +
+        (stored === null ? " (new row)" : ""),
+    );
+    return;
+  }
+
+  let q = (await db()).from("media").update(patch).eq("id", mediaId);
+  if (patch.width !== undefined) q = q.is("width", null);
+  if (patch.height !== undefined) q = q.is("height", null);
+  const { data, error } = await q.select("width, height").maybeSingle();
+
+  // Read back: a write that returns success is not evidence it landed.
+  if (error || !data) {
+    unframed(error ? `write failed: ${error.message}` : "write matched no row");
+    return;
+  }
+  if (
+    (patch.width !== undefined && data.width !== patch.width) ||
+    (patch.height !== undefined && data.height !== patch.height)
+  ) {
+    unframed(`read back ${data.width}x${data.height}, expected ${got.width}x${got.height}`);
+    return;
+  }
+  dimensionsSet.push(`set dimensions ${data.width}x${data.height} for ${publicId}`);
+}
+
+/**
+ * Dry-run counterpart of the media write: the public IDs a chapter WOULD write,
+ * looked up read-only and passed through the same dimension check.
+ */
+async function previewMediaDimensions(rowTitle: string, publicIds: ReadonlySet<string>) {
+  for (const publicId of publicIds) {
+    if (dimensionsHandled.has(publicId)) continue;
+    const { data, error } = await (await db())
+      .from("media")
+      .select("id, width, height")
+      .eq("cloudinary_public_id", publicId)
+      .maybeSingle();
+    if (error) {
+      notice(rowTitle, `${rowTitle}: could not read media row for ${JSON.stringify(publicId)} — ${error.message}`);
+      continue;
+    }
+    await fillMediaDimensions(
+      rowTitle,
+      publicId,
+      data?.id ?? null,
+      data ? { width: data.width, height: data.height } : null,
+    );
+  }
+}
+
 /**
  * Upsert one media row and its alt + caption, for ONE locale.
  *
@@ -1202,17 +1394,31 @@ function resolveChapterSections(
  * driven by `case_files.nda`, and `redacted = true` would additionally force
  * the non-cropping `redacted` preset (decision 028) for no reason.
  */
-async function upsertMedia(tag: ImageTag, locale: "en" | "ar"): Promise<string | null> {
+async function upsertMedia(
+  rowTitle: string,
+  tag: ImageTag,
+  locale: "en" | "ar",
+): Promise<string | null> {
+  /*
+   * `width` / `height` are NOT in the upsert payload, so a conflict leaves
+   * whatever the row holds untouched. They are read back here and filled from
+   * Cloudinary only where NULL — see `fillMediaDimensions`.
+   */
   const { data, error } = await (await db())
     .from("media")
     .upsert(
       { cloudinary_public_id: tag.cld, redacted: false },
       { onConflict: "cloudinary_public_id" },
     )
-    .select("id")
+    .select("id, width, height")
     .single();
 
   if (error || !data) return null;
+
+  await fillMediaDimensions(rowTitle, tag.cld, data.id, {
+    width: data.width,
+    height: data.height,
+  });
 
   await upsertTranslations("media", data.id, locale, {
     alt: tag.alt,
@@ -1324,7 +1530,23 @@ async function writeChapterSections(opts: {
     );
   }
 
-  if (DRY_RUN) return shape;
+  if (DRY_RUN) {
+    /*
+     * The media rows this chapter would write, exactly as the write path below
+     * selects them: every English prose section, and the Arabic section on the
+     * same slot. An Arabic-only slot is not written (noticed above), so its
+     * images are not previewed either.
+     */
+    const wouldWrite = new Set<string>();
+    const arWritten = ar.sections.filter((s) => enSlots.has(s.slot));
+    for (const s of [...prose, ...arWritten]) {
+      for (const p of [...s.paragraphs, ...s.tail]) {
+        if (p.kind === "image") wouldWrite.add(p.tag.cld);
+      }
+    }
+    await previewMediaDimensions(rowTitle, wouldWrite);
+    return shape;
+  }
 
   /*
    * Replace wholesale, translations first — the polymorphic-orphan trap every
@@ -1378,7 +1600,7 @@ async function writeChapterSections(opts: {
   const bodyFor = async (para: ChapterParagraph, locale: "en" | "ar"): Promise<string | null> => {
     if (para.kind === "prose") return para.text;
     if (para.kind !== "image") return null;
-    const mediaId = await upsertMedia(para.tag, locale);
+    const mediaId = await upsertMedia(rowTitle, para.tag, locale);
     if (!mediaId) {
       fail(rowTitle, `${rowTitle}: could not write media row for ${JSON.stringify(para.tag.cld)}`);
       return null;
@@ -1832,6 +2054,48 @@ function isMvp(row: { buildLayer?: string | null; inMvp: boolean }): boolean {
   return row.buildLayer === "Layer 1 — MVP-1" || row.inMvp;
 }
 
+/*
+ * Revalidate on publish — decision 061 item 6 (executes 009). Every outcome is
+ * a NOTICE, never a failure: the content is already in the database, and the
+ * ISR window (300 s) serves it regardless. A dry run prints the request instead.
+ */
+async function revalidateWrittenPaths() {
+  let paths: string[];
+  try {
+    paths = finalizeRevalidatePaths(revalidatePaths);
+  } catch (err) {
+    notices.push(`Revalidate skipped: ${err instanceof Error ? err.message : String(err)}`);
+    return;
+  }
+  const bases = parseRevalidateUrls(process.env.REVALIDATE_URLS);
+  const secret = process.env.REVALIDATE_SECRET;
+
+  console.log(
+    `\nREVALIDATE — ${paths.length} path(s), locale-agnostic (the route expands each to /en and /ar)` +
+      (paths.length > 0 ? ":" : ""),
+  );
+  for (const p of paths) console.log(`  ${p}`);
+
+  if (paths.length === 0) return;
+  if (bases.length === 0 || !secret) {
+    const missing = [bases.length === 0 && "REVALIDATE_URLS", !secret && "REVALIDATE_SECRET"]
+      .filter(Boolean)
+      .join(" and ");
+    if (DRY_RUN) console.log(`  dry run: ${missing} not set — a live run would send nothing.`);
+    else notices.push(`Revalidate skipped: ${missing} not set. Pages refresh within 300 s (ISR).`);
+    return;
+  }
+  if (DRY_RUN) {
+    for (const b of bases) console.log(`  dry run: would POST ${paths.length} path(s) to ${b}/api/revalidate`);
+    return;
+  }
+  for (const b of bases) {
+    const r = await postRevalidate(b, secret, paths);
+    console.log(`  ${r.ok ? "ok    " : "FAILED"} ${b} — ${r.detail}`);
+    if (!r.ok) notices.push(`Revalidate failed for ${b}: ${r.detail}. Pages refresh within 300 s (ISR).`);
+  }
+}
+
 async function main() {
   console.log(
     `\nNotion → Supabase sync${DRY_RUN ? "  [DRY RUN — nothing will be written]" : ""}\n`,
@@ -1937,6 +2201,74 @@ async function main() {
     }
   }
 
+  /*
+   * `chapters.device_frame` (migration 0062) must exist before Pass 2 writes
+   * it. Checked HERE, before anything is written, so a database that has not
+   * had 0062 applied refuses the whole run with an instruction — rather than
+   * failing every chapter upsert one by one with a raw PostgREST "column not
+   * found in the schema cache", after the case files have already been written.
+   *
+   * A dry run writes nothing, so it warns and carries on: previewing is exactly
+   * what someone does before applying a migration.
+   */
+  {
+    const { error } = await (await db()).from("chapters").select("device_frame").limit(1);
+    if (error) {
+      const message =
+        `chapters.device_frame is not readable (${error.message}).\n` +
+        "  Apply supabase/migrations/0062_chapter_device_frame.sql first, in the\n" +
+        "  Supabase SQL editor, then re-run the sync.";
+      if (!DRY_RUN) {
+        console.error(message);
+        process.exit(1);
+      }
+      console.log(`WARNING — ${message}\n  (dry run: continuing; nothing is written)\n`);
+      notices.push("chapters.device_frame is missing — apply migration 0062 before a live sync.");
+    }
+  }
+
+  /*
+   * `chapters.image_layout` (migration 0063), same guard and same reasoning as
+   * `device_frame` above: a live run without the column exits before Pass 1.
+   */
+  {
+    const { error } = await (await db()).from("chapters").select("image_layout").limit(1);
+    if (error) {
+      const message =
+        `chapters.image_layout is not readable (${error.message}).\n` +
+        "  Apply supabase/migrations/0063_chapter_image_layout.sql first, in the\n" +
+        "  Supabase SQL editor, then re-run the sync.";
+      if (!DRY_RUN) {
+        console.error(message);
+        process.exit(1);
+      }
+      console.log(`WARNING — ${message}\n  (dry run: continuing; nothing is written)\n`);
+      notices.push("chapters.image_layout is missing — apply migration 0063 before a live sync.");
+    }
+  }
+
+  /*
+   * One line, once, when NO row on the database carries a `Device` property —
+   * the state before content adds it. Every chapter then defaults to iphone,
+   * which is correct by decision; the line is here so the property being
+   * missing, misspelled (`Devices`) or renamed reads as a fact rather than as
+   * nothing. Per-row absence is not reported: it is the same fact repeated.
+   */
+  if (all.length > 0 && all.every((r) => r.device.state === "absent")) {
+    notices.push(
+      "No `Device` property on the Notion database — every chapter's device_frame is iphone. " +
+        "Expected until the property is added (select: iPhone | Android).",
+    );
+  }
+
+  /* Same one-line run-level notice for `Image layout` (task 004221026). */
+  if (all.length > 0 && all.every((r) => r.imageLayout.state === "absent")) {
+    notices.push(
+      "No `Image layout` property on the Notion database — every chapter's image_layout is stacked. " +
+        "Expected until the property is added (select: Stacked | Grid).",
+    );
+  }
+
   /* ---- Pass 1: case files ---------------------------------------------- */
 
   const caseFileIdBySlug = new Map<string, string>();
@@ -1986,6 +2318,7 @@ async function main() {
     if (DRY_RUN) {
       console.log(`  case_file  ${caseFile}  (${status})`);
       updated.push(`case_file ${caseFile}`);
+      touch(pathsForCaseFile(caseFile));
       // Record it so chapter parent resolution below is simulated too. Without
       // this the dry run reports chapters as syncable when a real run would
       // fail them for a missing parent — the dry run would be lying.
@@ -2066,6 +2399,7 @@ async function main() {
 
     caseFileIdBySlug.set(caseFile, data.id);
     updated.push(`case_file ${caseFile}`);
+    touch(pathsForCaseFile(caseFile));
 
     const body = await readBody(row.id);
     await upsertTranslations(
@@ -2139,9 +2473,20 @@ async function main() {
       continue;
     }
 
+    /*
+     * The phone frame, decided once per row for both paths. An unrecognised
+     * `Device` value is defaulted AND reported — see lib/sync/device-frame.ts.
+     */
+    const device = resolveDeviceFrame(row.device);
+    if (device.problem) notice(row.title, `${row.title}: ${device.problem}`);
+    // Same treatment for `Image layout` — see lib/sync/image-layout.ts.
+    const layout = resolveImageLayout(row.imageLayout);
+    if (layout.problem) notice(row.title, `${row.title}: ${layout.problem}`);
+
     if (DRY_RUN) {
-      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}`);
+      console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}  layout=${layout.layout}`);
       updated.push(`chapter ${caseFile}/${slug}`);
+      touch(pathsForChapter(caseFile, slug));
 
       /*
        * Chapter slots ARE resolved in a dry run, exactly as cover slots are
@@ -2198,6 +2543,11 @@ async function main() {
           sort_order: row.order ?? 0,
           kind: (row.kind === "chapter" ? "chapter" : row.kind) as never,
           status: (row.contentReady === "Done" ? "published" : "draft") as never,
+          // Migration 0062. Written on every run, so clearing `Device` in
+          // Notion returns a chapter to iphone rather than leaving it stuck.
+          device_frame: device.frame,
+          // Migration 0063. Written on every run for the same reason.
+          image_layout: layout.layout,
         },
         { onConflict: "case_file_id,slug" },
       )
@@ -2210,6 +2560,10 @@ async function main() {
     }
 
     updated.push(`chapter ${caseFile}/${slug}`);
+    touch(pathsForChapter(caseFile, slug));
+    // Same line the dry run prints, so a live run's output can be diffed
+    // against its preview (docs/learn.md Part 5, "absence is invisible").
+    console.log(`  ${row.kind.padEnd(9)} ${caseFile}/${slug}  device=${device.frame}  layout=${layout.layout}`);
 
     const body = await readBody(row.id);
     await upsertTranslations(
@@ -2596,6 +2950,7 @@ async function main() {
         continue;
       }
 
+      touch(pathsForCaseFile(caseFile));
       await upsertTranslations(
         isTargets ? "target" : "outcome",
         data.id,
@@ -3072,6 +3427,8 @@ async function main() {
       if (items.length > 0) perLocale.push({ locale, items });
     }
 
+    touch(pathsForPage(pageKey));
+
     if (DRY_RUN) {
       console.log(
         `  page ${pageKey}: ` +
@@ -3239,10 +3596,22 @@ async function main() {
 
   /* ---- Summary ---------------------------------------------------------- */
 
+  await revalidateWrittenPaths();
+
   if (notices.length > 0) {
     console.log("\nNOTICES — not failures, but check them:\n");
     for (const n of notices) console.log(`  • ${n}`);
   }
+
+  /*
+   * Printed even when empty: a run that filled nothing says "0", so a pass that
+   * stopped running is a line that changed rather than a line that vanished.
+   */
+  console.log(
+    `\nMEDIA DIMENSIONS from Cloudinary — ${DRY_RUN ? "would set" : "set"} ${dimensionsSet.length}` +
+      (dimensionsSet.length > 0 ? ":" : ""),
+  );
+  for (const d of dimensionsSet) console.log(`  ${d}`);
 
   console.log("\n─────────────────────────────────────────");
   console.log(`created  ${created.length}`);

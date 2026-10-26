@@ -30,6 +30,24 @@ import {
   parsePageSections,
   routeToPageKey,
 } from "@/lib/sync/static-pages";
+import { readDeviceProperty, resolveDeviceFrame } from "@/lib/sync/device-frame";
+import { deviceFrameOrDefault } from "@/lib/media/device-frame";
+import { readImageLayoutProperty, resolveImageLayout } from "@/lib/sync/image-layout";
+import { imageLayoutOrDefault } from "@/lib/media/image-layout";
+import {
+  dimensionPatch,
+  getinfoUrl,
+  needsDimensions,
+  parseGetinfo,
+} from "@/lib/sync/media-dimensions";
+import {
+  finalizeRevalidatePaths,
+  parseRevalidateUrls,
+  pathsForCaseFile,
+  pathsForChapter,
+  pathsForPage,
+  postRevalidate,
+} from "@/lib/sync/revalidate";
 
 let failures = 0;
 
@@ -583,7 +601,168 @@ eq("an alias cannot overwrite a slug already claimed", aliasCollision.sections.m
 const noAliases = parsePageSections([{ heading: "Now", lines: ["Body."] }], "About");
 eq("no alias table leaves the derived slug alone", noAliases.sections[0].slug, "now");
 
-console.log(
-  failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
-);
-process.exit(failures === 0 ? 0 : 1);
+/* ------------------------------ chapter Device -> device_frame (0062) ---- */
+
+console.log("\nChapter Device property (task 003221026)");
+
+const sel = (name: string | null) => ({ type: "select", select: name === null ? null : { name } });
+const txt = (text: string) => ({ type: "rich_text", rich_text: text ? [{ plain_text: text }] : [] });
+const frameOf = (prop: unknown) => resolveDeviceFrame(readDeviceProperty(prop));
+
+eq("select Android -> android", frameOf(sel("Android")), { frame: "android", problem: null });
+eq("select iPhone -> iphone", frameOf(sel("iPhone")), { frame: "iphone", problem: null });
+eq("case-insensitive and trimmed", frameOf(sel("  ANDROID ")).frame, "android");
+eq("text Android -> android", frameOf(txt("android")), { frame: "android", problem: null });
+eq("empty select -> iphone, no notice", frameOf(sel(null)), { frame: "iphone", problem: null });
+eq("empty text -> iphone, no notice", frameOf(txt("")), { frame: "iphone", problem: null });
+
+// The property does not exist on the database yet. Must not throw.
+eq("property ABSENT reads as absent", readDeviceProperty(undefined), { state: "absent" });
+eq("property ABSENT -> iphone, no per-row notice", frameOf(undefined), { frame: "iphone", problem: null });
+
+// Defaulted AND reported — never silently mapped.
+const pixel = frameOf(sel("Pixel"));
+eq("unknown value -> iphone", pixel.frame, "iphone");
+check("unknown value IS REPORTED, naming the value", pixel.problem?.includes('"Pixel"') === true, String(pixel.problem));
+check("iOS is not silently read as iPhone", frameOf(sel("iOS")).problem !== null);
+
+const both = frameOf({ type: "multi_select", multi_select: [{ name: "iPhone" }, { name: "Android" }] });
+check("two multi_select options are reported, not chosen between", both.problem !== null, String(both.problem));
+eq("one multi_select option is read", frameOf({ type: "multi_select", multi_select: [{ name: "Android" }] }).frame, "android");
+
+const box = frameOf({ type: "checkbox", checkbox: true });
+check("an unsupported property type is reported", box.problem?.includes("checkbox") === true, String(box.problem));
+
+// Content-layer default: before 0062 the column is simply missing from the row.
+eq("content: undefined column -> iphone", deviceFrameOrDefault(undefined), "iphone");
+eq("content: null -> iphone", deviceFrameOrDefault(null), "iphone");
+eq("content: android kept", deviceFrameOrDefault("android"), "android");
+eq("content: junk -> iphone", deviceFrameOrDefault("Android"), "iphone");
+
+/* --------------------------- chapter Image layout -> image_layout (0063) -- */
+
+console.log("\nChapter Image layout property (task 004221026)");
+
+const layoutOf = (prop: unknown) => resolveImageLayout(readImageLayoutProperty(prop));
+
+eq("select Grid -> grid", layoutOf(sel("Grid")), { layout: "grid", problem: null });
+eq("select Stacked -> stacked", layoutOf(sel("Stacked")), { layout: "stacked", problem: null });
+eq("layout case-insensitive and trimmed", layoutOf(sel("  GRID ")).layout, "grid");
+eq("text grid -> grid", layoutOf(txt("grid")), { layout: "grid", problem: null });
+eq("empty layout select -> stacked, no notice", layoutOf(sel(null)), { layout: "stacked", problem: null });
+eq("empty layout text -> stacked, no notice", layoutOf(txt("")), { layout: "stacked", problem: null });
+
+// The property does not exist on the database yet. Must not throw.
+eq("layout property ABSENT reads as absent", readImageLayoutProperty(undefined), { state: "absent" });
+eq("layout property ABSENT -> stacked, no per-row notice", layoutOf(undefined), { layout: "stacked", problem: null });
+
+// Defaulted AND reported — never silently mapped.
+const carousel = layoutOf(sel("Carousel"));
+eq("unknown layout -> stacked", carousel.layout, "stacked");
+check("unknown layout IS REPORTED, naming the value", carousel.problem?.includes('"Carousel"') === true, String(carousel.problem));
+check("a typo (Gird) is not silently read as Grid", layoutOf(sel("Gird")).problem !== null);
+
+const bothLayouts = layoutOf({ type: "multi_select", multi_select: [{ name: "Stacked" }, { name: "Grid" }] });
+check("two layout options are reported, not chosen between", bothLayouts.problem !== null, String(bothLayouts.problem));
+eq("one layout multi_select option is read", layoutOf({ type: "multi_select", multi_select: [{ name: "Grid" }] }).layout, "grid");
+
+const layoutBox = layoutOf({ type: "checkbox", checkbox: true });
+check("an unsupported layout property type is reported", layoutBox.problem?.includes("checkbox") === true, String(layoutBox.problem));
+check("the layout notice names Image layout, not Device", layoutBox.problem?.startsWith("Image layout") === true, String(layoutBox.problem));
+
+// Content-layer default: before 0063 the column is simply missing from the row.
+eq("content: undefined layout column -> stacked", imageLayoutOrDefault(undefined), "stacked");
+eq("content: null layout -> stacked", imageLayoutOrDefault(null), "stacked");
+eq("content: grid kept", imageLayoutOrDefault("grid"), "grid");
+eq("content: junk layout -> stacked", imageLayoutOrDefault("Grid"), "stacked");
+
+console.log("\nMedia dimensions from Cloudinary (007231026)");
+
+// The URL: slashes kept as folder separators, everything else percent-encoded.
+eq("getinfo url, plain id",
+  getinfoUrl("vewhrkzj", "PideTaxi/iOS/booking-payment"),
+  "https://res.cloudinary.com/vewhrkzj/image/upload/fl_getinfo/PideTaxi/iOS/booking-payment");
+eq("getinfo url encodes spaces, keeps folders",
+  getinfoUrl("vewhrkzj", "Neobiz/Arabic/Post-Submit/Scheduling visit/screen (1)"),
+  "https://res.cloudinary.com/vewhrkzj/image/upload/fl_getinfo/Neobiz/Arabic/Post-Submit/Scheduling%20visit/screen%20(1)");
+check("getinfo url encodes ? and # so they cannot truncate the path",
+  !getinfoUrl("c", "a?b#c").includes("?") && !getinfoUrl("c", "a?b#c").includes("#"));
+
+// Parsing: `input` (the original) and nothing else.
+eq("parse: input read",
+  parseGetinfo({ input: { width: 750, height: 1624 }, output: { width: 375, height: 812 } }),
+  { width: 750, height: 1624 });
+check("parse: OUTPUT IS NOT A FALLBACK for a missing input",
+  "error" in parseGetinfo({ output: { width: 720, height: 1440 } }));
+check("parse: null body is an error", "error" in parseGetinfo(null));
+check("parse: string body is an error", "error" in parseGetinfo("<html>"));
+check("parse: string dimensions rejected, not coerced",
+  "error" in parseGetinfo({ input: { width: "750", height: "1624" } }));
+check("parse: zero width rejected", "error" in parseGetinfo({ input: { width: 0, height: 1624 } }));
+check("parse: fractional height rejected", "error" in parseGetinfo({ input: { width: 750, height: 1624.5 } }));
+check("parse: one dimension missing rejected", "error" in parseGetinfo({ input: { width: 750 } }));
+
+// When to fetch.
+check("needs: no row yet", needsDimensions(null));
+check("needs: both NULL", needsDimensions({ width: null, height: null }));
+check("needs: height NULL only", needsDimensions({ width: 750, height: null }));
+check("needs: width NULL only", needsDimensions({ width: null, height: 1624 }));
+check("needs: both set -> NO fetch", !needsDimensions({ width: 750, height: 1624 }));
+
+// NEVER OVERWRITE a non-NULL dimension.
+const fetched = { width: 720, height: 1440 };
+eq("patch: new row gets both", dimensionPatch(null, fetched), { width: 720, height: 1440 });
+eq("patch: both NULL gets both", dimensionPatch({ width: null, height: null }, fetched), { width: 720, height: 1440 });
+eq("patch: width set -> ONLY height written", dimensionPatch({ width: 786, height: null }, fetched), { height: 1440 });
+eq("patch: height set -> ONLY width written", dimensionPatch({ width: null, height: 1700 }, fetched), { width: 720 });
+eq("patch: both set -> NOTHING written, even when Cloudinary disagrees",
+  dimensionPatch({ width: 786, height: 1700 }, fetched), null);
+
+console.log("\nRevalidate paths (decision 061 item 6)");
+eq("case file: cover, linear, results", pathsForCaseFile("uae-onboarding"),
+  ["/work/uae-onboarding", "/work/uae-onboarding/all", "/work/uae-onboarding/results"]);
+eq("chapter: own route, cover, linear", pathsForChapter("uae-onboarding", "comparison"),
+  ["/work/uae-onboarding/comparison", "/work/uae-onboarding", "/work/uae-onboarding/all"]);
+eq("page: about/philosophy", pathsForPage("about/philosophy"), ["/about/philosophy"]);
+eq("page: stray slashes trimmed", pathsForPage("/systems/"), ["/systems"]);
+eq("nothing written -> nothing sent", finalizeRevalidatePaths([]), []);
+eq("anything written -> adds / and /work, dedupes, sorts",
+  finalizeRevalidatePaths([...pathsForCaseFile("x"), ...pathsForChapter("x", "a"), "/contact"]),
+  ["/", "/contact", "/work", "/work/x", "/work/x/a", "/work/x/all", "/work/x/results"]);
+let threw = false;
+try { finalizeRevalidatePaths(["/en/work/x"]); } catch { threw = true; }
+check("a localised path is refused (the route adds the locale itself)", threw);
+threw = false;
+try { finalizeRevalidatePaths(["work/x"]); } catch { threw = true; }
+check("a path without a leading slash is refused", threw);
+eq("urls: split, trimmed, trailing slash removed",
+  parseRevalidateUrls(" https://www.moatazmustapha.com/ ,https://preview.moatazmustapha.com,, "),
+  ["https://www.moatazmustapha.com", "https://preview.moatazmustapha.com"]);
+eq("urls: unset -> none", parseRevalidateUrls(undefined), []);
+
+async function revalidatePostChecks() {
+  let sent: { url: string; body: unknown } | null = null;
+  const okFetch = (async (url: string, init: RequestInit) => {
+    sent = { url, body: JSON.parse(String(init.body)) };
+    return new Response(JSON.stringify({ revalidated: ["/en", "/ar"] }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const ok = await postRevalidate("https://a.example", "s3cret", ["/"], okFetch);
+  check("post: ok on 200", ok.ok, ok.detail);
+  eq("post: url and body", sent, { url: "https://a.example/api/revalidate", body: { secret: "s3cret", paths: ["/"] } });
+  check("post: detail never carries the secret", !ok.detail.includes("s3cret"));
+
+  const bad = await postRevalidate("https://a.example", "s3cret", ["/"],
+    (async () => new Response('{"error":"Unauthorized"}', { status: 401 })) as unknown as typeof fetch);
+  check("post: 401 -> not ok, no throw", !bad.ok && bad.detail.startsWith("HTTP 401"), bad.detail);
+
+  const down = await postRevalidate("https://a.example", "s3cret", ["/"],
+    (async () => { throw new Error("ECONNREFUSED"); }) as unknown as typeof fetch);
+  check("post: network error -> not ok, no throw", !down.ok && down.detail === "ECONNREFUSED", down.detail);
+}
+
+revalidatePostChecks().then(() => {
+  console.log(
+    failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,
+  );
+  process.exit(failures === 0 ? 0 : 1);
+});

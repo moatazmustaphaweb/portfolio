@@ -2,6 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 
+import { deviceFrameOrDefault } from "@/lib/media/device-frame";
+import { imageLayoutOrDefault } from "@/lib/media/image-layout";
 import { supabaseServer } from "@/lib/supabase/server";
 
 import { resolveMany, resolveManyDetailed, withFields } from "./translate";
@@ -575,12 +577,16 @@ export const getCaseFile = cache(
         .filter((c) => c.kind === "chapter")
         .map((c) => ({
           ...c,
+          deviceFrame: deviceFrameOrDefault(c.device_frame),
+          imageLayout: imageLayoutOrDefault(c.image_layout),
           hero: c.hero_media_id ? (media.get(c.hero_media_id) ?? null) : null,
         })),
       pages: chapters
         .filter((c) => c.kind !== "chapter")
         .map((c) => ({
           ...c,
+          deviceFrame: deviceFrameOrDefault(c.device_frame),
+          imageLayout: imageLayoutOrDefault(c.image_layout),
           hero: c.hero_media_id ? (media.get(c.hero_media_id) ?? null) : null,
         })),
       outcomes,

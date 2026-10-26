@@ -16,6 +16,292 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 013251026 — 2026-10-25 19:45 — Eight wait-screen quotes selected verbatim from published pages (decision 063 item 4)
+
+**Brief:** pick 8 standalone sentences (principle or conviction, under ~20 words, no client names, no figures, no em dashes) verbatim from published EN pages, each with its exact AR counterpart from the AR child page; drop any with no AR counterpart. Output to scratchpad `quotes.json`. No Notion writes.
+**Read (Notion, fresh fetch):** Philosophy EN + `النسخة العربية — الفلسفة`; About EN + `النسخة العربية — نبذة عني`; Systems EN + `النسخة العربية — الأنظمة`; Cover Egypt EN + `الغلاف (مصر)`; Cover Neobiz EN + `نيوبيزنس موبايل: الغلاف`; Accessibility EN + `النسخة العربية — قابلية الوصول والاستخدام`; Cover Cervello EN; Cover UAE EN.
+**Found:** 8 pairs, all copied verbatim (bold/italic markup dropped only): Philosophy 4, About 2, Systems 1, Egypt cover 1. EN 5 to 13 words. None carries a digit, an em dash or an en dash; none names a client. Each AR line is the sentence on the AR page carrying the same idea; none was translated or adjusted.
+**Considered and dropped:** Systems "I don't design screens. I design the rules that produce them." (two sentences; decision 063 says one sentence; offered as alternate). Neobiz "nothing about the regulation changes…" (EN is a clause inside a longer sentence; the AR counterpart carries a hamza typo `الأستخدام` that a verbatim quote would publish). Accessibility "So I stopped arguing about language…" (opens on "So", needs its context; overlaps quote 8). Cervello "Everything I do in regulated banking today started here." and UAE "The hard part was never the form." (need their page to make sense). "Errors are attributed, not prevented" left out (the most edited line on the site in decision 061).
+**Gaps reported, not filled:** the Neobiz AR typo `بيئة الأستخدام` (should carry hamzat wasl) is reported here, not fixed; it is his text in Notion.
+**Belongs to someone else:** writing the 8 rows into `ui_strings` as `wait_quote_1..8` → backend.
+**Not verified:** I read Notion, not the live database or site. The Supabase connection here lists only the Dabbler projects, so I could not confirm these strings render on `gate.moatazmustapha.com` exactly as in Notion. Chapters (Egypt ×4, Neobiz ×2, UAE ×1, Cervello ×3) and the comparison pages were not read.
+**Open questions:** none blocking. Whether a two-sentence quote is acceptable (the Systems line) is his call if he wants it.
+
+---
+
+## 011251026 — 2026-10-25 16:47 — Decision 061 Notion edits: UAE map, onboarding/tracking move, Systems trim, UAE results table, Cervello duplicate trashed
+
+**Brief:** Apply the Notion edits Moataz approved in decision 061 (items 9, 10, 11, 13, 18), wording relayed verbatim by the orchestrator. Smallest edits, read back.
+
+**Read:** `docs/decisions.md` 061 (both entries), `CLAUDE.md`, `docs/content-brief.md` (Notion-behaviour section), `scripts/sync-notion.ts` targets pass, `lib/sync/classify.ts`. Notion, before and after: UAE cover EN `3b3d…05fe` + AR `3bad…0e20`; onboarding chapter EN `3b3d…4051` + AR `3b7d…675b`; Application Tracking EN `3c4d…5b1a` + AR `3c4d…fefa`; Systems EN `3b3d…5c6e` + AR `3bdd…bf93`; Results Table Egypt + Neobiz (EN) + Neobiz AR as templates; Cervello duplicate `3b3d…1a9f`.
+
+**Done:**
+1. UAE cover. EN first map line now ends "…the dashboard structure, and the two ownership paths." (removing ", and the tracking layer" alone left the list without its "and", so "and" moved one item earlier). New line after it, bold linked label linking `/work/uae-acquisition/application-tracking` the same way the first line links onboarding. AR: "، وطبقة المتابعة" removed; `٢ · متابعة الطلب:` line added in the bold-numbered format of `١ ·`.
+2. Onboarding chapter. EN and AR: "Tracking and exceptions" / "المتابعة والاستثناءات" heading, `[cld] …/Pre-Submition/45-…` line, both paragraphs and the section divider deleted. The `45-…` line with its EN and AR alt and caption added to Application Tracking EN and AR, directly after the `44-…` line, cld id verbatim.
+3. Systems. EN keeps "<b>Errors are attributed, not prevented.</b>" only; AR keeps "<b>الخطأ يُنسب ولا يُمنع.</b>" only. Philosophy untouched.
+4. New row "Results Table - UAE Acquisition" (`404d4c6d-d86d-81b5-9ae2-fa9c08289485`), Route `/[locale]/work/uae-acquisition (close)`, Content ready Done, EN + AR full, Layer 1, In MVP-1 yes. Heading "Every claim, and its basis" and table `Claim | Basis` copied from Neobiz; AR child `404d4c6d-d86d-81de-a3c5-c9a0ab1b2ac1` "النسخة العربية — النتائج (الإمارات)", heading "كل ادعاء، وأساسه", `الادعاء | على أي أساس`. Two rows each, `[achieved]`, wording exactly as relayed. portfolio-voice and metric-integrity: no change needed. The marker records that it happened, the note says how it is known.
+5. "Case File Cover - Cervello" (blank, Not started, superseded) moved to Notion Trash (restorable). The Cervello route now has one row only: Cervello Cloud (IoT).
+
+**Gaps reported, not filled:** The UAE results pages have no "Where this stands" or "Reflection" prose (Egypt and Neobiz have both). None was supplied, so none was written. The H1 I gave both new pages was dropped by Notion on create; they have none, and I did not add one afterwards.
+
+**Left in Notion, needs Moataz in the UI:** the uploaded image block (uae-track-dashboard-exceptions.png) is still on both onboarding pages, after the Dashboard section's divider. `update_content` cannot match uploaded image blocks. The sync ignores such blocks, so nothing reaches the site.
+
+**Belongs to someone else:** sync run + render check (backend/devops). The new results page and the moved image only reach the site after a sync. Not run.
+
+**Not verified:** the site itself (`:3000`/production), no sync dry-run. The EN cover's new link uses the same `https://app.notion.com/work/...` form the API showed for the existing onboarding link; whether both resolve the same way in the Notion UI was not checked.
+
+**Open questions:** none.
+
+---
+
+## 001251026 — 2026-10-25 10:45 — Requirement-to-evidence audit for a CX / journey-management role brief. Report only, nothing changed
+
+**Brief:** Map a recruiter brief (client onboarding, colleague experience, servicing, trade finance, cash
+management, service design / journey management, business stakeholders, technology vendors and platform
+capability, UAT, user adoption) to what is written on the pages. Check two Notion-side claims: (a) whether the
+UAE "thousands of new business accounts" row still says "Reported internally"; (b) the "Currently one chapter"
+line against the UAE chapters that exist. EN and AR. Report only; no Notion writes, no code, no database.
+
+**Read:** `docs/learn.md` in full, `docs/content-brief.md` in full, `docs/brief.md`, `docs/career-history.md`,
+`docs/ui-strings-review.md`, the grep hits in `docs/decisions.md` (007), `docs/status.md` (3630-3760) and
+`docs/status/backend.md` (970-990). Notion data source `7a8ab2e1…c219`: the full row list (70 rows) by SQL, then
+45 pages fetched in full: 4 covers (Egypt, Neobiz, UAE, Cervello Cloud) + 4 AR; 13 chapters (Egypt 4, Neobiz 2,
+UAE 2, Cervello 3, PideTaxi 3 (Website = In progress), Kshemam 1) + 13 AR; Results Tables Egypt and Neobiz + 2 AR;
+Results Table Cervello (blank); both comparison pages + 2 AR; Accessibility + AR + the private prep child page;
+About, Philosophy, Systems, Contact + 4 AR; Landing, Classic Gallery, 404 (AR inline); the 4 mini case files
+(EAST and AAM are blank, Not started); the superseded Cervello cover and its 5 superseded chapters (all blank).
+Comments on the UAE cover. Fetch timestamps were 2026-08-25 for most pages, 2026-09-22 to 2026-10-23 for the
+PideTaxi and Kshemam pages.
+
+**Found (counts in the report returned to the orchestrator):** of 10 requirements, 4 STRONG (client
+onboarding, internal banking-team experience, journey mapping / service model, business stakeholder work),
+4 PARTIAL (servicing: application tracking and queries only, no post-activation servicing on any page;
+technology / platform capability: UAE Pass rejected on cost, EFR, Flex, name-screening and mandates folded in,
+but no vendor engagement written anywhere; UAT: named once, inside the Egypt "what broke" story; user
+adoption: production and behaviour evidence exists, no adoption activity is described), 2 NONE (trade finance,
+cash management: neither phrase appears on any page in either language; nearest are "importers",
+"suppliers", "buyer declaration", "debit card and cheque book", "mandates").
+(a) EN UAE cover Results row still reads `Reported internally; covers web and mobile together, so no number is
+attributed to mobile alone`. The AR cover row, the EN chapter Result row and the AR chapter row carry only the
+platform-split caveat. The docs disagree on the agreed claim wording: decision 007 locks "processing thousands
+of new business accounts monthly at peak", `content-brief.md` §4 records "achieved through the digital journey"
+as the four-draft final, the cover says "via the digital journey", the chapter says "achieved through".
+(b) Both covers still say "Currently one chapter" / "فصل واحد حاليًا" and list one chapter in the map. Two UAE
+chapters exist in Notion: Mobile Onboarding Journey (Done, In MVP-1 yes, Order 1) and Application Tracking
+(Done, In MVP-1 no, Layer 2, Order 2), both with AR children. Moataz's own inline comment on that line,
+2026-08-20: "This should be changed once create another chapter for customers portal". The onboarding
+chapter still carries its "Tracking and exceptions" section alongside the new chapter, in both languages.
+
+**Gaps reported, not filled:** every NONE and PARTIAL above; the "one chapter" line; the "Reported
+internally" note; Landing and Classic Gallery have no AR child page in Notion (where their Arabic lives was
+not established); the AR UAE cover opens with the sibling thesis the EN removed; the AR UAE chapter adds
+"وهو مفهوم لا وجود له في رحلة مصر إطلاقًا" with no EN counterpart. Nothing drafted.
+
+**Belongs to someone else:** nothing new. The "one chapter" line against a two-chapter map is a content
+decision for Moataz; whether the live map shows two chapters is a render fact not checked here.
+
+**Not verified:** nothing on `localhost:3000` or production; nothing in Supabase; UI strings read from
+`docs/ui-strings-review.md` only (generated 2026-08-13), not from the database; the three Linear View rows and
+the Door / Read / Studio / Admin / FOUNDATION rows were listed, not opened (no prose, Not started); Notion
+fetches were not re-probed for staleness.
+
+**Open questions:** returned to the orchestrator in the report (trade finance / cash management exposure,
+vendor and platform-assessment work, UAT role, adoption activity, service-design artefacts, the CX Group
+relationship, the "running it" claim on Landing, which "thousands" wording is final, whether "one chapter"
+should now read two).
+
+---
+
+## 005221026 — 2026-10-22 16:52 — PideTaxi Android: draft wording to match the chosen frames, EN and AR. Draft only, NOT written to Notion
+
+**Brief:** The two chosen Figma frames ("No Destination - Ride now", "Defined Destination - Ride now")
+contradict "changes nothing else" and the defined-destination caption. Propose minimal EN and AR edits
+(paragraph counts unchanged, no figures) for Moataz's approval. Do not write to Notion.
+
+**Read:** Notion EN chapter `3e3d4c6d-d86d-81e8-b9a3-de3fca63ff9d` and AR child
+`3e3d4c6d-d86d-8184-ae11-f9a983b694b3`, both in full (fetch reported `as of 2026-09-22T19:50`, equal
+to the AR page's last edit). `docs/content-brief.md` in full; `docs/learn.md` Parts 2 and 3 only;
+the `portfolio-voice` and `metric-integrity` skills.
+
+**Found:** 3 lines contradicted by the frames, in each language: the decision paragraph's
+"changes nothing else" sentence, the defined-destination `[alt]` (no route, no estimate row), and the
+defined-destination `[caption]` ("nothing about the trip depends on it"; also names options and
+schedule, which devops did not report on that frame). The no-destination `[alt]` and `[caption]` do
+not contradict the facts given; no change proposed. Drafts returned to the orchestrator: 3 EN + 3 AR
+replacements, no figures, no dashes, paragraph counts unchanged.
+
+**Gaps reported, not filled:**
+- "options" in the no-destination sentence (EN "payment, options, and Ride now live" / AR "والخيارات")
+  is not in devops' observation of the frame. Not contradicted, not confirmed. Left as is.
+- The ride-hailing contrast ("the price depends on it") now sits beside a frame that shows a fare
+  estimate once a destination is set. Not a contradiction as written; flagged for his reading.
+- AR no-destination alt says the button is "في الأسفل"; position not in the observation. Left.
+
+**Belongs to someone else:** nothing.
+
+**Not verified:** I did not see the frames. The Figma connector failed to connect in this session;
+every visual fact is devops' observation as relayed in the brief. Nothing written to Notion.
+
+**Open questions:** approval of the wording (Moataz's).
+
+**Applied 2026-10-22 16:55, after Moataz approved the draft as-is (option A):** the 6 replacements were each sent as a single-edit call, and each was confirmed by a re-fetch (EN 16:53, AR 16:55). Nothing else was touched. Paragraph counts are unchanged, the EN page's link to the AR child page is intact, and the `[cld]` lines are unchanged.
+
+---
+
+## 004221026 — 2026-10-22 14:10 — `Image layout` select added; Kshemam Android set to Grid; decision images moved under their headings, EN and AR
+
+**Brief:** Moataz approved showing each Kshemam decision's screenshots as a grid, images first and
+text under them. Add `Image layout` (Select, `Stacked` and `Grid`) to the database; set `Grid` on
+"Chapter - Kshemam / Android" only. In both the EN chapter and the AR child, move every image tag in
+each `Decision ·` section to sit together under the heading, in their existing order, with the
+paragraphs after them in their existing order. No wording changes. Report any sentence the move breaks.
+
+**Read:** `docs/sync-contract.md` Step 6 (media) and the chapter-pages table; `scripts/sync-notion.ts`
+around the chapter section pass (GUARD 0, decision headings) and `decisionsFromBody`;
+`docs/content-brief.md` §1 (Notion mechanics); `docs/learn.md`, the two Notion entries in Part 5 and
+the section index only, **not in full**. Notion: the data source schema before and after; the EN chapter
+`401d4c6d-d86d-81d0-a0ef-dd44f5a605d6` and the AR child `401d4c6d-d86d-8157-8421-fb586fec2240`,
+both before and after.
+
+**Done, each confirmed by a fresh fetch:**
+- `Image layout` did not exist before this task. It now exists, options `Stacked` and `Grid`, both default colour.
+- The EN chapter has `Image layout = Grid`. No other row was touched.
+- 4 moves in total, each sent as its own single-edit `update_content` call: emergency and home, in EN and in AR.
+
+**Found, from the fetches after the move (EN ↔ AR):**
+emergency 2img + 4¶ ↔ 2img + 4¶ · circle 1 + 3 ↔ 1 + 3 (unchanged) · home 2 + 2 ↔ 2 + 2 ·
+no device 1 + 2 ↔ 1 + 2 (unchanged). In every decision section the images now come first. All six
+`[cld]` lines are byte-identical to before. `# H1` still present on both pages, and the AR child-page
+link on EN is still there. Objective, Context and Result were not touched.
+
+**Is it legal for the sync:** yes. Step 6 has no rule against consecutive tags, and the chapter pass reads
+`items` in whatever order they come. **But see the backend item below. On the current sync, this order does
+not reach the database.**
+
+**Sentences after the move, for Moataz, not rewritten:**
+- No paragraph points to a picture "above" or "below". `This one did not stay in the file` / `وهذا القرار`
+  and `It does not stop at the warning` refer to the decision and to the card, and both still read correctly.
+- One possible adjacency issue, in a caption rather than a paragraph: the `symptoms` caption opens with
+  `The second answer.` / `الجواب الثاني.` The sentence that sets up the two answers (`There are two answers.` /
+  `وللسؤال جوابان.`) now comes **after** both images. Under the old order the reader had already met it. The
+  first image's caption is about the question, so "the second answer" still makes sense alongside it, but
+  whether the caption still works is his call.
+
+**Gaps reported, not filled:** none in the content.
+
+**Belongs to someone else (backend):**
+- `Image layout` is not in `docs/sync-contract.md` and the sync does not read it. There is also no
+  column to put it in.
+- GUARD 0 in the chapter section pass sends a decision section's image tags to the **previous non-decision
+  section**, Context in this chapter. `decisionsFromBody` only stores the decision's prose. So where an image
+  sits inside a decision is lost at sync time, before and after this move alike. "Images first, text under
+  them" cannot render per decision until the decision path keeps its own figures.
+
+**Not verified:** no sync dry run and no look at the page on `:3000`. This task was Notion only, and the render
+depends on the backend work above.
+
+**Open questions:** whether the `symptoms` caption (`The second answer.` / `الجواب الثاني.`) still reads correctly with the images first.
+
+---
+
+## 003221026 — 2026-10-22 12:40 — `Device` select added to the Notion database; Kshemam Android chapter set to Android
+
+**Brief:** Moataz approved choosing a chapter's phone frame from a new Notion property. Add `Device`
+(Select, options `iPhone` and `Android`) to "Portfolio — Pages & Content", set it to `Android` on
+"Chapter - Kshemam / Android", set it on no other row, touch nothing else. Spec: `docs/sync-contract.md`
+Step 2 property table, `Device` row.
+
+**Read:** `docs/sync-contract.md` (`Device` row), `docs/content-brief.md` (the write-verification
+passages only, not in full), the head of this file. Notion: the data source schema
+`collection://7a8ab2e1-08d1-4286-a4df-f2e87b85c219` before and after the change; the Kshemam Android
+chapter (`401d4c6d-d86d-81d0-a0ef-dd44f5a605d6`) before and after.
+
+**Found / done:**
+- Before: no property named `Device` existed (19 properties, none close to it). So nothing to stop on.
+- Added `Device`, type select, exactly two options `iPhone` and `Android`, default colour. Re-fetched
+  the schema: present, type `select`, those two options and no others.
+- Set `Device = Android` on the Kshemam Android chapter. Re-fetched the page: `"Device":"Android"`;
+  every other property value identical to the pre-write fetch; body text and the AR child page link
+  (`401d4c6d-d86d-8157-8421-fb586fec2240`) unchanged.
+- SQL over the whole data source for rows with a non-empty `Device`: 1 row, the Kshemam Android chapter.
+  PideTaxi's Android chapter is empty, as instructed.
+
+**Gaps reported, not filled:** whether PideTaxi's Android chapter gets `Android` is Moataz's; left empty.
+
+**Belongs to someone else:** the sync reading `Device` into `chapters.device_frame` (migration 0062)
+is backend's; the frame rendering is frontend's. Neither was run or looked at here.
+
+**Not verified:** no sync dry run, no database read, no render on `:3000`. The AR child page itself
+was not opened (only its link on the parent was seen unchanged); the property was set on the EN row only.
+`docs/learn.md` was not re-read in full for this task.
+
+**Open questions:** none.
+
+---
+
+## 001221026 — 2026-10-22 07:45 — Kshemam written in Notion, cover + one chapter, EN and AR, from the interview facts only
+
+**Brief:** Fill the blank Kshemam mini case file cover and create one chapter (Android), each
+with an Arabic child page, from the facts relayed from Moataz's 2026-10-21/22 interview and
+nothing else. PideTaxi as structural template. Set cover Bilingual, Purpose (no award), Notes.
+
+**Read:** `CLAUDE.md`, `docs/learn.md` (full), `docs/content-brief.md`, `docs/sync-contract.md`,
+`.claude/skills/portfolio-voice`, `.claude/skills/metric-integrity`, `origin/nightly:docs/status.md`
+entries 001220926 and 002220926, `supabase/migrations/0032` (cover slot aliases),
+`lib/sync/classify.ts`, `lib/sync/handles.ts` (`resolveHandleTarget`), the entry-handle pass in
+`scripts/sync-notion.ts`. Notion: PideTaxi cover EN/AR and iOS chapter EN/AR; the blank Kshemam row.
+`docs/agents.md` skimmed, not read in full.
+
+**Written (Notion, every page fetched back after writing):**
+
+| Page | id |
+|---|---|
+| Cover EN (filled) `Mini Case File - Kshemam HealthCare` | `3b3d4c6d-d86d-81ac-a5d7-fdd84fb5d4b6` |
+| Cover AR `النسخة العربية — الغلاف (Kshemam)` | `401d4c6d-d86d-8177-8c20-e9baade3ef56` |
+| Chapter EN `Chapter - Kshemam / Android`, Order 1 | `401d4c6d-d86d-81d0-a0ef-dd44f5a605d6` |
+| Chapter AR `النسخة العربية — الفصل الأول: Android` | `401d4c6d-d86d-8157-8421-fb586fec2240` |
+
+**Found / counted from the fetched pages (EN ↔ AR):**
+cover: what-it-is 1¶↔1¶ · role 2↔2 · status 1↔1 · entry handles 3↔3 (all `Chapter 1.`).
+chapter: objective 1↔1 · context 2↔2 · decisions 4↔4 · result 1↔1 · no tail.
+Decision bodies: emergency 4¶/2img ↔ 4¶/2img · circle 3/1 ↔ 3/1 · home 2/2 ↔ 2/2 · no-device 2/1 ↔ 2/1.
+`[cld]` 6 EN, 6 AR, same six ids, each with `[alt]` and `[caption]`. No em or en dash in any prose.
+
+**Tooling, as predicted:** `notion-create-pages` stripped the leading `# H1` on all three created
+pages; re-inserted with `insert_content` at start and confirmed by fetch. `replace_content` on the
+existing cover kept it.
+
+**Self-review deletions:** two layout claims not in the facts (EN "under one line", AR alt
+"وتحتها") were rewritten after re-reading against the facts list.
+
+**Gaps reported, not filled:**
+- **No `why-it-matters` section.** PideTaxi has one; the facts give no reason why Kshemam matters
+  in the portfolio, and the only Arabic alias available (`ولماذا يهم رغم ذلك`) presumes a
+  concession that does not exist here. Omitted, not written.
+- **No cover image slot**: the PideTaxi cover has none, so none was added.
+- **Cover `Required Content` still reads "Single-chapter format + scaled Results Table"** and
+  `Content ready` still reads `Not started`. Both contradict the brief/what is now on the page;
+  neither was named in the brief, so neither was changed.
+
+**Belongs to someone else:**
+- devops: the six `Kshemam/Android/*` public ids are planned names, NOT uploaded; none has returned
+  200. A real sync before upload creates media rows pointing at nothing.
+- backend: none found. Chapter parent resolves by Route (`/work/kshemam`), so the cover name
+  `Kshemam HealthCare` vs chapter title `Kshemam` is not a problem.
+
+**Not verified:** no `.env.local` in this worktree, so **no dry run was run**; counts above are
+from reading the fetched pages. Figma MCP failed to connect, so alt text describes the screens
+from the interview facts, not from looking at the frames (exact readings on the countdown screen
+are therefore not named). The site was not opened. Nothing synced.
+
+**Open questions:** none blocking. Moataz's read of the text is the next step.
+
+**07:45, approved edit applied:** Moataz approved the EN text with one change. The Objective said "does not answer the phone", which was unsourced because the countdown is in the app and there is no call. EN now reads "cannot answer"; AR "لم يردّ … على هاتفه" became "لم يستطع صاحب السوار أن يجيب". Still 1¶ each, and both fetched back to confirm.
+
+**11:09, publish properties (approved by Moataz):** Cover and chapter `Content ready` set to Done. Cover `Required Content` now reads "Cover + one chapter (Android). No results table: no numbers exist." The Figma key in both rows' Notes changed from CmHDXDMGetPdhWJPqaWxev to 486ARxBNbpqQouWLMdHCqD. Confirmed with a query of the database. No body text or AR pages were touched.
+
+---
+
 ## 002250826 — 2026-08-25 12:10 — Egypt Acquisition em-dash pass: 334 dashes resolved by function across twelve pages; zero left
 
 **Brief:** Remove every em dash (—) and en dash (–) a visitor reads from the six Egypt

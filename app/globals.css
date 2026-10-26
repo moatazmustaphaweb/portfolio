@@ -253,6 +253,62 @@
   --duration-press-out: 160ms;
 
   /*
+   * --- Navigation (Motion Layer, decision 048; tokens.md MOTION) ---
+   * The camera scale, at tokens.md's values. Only the pan is read today
+   * (prev/next chapter, decision 063 item 5, which bounds it at 600ms). The
+   * zoom and lift tokens stay declared for the camera: 063 bounds the
+   * gallery/cover/chapter move at 400ms as a cross-resolve, below the zoom
+   * window, so it takes its own token rather than a retimed zoom.
+   */
+  --duration-nav-pan: 600ms;
+  --ease-nav-pan: ease-in-out;
+  --duration-nav-zoom-in: 800ms;
+  --ease-nav-zoom-in: ease-out;
+  --duration-nav-zoom-out: 700ms;
+  --ease-nav-zoom-out: ease-in-out;
+  --duration-nav-lift: 500ms;
+  --ease-nav-lift: ease-in-out;
+  /* Decision 063: the cross-resolve. Old leaves in --duration (150ms), new
+   * arrives in 250ms; the descend/ascend variant runs 400ms. Both ≤400ms. */
+  --duration-nav-resolve-in: 250ms;
+  --duration-nav-depth: 400ms;
+  --ease-nav-depth: ease-out;
+  /* Decision 064: gallery card → cover. The cover is revealed by a clip that
+   * grows from the clicked card to the viewport, one ease-out curve inside the
+   * 900ms ceiling (064 targets 650–750ms). The new page fades in over the
+   * first 10% only, so the card-sized window never pops; the old page drifts
+   * up and darkens behind it. Darkens with brightness(), not opacity: opacity
+   * recedes into --color-bg, which is white in the light theme, and the
+   * reference darkens in both. --nav-open-dim is the brightness factor. */
+  --duration-nav-open: 700ms;
+  /* The reveal starts slowly so the card-sized window is seen before it
+   * grows (orchestrator's call, 001261026); the old page keeps the ease-out. */
+  --ease-nav-open: cubic-bezier(0.65, 0, 0.25, 1);
+  --ease-nav-open-recede: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-nav-open-fade: 70ms;
+  --nav-open-drift: 14vh;
+  --nav-open-dim: 0.55;
+  /* Decision 066: cover ⇄ its own chapters is a horizontal push. The page
+   * arriving slides in from the inline-end edge over the one it covers; the
+   * covered page moves toward inline-start by --nav-push-parallax of its width
+   * and darkens to --nav-push-dim. push-back plays the same thing in reverse.
+   * One ease-in-out curve, 600ms, inside the 900ms ceiling. */
+  --duration-nav-push: 600ms;
+  --ease-nav-push: cubic-bezier(0.65, 0, 0.35, 1);
+  --nav-push-parallax: 30%;
+  --nav-push-dim: 0.6;
+  /* Amplitudes. Containers move; content never does. */
+  --nav-pan-distance: 24px;
+  --nav-settle-distance: 6px;
+  --nav-depth-scale: 0.985;
+  /* +1 along the reading direction; flipped under dir=rtl below. */
+  --nav-axis: 1;
+  /* Pending feedback (063 items 2–4). The trickle is not a camera move. */
+  --duration-pending-trickle: 8s;
+  --duration-loader-cycle-out: 250ms;
+  --duration-loader-quote: 300ms;
+
+  /*
    * --- The device frame (components/media/DeviceFrame.tsx) ---
    *
    * The laptop around a chapter screenshot. Tokenised 2026-08-25, task
@@ -285,6 +341,19 @@
   --device-notch: #08090a;
   --device-notch-edge: #202124;
   --device-lens: #3a3d42;
+  /*
+   * The phone's hairlines — body, inner ring, and the top and bottom of each
+   * side key. Added 2026-10-22, task `002221026`, because `--device-edge`
+   * (#2e2f33) is the same value as the top of the body gradient and so draws
+   * nothing on a black page. Lighter than the body by about the step the
+   * light theme's #E0E1E6 sits from its white body: visible as an edge, not
+   * read as an outline.
+   *
+   * Phone-only on purpose. The laptop keeps `--device-edge`, so this changes
+   * nothing outside `PhoneFrame`. In light it resolves to `--device-edge`
+   * itself, so the light frame is the same object as before.
+   */
+  --device-phone-edge: #46484e;
 
   /* --- Focus --- */
   --focus-ring-width: 2px;
@@ -341,6 +410,7 @@
     --device-notch: #f5f5f6;
     --device-notch-edge: #ececef;
     --device-lens: #a8aeb8;
+    --device-phone-edge: var(--device-edge);
     color-scheme: light;
   }
 }
@@ -374,6 +444,7 @@
   --device-notch: #f5f5f6;
   --device-notch-edge: #ececef;
   --device-lens: #a8aeb8;
+  --device-phone-edge: var(--device-edge);
   color-scheme: light;
 }
 
@@ -425,6 +496,20 @@
     --duration: 0ms;
     --duration-press-in: 0ms;
     --duration-press-out: 0ms;
+    /* Every navigation move becomes the Cut (tokens.md, decision 048). */
+    --duration-nav-pan: 0ms;
+    --duration-nav-zoom-in: 0ms;
+    --duration-nav-zoom-out: 0ms;
+    --duration-nav-lift: 0ms;
+    --duration-nav-resolve-in: 0ms;
+    --duration-nav-depth: 0ms;
+    --duration-nav-open: 0ms;
+    --duration-nav-open-fade: 0ms;
+    --duration-nav-push: 0ms;
+    /* The hairline jumps to its resting width instead of trickling. */
+    --duration-pending-trickle: 0ms;
+    --duration-loader-cycle-out: 0ms;
+    --duration-loader-quote: 0ms;
   }
   html {
     scroll-behavior: auto;
@@ -625,13 +710,8 @@
     transition: opacity var(--duration-press-out) var(--ease);
   }
 
-  a:active,
-  button:not(:disabled):active,
-  summary:active,
-  [role="button"]:not([aria-disabled="true"]):active {
-    opacity: 0.62;
-    transition-duration: var(--duration-press-in);
-  }
+  /* The pressed state itself is OUTSIDE this layer, at the end of the file.
+   * See "PRESS, THE WINNING HALF" there for why. */
 }
 
 @layer components {
@@ -683,5 +763,503 @@
     inset-block-start: 50%;
     block-size: 44px;
     margin-block-start: -22px;
+  }
+}
+
+/*
+ * Home hero Lottie (decision 062): the renderer writes literal rgb() colours on
+ * each path; CSS beats presentation attributes, so every painted fill and
+ * stroke takes currentColor (the caller's text-accent). `none` is left alone,
+ * so a stroke-only shape never gains a fill and vice versa.
+ */
+.hero-mark-motion [fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+.hero-mark-motion [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+}
+
+/*
+ * ── PRESS, THE WINNING HALF ────────────────────────────────────────────────
+ *
+ * Task 013251026, decision 063 item 1. The pressed state used to live in
+ * `@layer base` as `a:active { opacity: .62 }` and lost on exactly the
+ * controls that matter most: the four primary CTAs carry
+ * `hover:opacity-85`, whose `:hover` selector is (0,2,0) against `a:active`'s
+ * (0,1,1) and is emitted after base, and `transition-opacity` /
+ * `transition-colors` reset the 60ms press duration to `--duration`. A press
+ * under a hovering finger therefore did nothing.
+ *
+ * Two changes, both structural rather than per call site:
+ *   - this rule is unlayered and rooted at `:root`, so it outranks every
+ *     single-state utility (`hover:`, `focus:`, `transition-*`) wherever it is
+ *     emitted, in any layer arrangement;
+ *   - `transition-colors` now includes `opacity` (tailwind.config.ts), so the
+ *     dip eases back instead of snapping.
+ *
+ * Release is `--duration-press-out` (160ms) on a bare control and
+ * `--duration` (150ms) on one carrying a `transition-*` utility; unifying
+ * them would retime every colour hover on the site. Outline buttons also
+ * take `active:border-fg` at their call sites. No scale (decision 048).
+ * Disabled controls never answer.
+ */
+:root
+  :is(
+    a,
+    button:not(:disabled),
+    summary,
+    [role="button"]:not([aria-disabled="true"])
+  ):active {
+  opacity: 0.62;
+  transition-duration: var(--duration-press-in);
+}
+
+/*
+ * ── NAVIGATION FEEDBACK (decision 063) ─────────────────────────────────────
+ *
+ * components/motion/NavProgress.tsx drives all of it. Transform and opacity
+ * only, and only on the hairline, the loader overlay and the `<main>`
+ * container: no content-level component transforms (tokens.md, decision 048).
+ */
+
+:root[dir="rtl"] {
+  --nav-axis: -1;
+}
+
+/* The hairline. Not flagged: feedback, not choreography (063 item 2). */
+.nav-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 2px;
+  z-index: 60; /* above the header's z-50 */
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  /* Grows from the reading start. `transform-origin` has no logical keyword. */
+  transform-origin: left center;
+  opacity: 0;
+  pointer-events: none;
+}
+:root[dir="rtl"] .nav-progress {
+  transform-origin: right center;
+}
+.nav-progress[data-state="pending"] {
+  /* Starts at once; becomes visible only at 100ms, so a fast commit never
+   * flashes it. */
+  animation:
+    nav-trickle var(--duration-pending-trickle) ease-out forwards,
+    nav-appear 0s linear 100ms forwards;
+}
+.nav-progress[data-state="done"] {
+  opacity: 1;
+  animation:
+    nav-complete var(--duration) ease-out forwards,
+    nav-vanish var(--duration) linear var(--duration) forwards;
+}
+@keyframes nav-trickle {
+  from { transform: scaleX(0.08); }
+  to { transform: scaleX(0.85); }
+}
+@keyframes nav-appear {
+  to { opacity: 1; }
+}
+@keyframes nav-complete {
+  from { transform: scaleX(var(--nav-from, 0.85)); }
+  to { transform: scaleX(1); }
+}
+@keyframes nav-vanish {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/*
+ * The loader (MOTION_LAYER, 063 item 3): over `<main>` only. Below the
+ * header's z-50, so the header stays usable; `pointer-events: none`, so it
+ * never blocks input either (motion-system §3.4).
+ */
+.nav-loader {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: var(--header-h);
+  inset-block-end: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding-inline: var(--gutter, 1rem);
+  background-color: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  color: var(--color-fg-muted);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--duration) var(--ease),
+    visibility 0s linear var(--duration);
+}
+.nav-loader[data-show="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--duration) var(--ease),
+    visibility 0s;
+}
+.nav-loader-mark {
+  inline-size: 7rem;
+  aspect-ratio: 281 / 277;
+  transition: opacity var(--duration-loader-cycle-out) var(--ease);
+}
+.nav-loader-mark[data-cycling="true"] {
+  opacity: 0;
+}
+.nav-loader-mark [fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+.nav-loader-mark [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+}
+.nav-loader-quote {
+  max-inline-size: 36ch;
+  text-align: center;
+  text-wrap: balance;
+  animation: nav-fade-in var(--duration-loader-quote) var(--ease) both;
+}
+
+/*
+ * ── PAGE TRANSITIONS (MOTION_LAYER, 063 item 5) ────────────────────────────
+ *
+ * React's <ViewTransition> (components/motion/MainTransition.tsx) names
+ * `<main>` `site-main` with the class `nav-main`, or `nav-pan-forward` /
+ * `nav-pan-back` for the prev/next chapter links. `html[data-nav]` says which
+ * move `nav-main` makes; NavProgress sets it before the transition and drops
+ * it after 900ms. No attribute, no animation: a cut. Under reduced motion the
+ * attribute is never set and every duration token above is 0ms.
+ */
+
+/* Clicks pass through to the live page; a transition never blocks input. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Base: a cut. Old images hidden, new ones static, groups static. The group
+ * stays put because the old page was captured at its own scroll position;
+ * see --nav-old-shift below. */
+::view-transition-group(root),
+::view-transition-group(.nav-main),
+::view-transition-group(.nav-pan-forward),
+::view-transition-group(.nav-pan-back) {
+  animation: none;
+}
+::view-transition-old(root),
+::view-transition-old(.nav-main),
+::view-transition-old(.nav-pan-forward),
+::view-transition-old(.nav-pan-back) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-new(root),
+::view-transition-new(.nav-main),
+::view-transition-new(.nav-pan-forward),
+::view-transition-new(.nav-pan-back) {
+  animation: none;
+}
+
+/* The old page leaves from where the reader was looking, not from its top. */
+::view-transition-old(.nav-main),
+::view-transition-old(.nav-pan-forward),
+::view-transition-old(.nav-pan-back) {
+  translate: 0 var(--nav-old-shift, 0px);
+  transform-origin: 50% calc(50vh - var(--nav-old-shift, 0px));
+}
+::view-transition-new(.nav-main),
+::view-transition-new(.nav-pan-forward),
+::view-transition-new(.nav-pan-back) {
+  transform-origin: 50% 50vh;
+}
+
+/* The anchors: header, hairline and loader never take part in a move. Named
+ * only while a classified navigation runs, so the header's backdrop filter is
+ * untouched the rest of the time. */
+:root[data-nav] .site-header {
+  view-transition-name: site-header;
+}
+:root[data-nav] .nav-progress {
+  view-transition-name: nav-progress;
+}
+:root[data-nav] .nav-loader {
+  view-transition-name: nav-loader;
+}
+::view-transition-group(site-header),
+::view-transition-group(nav-progress),
+::view-transition-group(nav-loader) {
+  animation: none;
+}
+::view-transition-group(site-header) {
+  z-index: 100;
+}
+::view-transition-group(nav-loader) {
+  z-index: 90;
+}
+::view-transition-group(nav-progress) {
+  z-index: 101;
+}
+::view-transition-old(site-header),
+::view-transition-old(nav-progress),
+::view-transition-old(nav-loader) {
+  display: none;
+}
+/* The loader is gone the moment the route commits (063 item 3), so it never
+ * sits over a move. Its live element may still be fading out when the new
+ * state is captured; without this the scrim and mark stayed anchored above
+ * `.nav-main` for the whole transition (seen on the 064 open, 001261026). */
+:root[data-nav]::view-transition-new(nav-loader) {
+  display: none;
+}
+::view-transition-new(site-header),
+::view-transition-new(nav-progress),
+::view-transition-new(nav-loader) {
+  animation: none;
+}
+
+/* Default: cross-resolve. Old out in 150ms, new in over 250ms with a 6px
+ * upward settle of the container. 400ms in all. */
+:root[data-nav="resolve"]::view-transition-old(.nav-main) {
+  animation: nav-fade-out var(--duration) var(--ease) both;
+}
+:root[data-nav="resolve"]::view-transition-new(.nav-main) {
+  animation:
+    nav-fade-in var(--duration-nav-resolve-in) ease-out var(--duration) both,
+    nav-settle var(--duration-nav-resolve-in) ease-out var(--duration) both;
+}
+
+/* Descend (gallery → cover → chapter): the container resolves up to full
+ * scale. 400ms. */
+:root[data-nav="zoom-in"]::view-transition-old(.nav-main) {
+  animation: nav-fade-out var(--duration) var(--ease) both;
+}
+:root[data-nav="zoom-in"]::view-transition-new(.nav-main) {
+  animation:
+    nav-fade-in var(--duration-nav-depth) var(--ease-nav-depth) both,
+    nav-depth-in var(--duration-nav-depth) var(--ease-nav-depth) both;
+}
+
+/* Open (decision 064): gallery card → cover. The new <main> is revealed by a
+ * clip that starts at the clicked card and grows to the viewport below the
+ * header; the content inside it is never scaled or moved (048). The old page
+ * drifts up and dims underneath. NavProgress writes the card box as
+ * --nav-open-x0/y0/x1/y1 in the new snapshot's own coordinates, and
+ * --nav-open-y-end as the viewport's bottom edge in the same space. Right and
+ * bottom insets are `100% - edge`: percentages in inset() resolve against the
+ * snapshot box, so the height of a page not yet rendered never has to be
+ * known. All four are physical, as the DOM rect is: correct in both
+ * directions with nothing to flip.
+ *
+ * mix-blend-mode: the UA pairs old and new with plus-lighter for a
+ * cross-fade; here the new page is opaque OVER the old one, so the blend
+ * would add the two images inside the window. Normal compositing, new on top
+ * (it follows old in the image pair). */
+:root[data-nav="open"]::view-transition-old(.nav-main),
+:root[data-nav="open"]::view-transition-new(.nav-main) {
+  mix-blend-mode: normal;
+}
+:root[data-nav="open"]::view-transition-old(.nav-main) {
+  /* The base rule hides every old image; this one stays and darkens. */
+  opacity: 1;
+  animation: nav-open-recede var(--duration-nav-open) var(--ease-nav-open-recede) both;
+}
+:root[data-nav="open"]::view-transition-new(.nav-main) {
+  /* <main> paints no background of its own, so its snapshot is transparent
+   * wherever the page is: the window would show the gallery through the
+   * cover. The snapshot gets the page's background; the live <main> is
+   * untouched. The clip below clips this background with the image. */
+  background-color: var(--color-bg);
+  animation:
+    nav-open-reveal var(--duration-nav-open) var(--ease-nav-open) both,
+    nav-fade-in var(--duration-nav-open-fade) linear both;
+}
+
+/* Push (decision 066): cover → one of its own chapters, `all` or `results`.
+ * The new <main> slides in from the inline-end edge (--nav-axis is -1 under
+ * dir=rtl, so it comes from the left there) and rests on top; the cover
+ * moves a third of the way toward inline-start and darkens beneath it.
+ * push-back is the exact reverse: the chapter, on top, leaves toward
+ * inline-end; the cover returns from -30% at 0.6 brightness.
+ *
+ * Both snapshots are made opaque with the page background: the one on top
+ * so the page under it never shows through, the one underneath so
+ * brightness() darkens the whole page and not only its ink (a transparent
+ * snapshot darkens text over an undimmed background). Normal compositing,
+ * as 064. The old image keeps the base `translate` by --nav-old-shift, which
+ * composes with the `transform` below, so a scrolled chapter leaves from
+ * where the reader was. Percentages in translateX are of the snapshot's own
+ * width, which is <main>'s, the full viewport width. */
+:root[data-nav="push"]::view-transition-old(.nav-main),
+:root[data-nav="push"]::view-transition-new(.nav-main),
+:root[data-nav="push-back"]::view-transition-old(.nav-main),
+:root[data-nav="push-back"]::view-transition-new(.nav-main) {
+  mix-blend-mode: normal;
+  background-color: var(--color-bg);
+}
+:root[data-nav="push"]::view-transition-old(.nav-main) {
+  opacity: 1;
+  animation: nav-push-recede var(--duration-nav-push) var(--ease-nav-push) both;
+}
+:root[data-nav="push"]::view-transition-new(.nav-main) {
+  animation: nav-push-enter var(--duration-nav-push) var(--ease-nav-push) both;
+}
+:root[data-nav="push-back"]::view-transition-old(.nav-main) {
+  opacity: 1;
+  /* The leaving chapter is the top image; old precedes new in the pair. */
+  z-index: 1;
+  animation: nav-push-exit var(--duration-nav-push) var(--ease-nav-push) both;
+}
+:root[data-nav="push-back"]::view-transition-new(.nav-main) {
+  animation: nav-push-return var(--duration-nav-push) var(--ease-nav-push) both;
+}
+
+/* Ascend: the reverse. The page being left recedes; the parent resolves. */
+:root[data-nav="zoom-out"]::view-transition-old(.nav-main) {
+  animation:
+    nav-fade-out var(--duration-nav-depth) var(--ease-nav-depth) both,
+    nav-depth-out var(--duration-nav-depth) var(--ease-nav-depth) both;
+}
+:root[data-nav="zoom-out"]::view-transition-new(.nav-main) {
+  animation: nav-fade-in var(--duration-nav-depth) var(--ease-nav-depth) both;
+}
+
+/* History (back/forward button): new content fades in; the old page, whose
+ * scroll the browser is restoring, is not shown. */
+:root[data-nav="pop"]::view-transition-new(.nav-main) {
+  animation: nav-fade-in var(--duration-nav-resolve-in) ease-out both;
+}
+
+/* Prev/next chapter: a pan along the reading axis, mirrored by --nav-axis
+ * under dir=rtl. Forward brings the next chapter in from the reading end. */
+::view-transition-old(.nav-pan-forward),
+::view-transition-new(.nav-pan-forward) {
+  --nav-pan-dir: 1;
+}
+::view-transition-old(.nav-pan-back),
+::view-transition-new(.nav-pan-back) {
+  --nav-pan-dir: -1;
+}
+:root[data-nav]::view-transition-old(.nav-pan-forward),
+:root[data-nav]::view-transition-old(.nav-pan-back) {
+  animation:
+    nav-fade-out var(--duration) ease-in both,
+    nav-pan-out var(--duration) ease-in both;
+}
+:root[data-nav]::view-transition-new(.nav-pan-forward),
+:root[data-nav]::view-transition-new(.nav-pan-back) {
+  animation:
+    nav-fade-in var(--duration-nav-resolve-in) ease-out var(--duration) both,
+    nav-pan-in var(--duration-nav-pan) var(--ease-nav-pan) both;
+}
+/* The locale switch mirrors the layout: always a cut (no data-nav rule
+ * matches "cut"), including for a pan-typed link. */
+:root[data-nav="cut"]::view-transition-old(.nav-pan-forward),
+:root[data-nav="cut"]::view-transition-old(.nav-pan-back),
+:root[data-nav="cut"]::view-transition-new(.nav-pan-forward),
+:root[data-nav="cut"]::view-transition-new(.nav-pan-back) {
+  animation: none;
+}
+
+@keyframes nav-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes nav-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes nav-settle {
+  from { transform: translateY(var(--nav-settle-distance)); }
+  to { transform: none; }
+}
+@keyframes nav-depth-in {
+  from { transform: scale(var(--nav-depth-scale)); }
+  to { transform: none; }
+}
+@keyframes nav-depth-out {
+  from { transform: none; }
+  to { transform: scale(var(--nav-depth-scale)); }
+}
+@keyframes nav-open-reveal {
+  from {
+    clip-path: inset(
+      var(--nav-open-y0, 0px) calc(100% - var(--nav-open-x1, 100%))
+        calc(100% - var(--nav-open-y1, 100%)) var(--nav-open-x0, 0px)
+        round var(--radius-panel)
+    );
+  }
+  to {
+    clip-path: inset(0px 0px calc(100% - var(--nav-open-y-end, 100%)) 0px round 0px);
+  }
+}
+@keyframes nav-open-recede {
+  from {
+    filter: brightness(1);
+    transform: none;
+  }
+  to {
+    filter: brightness(var(--nav-open-dim));
+    transform: translateY(calc(-1 * var(--nav-open-drift)));
+  }
+}
+@keyframes nav-push-enter {
+  from { transform: translateX(calc(var(--nav-axis) * 100%)); }
+  to { transform: none; }
+}
+@keyframes nav-push-recede {
+  from {
+    transform: none;
+    filter: brightness(1);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--nav-axis) * var(--nav-push-parallax)));
+    filter: brightness(var(--nav-push-dim));
+  }
+}
+@keyframes nav-push-exit {
+  from { transform: none; }
+  to { transform: translateX(calc(var(--nav-axis) * 100%)); }
+}
+@keyframes nav-push-return {
+  from {
+    transform: translateX(calc(-1 * var(--nav-axis) * var(--nav-push-parallax)));
+    filter: brightness(var(--nav-push-dim));
+  }
+  to {
+    transform: none;
+    filter: brightness(1);
+  }
+}
+@keyframes nav-pan-out {
+  from { transform: none; }
+  to {
+    transform: translateX(
+      calc(-1 * var(--nav-axis) * var(--nav-pan-dir) * var(--nav-pan-distance))
+    );
+  }
+}
+@keyframes nav-pan-in {
+  from {
+    transform: translateX(
+      calc(var(--nav-axis) * var(--nav-pan-dir) * var(--nav-pan-distance))
+    );
+  }
+  to { transform: none; }
+}
+
+/* Belt and braces for any view transition the rules above do not classify.
+ * The classified ones are already a cut under reduced motion: NavProgress
+ * never sets data-nav, and every duration they read is a token zeroed above. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s;
+    animation-delay: 0s;
   }
 }

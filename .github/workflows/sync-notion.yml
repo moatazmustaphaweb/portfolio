@@ -3,6 +3,9 @@
 # Approved by Moataz in task 006221026: manual trigger only, exactly three
 # repository secrets. This writes to the PRODUCTION database unless dry_run is
 # ticked. Do not add triggers or secrets here without a new decision from him.
+# A fourth secret, REVALIDATE_SECRET, was added under decision 061 item 6
+# (task 011251026): a live run POSTs the routes it wrote to /api/revalidate on
+# each base in REVALIDATE_URLS. A failed revalidate is a NOTICE, never a failed run.
 #
 # Runs scripts/sync-notion.ts directly rather than `npm run sync:notion`, because
 # that script passes --env-file=.env.local, which does not exist on a runner.
@@ -53,14 +56,18 @@ jobs:
           node-version: 22
           cache: npm
 
+      # npm install, not npm ci: the lockfile lags package.json (@swc/helpers,
+      # found on the first run, 006221026) and ci refuses; Vercel installs the same way.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run the sync
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          REVALIDATE_URLS: https://www.moatazmustapha.com,https://preview.moatazmustapha.com
           INPUT_ONLY: ${{ inputs.only }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           INPUT_ALL: ${{ inputs.all }}

@@ -13,7 +13,9 @@
  * (dx -7, dy 19, stdDeviation 19.5, rgb(88,89,92) @ 30%). So the phone reads
  * the same `--device-*` tokens the laptop does and inherits its dark theme —
  * coal gradient, no shadow — for free. Only the notch and the camera lens
- * needed tokens of their own.
+ * needed tokens of their own — and, since task `002221026`, the hairlines:
+ * `--device-phone-edge` is `--device-edge` in light and a lighter grey in
+ * dark, where the shared edge vanished into the body gradient.
  *
  * NOT SHARED: the radii. A laptop's corners are a small constant; a phone's
  * are 17% of its width, and that is the difference between the two objects
@@ -56,6 +58,37 @@
  * answer depends on which page you are on it is layout, and if it depends on
  * what the thing is it is not. A phone's volume keys do not move to the other
  * side in Arabic. `start`/`end` here would flip a physical object.
+ *
+ * ── THE SECOND VARIANT: `variant="android"` ─────────────────────────────────
+ *
+ * Added 2026-10-22, task `002221026`, for Moataz to look at. It is NOT wired
+ * to any page and nothing selects it yet; `variant` defaults to "default" and
+ * that path renders the same markup as before the prop existed.
+ *
+ * Named for what the object is, not for how it looks: its keys sit where an
+ * Android phone's do (volume rocker and power, both on the right), and the
+ * pictures it was drawn for are Android screens (Kshemam, 720x1600). A
+ * looks-based name like "flat" would read as "no shadow", which it is not.
+ *
+ * Same construction, tokens, shadow, dark theme, `cqw` unit and max width.
+ * What differs, in the same 478.42-wide units as the mockup:
+ *
+ *   body    r 48.00  (10.0% of width; default 82.50 = 17.2%)
+ *   ring    r 42.10  = 48.00 - 5.90 inset, concentric with the body
+ *   screen  r 26.00  = 42.10 - 15.09 inset - 1 hairline, concentric again
+ *   insets  5.90 and 15.09 on all four sides (the default's horizontal
+ *           values; the default runs 0.48 thinner top and bottom)
+ *   no Dynamic Island, no lens — nothing is drawn over the screen
+ *   power   right, y 250, h 72     volume rocker  right, y 352, h 150
+ *
+ * At the 320px cap that is a 32px outer corner against the default's 55px.
+ * The radii step down by their insets so the three rings stay parallel; a
+ * screen radius chosen independently is what makes a bezel look uneven.
+ *
+ * Fit: the screen box follows its picture (see `DeviceFrame`), so a 720x1600
+ * image (0.45) renders at its own ratio, uncropped and unletterboxed, exactly
+ * as a 786x1704 one (0.461) does. Only the height changes, and the buttons
+ * are placed in % of height, so they ride with it.
  */
 
 /** The rendered cap. See the note at its use site for why it is not 478.42. */
@@ -76,6 +109,8 @@ const SVG_BODY_H = 987.85;
 const vy = (n: number) => `${(((n - SVG_BODY_TOP) / SVG_BODY_H) * 100).toFixed(3)}%`;
 const vh = (n: number) => `${((n / SVG_BODY_H) * 100).toFixed(3)}%`;
 
+type Button = { side: "left" | "right"; top: string; height: string };
+
 /** silent switch, volume up, volume down — all on the left edge. */
 const LEFT_BUTTONS = [
   { top: vy(209.32), height: vh(37.78) },
@@ -83,15 +118,57 @@ const LEFT_BUTTONS = [
   { top: vy(376.38), height: vh(74.76) },
 ];
 
-function SideButton({
-  side,
-  top,
-  height,
-}: {
-  side: "left" | "right";
-  top: string;
-  height: string;
-}) {
+export type PhoneFrameVariant = "default" | "android";
+
+/**
+ * Everything that differs between the variants, and nothing else. The JSX
+ * below is shared, so a change to the construction reaches both.
+ */
+const GEOMETRY: Record<
+  PhoneFrameVariant,
+  {
+    bodyPadding: string;
+    bodyRadius: string;
+    ringPadding: string;
+    ringRadius: string;
+    screenRadius: string;
+    buttons: Button[];
+    island: boolean;
+  }
+> = {
+  default: {
+    bodyPadding: `${pc(5.42)} ${pc(5.9)}`,
+    bodyRadius: pc(82.5),
+    ringPadding: `${pc(14.61)} ${pc(15.09)}`,
+    ringRadius: pc(77.79),
+    screenRadius: pc(61.24),
+    buttons: [
+      ...LEFT_BUTTONS.map((b) => ({ side: "left" as const, ...b })),
+      // Power, on the right, longer than any of the left three.
+      { side: "right", top: vy(332.68), height: vh(118.42) },
+    ],
+    island: true,
+  },
+  /*
+   * See the header for the numbers and the reasoning. Both keys on the right,
+   * power above the volume rocker, in the same `left`/`right` physical
+   * exception as the default's.
+   */
+  android: {
+    bodyPadding: pc(5.9),
+    bodyRadius: pc(48),
+    ringPadding: pc(15.09),
+    ringRadius: pc(42.1),
+    screenRadius: pc(26),
+    buttons: [
+      { side: "right", top: vy(250), height: vh(72) },
+      { side: "right", top: vy(352), height: vh(150) },
+    ],
+    island: false,
+  },
+};
+
+function SideButton({ side, top, height }: Button) {
   return (
     <span
       aria-hidden="true"
@@ -102,8 +179,8 @@ function SideButton({
         height,
         width: pc(3.6),
         background: "var(--device-bezel)",
-        borderTop: `${pc(1)} solid var(--device-edge)`,
-        borderBottom: `${pc(1)} solid var(--device-edge)`,
+        borderTop: `${pc(1)} solid var(--device-phone-edge)`,
+        borderBottom: `${pc(1)} solid var(--device-phone-edge)`,
         // Rounded on the outer end only, the way a real key is.
         borderRadius:
           side === "left"
@@ -114,7 +191,67 @@ function SideButton({
   );
 }
 
-export function PhoneFrame({ children }: { children: React.ReactNode }) {
+/*
+ * The Dynamic Island, and the lens inside it. Centred with `left: 50%` and a
+ * transform because the island IS centred; the lens inside it is not, and
+ * uses `right`. Default variant only.
+ */
+function DynamicIsland() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        top: pc(13.34),
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: pc(138.27),
+        height: pc(39.32),
+        borderRadius: pc(19.66),
+        background: "var(--device-notch)",
+        border: `${pc(1)} solid var(--device-notch-edge)`,
+        display: "block",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: "50%",
+          right: pc(9.24),
+          transform: "translateY(-50%)",
+          width: pc(22.2),
+          height: pc(22.2),
+          borderRadius: "50%",
+          background: "var(--device-notch-edge)",
+          display: "block",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: pc(12.02),
+            height: pc(12.02),
+            borderRadius: "50%",
+            background: "var(--device-lens)",
+            display: "block",
+          }}
+        />
+      </span>
+    </span>
+  );
+}
+
+export function PhoneFrame({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: PhoneFrameVariant;
+}) {
+  const g = GEOMETRY[variant];
   return (
     <div
       /*
@@ -134,24 +271,23 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
        * EXPORTED, because `ChapterFigure` has to cap the <figure> to the same
        * number: the floating caption centres on the figure box, so if the two
        * disagree the chip drifts off the device. One constant, two readers.
+       * Both variants share it.
        */
       className="me-auto w-full"
       style={{ maxWidth: PHONE_FRAME_MAX_W, containerType: "inline-size" }}
     >
       <div style={{ position: "relative" }}>
-        {LEFT_BUTTONS.map((b) => (
-          <SideButton key={b.top} side="left" {...b} />
+        {g.buttons.map((b) => (
+          <SideButton key={`${b.side}-${b.top}`} {...b} />
         ))}
-        {/* Power, on the right, longer than any of the left three. */}
-        <SideButton side="right" top={vy(332.68)} height={vh(118.42)} />
 
         {/* Body. */}
         <div
           style={{
-            padding: `${pc(5.42)} ${pc(5.9)}`,
-            borderRadius: pc(82.5),
+            padding: g.bodyPadding,
+            borderRadius: g.bodyRadius,
             background: "var(--device-body)",
-            border: `${pc(1)} solid var(--device-edge)`,
+            border: `${pc(1)} solid var(--device-phone-edge)`,
             boxShadow: "var(--device-shadow)",
           }}
         >
@@ -159,10 +295,10 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
               metal rather than as a single drawn outline. */}
           <div
             style={{
-              padding: `${pc(14.61)} ${pc(15.09)}`,
-              borderRadius: pc(77.79),
+              padding: g.ringPadding,
+              borderRadius: g.ringRadius,
               background: "var(--device-body)",
-              border: `${pc(1)} solid var(--device-edge)`,
+              border: `${pc(1)} solid var(--device-phone-edge)`,
             }}
           >
             {/* Screen. `overflow: hidden` rounds the picture's corners, so
@@ -170,60 +306,14 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
             <div
               style={{
                 position: "relative",
-                borderRadius: pc(61.24),
+                borderRadius: g.screenRadius,
                 overflow: "hidden",
                 background: "var(--device-bezel)",
                 lineHeight: 0,
               }}
             >
               {children}
-
-              {/* The Dynamic Island, and the lens inside it. Centred with
-                  `inset-inline` rather than a physical side because the island
-                  IS centred; the lens inside it is not, and uses `right`. */}
-              <span
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  top: pc(13.34),
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: pc(138.27),
-                  height: pc(39.32),
-                  borderRadius: pc(19.66),
-                  background: "var(--device-notch)",
-                  border: `${pc(1)} solid var(--device-notch-edge)`,
-                  display: "block",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    right: pc(9.24),
-                    transform: "translateY(-50%)",
-                    width: pc(22.2),
-                    height: pc(22.2),
-                    borderRadius: "50%",
-                    background: "var(--device-notch-edge)",
-                    display: "block",
-                  }}
-                >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: pc(12.02),
-                      height: pc(12.02),
-                      borderRadius: "50%",
-                      background: "var(--device-lens)",
-                      display: "block",
-                    }}
-                  />
-                </span>
-              </span>
+              {g.island ? <DynamicIsland /> : null}
             </div>
           </div>
         </div>

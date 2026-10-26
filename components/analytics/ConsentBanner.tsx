@@ -88,14 +88,14 @@ export function ConsentBanner({
           <button
             type="button"
             onClick={() => setConsent("denied")}
-            className="min-h-[44px] min-w-control flex-1 rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg sm:flex-initial"
+            className="min-h-[44px] min-w-control flex-1 rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg active:border-fg sm:flex-initial"
           >
             {decline}
           </button>
           <button
             type="button"
             onClick={() => setConsent("granted")}
-            className="min-h-[44px] min-w-control flex-1 rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg sm:flex-initial"
+            className="min-h-[44px] min-w-control flex-1 rounded-control border border-strong px-4 text-ui text-fg transition-colors hover:border-fg active:border-fg sm:flex-initial"
           >
             {accept}
           </button>

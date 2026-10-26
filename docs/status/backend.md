@@ -16,6 +16,255 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 007261026 — 2026-10-26 07:25 — migration 0065 also seeds `arrow_forward` / `arrow_back` glyph keys, still NOT applied
+
+**Brief:** add two directional glyph rows (`arrow_forward` EN → AR ←, `arrow_back` EN ← AR →)
+to the unapplied `0065_seed_wait_quotes.sql`, after checking that no migration already seeds a
+key with that name or purpose; update the header; keep it idempotent; confirm the drift checker parses it.
+
+**Files:** `supabase/migrations/0065_seed_wait_quotes.sql` (two tuples appended to the `strings`
+values list, header line and a "THE TWO GLYPH KEYS" comment block added). **No migration applied.**
+0065 is still unapplied as a whole, so applying it creates nine keys, not seven.
+
+**Measured:** `grep -rniE "arrow|glyph|→|←" supabase/migrations` turned up no seeded key for either
+purpose. The only matches were comments, the `context` text of `back_to_work` / `read_linear`
+(labels, not glyphs) and the `←` heading alias in 0043. `arrow_forward|arrow_back` appear nowhere
+in the repo. Codepoints written: U+2192 / U+2190 (EN forward/back), mirrored for AR. I extracted the
+drift checker's `parseTuple` and `parseSeed` from `scripts/check-seed-drift.ts` and ran them offline:
+0065 parses to **9** tuples (7 quotes + 2 glyphs). All 11 `SEED_FILES` give 109 tuples and 109
+unique keys, so nothing is duplicated.
+
+**Verified:** idempotence by reading the SQL. It uses the same CTE as before: `on conflict (key)` on
+`ui_strings` and `on conflict (entity_type, entity_id, locale, field)` on `translations`.
+
+**Not verified:** the live database. The Supabase MCP in this session lists only the Dabbler
+projects, so I could not confirm that no `arrow_*` key exists in `ui_strings` today. If one exists,
+the upsert overwrites it. I did not run the SQL. I did not run `npm run check:seed-drift` against the
+DB, and it will report both keys as "NOT in the database" until 0065 is applied. No component reads
+these keys yet; that is frontend's.
+
+**Open questions:** none.
+
+---
+
+## 013251026 — 2026-10-25 — migration 0065 seeds the seven `wait_quote_N` ui_strings (decision 063 item 4), NOT applied
+
+**Brief:** write `supabase/migrations/0065_seed_wait_quotes.sql` seeding `wait_quote_1`…`wait_quote_7`
+with the EN and AR text given verbatim in the brief, in the 0052 seed shape; add it to `SEED_FILES`;
+run the drift check only if it works without a DB.
+
+**Files:** `supabase/migrations/0065_seed_wait_quotes.sql` (new) · `scripts/check-seed-drift.ts`
+(one line added to `SEED_FILES`). **No migration applied** — the SQL goes into the Supabase SQL
+editor by hand; until it does, the keys do not exist in the database.
+
+**Measured:** the drift check's own seed parser (regex and block bounds copied from
+`parseSeed`) run offline against 0065: 7 tuples parsed, 0 mismatches against the brief's strings.
+
+**Verified:** the file parses in the shape the drift check expects; quote escaping (`Moataz''s` in
+the context) round-trips.
+
+**Not verified:** `npm run check:seed-drift` was **not run** — it queries Supabase and there is no
+`.env.local` in this container. It will report the seven keys missing until 0065 is applied; that is
+expected, not drift. The "verbatim from his published pages" claim was not checked against Notion
+or the live pages here — the text was taken from the brief as given. Nothing in `components/` reads
+these keys yet.
+
+**Open questions:** none.
+
+---
+
+## 011251026 — 2026-10-25 — sync revalidates the routes it wrote (061 item 6); migration 0064 for the EN home intro (061 item 8), NOT applied
+
+**Brief:** (A) make `scripts/sync-notion.ts` collect every route it writes and, on a live run with
+`REVALIDATE_URLS` + `REVALIDATE_SECRET` set, POST them to `<base>/api/revalidate` per base, failures
+as NOTICES; dry run prints what it would send; add the env to the workflow. (B) migration setting EN
+`settings.intro` to "I look for simple solutions that make life easier.", AR untouched. (C) name the
+CLAUDE.md sentences now false.
+
+**Files:** `lib/sync/revalidate.ts` (new, pure + injectable fetch) · `scripts/sync-notion.ts`
+(`touch()` at each write site: case file live/dry, chapter-like live/dry, outcome/target insert,
+prose page; `revalidateWrittenPaths()` before the summary) · `scripts/test-sync-logic.ts` (15 checks)
+· `.github/workflows/sync-notion.yml` (devops-owned; two env lines + header note, written at the
+orchestrator's instruction) · `supabase/migrations/0064_home_intro_en.sql` (NOT applied).
+
+**Path format:** `route.ts` takes LOCALE-AGNOSTIC paths and expands each to `/en` and `/ar` itself;
+no count limit. So the sync sends `/work/x`, not `/en/work/x` (the brief asked for both locales —
+sending them would revalidate `/en/en/...`). `finalizeRevalidatePaths` refuses a localised path.
+
+**Measured:** `npm run test:sync` all pass (15 new); `tsc --noEmit` clean; eslint on the three files clean.
+
+**Not verified:** no live or dry sync run (no NOTION_API_KEY in this container); no POST to a real
+deployment; `REVALIDATE_SECRET` repo secret existence and that it matches Vercel's; 0064 not applied
+and the live EN intro value not read (the Supabase MCP here lists only Dabbler projects).
+
+**Open questions:** none.
+
+---
+
+## 007231026 — 2026-10-23 18:51 — the sync fills NULL `media.width`/`height` from Cloudinary `fl_getinfo`; unit-tested, NOT run against Cloudinary or the database
+
+**Brief:** `scripts/sync-notion.ts` created `media` rows with NULL dimensions, so new figures
+render with no device frame (Kshemam patched by hand in 0061; PideTaxi's 8 new screens NULL
+now). Fix it in the sync, permanently: where a row it writes is new or has a NULL dimension,
+fetch `input.width`/`input.height` from the public, credential-free
+`res.cloudinary.com/<cloud>/image/upload/fl_getinfo/<public_id>`; never overwrite a non-NULL
+value; on any failure a NOTICE naming the public ID, never a failed sync; cache per ID; small
+timeout; dry run fetches but writes nothing and reports `would set`; one printed line per row
+set. No manual SQL.
+
+**Files:** `lib/sync/media-dimensions.ts` (new, pure: `getinfoUrl`, `parseGetinfo`,
+`needsDimensions`, `dimensionPatch`) · `scripts/sync-notion.ts` (`fetchDimensions` with 8s
+`AbortSignal.timeout` and a per-run promise cache; `fillMediaDimensions` — conditional UPDATE
+`… is null` per patched column, then read-back compared against the fetch; `upsertMedia` now
+takes `rowTitle` and selects `id, width, height`; `previewMediaDimensions` on the dry-run
+branch of `writeChapterSections`, over exactly the IDs the write path would write — English
+prose sections plus Arabic on the same slot, paragraphs and tail; a `MEDIA DIMENSIONS from
+Cloudinary — set N` summary block printed even at 0) · `scripts/test-sync-logic.ts` (21 new
+checks) · `docs/sync-contract.md` (Step 6: new subsection, and step 1 of "what the sync does")
+· this entry. No migration. Nothing committed.
+
+**Measured:** `npm run test:sync` — 161 PASS, 0 FAIL, "All sync-logic checks passed." (21 of
+them new: URL encoding keeps folder slashes and encodes spaces/`?`/`#`; `input` read, `output`
+refused as a fallback, strings/zero/fractions/missing refused; fetch needed for no row / either
+NULL, not for both set; patch writes only NULL columns and returns null when both are set even
+when Cloudinary disagrees). `npx tsc --noEmit -p .` exit 0. `npx eslint` on the three code
+files exit 0, no output.
+
+**Verified:** the failure path, once, by hand: from this sandbox `res.cloudinary.com` is
+refused by the proxy (`curl: CONNECT tunnel failed, response 403`); the same `fetch` the sync
+uses rejected with `TypeError: fetch failed`, which `fetchDimensions` turns into an error
+result and therefore a NOTICE. That is why the error now appends `err.cause.message` — Node's
+bare message names no reason.
+
+**Not verified:**
+- **No successful `fl_getinfo` response has been parsed.** The `{ input: { width, height } }`
+  shape is the brief's; it was not observed from here. The real run is on GitHub Actions.
+- **No sync run at all, dry or live** — no Notion key or database from this session. The
+  conditional UPDATE, the read-back, and the dry-run read of `media` have only been typechecked.
+- **PideTaxi's 8 rows are still NULL** until the next real sync run touches their chapters. If
+  a run uses `--only=` excluding them, they stay NULL. After the next run:
+  `select cloudinary_public_id, width, height from media where cloudinary_public_id like 'PideTaxi/%';`
+  — expected 750x1624 (iOS ×5) and 720x1440 (Android ×3), per the brief.
+- Not checked on `:3000` that the frames appear — nothing was written.
+
+**Not done, and not mine:** `CLAUDE.md` "Carried to MVP-2" still lists "creates media rows
+without dimensions" — the orchestrator's file; it should change only after a real run confirms.
+Media rows no chapter tag references in a run (covers) are outside this path, as before.
+**`docs/learn.md` not appended** — nothing here generalises beyond this script.
+
+**Open questions:** none.
+
+---
+
+## 004221026 — 2026-10-22 14:00 — `chapters.image_layout` from the Notion `Image layout` property: migration 0063 written (NOT applied), sync + lib/content wired, unit-tested
+
+**Brief:** a chapter-level choice of how consecutive figures render, authored in Notion as
+`Image layout` (select `Stacked` | `Grid`, empty = Stacked). Mirror 003221026 exactly: column
+with CHECK, sync reads it with the same tolerance and notice behaviour as `Device`, prints
+`layout=` beside `device=`, writes it on the upsert, same "apply 0063 first" start-up guard;
+`lib/content` exposes `imageLayout: ImageLayout` (`"stacked" | "grid"`, never null) from
+`@/lib/content/types`, reaching `detail` on the chapter page. Frontend works in parallel on
+components/ and app/ — not touched here.
+
+**Files:** `supabase/migrations/0063_chapter_image_layout.sql` (new, **NOT APPLIED** — no DB
+access from this session) · `lib/media/image-layout.ts` (new: `IMAGE_LAYOUTS`, `ImageLayout`,
+`imageLayoutOrDefault`) · `lib/sync/image-layout.ts` (new, pure: `readImageLayoutProperty`,
+which delegates to the `Device` reader so both properties tolerate the same shapes, and
+`resolveImageLayout`) · `scripts/sync-notion.ts` (Row gains `imageLayout`; start-up column
+check; one run-level notice when the property is absent; Pass 2 resolves, notices, prints
+`layout=` on both paths, writes `image_layout`) · `scripts/test-sync-logic.ts` (19 new checks) ·
+`lib/supabase/database.types.ts` (hand-added `image_layout`; not regenerated) ·
+`lib/content/types.ts` (`Chapter.imageLayout`, `export type { ImageLayout }`) ·
+`lib/content/chapters.ts` (`getChapter`) · `lib/content/case-files.ts` (cover's `chapters` /
+`pages`) · `docs/schema.md` · `docs/sync-contract.md` · this entry. Nothing committed.
+
+**Measured:** `npm run test:sync` → 140 PASS, 0 FAIL (19 new). `npx tsc --noEmit` → exit 0
+(run while frontend may be mid-edit; it reflects the tree at 14:00). `npx eslint` on the 8
+touched TS files → 0 errors, 1 warning (generated types file is eslint-ignored).
+
+**Verified:** the pure mapping (Grid/Stacked/case/empty/absent/unknown/two options/unsupported
+type/content default) by test; the whole tree type-checks with `detail.imageLayout` available.
+
+**Not verified:** 0063 has not been run against any database. No sync, dry or live — the
+sandbox has no `.env.local`, so the script stops before reading Notion. No page opened; grid
+rendering is frontend's. The `Image layout` property does not exist in Notion as far as this
+session knows; adding it is content's/Moataz's.
+
+**Open questions:** none.
+
+## 003221026 — 2026-10-22 12:38 — `chapters.device_frame` from the Notion `Device` property: migration 0062 written (NOT applied), sync + lib/content wired, unit-tested
+
+**Brief:** Moataz decided the phone frame for a chapter's screenshots is authored per chapter
+as the Notion property `Device` (`iPhone` | `Android`, empty = iPhone). Add the column, read
+it in the sync (select or text, case-insensitive, unknown values reported as a notice, dry run
+prints it per chapter, a missing property must not crash, explicit "apply 0062 first" when the
+column is absent), expose `deviceFrame` from `lib/content` for frontend, update the two docs.
+
+**Files:** `supabase/migrations/0062_chapter_device_frame.sql` (new, **NOT APPLIED** — this
+session cannot reach the portfolio database) · `lib/media/device-frame.ts` (new: the one
+vocabulary, `DeviceFrame`, `deviceFrameOrDefault`) · `lib/sync/device-frame.ts` (new, pure:
+`readDeviceProperty`, `resolveDeviceFrame`) · `scripts/sync-notion.ts` (Row gains `device`;
+start-up column check; Pass 2 resolves, notices, prints `device=` on both paths, writes
+`device_frame` in the upsert) · `scripts/test-sync-logic.ts` (18 new checks) ·
+`lib/supabase/database.types.ts` (hand-added `device_frame`; not regenerated — no DB access) ·
+`lib/content/types.ts` (`Chapter.deviceFrame`) · `lib/content/chapters.ts` (`getChapter`) ·
+`lib/content/case-files.ts` (cover's `chapters` / `pages`) · `docs/schema.md` ·
+`docs/sync-contract.md` · this entry. Nothing committed.
+
+**Decisions taken inside the brief, named so they can be overruled:** `text` + CHECK, not an
+enum (follows `cover_kind` 0026). A live sync against a DB without 0062 now **exits before Pass
+1** — whole run refused, not per-chapter failures after case files were written; a dry run warns
+and continues. A database with no `Device` property at all produces **one** run-level notice,
+not one per chapter. `iOS`, `Pixel`, two multi-select options, or a non-text property type →
+`iphone` plus a notice.
+
+**Measured:** `npm run test:sync` → 121 PASS, 0 FAIL (18 of them new). `npx tsc --noEmit` →
+exit 0, no output. `npx eslint` on the 8 touched TS files → 0 errors (1 warning: the generated
+types file is eslint-ignored).
+
+**Verified:** the pure mapping (Android/iPhone/empty/absent/unknown/unsupported type/content
+default) by test; the sync script type-checks and starts (stops at the missing
+`NOTION_API_KEY`, as it must in this sandbox).
+
+**Not verified:** 0062 has not been run against any database. No sync — dry or live — has run
+against Notion with this code. No page was opened; `deviceFrame` reaching a render is
+frontend's, and nothing renders it yet. The start-up check's exact PostgREST error text for a
+missing column was not observed, only that any error on `select device_frame` triggers it.
+
+**Open questions:** none.
+
+## 001221026 — 2026-10-22 — Kshemam measurement BLOCKED: the portfolio database is not reachable from this session; 0061 written, NOT applied
+
+**Brief:** after Moataz's live `sync:notion --only=kshemam` (0 created / 30 updated / 0 failed),
+measure Kshemam's rows (case file, chapters, sections per locale, entry-handle resolution,
+`Kshemam/%` media dims and alt/caption, decisions per locale), then backfill 720x1600 on the
+six Android screens if NULL, following 0060, applied via the Supabase MCP.
+
+**Files:** `supabase/migrations/0061_backfill_kshemam_media_dimensions.sql` (new, **NOT
+APPLIED**, uncommitted) · this entry. Nothing else touched; no sync run; nothing committed.
+
+**Measured:** nothing from the portfolio database. The Supabase MCP in this sandbox lists
+two projects only: `Dabbler-draft` (`ekmhrxdwgegxkdkdukgq`, INACTIVE) and `Dabbler`
+(`wtncuzcskpigqpmnxwws`). On `Dabbler`, `to_regclass` for `case_files`, `media` and
+`translations` all return NULL, so it is not this site. No project ref for the portfolio
+appears anywhere in the repo, and there is no `.env.local`.
+
+**Verified:** `scripts/sync-notion.ts:1207-1213` still upserts `media` with only
+`cloudinary_public_id` and `redacted`, so the six Kshemam rows will have been created with NULL
+dims, and a later sync will not overwrite a backfill. 0061 updates only those six
+public_ids, and only where width AND height are both NULL. It is idempotent.
+
+**Not verified:** every row the brief asked for. Whether the rows are actually NULL, whether
+the stored public_ids match `Kshemam/Android/<name>` exactly (case and path), and whether the
+three entry handles resolve to the android chapter. 0061 has not run, so it has not been
+read back.
+
+**Open questions:** how should backend reach the portfolio project? Connect the MCP to the
+account that owns it, or give its project ref. Alternatively, Moataz could run the measurement
+SQL and 0061 himself.
+
+---
+
 ## 015230826 — 2026-08-23 22:32 — the Arabic accessibility page and the workflow chapter's three Arabic decisions are on the site; the per-locale model now covers all four tables
 
 **Brief:** bring `page_sections` and `decisions` onto the per-locale model, the way

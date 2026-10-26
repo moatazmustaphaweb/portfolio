@@ -110,6 +110,44 @@ The `grilling` skill's default shape is a numbered **round** — compute the fro
 
 This tightens `CLAUDE.md`'s rule that a question and a prompt never share a message; it does not replace it.
 
+## `nightly` is the working branch; `main` is released only when Moataz says so
+
+Learned 2026-10-25, tasks `002251026`, by being stopped: *"توقف لا تدمج نايتلي في مين… أي تعديلات
+دلوقتي بنعملها احنا بنعملها على نايتلي."*
+
+All work lands on `nightly` (via the session branch). `main` is production and is released as a
+batch, on his word, never as a side effect of a task. Decision 060 says one database and preview
+is code only; that means a published chapter can show on production with older code for a while,
+and that is accepted. Do not open a `nightly` to `main` PR to "fix" it. Ask once, at most, when
+he is clearly at a release point; otherwise keep working on `nightly`.
+
+## Render an asset before building on it
+
+Learned 2026-10-25, task `012251026`. A share link Moataz sent as "the hero animation" was the
+LottieFiles brand loader; it was built, recoloured and deployed to preview before anyone looked
+at a frame of it, and only the preview screenshot (a solid disc) gave it away. Its JSON even named
+itself "Lottie Loader new 2". **Open every supplied asset in its own colours first** (render a
+contact sheet of frames, read its name and layer list), confirm it is what he means, then build.
+It takes a minute and it is the only check that catches a wrong file.
+
+## Awareness lives in one board, not in the orchestrator's memory
+
+Learned 2026-10-25, task `010251026`. The vision audit found the same pattern six times: a decision
+written in one doc, executed nowhere, and rediscovered months later as a "new" finding (revalidate on
+publish, the role+decision publish check, the artwork strings, the www cutover, open question B, the
+Cervello pause). `status.md` records what happened and `decisions.md` what was decided; neither says
+what is still open. That is what the Notion `Portfolio — Vision Tracker` is for: a row per step, its
+kind, its docs, its last task id. **Update it before closing a task, and read it before starting
+one**, so the next session does not re-audit what the last one already found.
+
+## Decide the mechanics yourself; come back only for permission
+
+Learned 2026-10-23, task `006221026`, by being told outright: *"Don't back to me with a lot of questions. You're asking me for each step… start to take decision, work without stopping until you finish. If you need any permission, ask me, I will approve."*
+
+PideTaxi ran Q10 to Q15 in one evening, and most of them were **how**, not **what**: which branch carries a file, which frame goes on which chapter, which route a workflow takes to `main`. He sets the goal and the content; the route to it is ours.
+
+**Ask him for three things only:** editorial content (rule 7 and "stop and ask" still hold — words, numbers, whose work it is), an action only his account can take (a secret, a merge, a permission), and anything irreversible on production that he has not already approved. Everything else: pick the recommended option, do it, and report it in the four-part reply as done.
+
 ---
 
 # PART 2 — WRITING
@@ -1027,6 +1065,22 @@ v4 writes it as a suffix). `display: contents` is the other fix and solves the o
 problem — it makes the child *take* the container's rhythm instead of stacking a second margin
 on top of it. Both appear in `ChapterSections.tsx`, a few lines apart, for opposite reasons.
 
+## One request-scoped read above `[locale]` makes every page dynamic, and nothing says so
+
+Added 2026-10-26, task `003261026`. For two months every page was served `private, no-store`
+while `revalidate = 300` sat in each file.
+
+A layout above `[locale]` has no locale param. `getLocale()` there falls back to `headers()`,
+and one `headers()` call anywhere in the shared tree turns every route under it into ƒ. The
+build does not fail and the pages look fine. The only signals are the `ƒ` column in the route
+table and the response's `cache-control`. A `revalidate` export is a request, not evidence.
+
+**Check the route table after any change to a layout, a not-found file or the proxy.** A
+locale page must show ●. Read the locale from `params` (after `setRequestLocale`) or from
+`next/root-params`, never from request headers, in anything that renders above or around a
+page. The one file allowed to read headers is `app/global-not-found.tsx`, because nothing is
+cached there anyway.
+
 
 ---
 
@@ -1058,6 +1112,7 @@ Each of these cost at least one session.
 | **A route file that "only 404s" is not the same as no route** | Added 2026-08-23, task `005230826`. A catch-all was added under `[locale]` to serve local preview pages, gated so that with the flag off it declared no real path. Every URL still returned 404 and the status codes were checked. **What changed is that every unmatched URL on the site stopped being a missing ROUTE and became a missing PARAM** — and Next renders a param miss inside `<html id="__next_error__">`: no `lang`, no `dir`, no font variables, +7.2KB, in both locales, in production. `/en/nonexistent-xyz` was degraded by a feature that had nothing to do with it | **A 404 is not one thing. Compare the `<html>` tag, not the status code** — `grep -o '<html[^>]*>'` on the response. This is the same distinction `app/[locale]/(site)/work/[caseFile]/page.tsx` already documents for `dynamicParams = false`, and `/en/work/east` is the pre-existing instance of it. **To make a route conditional, make the file not be a page:** name it `page.<something>.tsx` and add `<something>.tsx` to `pageExtensions` only under the flag. Then the route does not exist, rather than existing and refusing |
 | **Catch-all fall-through depends on WHERE the match fails** | Same task. Two URLs under the same subtree behaved oppositely, and both look like "no route matched". `/work/east` — `work/[caseFile]` REJECTS the param, and the catch-all never sees the request **even when it declares that exact path**. `/work/uae-acquisition/cut/example-cut` — the param RESOLVES, no child matches the rest, and the catch-all serves it | A rejected param short-circuits the whole subtree; an unmatched deeper route falls through. **Test the specific path before designing around either behaviour** — a real `cut/[cut]/page.tsx` was written on the assumption that no fall-through was possible, and it degraded every `/work/<slug>/cut/*` 404 per the row above. It was deleted once the fall-through was measured |
 | **`generateStaticParams` returning `[]` does not mean "no paths"** | Same task. With `dynamicParams = false` and an empty param list, Next 16.3 dev stops enforcing the list and the segment answers **200 for every unmatched URL on the site**. The disabled state was the dangerous one | Declare at least one path always, even a sentinel the page 404s. And re-test after: the dev router caches param lists across edits, so a URL that was declared in an earlier attempt keeps answering from the old list until the server is restarted |
+| **PIL `getbbox()` on an RGBA difference image** | Added 2026-10-22, task `002221026`. A before/after pixel compare reported every frame IDENTICAL, including the two that had visibly changed. `ImageChops.difference` of two opaque RGBA images has an alpha channel of 0 everywhere, and `getbbox()` on RGBA looks only at alpha, so it returns `None`. That reads as "no difference" | Convert both to `RGB` before diffing. And check the comparison against a pair you KNOW differs before trusting what it says about a pair you hope is the same |
 
 ## Three claims in one file rotted the same way. The pattern, not the facts
 
@@ -1257,3 +1312,12 @@ Learned 2026-08-22, task `001220826`. Two errors in one draft, in opposite direc
 **Both are the same failure: trusting the artefact over the person.** The design file is evidence of what was built. It is not evidence of why, of what it was called, or of what mattered. A frame name is a designer's filing label, not a claim about the product — and treating one as content is how inference gets published in his voice.
 
 **So: when a dictated word does not parse, assume it is a real word in the wrong place before assuming it is noise.** Ask where it belongs. And **never let a screen name become a sentence** — if the detail did not come from him, it is a question, not a fact.
+
+### Measure the slowness before designing for it (004261026)
+
+The loader, the wait quotes and a whole second transition (065) were built to cover pages that took
+3s, and nobody measured why they took 3s. One `curl -D -` showed `no-store` and `MISS` on every
+page: ISR had been broken since 2026-08-23. When something feels slow, the first command is the one
+that times it and reads its cache headers, not a design that hides it. And when Moataz says "remove
+the loading", remove the loading; do not replace what he approved.
+

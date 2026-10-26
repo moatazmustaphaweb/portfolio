@@ -1,4 +1,5 @@
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { MainTransition } from "@/components/motion/MainTransition";
 import type { Locale } from "@/lib/content/types";
 
 /**
@@ -21,9 +22,11 @@ export default async function LandingLayout({
   const { locale } = await params;
   return (
     <>
-      <main id="main" className="flex flex-1 flex-col">
-        {children}
-      </main>
+      <MainTransition>
+        <main id="main" className="flex flex-1 flex-col">
+          {children}
+        </main>
+      </MainTransition>
       <SiteFooter locale={locale as Locale} variant="minimal" />
     </>
   );

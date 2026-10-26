@@ -37,6 +37,850 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 009261026 - 2026-10-26 - Answered: what content is left
+
+**Task id `009261026`.** Moataz asked what content remains. Answered from the Vision Tracker
+(rows not Done that need him or content): MVP-1 content in priority order, then the later layers'
+content. No code or content changed.
+
+## 008261026 - 2026-10-26 - One small arrow on every internal card link
+
+**Task id `008261026`.** Moataz: the arrow is too big, and it must be on every clickable card of the
+same kind (he named "Three ways in"), not only chapters. Frontend extracted
+`components/primitives/CardArrow.tsx` (`text-body-sm`, `text-fg-dim` to `text-fg` on card hover and
+focus, glyph from `ui_strings`, nothing when missing) and applied it to: chapter cards, Three ways
+in, next-chapter card, next-case cards (results, all), Systems evidence cards, About onward cards.
+The literal `→` with `rtl:rotate-180` on those cards is gone. Excluded with reasons in
+`docs/status/frontend.md` (pills, inline links, CTAs, gallery cards, external links).
+**Verified on preview (`686b811`), en and ar at 1280:** arrows at the inline-end side, small,
+vertically centred, ← in Arabic, dark on the hovered card. Results page had no card on Cervello.
+
+## 007261026 - 2026-10-26 - Chapter cards get a forward arrow
+
+**Task id `007261026`.** Moataz: chapter cards on the cover don't look clickable; add a small arrow,
+our choice of place. Chosen: inline-end side of each card, vertically centred, `text-fg-dim` to
+`text-fg` on hover and focus (`components/case-file/LivingMap.tsx`, `709b177`). No nudge: decision
+048 forbids transforms on content components (frontend stopped and asked, correctly). Glyph from
+`ui_strings` `arrow_forward` (EN →, AR ←), added to migration 0065 (`ac313ce`), still not applied,
+**Moataz ran 0065 the same day; verified on preview** (en and ar, 1280 and 390): arrow at the inline-end side, → in EN, ← on the left in AR, dark on the hovered card. Quotes and arrow keys now in the database. Separate
+cleanup listed by frontend: 18 literal arrows in JSX still flipped with CSS (rtl-guard).
+
+## 006261026 - 2026-10-26 - Cover to chapter is a horizontal push; back is its reverse (decision 066)
+
+**Task id `006261026`.** Moataz: "a transition from cover to chapter from right to left, and reverse
+while back to cover." Decision 066.
+
+- **Built (frontend, `c96e686` on nightly):** new kinds `push` / `push-back` in `NavProgress.tsx` for
+  cover to chapter/all/results of the same case and back (links, breadcrumb and browser history).
+  Chapter enters from inline-end (600ms, `cubic-bezier(.65,0,.35,1)`); cover moves 30% toward
+  inline-start and darkens to 0.6. Reverse on the way back. No loader, hairline only.
+- **Verified on preview by real-time recordings, en and ar, light:** EN chapter enters from the right
+  and the cover leaves left; back reverses. AR mirrors (enters from the left). No loader at any frame.
+- **Not verified:** dark theme; Safari/Firefox; browser-back recorded but not reviewed frame by frame.
+
+## 005261026 - 2026-10-26 - "Still slow and not as shown": measured, it is the live site running old code
+
+**Task id `005261026`.** Real clicks timed with Playwright. **Production (www):** header to /work
+3832ms, pages MISS at 1.2-3.3s, no transition code at all (main has none of 063-064 or the ISR fix).
+**Nightly preview:** header to work 401ms, gallery to cover 255ms, cover to chapter 490ms, about
+251ms, systems 233ms; pages PRERENDER/HIT ~0.2s. Stable preview link:
+`portfolio-git-nightly-moataz-portfolio.vercel.app`. Nothing changes until nightly is released.
+
+## 004261026 - 2026-10-26 - Back to the 064 opening, without a loader; 065 retired
+
+**Task id `004261026`.** Moataz: keep the transition from the reference (064) and build on it; the
+only change asked was no loading before it. 065 had replaced the transition instead, which was the
+wrong reading. The loading came from ISR being broken (`003261026`), not from the transition.
+
+- **Done (`bd548fc`):** the 065 lift reverted (`dbd436b`, `84b85ab`); 064's clip reveal restored; for
+  the `open` move only, no loader and no quote, the hairline alone (one condition in
+  `components/motion/NavProgress.tsx`, written by the orchestrator). Decision 065 marked RETIRED.
+- **Verified on preview (`portfolio-8nki80k22`), real-time recording:** cover committed 0.24s after
+  the click; no loader at any frame; the window opens out of the card to full screen while the
+  gallery darkens behind it, as in the reference.
+- **Not verified:** Safari/Firefox; a prefetched open (the recording fetched the cover on click).
+- **Lesson (learn.md):** measure before building a remedy. The loader was built on top of a 3s
+  render nobody had measured; measuring first would have found the ISR bug a day earlier.
+
+## 003261026 - 2026-10-26 - ISR was not working on any page since 2026-08-23; fixed on nightly
+
+**Task id `003261026`.** Found while recording 065: every page on production and preview answered
+`cache-control: private, no-store` and `x-vercel-cache: MISS`, about 3s per request, every time.
+
+- **Cause (frontend, proven by build route table):** `getLocale()` in `app/layout.tsx`, which sits
+  above `[locale]`, so `setRequestLocale` had not run; next-intl fell back to `headers()` and the
+  whole tree rendered dynamically. Introduced with the root layout in `334e4ee` (2026-08-23).
+- **Fix (`c5bd654`, option A, next-intl's documented layout):** `<html lang dir>` moved into
+  `app/[locale]/layout.tsx`, which is now the root layout; `app/layout.tsx`, `app/not-found.tsx` and
+  `DocumentLanguage` removed; unmatched URLs render the designed 404 through `app/global-not-found.tsx`
+  (`experimental.globalNotFound` in `next.config.mjs`, written by frontend under this brief).
+- **Verified on preview (`portfolio-icm67vcjp`):** `/en`, `/ar`, `/en/work`, covers in both locales,
+  `/en/about`: first request PRERENDER, then HIT, **~0.2s instead of ~3s**. All 33 sitemap routes plus
+  the mini case files return the same status as production. `/en/nope` and `/ar/nope` are 404 with
+  `lang="en" dir="ltr"` / `lang="ar" dir="rtl"` in the server HTML (this closes the board's 404
+  lang/dir item).
+- **Production is still slow** until `nightly` is released to `main`. That is Moataz's call.
+- **Side effect found:** with fast pages the 065 opening fails (the view transition freezes the lift
+  mid-growth, then the picture jumps). Opened as `004261026`.
+
+## 002261026 - 2026-10-26 - The card's image becomes the cover's image, from the click (decision 065)
+
+**Task id `002261026`.** Moataz on 064: "this transition shouldn't have loading states... the card
+image should scale and begin the transition, then loading if needed." Decision 065 supersedes
+064's mechanism (a view transition starts at the commit, so the click waited).
+
+- **Built (frontend, `components/motion/lift.ts`), live on preview (`dbd436b`, `84b85ab`).** On the
+  click the card's picture lifts into a fixed layer and grows (650ms) to the cover image's place in
+  the content column; the gallery darkens and drifts up; no loader during the move (a small mark
+  only if still pending at 1.25s). On commit a shared element (`case-cover`) hands it to the real
+  cover image; the rest of the cover resolves in.
+- **Verified on preview by real-time recordings:** the lift starts on the click; it holds at the
+  cover image's real position; first build had a ~150ms swell after the hand-over (scale and size
+  interpolated together) and a doubled h1. Both fixed and re-recorded: the hand-over is clean.
+- **Found while measuring: ISR is not working.** Production and preview answer every page with
+  `cache-control: private, no-store` and `x-vercel-cache: MISS`, about 3s per page, every time.
+  That, not the transition, is why the site feels slow. Opened as `003261026`.
+- **Not verified:** Safari/Firefox; a commit landing mid-lift (needs a fast route, which today never
+  happens); a scrolled gallery; `/ar` recorded but not reviewed frame by frame.
+
+## 001261026 - 2026-10-26 - Gallery card opens into the case-file cover (decision 064)
+
+**Task id `001261026`.** Moataz sent a reference (CoffeeTech page transition, Pinterest): "I want
+this transition when I open project from gallery". Read frame by frame: the new page grows out of
+a small rectangle inside the old one while the old page drifts up and darkens. Decision 064.
+
+- **Built (frontend), live on preview (`ae9da3e`, `5f7b8a7` on nightly).** Clicking a gallery card
+  clips the new `<main>` from the card's on-screen rectangle to the full viewport in 700ms; the
+  old page drifts up 14vh and darkens to 55% brightness; header anchored. Cover back to gallery
+  stays the 400ms resolve. Behind `MOTION_LAYER`; reduced motion is a cut.
+- **Verified on preview by frame capture (animations slowed 10x) and a real-time recording,
+  light and dark:** the first version had a transparent new page (double exposure), the loader
+  drawn over the opening, and opacity dimming that faded to white in light theme. All three fixed
+  and re-verified; the reveal curve changed so the start reads as the card.
+- **Not verified:** Safari and Firefox; `/ar` by eye; a scrolled gallery. On preview each cover
+  took about 2s to fetch (cold), so the loader showed before the opening every time; production
+  prefetch should make that rarer, unmeasured.
+
+## 013251026 - 2026-10-25 - Navigation feedback and transitions (decision 063)
+
+**Task id `013251026`.** Moataz: the site feels dead on click. Research found the real cause: in
+production pages are prefetched and cached, but nothing acknowledges a click, and press feedback is
+cancelled on the main buttons by a CSS specificity bug. Decision 063 recorded; loader asset
+`public/motion/loader.json` (his mark, grey #D2D2D2, trim-path draw over 3s). Quotes: his own
+sentences from the site (his choice). Dispatched to content, backend, frontend.
+
+- **Built and live on preview (`771b19a` + focus fix).** Press state moved out of the base layer
+  (unlayered `:root :is(...)` rule); 2px accent hairline from click to commit (unflagged); behind
+  `MOTION_LAYER`: his mark over `<main>` after 300ms, a quote after 2.5s, ViewTransition moves keyed
+  on `html[data-nav]` (zoom in/out along the work hierarchy, pan for prev/next chapter, cut for the
+  locale switch). Reduced motion: static bar, no loader, instant cut, focus still moves to the h1.
+- **Verified on preview with Playwright, RSC responses held 3.2s:** bar pending at 50ms and visible
+  by 200ms; loader SVG drawing at 600ms; bar and overlay idle after commit; focus on the
+  destination h1; `/ar` bar grows from the right; no horizontal scroll; reduced motion shows no
+  loader. Screenshots in the session scratchpad.
+- **Quotes:** 7 of his sentences in migration `0065_seed_wait_quotes.sql` (one dropped: it was
+  just removed from the pages to stop repetition). **Not applied yet: Moataz runs it.** Until then
+  no quote shows, by design.
+- **Not verified:** the page-transition animations themselves (Chrome only, by eye), Safari/Firefox,
+  the press dip on the four CTAs, quotes rendering (pending 0065). Quotes on `/ar` that fell back to
+  English would be marked Arabic: `getUiStrings` drops the resolved locale (backend follow-up, not
+  reachable today since all 7 have Arabic). tokens.md needs the new nav tokens recorded.
+- **Not mine, flagged by frontend:** hardcoded `→`/`←` glyphs on the CTAs with `rtl:rotate-180`
+  break rtl-guard; left alone.
+
+## 012251026 - 2026-10-25 - The hero Lottie does not animate; returned before any code
+
+**Task id `012251026`.** Moataz sent `heroanimate.lottie` to replace the hero logo. Inspected, not
+used: a Figma dotLottie of 3 PNG layers (#0070F3 baked into the pixels), 690x679, 60fps, 240
+frames, but **every transform is static** (`"a":0` on position, scale, rotation, opacity), so it
+plays as a still image. Raster colour also cannot follow the light-theme accent (#0060DF).
+Asked for a re-export with real keyframes and vector shapes. No code changed.
+
+- **Second file (LottieFiles share link) was built behind `MOTION_LAYER` (decision 062), then
+  switched off.** Rendered frame by frame it is **the LottieFiles brand loader** (teal circle,
+  white "S"; the JSON names itself "Lottie Loader new 2"), not Moataz's mark. Recoloured to one
+  accent it showed on preview as a solid disc. `MOTION_LAYER = false`, asset removed; the static
+  mark is back. The component and the flag stay for the right file. A third-party brand mark
+  must never ship as his logo.
+- **Third file is his mark, and it is live on preview.** 4 vector layers, one stroke colour
+  (#0070F3), trim paths draw the mark (end 0 to 100 by frame 144) while the stroke thins 20 to 6
+  (by frame 180). Rendered frame by frame before installing. `MOTION_LAYER = true`; plays once
+  and holds the final frame; recoloured to `--color-accent` at the mark's opacity.
+  **Verified on preview in Chromium:** SVG mounts at ~0.8 s, lines drawing at 0.8 s and 1.7 s
+  (screenshots), complete mark held after; stroke rgb(0,112,243) dark, rgb(0,96,223) light.
+
+## 011251026 - 2026-10-25 - Grilling session: every open decision on the tracker answered
+
+**Task id `011251026`.** Moataz ran `/grill-me` over the Vision Tracker. 25 questions, one per
+message; all answered. Recorded as **decision 061** (18 items). Execution dispatched on `nightly`
+to backend, frontend, content and devops; tracker rows updated as each closes.
+
+- **Executed and verified on preview** after sync run 8 (updated 30, failed 0): Home EN intro
+  (migration 0064, SQL run by Moataz); UAE cover map line 2; UAE results page with two achieved
+  targets; Systems principle trimmed; chapter title as H1; close block on end pages; GA off outside
+  production (banner `enabled:false` on preview); Cervello duplicate cover in Notion trash.
+- **Blocked:** revalidate-on-publish code is live but run 8 logged `REVALIDATE_SECRET not set`:
+  the GitHub repo secret is missing. **Moataz added it; run 9 verified:** `www` and preview
+  both answered HTTP 200, 94 localised routes revalidated each.
+- **Left by hand in Notion:** an uploaded image block on both UAE onboarding pages (API cannot
+  delete it; it does not reach the site). The 404 lang/dir fix needs `global-not-found` and a
+  config change (frontend's analysis); not done.
+- Still to come, each put to Moataz in turn: privacy text, share image, dates table, Arabic
+  string review, feature lists, Lighthouse run. Tracker rows updated.
+
+## 010251026 - 2026-10-25 - The Vision Tracker: a Notion board of every step to the vision
+
+**Task id `010251026`.** Moataz: a Notion board that tracks the steps to complete the vision (not
+code tasks), reflects the current status against the repo docs, and is kept up to date so nothing
+is repeated or stalled.
+
+- **Created `Portfolio — Vision Tracker`** under the MOATAZ page (data source
+  `c85115bc-5173-409d-b8ae-c4ed84a36541`). Properties: Phase (MVP-1 debt, Layers 2 to 5,
+  Governance) · Status (Not started / Needs decision / In progress / Blocked / Done / Decided not
+  to do) · Kind (decision not executed · ground shifted · real gap · new build · doc correction) ·
+  Non-negotiable (the 13 of v2) · Owner · Needs Moataz · Source (repo citation) · Docs to update ·
+  Last task id · Last reviewed.
+- **41 rows written from the audits of 001251026 and 009251026**, each citing where the repo
+  records it: 6 governance, 18 MVP-1 debt (including the two Moataz parked as "decided not to
+  do"), 6 Layer 2, 6 Layer 3, 4 Layer 4, 2 Layer 5. Status reflects today: 1 done, 1 in progress,
+  2 blocked on his Arabic reviews and the redaction look, 11 needing his decision.
+- **Wired into the rules:** CLAUDE.md (doc table row and a working-agreement bullet: the row is
+  updated before `DONE`), `docs/agents.md` (orchestrator writes it, content reads it),
+  `docs/learn.md` (why one board, not memory).
+- **Not yet on the board:** findings from the live browser crawl of preview (009251026, still
+  running). They are added when it returns.
+
+## 009251026 - 2026-10-25 - The vision text against architecture v2, and what remains (in progress)
+
+**Task id `009251026`.** Moataz supplied a "full site vision"; inspection and report only.
+
+- **The text is Architecture v1.0.** `docs/architecture.md` is v2.0 and says what changed from
+  v1.0 (content to Supabase, ISR, Cloudinary, Notion, settings/navigation/ui_strings); decision
+  008 supersedes v1's content model. **Moataz: keep v2.** Not merged; no `docs/vision.md` written.
+- **Code and docs vs v2 (Explore):** every unbuilt Layer 2 to 5 route is recorded as deferred.
+  Non-negotiables that do not hold: 1 nothing hardcoded (`designs/registry.tsx` cover strings;
+  "Not built yet" placeholder pages served on production because `NEXT_PUBLIC_PREVIEW_STUBS` is
+  set in Vercel, confirmed live on `www` for /door, /for/hiring, /how-this-site-works, /studio,
+  /read); 3 role/decision publish check does not exist; 7 `og_image` is a URL; 9 analytics not
+  disclosed anywhere; 13 old-site cutover never recorded as a decision, Lighthouse never run.
+  Hold: 4, 5, 8. N/A: 10. Unrecorded gaps: ObjectiveHeader, MilestoneClose, NextCaseHandoff,
+  `primitives/` never built; nothing calls `/api/revalidate` on publish (routes are ISR 300s, so
+  CLAUDE.md's "server-rendered on demand" is wrong); open question B (mini case files) never
+  closed though two are published.
+- **Live browser crawl of preview, done** (Playwright, 122 loads, both locales): 30 routes live;
+  text identical with JS off on 86/86 pages; no horizontal scroll at 375/320; NDA grayscale via
+  `e_grayscale` on the Mashreq files. Falls short: UAE `/results` 404 though it declares 4
+  outcomes (rule 4); last chapters, comparison and accessibility pages have no way out (rule 11);
+  raw `[Title]` link markup in 8 pages; 404 raw HTML has no lang/dir; AR pages carry English
+  paragraphs; `/api/events` undisclosed and preview reports into production's GA property; six
+  placeholder pages public. All added to the Vision Tracker (5 new rows).
+- **Tracker (010251026):** an Arabic `الوصف` column added and filled on all 46 rows, saying what
+  the step is and exactly what Moataz must give.
+
+## 007251026 - 2026-10-25 - Moataz's three real items: repeated sentences, "Reported internally", "one chapter"
+
+**Task id `007251026`.** Moataz cut the list to three: the repeated sentences (critical),
+"Reported internally", "Currently one chapter". Dropped on his word: cover images ("not a real
+gap for me"), the Request CV button ("it is in production, no need"). The backend, frontend and
+devops briefs from this morning (003 to 005251026) were no longer running and wrote nothing.
+
+- **"Reported internally": done in Notion.** EN UAE cover note now reads *"The figure covers web
+  and mobile together, so no single number is attributed to mobile alone"*, the final wording in
+  `content-brief.md`. AR was already right. Synced (run dispatched with `--only=uae`).
+- **"Currently one chapter": done in Notion,** both languages; the sentence that follows stays.
+  Still true after it: the map lists one chapter above two chapter cards. A map line for
+  Application Tracking is new copy, so it is Moataz's.
+- **Repeated sentences, measured on all 66 live pages, both languages.** 1,269 repeats are
+  structural (a chapter repeated on its own `/all` page, chapter objectives on the cover cards,
+  titles, "Next chapter"). The real cross-page repeats in the same language are two:
+  1. EN *"I'm here to make things easier for people."* is Home's intro and About's H1. The Arabic
+     is two different sentences (Home `أسعى لحلول بسيطة، تجعل الحياة أسهل`, About `أنا هنا لأجعل
+     الأشياء أيسر على الناس.`), so only English repeats.
+  2. The "errors are attributed, not prevented" principle is written twice, near word for word,
+     in both languages: About / Philosophy and Systems ("The patterns that repeat").
+- **Preview made public by Moataz** (Vercel Authentication off; the project had Standard
+  Protection, `all_except_custom_domains`, which exempts production domains only). Since preview
+  now serves the same content as `www`, frontend (`008251026`) made every non-production
+  deployment block crawlers: `robots.txt` is `Disallow: /` and every page carries `noindex,
+  nofollow` unless `VERCEL_ENV === "production"`. Production robots output byte-identical.
+- **Found on the way, not his three:** many Arabic pages render English sentences (most of
+  `/ar/work/egypt-acquisition/accessibility`, image captions on the AR Egypt onboarding and
+  workflow chapters, a Neobiz cover line). Reported only.
+
+## 002251026 - 2026-10-25 - Preview and production share one database; what separating them takes
+
+**Task id `002251026`.** Moataz: with a preview environment, production must not change until
+`nightly` is merged. Asked what is needed. Diagnosis only; nothing changed.
+
+- **Cause, measured:** code is already separated (`nightly` builds preview, `main` builds
+  production) but **data is not**. One Supabase project serves both: the sync workflow's secrets
+  and Production's env vars point at the same database, which is why publishing PideTaxi from
+  `nightly` made it live on `www` with `main`'s code (no Android frame, no grid; 001251026).
+  Decision 059 ("production is the preview", Preview unconfigured) is out of date: preview now
+  serves data, and Moataz's own words there foresaw this: "at MVP-2 there will be two versions".
+- **Recommended: a second Supabase project as staging** (true isolation). Needs: the project
+  (his account); Preview env vars in Vercel pointing at it (his, decision 059: no agent enters a
+  secret); a migrations workflow to replay 0001 to latest on it; the sync workflow gaining a
+  `target` input with its own secret pair, production refused unless dispatched on `main`;
+  production DB unpublishing PideTaxi until it is promoted. **Alternative:** one database with a
+  per-row "preview only" status, filtered in `lib/content`; cheaper, but not isolated.
+- **Moataz's decision: neither.** One database, preview is for code only; "don't drag me into
+  loops". Recorded as decision 060 (supersedes 059). Consequence: a sync that publishes content
+  needing `nightly`'s code is followed by a `nightly` to `main` PR, which he merges. PR #8 (`nightly`
+  to `main`) was opened for the current gap, then **closed unmerged on Moataz's instruction:
+  "stop, don't merge nightly into main, we are still working on" it.** Nothing reached `main`.
+  Production keeps showing PideTaxi with the old frame until he says when to release.
+
+## 001251026 - 2026-10-25 - Audit against the Dubai wholesale-banking CX Lead role (report only)
+
+**Task id `001251026`.** Moataz: audit the whole site against one recruiter brief (Customer &
+Colleague Experience Lead, wholesale banking transformation, Dubai), map requirements to evidence,
+recommend one URL, confirm six live-site issues. Report only; nothing changed in code or Notion.
+
+- **content** read all 70 Notion rows (45 pages in full, EN and AR, published and drafts), the CV
+  transcription and the content brief; built the evidence map. **Explore** read the architecture,
+  the gallery and handle code and the migrations for the six issues. Live site unreachable here.
+- **Evidence:** STRONG on client onboarding, colleague/internal experience (Egypt only), service
+  design and journey management (by deed, not by name), stakeholder work. PARTIAL on servicing
+  (application servicing only), vendor/platform assessment (judgement written, no vendor work),
+  UAT (one sentence, inside a failure story), adoption (production evidence, no adoption activity).
+  NONE on trade finance and cash management. Nothing invented; gaps reported as questions.
+- **Path:** no new archetype (Layer 2, not built, Institution already covers a bank hirer); no
+  per-visitor mechanism exists in MVP-1 (no query params, `sort_order` never written). Recommended
+  a curated deep link to the Egypt Acquisition cover, which carries the colleague chapters, the
+  journey-mapping workshop line and the results page.
+- **Six issues:** all six confirmed, with causes and fix options. Notably (1) "Reported internally"
+  is on the EN UAE cover only, AR already correct; (2) "Currently one chapter" is stale by Moataz's
+  own Notion comment; (3) Kshemam and PideTaxi are in the gallery because he published them, and
+  show bare because the sync never writes cover media, domain or outcomes; (4) "Show me what
+  broke" is decision 038 by design, now fixable since /results exists (042).
+- Report delivered in the reply. Nine open questions returned to Moataz. No plan approved yet.
+
+**Correction from Moataz, same day: the six issues are three different kinds, and each is handled
+differently.** Checked against the docs before accepting it:
+
+- **Decisions made and not executed (1, 2).** (1) `docs/content-brief.md:263` records four drafts
+  of this row and the final: `[achieved]` plus the platform-split caveat only, with *"any basis
+  naming where the number was learned"* rejected: *"Provenance detail is interview material, not
+  visible copy."* The EN cover still carries "Reported internally;", so it contradicts a written
+  decision; the AR cover is already correct. My open question 8 was therefore half answered by the
+  brief; I asked it because the audit read decision 007 and the brief as disagreeing. (2) His
+  2026-08-20 Notion comment on "Currently one chapter" is still open: an overdue item.
+- **Working as designed, ground since changed (4, 6).** (4) decision 038 was right when written;
+  the results page (decision 042) came after. (6) the minimal Home was intentional; the read test
+  asks for proof first. **Correction to my report:** Home has two CTAs, not one (the second CTA,
+  glow and eyebrow pill were restored, status 2026-08 "Home restored"); the route map at the top of
+  this file still says "one CTA" and is stale.
+- **Live check, 2026-10-25, once Moataz opened the network.** `www.moatazmustapha.com` answers 200
+  (every page above); `gate.moatazmustapha.com` has **no DNS any more** (CLAUDE.md still names it
+  as the place to verify, so that line is stale); `preview.` redirects to a Vercel SSO login, so
+  only Moataz can read it. Measured on `www`: (1) "Reported internally; covers web and mobile
+  together…" is live on the EN UAE cover; AR has the caveat only. (2) The UAE cover says "Currently
+  one chapter" and lists one chapter, directly above two chapter cards (01, 02). (3) The /work card
+  for Kshemam is its title only; PideTaxi's is its title only (no image, tag, outcome); the order
+  is UAE, Egypt, Neobiz, Cervello, Kshemam, PideTaxi. (4) "Show me what broke." is a plain block,
+  the other two handles are links; a "Results table →" link exists elsewhere on the page. (5)
+  "Request CV" is a `<button>` carrying the same classes as the mailto link beside it. (6) Home has
+  name, tagline, intro, description, two buttons and no work. **New: the Arabic is not the same
+  sentence.** Home AR is `أسعى لحلول بسيطة، تجعل الحياة أسهل`; About AR's H1 is `أنا هنا لأجعل
+  الأشياء أيسر على الناس.` Only the English repeats.
+- ⚠️ **Production is serving the PideTaxi chapters with `main`'s code.** The shared database made
+  them live on `www` when published; `main` has neither the Android frame nor the grid. Measured:
+  the iOS chapter has 5 images and the Android chapter 3, and no `grid-cols` classes in either, so
+  the Android chapter renders in the default phone frame, stacked. The Website chapter is a draft,
+  so the cover's "Chapter 3" line is text with no card. The sitemap fetched does not list PideTaxi
+  yet (cached). The frames and grid reach visitors only when `nightly` is merged to `main`, which
+  is Moataz's call.
+- **Real gaps (3, 5, 6b).** (3) a script gap, not a decision. (5) `cv_url` empty is a decision
+  (`learn.md:1246`, `status.md` 001230826: the CV is requested, not downloaded), so it is not an
+  item; the button looking like muted footer text is a design oversight. (6b) the repeated
+  sentence is coincidence between `settings.intro` and the About intro; two rows, no link.
+
+
+## 007231026 - 2026-10-23 - The sync fills image dimensions itself; PideTaxi framed
+
+**Task id `007231026`.** The sync wrote media rows with NULL width/height, so new figures rendered
+with no device frame and needed a hand SQL backfill (0060, 0061). Moataz wants no manual steps.
+
+- **backend:** `upsertMedia` now reads the original's size from Cloudinary's public `fl_getinfo`
+  (no credentials) for any row it writes whose dimensions are NULL. Never overwrites a set value;
+  a failed lookup is a NOTICE, never a failed sync. `lib/sync/media-dimensions.ts`, 21 new checks,
+  `test:sync` 161 pass, typecheck and lint clean. Chapter media only; cover media not covered.
+- **Verified live, run 5 on GitHub Actions:** `MEDIA DIMENSIONS from Cloudinary — set 8`, the
+  5 iOS screens 750x1624 and the 3 Android 720x1440, created 0, updated 30, failed 0.
+- **Expected NOTICES:** `PideTaxi/Website/{hero,features}` are 404 on Cloudinary, because they are
+  not uploaded (pidetaxi.es is blocked here). They render unframed until uploaded.
+- `CLAUDE.md` "Carried to MVP-2" updated: this item closed, the Actions sync noted.
+
+- **Published on Moataz's word ("Both"):** `Content ready = Done` on the PideTaxi cover and the
+  iOS and Android chapters; the Website chapter stays a draft (its two images are not uploaded).
+  Run 6 synced it, success. This push to `nightly` rebuilds preview, because new chapter routes
+  need a build (`dynamicParams = false`).
+
+**Not verified:** the rendered chapters on preview. Visual review is Moataz's.
+
+## 006221026 - 2026-10-22 - Sync on GitHub Actions: running, PideTaxi synced
+
+**Task id `006221026`.** Moataz said "ok" to running the Notion sync from a GitHub Actions workflow
+(manual trigger, repo secrets for Notion and the Supabase service key), so the session can trigger
+it and he never runs it by hand.
+
+- **Nothing written.** The brief to devops was refused by this session's permission classifier as
+  a secret-store write: a workflow that holds the service-role key. I did not work around it; the
+  `.github/**` ownership row I drafted for `docs/agents.md` was reverted.
+- **Needs Moataz's explicit approval** of exactly this: a workflow file in the repo that reads
+  `NOTION_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from GitHub repo
+  secrets and writes to the production database when triggered.
+- **Approved by Moataz, then written** (devops): `.github/workflows/sync-notion.yml`, manual
+  trigger only, inputs `only` / `dry_run` / `all` passed through `env:` (no `${{ }}` in the shell),
+  the three secrets in the step env only, `contents: read`, one sync at a time. devops traced every
+  import: those three are sufficient; the sync never calls Cloudinary. `.github/**` is now devops's
+  row in `docs/agents.md`.
+- ⚠️ **GitHub only dispatches a `workflow_dispatch` workflow that exists on the default branch
+  (`main`).** On `nightly` alone it cannot be triggered. Getting it onto `main` is Moataz's call.
+
+- **Moataz chose to push the file alone to `main`. The push was refused** by this session's
+  permission classifier as a production deploy. Nothing reached `main`; no workaround tried.
+- **Reached `main` by PR #7** (the file alone), merged on Moataz's instruction ("you can merge it
+  yourself"). He added the three repo secrets. A dispatched run uses the workflow from the
+  dispatched ref, so later changes go to `nightly` only.
+- **Run 1 (dry run, `--only=pidetaxi`) failed at `npm ci`:** the lockfile lags `package.json`
+  (`@swc/helpers@0.5.23` missing). Switched the step to `npm install` on `nightly`.
+- **Run 2 got through install and Notion** ("Read 72 rows, 43 in scope") and stopped at
+  `NEXT_PUBLIC_SUPABASE_URL is not set`: the log shows that env empty while the other two are
+  masked, i.e. that repo secret is missing or misnamed. Moataz to check it.
+- **Moataz added the URL secret. Run 3 (dry run) passed:** created 0, updated 25, skipped 8,
+  failed 0; PideTaxi decisions read in both languages (iOS 3, Android 2, website 3).
+- **Run 4, the live sync (`--only=pidetaxi`), passed:** created 0, updated 30, failed 0.
+  `pidetaxi/ios device=iphone layout=grid`, 5 images en and ar; `pidetaxi/android device=android
+  layout=grid`, 3 images en and ar; website 2 image refs (not yet uploaded to Cloudinary). The
+  chapters stay drafts (`Content ready = In progress`). **The sync now runs from this session
+  with no step on Moataz's Mac.**
+- ⚠️ The sync still writes media rows with NULL dimensions, so the 8 new PideTaxi figures render
+  unframed. Handed to backend as `007231026` (fill them from Cloudinary in the sync itself).
+
+**Not verified:** never run on GitHub; the three secrets are not yet in the repo; Node 22 is
+assumed (nothing pins it).
+
+## 005221026 - 2026-10-22 - PideTaxi images: iOS in, Android waits on a hand export
+
+**Task id `005221026`.** Phase 2, back to PideTaxi. App first; the two website shots are parked.
+
+- **iOS source decided: the `iOS, Face-lift` page** — Moataz confirmed Face-lift *is* the shipped
+  4.0.1. Its frames carry an Android status bar; that is what was designed. I first recommended the
+  older `iOS` page for its iOS chrome, before reading `001220926`, which records Face-lift = 4.0.1.
+  Read the interview entry before recommending a source.
+- **Five iOS screens in Cloudinary**, 750x1624, `PideTaxi/iOS/{booking-payment, payment-methods,
+  on-the-way, login, signup-password}` from A12, D01, B01, A01, A05. Moataz fixed a typo in A05
+  ("ser" -> "set") in Figma first.
+- **Android frames chosen:** `No Destination - Ride now` (13013), `Defined Destination - Ride now`
+  (13126), `Taxi on the way` (17024). The text claimed the defined state "changes nothing else";
+  13126 adds a route and a fare/distance/time row. **Wording rewritten and applied** in EN and AR
+  (decision sentence, alt, caption), approved by Moataz, no figures quoted.
+- **Android not uploaded:** Figma's server render drops text in these frames (empty address boxes,
+  blank ETA pill) — a font missing on Figma's side, so every export from this session is broken.
+  Moataz will export on his machine, where the font is installed.
+- **Android uploaded, by fixing the render rather than exporting by hand.** Root cause found with
+  `use_figma`: the white `Surface` boolean operations behind the address boxes draw *over* their
+  text and icons in Figma's server renderer (fine in the desktop app); the ETA pill used SF Pro Text,
+  which the renderer lacks; nested text-wrapper instances collapse to 48px. Fixed **on copies only**
+  — a new page `Export (Claude)` in the Android file holds the three duplicates (Surfaces replaced
+  by plain rectangles, SF Pro -> Source Sans Pro, wrappers detached and texts widened, the 4.5
+  rating moved back inside the frame). Originals untouched. Uploaded 720x1440:
+  `PideTaxi/Android/{no-destination, defined-destination, on-the-way}`; bytes match the exports.
+  Moataz had asked never to be handed manual export or upload work again.
+
+- **The email stays.** `payment-methods` shows `gnicholson1k@clickbank.net`; Moataz: it is dummy
+  data. Left in the image as designed.
+- **Frames and grid set in Notion** (Moataz chose A): Android chapter `Device=Android`,
+  `Image layout=Grid`; iOS chapter `Device=iPhone`, `Image layout=Grid`. Both still
+  `Content ready = In progress`, so a sync writes them as drafts.
+
+Open for Moataz: website `hero`/`features` (pidetaxi.es is blocked here); the PideTaxi sync, which
+needs the Supabase service key and so cannot run from this session; publishing (Content ready). Unconfirmed against frames, left as written: "options" in the
+no-destination sentence, "في الأسفل" in the AR alt, and the Context line "the price depends on it"
+beside a frame that shows a fare estimate.
+
+## 004221026 - 2026-10-22 - Kshemam's screenshots as a grid, chosen per chapter from Notion
+
+**Task id `004221026`.** Moataz: on this project only, screenshots three to a row on wide screens,
+two on medium, one on small.
+
+- **Notion** (content): Select `Image layout` (`Stacked` | `Grid`); only the Kshemam chapter is Grid.
+- **Schema/sync** (backend): `chapters.image_layout` default `stacked`, migration `0063`; the sync
+  prints `layout=` beside `device=`, same guards and notices as `Device`. `test:sync` 140 pass.
+- **Render** (frontend): with `grid`, each run of 2+ consecutive figures becomes one CSS grid —
+  1 column, 2 from `md` (768), 3 from `lg` (1024). `stacked` output is byte-identical to before.
+  At 3 columns the 952px chapter column holds frames at 301px, not the 320px cap; **Moataz accepted
+  301px** over breaking the grid out to the 1200px container.
+
+⚠️ **I briefed the wrong model of the page first, and it cost a round.** I told Moataz Kshemam's
+images sat between paragraphs, so a grid could never fill three, and had content reorder the images
+in Notion. Wrong: the sync moves every image written under a `Decision ·` heading into the section
+before it (`scripts/sync-notion.ts` ~1111, GUARD 0), and decision prose is stored apart. On the site
+all six Kshemam screens were already one consecutive run in Context — a 3x2 grid as asked. The
+Notion reorder is harmless and changes nothing rendered. Read the sync before describing a page
+from its Notion source.
+
+Open, Moataz's call: the `symptoms` caption opens "The second answer.", which only makes sense next
+to the decision text it no longer sits beside (true before this task as well).
+
+**Not verified:** 0063 applied; the live sync; the page. Visual review is Moataz's.
+
+## 003221026 - 2026-10-22 - The chapter chooses its phone frame, from Notion
+
+**Task id `003221026`.** Moataz: use the android frame on the Kshemam chapter, chosen from Notion
+rather than from a list in code.
+
+- **Notion** (content): new Select property `Device` (`iPhone` | `Android`) on the pages database.
+  Only "Chapter - Kshemam / Android" is set (Android). Empty means iPhone. PideTaxi's Android chapter
+  is untouched; that is Moataz's call.
+- **Schema** (backend): `chapters.device_frame text not null default 'iphone'`, checked to
+  iphone|android, migration `0062`. **Applied by Moataz in the SQL editor.**
+- **Sync** (backend): reads `Device`, prints `device=` on every chapter line, raises a NOTICE for any
+  other value, survives the property being absent. A live run refuses to write if 0062 is missing.
+  `npm run test:sync` 121 pass.
+- **Render** (frontend): `ChapterSections` takes `deviceFrame`; portrait figures get
+  `PhoneFrame variant="android"` when it is android. With iphone the output is byte-identical to
+  before (react-dom/server compare). Laptop path and the aspect-ratio rule are unchanged.
+
+**Synced.** Moataz ran the live sync on the `nightly` code: `kshemam/android device=android`, every
+other chapter `device=iphone`, kshemam `published`, entry handles 3 linked, failed 0.
+
+⚠️ A local trap on the way: `git checkout nightly` failed because `nightly` is checked out in a
+worktree (`.claude/worktrees/status-001220826`), so the following `git pull origin nightly` merged
+nightly into his local **main**. Nothing was pushed; `main` was reset to `origin/main` and his two
+stashed status edits restored. Pushing that local main would have shipped everything to production.
+
+**Not verified:** the android frame on the live page; visual review is Moataz's.
+
+## 002221026 - 2026-10-22 - A second phone frame, and a dark edge you can see
+
+**Task id `002221026`.** Moataz asked for a phone frame that fits the Android screens: no camera,
+sharper corners, the default left exactly as it is. He decides later which frame goes where.
+
+- **`<PhoneFrame variant="android">`** — no Dynamic Island, no lens; outer corner 10% of the width
+  (default 17.2%), screen corner 17px at the 320px cap (default 41px); power and volume on the right,
+  physical, not mirrored in Arabic. Holds a 720x1600 screen without cropping. **Not wired to any
+  page.** The default's markup is byte-identical (react-dom/server output compared).
+- **Dark theme, both variants:** the hairlines were near-invisible on black. New phone-only token
+  `--device-phone-edge`: `#46484e` dark (was the shared `#2e2f33`), `var(--device-edge)` in light,
+  so light is pixel-identical. The laptop frame keeps the old token and was not looked at; it likely
+  has the same faint edge in dark.
+- Approved by Moataz from side-by-side renders of the real component (scratch harness, Playwright).
+- Noticed in the render: the default's 41px screen corner clips an Android status-bar clock
+  ("12:30" shows as "!2:30"). The android variant does not.
+
+**Not verified:** on a real route. The dark change reaches the live chapter pages (they use the
+default) with this `nightly` build; visual review there is Moataz's.
+
+## 001221026 - 2026-10-22 - Kshemam: interviewed, written in both languages, six screens, synced
+
+**Task id `001221026`** (interview opened as `003211026`). Phase 2, second mini case file. PideTaxi
+is parked: its iOS frames need mapping and its website shots need capturing.
+
+### Decided in the interview, one question at a time
+
+Moataz designed all of the UX and UI; the IoT-for-eldercare idea existed before him. India, Android
+only, published on Google Play and running his design in full (later changes graphic only).
+**No award** — every note said "award-winning" and nothing sources it; removed, including the
+Notion `Purpose`. **No numbers**, so no results table. No year, no team. The emergency number on
+the design (111) is a placeholder and is not shown or written.
+
+Four decisions, in this order: **the app declares the emergency itself** (his proposal, past a brief
+that asked only for an alert: "Do you feel okay?", 60-second countdown, shipped) · **the circle
+hears at once**, symptoms included, calling services stays the user's · **the home names the
+cause** (Rest / In Risk, the readings outlined) · **no device needed** (patient and carer are one
+person; a follower enters without a band). One cover, one chapter `kshemam/android`.
+
+### Done
+
+- **Notion** (content): cover `3b3d4c6d…b4d6` + AR `401d4c6d…ef56`; chapter `401d4c6d…05d6` + AR
+  `401d4c6d…2240`. One sentence corrected after review: the objective said "does not answer the
+  phone" — there is no phone call; now "cannot answer", in both languages.
+- **Cloudinary** (devops): six screens at 720x1600 under `Kshemam/Android/…`. Route: Figma
+  `download_assets` at scale 2 → Cloudinary fetches the temporary URL server-side; this sandbox
+  reaches neither host directly. `do-you-feel-okay` was overwritten once (1x → 2x) with approval.
+- **Supabase**: Moataz ran `npm run sync:notion -- --only=kshemam` locally — failed 0, decisions
+  4 en / 4 ar, the dry-run "Chapter 1. names no chapter" notice gone. `--only=kshemam` keeps
+  PideTaxi's ten unuploaded images out of `media`.
+- **Dimensions**: migration `0061` (six rows, guarded on NULL) — **applied by Moataz in the SQL
+  editor**, not by the migration runner; verified: all six 720x1600.
+
+### What cost time, and is worth knowing
+
+- **Figma MCP limits are per FILE's team, not per user.** Kshemam sat in a Starter team (6 calls a
+  month) and ran out mid-upload; Moataz moved it to ONEBRAIN (Pro). New file key
+  `486ARxBNbpqQouWLMdHCqD`. The Notion Notes still cite the old key.
+- **`get_screenshot` never upscales** — `maxDimension` only caps. 2x needs `download_assets`.
+- **This session cannot reach the portfolio database.** The Supabase connector is bound to the
+  Dabbler org, and rebinding it would break Dabbler. Environment variables are visible to anyone on
+  the environment and are not for keys. Open: whether Network secrets can serve the sync.
+
+### Published, after the first build showed a stub
+
+The first `nightly` build served the cover as a draft placeholder and the chapter as 404: the sync
+sets `status = published` only when Notion **Content ready = Done** (`scripts/sync-notion.ts:1953`),
+and both rows were not. Moataz approved publishing; both rows set to Done, re-synced (failed 0), and
+`nightly` rebuilt. Published means it is in the `/work` gallery and the sitemap, and it reaches
+`www` with the next `main` build.
+
+### Not verified
+
+- `/work/kshemam` rendering after the second build: Vercel reads were denied to this session and
+  the preview host is unreachable from it.
+- Entry handles linked to the chapter: the real-run notice is gone, but no query confirmed it.
+- Visual review is Moataz's.
+
+## 001230926 - 2026-09-23 - Preview builds now, and decision 059 no longer describes reality
+
+**Task id `001230926`.** First of 2026-09-23. No content changed; this is environment work.
+
+### The symptom, and what it actually was
+
+`preview.moatazmustapha.com` returned **404 `DEPLOYMENT_NOT_FOUND`**. The domain was never the
+problem: it is bound to the project with `gitBranch: "nightly"` and `verified: true`. The 404 meant
+there was **no successful deployment on the branch to serve** — the single `nightly` deployment was
+in state `ERROR`, and every branch deployment in the project's whole history was too.
+
+The build log names the cause in one line, and it is not a code failure:
+
+```
+✓ Compiled successfully in 4.4s
+  Collecting page data using 1 worker ...
+Error: Failed to collect configuration for /_not-found
+  [cause]: Error: NEXT_PUBLIC_SUPABASE_URL is not set
+      at module evaluation (lib/supabase/server.ts:25:9)
+```
+
+TypeScript and the compile both passed. It dies at page-data collection, because the variable is
+read at module evaluation.
+
+### What fixed it, and it was not the route I proposed
+
+I proposed enabling Preview from inside the Supabase integration's settings, and I was wrong about
+that UI existing. **There is no Production/Preview/Development selector in the integration** — its
+Manage page has only Overview and Settings (permissions, project access, webhooks, Remove), and
+Storage has no Supabase resource at all. Moataz checked and changed nothing.
+
+The variables were nonetheless already on Preview by the time he looked, updated minutes earlier
+alongside an integration update. Verified against the API, not the dashboard:
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`
+(`34yOHjHBzGOdeZZy`) all now carry `["production","preview"]`.
+
+**So the mechanism that moved them is not established.** The likeliest reading is that the
+integration rewrote its own variables on update. Recording the uncertainty rather than inventing a
+cause, because the next person to hit this will want to know which lever to pull.
+
+### Verified
+
+Deployment `dpl_E2QT3rTEZMAmbc2qXufW2Fjwnrtw`, branch `nightly`, commit `a467f1c`: state **READY**,
+aliased to `preview.moatazmustapha.com`. **This is the first branch build in this project's history
+that has ever succeeded.**
+
+⚠️ **Decision 059 is now out of date.** It says Preview has no environment variables and every
+branch build fails. Neither is true as of today. The decision needs amending, and until it is, it
+will be quoted into a brief and send someone the wrong way — which is the exact failure mode
+`CLAUDE.md` warns about.
+
+### What is NOT resolved
+
+**The domain is behind Vercel's login.** `/` and `/en` both return **302 to `vercel.com/sso-api`**.
+The project reads `ssoProtection: { enabled: true, deploymentType: "all_except_custom_domains" }`,
+so the exemption evidently covers production custom domains only — a branch-assigned custom domain
+is still protected. Nothing is broken; the page is simply not reachable without a Vercel session.
+**Whether to turn that off is Moataz's**, and it is a real trade: disabling Vercel Authentication
+would also make every raw preview deployment URL public.
+
+Not verified as a consequence: that the pages actually render correctly on Preview. Only that the
+build succeeded and the alias resolves. Do not read this entry as "Preview is confirmed good".
+
+## 002220926 - 2026-09-22 - The PideTaxi Arabic was a literal translation, and was rewritten
+
+**Task id `002220926`.** A correction to `001220926`, not new content.
+
+### What Moataz found
+
+He read the four Arabic pages and rejected them: *"واضح أنها ترجمة حرفية، وليست ترجمة مرتبطة
+بالسياق"*. He was right, and the entry above claimed the opposite — it says *"Arabic as original
+text per decision 054"* and that claim was false when it was written.
+
+**What made it literal was not word choice, it was structure.** Every Arabic paragraph sat at the
+same index as its English one, carried the same clause order, and translated the English metaphor
+rather than finding an Arabic one. Three that were pure English in Arabic letters:
+
+| English | what was written | what it is now |
+|---|---|---|
+| The door is short, and it does not lie | باب قصير، ولا يكذب | مدخل لا يطوّل ولا يخدع |
+| in the platform's own hand | بخط المنصة | بأسلوب المنصة |
+| three major versions on | على بُعد ثلاث نسخ | صدرت بعد نسختي ثلاثة إصدارات |
+
+### What was done
+
+All four Arabic pages rewritten from the facts, not from the English, and replaced in Notion:
+cover `3e3d4c6d…176f`, iOS `…2762`, Android `…94b3`, Website `…36f7`. The English was not touched.
+
+**What is fixed and what is free.** The `##` headings, the slot names and the `[cld]`/`[alt]`/
+`[caption]` lines are fixed — the sync matches on them. Everything else was rewritten, including
+sentence order inside a paragraph.
+
+**Paragraph counts are the constraint that is easy to miss.** The first rewrite split one English
+paragraph into two Arabic ones and the dry run caught it — `what-it-is(3¶ ↔ar 4¶)`. The two were
+merged back. **A better Arabic paragraphing is not free: the slot counts must match**, so the
+freedom is inside the paragraph, not across paragraphs.
+
+### Verified by the dry run
+
+```
+cover pidetaxi: what-it-is(3¶ ↔ar 3¶) · role(2 ↔ 2) · status(2 ↔ 2) · why-it-matters(2 ↔ 2)
+pidetaxi/ios:     objective(1 ↔ 1) · context(8¶/5img ↔ar 8¶) · result(2+1tail ↔ 2+1tail)  images 5/5
+pidetaxi/android: objective(1 ↔ 1) · context(5¶/3img ↔ar 5¶) · result(2+1tail ↔ 2+1tail)  images 3/3
+pidetaxi/website: objective(1 ↔ 1) · context(3¶/2img ↔ar 3¶) · result(1+1tail ↔ 1+1tail)  images 2/2
+decisions: ios 3 en / 3 ar · website 3 / 3 · android 2 / 2
+```
+
+`entry handles pidetaxi: 3 (0 linked)` is still the dry-run artifact explained in `001220926`.
+The **Cervello cover failure is unchanged and is not mine** — a blank duplicate Notion page claims
+the route; archiving it is Moataz's.
+
+### Two things the Notion tooling did
+
+- **`replace_content` keeps a leading `# H1`.** `notion-create-pages` strips it; replacing content
+  on an existing page does not. Worth knowing — the workaround from `001220926` is not needed here.
+- **`update_content` is atomic across its whole `content_updates` array and will not match across
+  block boundaries.** A two-op edit that merged two paragraphs failed on the second op, and the
+  first was rolled back with it. Re-running `replace_content` on the whole page is the reliable
+  move for anything structural.
+
+### NOT done
+
+- **Still no images in Cloudinary.** The ten `[cld]` ids remain planned names, so a real sync would
+  create media rows pointing at nothing. Unchanged from `001220926`, and it is the next step.
+- **Not synced to the database and not on the site.** Notion is the source of truth and both
+  languages are now correct there.
+
+## 001220926 - 2026-09-22 - Phase 2 opens with PideTaxi: interviewed, written in both languages, in Notion
+
+**Task id `001220926`, the first of 2026-09-22.** Branch is now `nightly`.
+
+### ⚠️ This entry also carries the morning's work, which went unlogged
+
+Four things were done before this entry existed and none reached `status.md`. That is the
+working-agreement failure the file itself warns about, and it is corrected here rather than
+left as a gap:
+
+- **`gh` was acting as `dabblersport` on the portfolio repo.** `git push` failed with
+  `Permission denied to dabblersport`. Switched to `moatazmustaphaweb`. Both projects had a
+  server named `github`; Claude keys connection state by name, so they toggled each other. Now
+  `github-website` (this repo, `${GITHUB_TOKEN_WEBSITE}`) and `github-dabbler` (`~/Desktop/dabbler`,
+  `${GITHUB_TOKEN_APP}`). Verified as two different GitHub identities.
+- **Branches.** `main` brought current through PR #6 (`2771bf4`). Four fully-merged branches
+  deleted at Moataz's instruction; `backup/main-old` kept because it holds **57 commits that
+  exist nowhere else**. **`nightly` created from `main`** as the preview branch; this worktree
+  now sits on it.
+- **Vercel Preview.** Only three variables are missing on Preview — `NEXT_PUBLIC_SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — and they are integration-managed,
+  which is why they were stuck on Production. Moataz is adding them himself.
+- **`NEXT_PUBLIC_PREVIEW_STUBS` is set in Vercel, Production and Preview.** Its own source file
+  says `.env.local` only. That flag, not a leak, is why the four draft case files render on
+  production. Moataz chose to leave them; it is now a known switch rather than a mystery.
+
+### Where the site actually is
+
+`gate.moatazmustapha.com` is gone. **The site is at `www.moatazmustapha.com`** (apex 308s to it),
+public, 200 in both locales. My earlier "the site is unreachable" was measured against the old
+subdomain and was wrong.
+
+### Phase 2, decided by grilling
+
+Moataz's rulings, in order: **Phase 2 = finish the missing content**, all of it — the five paused
+Cervello chapters (paused for v1, not cancelled; their Notion pages still say `SUPERSEDED` and
+need correcting) and the four mini case files. The phase does not close until all are done. Motion
+Layer and the Door wait behind it. Start with **PideTaxi**.
+
+Structural rulings that outlive this task: a new `kind` column on `case_files`, separate from
+`domain`, **multi-value** (`Case Study` · `UX` · `UI`), built **after** the content. Mini case
+files use the **same cover + chapters structure**; the tags are what distinguish them, not the
+shape. Translation is per page (decision 061 holds).
+
+### PideTaxi — what was established, and what was refused
+
+From the interview and my own checks: Spain, 2018-2019. An existing product (ARTE, Spain's
+radio-taxi association) that had aged; face-lift against ride-hailing competition. Moataz's last
+version is 4.0.1; "Face-lift" is an internal name for it. **No NDA.** iOS is the reference,
+Android the translation, **the website is also his**. Three chapters.
+
+**Refused, with reasons written into the Notion page's Notes:**
+- *"#1 in Spain"* — App Store ES shows **#45 in Travel** today, 3.0★ on ~1,500 ratings; no
+  archive supports the 2018 claim. Removed, including from the page's own `Purpose` property.
+- *Revenue* — ARTE publishes none; only estimator sites, which say they are estimates.
+- *"Kept the same design for eight years"* — the app is at **v7.7.7**, three majors past his.
+  Moataz ruled: live on both stores is the claim, nothing about design preservation. Written that way.
+- *Uber by name* — his call; "ride-hailing apps".
+
+**"Service on the fly" existed before him.** Written as *designed, not invented* — the same
+distinction Cervello draws for the instance model.
+
+### What was written, and where
+
+Eight pages in Notion, English and Arabic, Arabic as original text per decision 054:
+
+| Page | id |
+|---|---|
+| Cover (EN, replaced) | `3b3d4c6d…6775` |
+| Cover (AR) | `3e3d4c6d…176f` |
+| Chapter 1 · iOS | `3e3d4c6d…30d8` / AR `…2762` |
+| Chapter 2 · Android | `3e3d4c6d…ff9d` / AR `…94b3` |
+| Chapter 3 · Website | `3e3d4c6d…7811` / AR `…36f7` |
+
+The decisions each chapter carries: **iOS** — the payer is not always the rider (subscriber
+accounts beside cash and the cab's card terminal) · know who is coming before they arrive · a
+door short enough for a kerb, with `no taxi` designed in. **Android** — two ways to begin kept
+as two states (`No Destination` / `Defined Destination`, both with *Ride now* live), the street
+hail as a screen · the same wait in the platform's grammar. **Website** — one verifiable claim,
+then the store · icons not photographs · a second door for companies.
+
+Every observation is from the Figma files (iOS: 43 screens on four flows; Android: 96 frames
+with descriptive names) or the live site, not from the old Webflow write-up. Two invented
+sentences were caught and cut in self-review before publishing: a comparison to the old app's
+map screen and to the old website, neither of which I had seen.
+
+### Verified by the sync's own dry run
+
+```
+cover pidetaxi: what-it-is(3¶ ↔ar 3¶) · role(2 ↔ 2) · status(2 ↔ 2) · why-it-matters(2 ↔ 2)
+pidetaxi/ios:     objective · context(8¶/5img ↔ar 8¶) · result     images en:5 ar:5   decisions 3/3
+pidetaxi/android: objective · context(5¶/3img ↔ar 5¶) · result     images en:3 ar:3   decisions 2/2
+pidetaxi/website: objective · context(3¶/2img ↔ar 3¶) · result     images en:2 ar:2   decisions 3/3
+```
+
+Paragraph and image counts match one-for-one across languages. **`entry handles pidetaxi: 3 (0
+linked)` is a dry-run artifact, not an error:** the resolver reads chapters from the database and
+PideTaxi's do not exist there until the real sync writes them, which happens before handles are
+resolved. Cervello shows `3 linked` only because its rows already exist.
+
+### Three things the tooling did that are worth knowing
+
+- **`notion-create-pages` strips a leading `# H1`.** Every existing chapter carries one in its
+  body. Re-inserted on all six created pages with `insert_content` at `start`.
+- **The largest page failed twice on a closed socket.** Created small, then appended in two
+  chunks. `update_content` reported success both times it failed to land, so each write was
+  verified by fetching the page back.
+- The Notion property `Purpose` on the PideTaxi row still read *"Spain's #1-rated taxi app"* —
+  the exact claim just refused. Corrected with the content, not after it.
+
+### NOT done, and why
+
+- **No images in Cloudinary yet.** The ten `[cld]` ids are planned names
+  (`PideTaxi/iOS/login` …). Uploading is the next step and waits on Moataz's read of the text,
+  because a real sync now would create media rows pointing at nothing.
+- **Not synced to the database, not on the site.** Same reason. Notion is the source of truth
+  and it is complete; the rest follows his review.
+- **Not verified:** whether his design survives in v7.7.7, or on the live pidetaxi.es. Not
+  claimed either.
+
+---
+
 ## 009250826 - 2026-08-25 21:30 - the device frame is CSS now, and pushing is gated on a word
 
 Two things, one asked and one instructed.

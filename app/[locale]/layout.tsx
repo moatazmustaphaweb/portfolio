@@ -1,18 +1,42 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Script from "next/script";
+import { Suspense } from "react";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 
 import { Analytics } from "@/components/analytics/Analytics";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
-import { DocumentLanguage } from "@/components/layout/DocumentLanguage";
+import { fontVariables } from "@/app/fonts";
+import { NOINDEX, THEME_INIT, VIEWPORT } from "@/components/layout/document";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { NavProgress } from "@/components/motion/NavProgress";
 import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
 import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
-import type { Locale } from "@/lib/content/types";
+import { dirForLocale, type Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
+
+import "../globals.css";
+
+/*
+ * ── THIS IS THE ROOT LAYOUT ─────────────────────────────────────────────────
+ *
+ * Since task 003261026 there is no `app/layout.tsx`. This file renders
+ * `<html>` and `<body>`, the fonts and the pre-paint theme script — next-intl's
+ * documented layout. The old root layout sat above `[locale]`, so it had no
+ * route param and called `getLocale()`, which fell back to request headers and
+ * made every page on the site dynamic: `revalidate = 300` was never honoured,
+ * and every response was `private, no-store`.
+ *
+ * Here the locale comes from params, after `setRequestLocale`, so every page
+ * prerenders. Unmatched URLs, which have no locale segment to render inside,
+ * go to `app/global-not-found.tsx`; `notFound()` thrown inside a locale route
+ * goes to `app/[locale]/not-found.tsx`.
+ */
+
+export const viewport = VIEWPORT;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -30,7 +54,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) return {};
+  if (!hasLocale(routing.locales, locale)) return { ...NOINDEX };
 
   const settings = await getSettings(locale as Locale);
   const name = settings.get("name");
@@ -55,6 +79,7 @@ export async function generateMetadata({
       type: "website",
       images: ogImage ? [ogImage] : undefined,
     },
+    ...NOINDEX,
   };
 }
 
@@ -74,24 +99,52 @@ export default async function LocaleLayout({
   const typedLocale = locale as Locale;
   const ui = await getUiStrings(typedLocale);
 
+  /*
+   * The loader's quotes (decision 063, item 4): every `wait_quote_N` key that
+   * resolves, in key order. None seeded, none rendered: the loader shows the
+   * mark alone. ⚠️ `lang`/`dir` are the locale's: `getUiStrings` does not say
+   * which locale supplied a label, so an English fallback on /ar would be
+   * marked Arabic. Both languages are seeded together (migration 0065).
+   */
+  const quotes = ui
+    .keys()
+    .filter((k) => /^wait_quote_\d+$/.test(k))
+    .sort((a, b) => Number(a.slice(11)) - Number(b.slice(11)))
+    .map((k) => ui.t(k))
+    .filter((q): q is string => Boolean(q && q.trim()));
+
   // Read on the server so the value is inlined; the banner is suppressed
   // entirely when GA is not configured.
-  const gaId = process.env.NEXT_PUBLIC_GA_ID;
-
   /*
-   * <html> and <body> live in app/layout.tsx now. They had to move: without a
-   * root layout, notFound() had no boundary that rendered a document and fell
-   * through to Next's built-in error shell. See that file.
+   * GA runs on production only (decision 061 item 5, task 011251026). Same
+   * convention as app/robots.ts: anything other than VERCEL_ENV ===
+   * "production", unset included, counts as non-production. The gate lives
+   * here, on the server, because VERCEL_ENV is not exposed to the client
+   * bundle; with no id, GoogleAnalytics renders nothing and the consent
+   * banner is disabled. Our own /api/events (Analytics) stays everywhere.
    */
+  const gaId =
+    process.env.VERCEL_ENV === "production"
+      ? process.env.NEXT_PUBLIC_GA_ID
+      : undefined;
+
   return (
-    <>
+    <html
+      lang={typedLocale}
+      dir={dirForLocale(typedLocale)}
+      className={fontVariables}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-screen flex-col">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT}
+        </Script>
+
         {/*
-          <html lang/dir> is emitted by the root layout, which sits above this
-          segment and is therefore NOT re-rendered when the locale changes.
-          This keeps the two attributes in step on client navigation. See the
-          component — it is a fix for a launch blocker, not a nicety.
+          No DocumentLanguage any more: <html> is rendered by this layout,
+          which re-renders on an /en ↔ /ar switch, so lang and dir follow the
+          locale on client navigation by themselves (measured, 003261026).
         */}
-        <DocumentLanguage locale={typedLocale} />
 
         <PersonJsonLd locale={typedLocale} />
 
@@ -101,6 +154,19 @@ export default async function LocaleLayout({
           consent to. Declining GA must not silence these.
         */}
         <Analytics locale={typedLocale} />
+
+        {/*
+          Navigation feedback (decision 063): the pending hairline, and behind
+          MOTION_LAYER the loader and the transition classifier. Client-only
+          and outside the server HTML; Suspense because it reads search params.
+        */}
+        <Suspense fallback={null}>
+          <NavProgress
+            quotes={quotes}
+            lang={typedLocale}
+            dir={dirForLocale(typedLocale)}
+          />
+        </Suspense>
 
         {/* GA: renders nothing until consent is explicitly granted. */}
         <GoogleAnalytics id={gaId} />
@@ -131,6 +197,7 @@ export default async function LocaleLayout({
             decline={ui.t("consent_decline")}
           />
         </NextIntlClientProvider>
-    </>
+      </body>
+    </html>
   );
 }

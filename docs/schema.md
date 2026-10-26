@@ -93,6 +93,10 @@ create table chapters (
   sort_order      int not null default 0,
   status          content_status not null default 'draft',
   hero_media_id   uuid references media(id) on delete set null,
+  device_frame    text not null default 'iphone'      -- 0062
+                  check (device_frame in ('iphone', 'android')),
+  image_layout    text not null default 'stacked'     -- 0063
+                  check (image_layout in ('stacked', 'grid')),
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   unique (case_file_id, slug)
@@ -194,6 +198,25 @@ create table experiments (
   status      content_status not null default 'draft'
 );
 ```
+
+**`chapters.device_frame` (migration 0062, task `003221026`)** — which phone frame a
+chapter's portrait screenshots are drawn in. **Authored, not inferred:** it comes from the
+Notion property `Device` on the chapter page (`iPhone` | `Android`, empty = `iphone`), via the
+sync, and from nowhere else — not from the image's aspect ratio (that decides phone *versus*
+laptop, not which phone), the route, or the Cloudinary folder. `text` + CHECK rather than an
+enum, following `case_files.cover_kind`, so a third device is a constraint change rather than
+an `alter type`. The vocabulary lives in one place, `lib/media/device-frame.ts`, read by both
+the sync and `lib/content`. The content layer exposes it as **`deviceFrame`** on `Chapter` and
+`ChapterDetail`, never null; components read that, never the raw column.
+
+**`chapters.image_layout` (migration 0063, task `004221026`)** — how a chapter's
+**consecutive** figures render: `stacked` (one under another, as every chapter rendered before
+the column) or `grid`. **Authored, not inferred:** it comes from the Notion property
+`Image layout` on the chapter page (`Stacked` | `Grid`, empty = `stacked`), via the sync, and
+from nowhere else — not from the number of images or their aspect ratios. Same shape as
+`device_frame`: `text` + CHECK, vocabulary in one place (`lib/media/image-layout.ts`), exposed
+by the content layer as **`imageLayout`** (type `ImageLayout`, exported from
+`lib/content/types`) on `Chapter` and `ChapterDetail`, never null.
 
 **Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role`, and without a **decided** decision set, in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
 

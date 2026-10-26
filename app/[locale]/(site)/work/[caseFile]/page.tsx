@@ -50,7 +50,7 @@ export const revalidate = 300;
  *
  * That distinction is the whole bug: a runtime notFound() from within a
  * rendered dynamic segment resolved to Next's built-in error shell — no lang,
- * no dir, no chrome — while an unmatched ROUTE resolves to app/not-found.tsx.
+ * no dir, no chrome — while an unmatched ROUTE resolves to app/global-not-found.tsx.
  * Every published slug is in generateStaticParams already, so nothing
  * reachable is lost; a draft slug like /work/east becomes a proper 404.
  */
@@ -311,6 +311,7 @@ export default async function CaseFileCover({
         caseFileSlug={caseFile}
         locale={l}
         heading={ui.t("entry_handles_heading")}
+        arrow={ui.t("arrow_forward")}
       />
 
       {detail.chapters.length > 0 ? (
@@ -321,6 +322,7 @@ export default async function CaseFileCover({
             grammar={detail.grammar}
             locale={l}
             chapterLabel={ui.t("chapter")}
+            arrow={ui.t("arrow_forward")}
           />
 
           {/*
@@ -342,7 +344,7 @@ export default async function CaseFileCover({
             {ui.t("read_linear") ? (
               <Link
                 href={`/${l}/work/${caseFile}/all`}
-                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+                className="inline-flex h-control-h items-center rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
               >
                 {ui.t("read_linear")}
               </Link>

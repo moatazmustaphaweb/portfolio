@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CardArrow } from "@/components/primitives/CardArrow";
+
 import type { Chapter, Grammar, Locale } from "@/lib/content/types";
 import { dirForLocale } from "@/lib/content/types";
 
@@ -34,6 +36,7 @@ export function LivingMap({
   grammar,
   locale,
   chapterLabel,
+  arrow,
 }: {
   chapters: Chapter[];
   caseFileSlug: string;
@@ -41,6 +44,12 @@ export function LivingMap({
   locale: Locale;
   /** `ui_strings.chapter` — the word, for the numbered form. */
   chapterLabel?: string;
+  /**
+   * `ui_strings.arrow_forward`, already resolved for the locale (EN →, AR ←).
+   * Undefined while the key is missing, and then no arrow renders: never the
+   * key name, never a literal glyph (rtl-guard: directional glyphs are content).
+   */
+  arrow?: string;
 }) {
   if (chapters.length === 0) return null;
 
@@ -64,34 +73,38 @@ export function LivingMap({
           <li key={chapter.id}>
             <Link
               href={`/${locale}/work/${caseFileSlug}/${chapter.slug}`}
-              className="flex flex-col gap-2 bg-surface p-card-p transition-colors hover:bg-surface-raised"
+              className="group flex items-center gap-4 bg-surface p-card-p transition-colors hover:bg-surface-raised"
             >
-              {/*
-                Numbering only where sequence is meaningful. An ecosystem
-                numbered 01–03 would assert an order the work does not have.
-              */}
-              {shape.numbered ? (
-                <span className="font-mono text-micro uppercase text-fg-dim">
-                  {chapterLabel ? `${chapterLabel} ` : ""}
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-              ) : null}
+              <span className="flex min-w-0 flex-1 flex-col gap-2">
+                {/*
+                  Numbering only where sequence is meaningful. An ecosystem
+                  numbered 01–03 would assert an order the work does not have.
+                */}
+                {shape.numbered ? (
+                  <span className="font-mono text-micro uppercase text-fg-dim">
+                    {chapterLabel ? `${chapterLabel} ` : ""}
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                ) : null}
 
-              <span className="text-h3 text-fg">{title}</span>
+                <span className="text-h3 text-fg">{title}</span>
 
-              {chapter.fields.objective ? (
-                <span
-                  className="max-w-measure text-body-sm text-fg-muted"
-                  lang={chapter.fieldLocales.objective}
-                  dir={
-                    chapter.fieldLocales.objective
-                      ? dirForLocale(chapter.fieldLocales.objective)
-                      : undefined
-                  }
-                >
-                  {chapter.fields.objective}
-                </span>
-              ) : null}
+                {chapter.fields.objective ? (
+                  <span
+                    className="max-w-measure text-body-sm text-fg-muted"
+                    lang={chapter.fieldLocales.objective}
+                    dir={
+                      chapter.fieldLocales.objective
+                        ? dirForLocale(chapter.fieldLocales.objective)
+                        : undefined
+                    }
+                  >
+                    {chapter.fields.objective}
+                  </span>
+                ) : null}
+              </span>
+
+              <CardArrow glyph={arrow} />
             </Link>
           </li>
         );

@@ -5,6 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 import { ReadingProgress } from "@/components/case-file/ReadingProgress";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { listChapterBodies } from "@/lib/content/chapters";
 import { getUiStrings } from "@/lib/content/ui";
@@ -44,7 +45,7 @@ export const revalidate = 300;
  *
  * That distinction is the whole bug: a runtime notFound() from within a
  * rendered dynamic segment resolved to Next's built-in error shell — no lang,
- * no dir, no chrome — while an unmatched ROUTE resolves to app/not-found.tsx.
+ * no dir, no chrome — while an unmatched ROUTE resolves to app/global-not-found.tsx.
  * Every published slug is in generateStaticParams already, so nothing
  * reachable is lost; a draft slug like /work/east becomes a proper 404.
  */
@@ -435,19 +436,17 @@ export default async function LinearView({
           <section className="mt-18">
             <Link
               href={`/${l}/work/${sibling.slug}`}
-              className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg"
+              className="group flex items-center gap-4 rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg"
             >
-              {ui.t("sibling_case_files") ? (
-                <span className="font-mono text-label uppercase text-fg-dim">
-                  {ui.t("sibling_case_files")}
-                </span>
-              ) : null}
-              <span className="mt-4 flex flex-wrap items-end gap-5">
-                <span className="min-w-0 flex-1 text-h2 text-fg">{sibling.title}</span>
-                <span aria-hidden="true" className="text-h3 text-fg rtl:rotate-180">
-                  →
-                </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-4">
+                {ui.t("sibling_case_files") ? (
+                  <span className="font-mono text-label uppercase text-fg-dim">
+                    {ui.t("sibling_case_files")}
+                  </span>
+                ) : null}
+                <span className="text-h2 text-fg">{sibling.title}</span>
               </span>
+              <CardArrow glyph={ui.t("arrow_forward")} />
             </Link>
           </section>
         ) : null}
@@ -479,7 +478,7 @@ export default async function LinearView({
       */}
       <Link
         href={`/${l}/work/${caseFile}`}
-        className="fixed bottom-6 z-50 inline-flex h-control-h items-center gap-2 rounded-pill border border-strong bg-surface-raised px-5 text-ui text-fg-body shadow-none transition-colors hover:border-fg hover:text-fg ltr:right-6 rtl:left-6"
+        className="fixed bottom-6 z-50 inline-flex h-control-h items-center gap-2 rounded-pill border border-strong bg-surface-raised px-5 text-ui text-fg-body shadow-none transition-colors hover:border-fg active:border-fg hover:text-fg ltr:right-6 rtl:left-6"
       >
         <span aria-hidden="true" className="h-2 w-2 rounded-pill bg-accent" />
         {caseTitle}

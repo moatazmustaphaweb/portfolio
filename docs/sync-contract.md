@@ -51,6 +51,8 @@ The `Page` property encodes the entity type in its prefix. Parse it:
 | `In MVP-1` | *(filter only)* | `__YES__` → include in the MVP-1 sync |
 | `Content ready` | `status` | `Done` → `published`; anything else → `draft` |
 | `Bilingual` | *(sync hint)* | `EN + AR full` → expect both; `EN first / AR later` → English only, no warning |
+| `Device` | `chapters.device_frame` | **Chapter rows only** (task `003221026`, migration 0062). Select (or text, status, a single multi-select option — any is read). Case-insensitive, trimmed: `Android` → `android`; `iPhone` → `iphone`; **empty → `iphone`, silently, by decision**. Any other value (`Pixel`, `iOS`, two options) → `iphone` **and a NOTICE naming the chapter and the value** — never silently mapped. A property missing from the database entirely is not an error: every chapter gets `iphone` and the run prints ONE notice saying the property is absent. Written on every upsert, so clearing it returns a chapter to `iphone`. The resolved value is printed on every chapter line, dry run and live: `chapter   kshemam/<slug>  device=android`. The sync checks for the column at start-up: a live run against a database without 0062 **exits before writing anything**, telling you to apply it; a dry run warns and continues |
+| `Image layout` | `chapters.image_layout` | **Chapter rows only** (task `004221026`, migration 0063). How the chapter's **consecutive** figures render. Read exactly as `Device` is (same reader): select, text, status, or a single multi-select option. Case-insensitive, trimmed: `Grid` → `grid`; `Stacked` → `stacked`; **empty → `stacked`, silently, by decision**. Any other value (`Carousel`, `Gird`, two options, a non-text property type) → `stacked` **and a NOTICE naming the chapter and the value**. A property missing from the database entirely is not an error: every chapter gets `stacked` and the run prints ONE notice. Written on every upsert. Printed on every chapter line next to the device, dry run and live: `chapter   kshemam/<slug>  device=android  layout=grid`. Start-up guard as for 0062: a live run against a database without 0063 **exits before writing anything**; a dry run warns and continues |
 | `Est. Days`, `Blockers`, `Development Status`, `Header`, `Footer`, `Purpose`, `Required Content`, `Notes` | *(not synced)* | project-management metadata, stays in Notion |
 
 **`Required Content` is a checklist for the human, not content.** Never sync it as page copy.
@@ -469,7 +471,7 @@ not there. A paragraph is a tag when its first code span opens with `[cld]`.
 
 ### What the sync does with it
 
-1. Upsert a `media` row keyed on `cloudinary_public_id`, which is unique. Re-running matches the existing row and never duplicates.
+1. Upsert a `media` row keyed on `cloudinary_public_id`, which is unique. Re-running matches the existing row and never duplicates. Fill `width` / `height` from Cloudinary where NULL — see below.
 2. Write `alt` and `caption` into `translations` with `entity_type='media'`, `entity_id = media.id`, for **the locale of the page the tag was read from**.
 3. Replace the tag, in the body text stored in `translations`, with `[image:<media.id>]`.
 
@@ -478,6 +480,38 @@ not there. A paragraph is a tag when its first code span opens with `[cld]`.
 ### `redacted` is false, always
 
 `media.redacted = false` on every row this step writes. Amendment 036 supersedes 027: these are design files carrying dummy data, the NDA treatment is a grayscale *signal* driven by `case_files.nda`, and `redacted = true` would additionally force the non-cropping `redacted` preset (decision 028) for no reason.
+
+### `width` and `height` are filled from Cloudinary
+
+*Added 2026-10-23, task `007231026`.* Until this task the sync created `media` rows with
+`width` / `height` NULL, and a figure with NULL dimensions renders **with no device frame** —
+the frame is chosen from the picture's own aspect ratio. Migrations 0060 and 0061 backfilled
+by hand. That hand step is retired: the sync fills them itself.
+
+- **When:** the row is new, or either column is NULL. A row with both set is never fetched.
+- **Source:** Cloudinary's public delivery API, no credentials —
+  `https://res.cloudinary.com/<cloud>/image/upload/fl_getinfo/<public_id>`. The cloud name is
+  `CLOUDINARY_CLOUD_NAME` from `lib/media/cloud.ts`. The response's **`input`** (the original)
+  is read; `output` describes a derived image and is never a fallback.
+- **Never overwrites.** Only a NULL column is written, and the UPDATE is conditioned on it
+  still being NULL. A value already there was put there on purpose; a re-uploaded asset at a
+  new size needs its dimensions cleared before the sync will re-read them.
+- **A failure never fails the sync.** Non-200, bad JSON, no positive integer `input.width` /
+  `input.height`, or no response within 8s is a **NOTICE** naming the public ID and saying it
+  renders unframed until fixed. A non-200 carries Cloudinary's `x-cld-error` header when
+  there is one (the >25-megapixel transform ceiling refuses `fl_getinfo` too).
+- **One fetch per public ID per run**, cached; both locales share the row.
+- **Read back.** The written values are compared against what was fetched; a mismatch or a
+  write that matched no row is a NOTICE, not a success line.
+- **Dry run** fetches, writes nothing, and reports `would set dimensions WxH for <id>`.
+- **Every run prints a `MEDIA DIMENSIONS from Cloudinary — set N` block** in the summary,
+  one line per row filled, **including when N is 0**.
+
+The pure parts (URL, response parsing, the never-overwrite patch) are in
+`lib/sync/media-dimensions.ts` and covered by `npm run test:sync`.
+
+**Scope:** only rows the chapter-section pass writes in that run. A media row no `[cld]` tag in
+the run references (a cover's, or a chapter gated out by `--only`) is not touched.
 
 ### A locale references its own screens
 

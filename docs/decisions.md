@@ -910,7 +910,206 @@ to do the work of a sentence.
 
 ---
 
-## 059 — Vercel's Preview environment stays unconfigured until MVP-2
+## 066 — Cover to chapter is a horizontal push; back to the cover is its reverse
+
+**Decided 2026-10-26, task `006261026`, by Moataz:** "a transition from cover to chapter from right
+to left, and reverse while back to cover."
+
+**Decision:**
+1. **Cover → chapter (any chapter, including "read linearly" and entry handles):** the chapter page
+   slides in from the inline-end edge to rest; the cover moves toward inline-start by a fraction
+   (parallax, about a third of the width) and darkens. Header anchored. In LTR the new page comes
+   from the right; in RTL it mirrors and comes from the left.
+2. **Chapter → cover (back link, breadcrumb, browser back):** the exact reverse. The chapter leaves
+   toward inline-end, and the cover returns from inline-start and brightens.
+3. Duration within the 900ms ceiling (about 550-650ms), one ease-in-out curve. No loader and no quote
+   on these moves; the hairline only. The new page snapshot is opaque.
+4. Chapter prev/next keep their pan (063). Gallery → cover keeps 064. Behind `MOTION_LAYER`; reduced
+   motion is an instant cut with focus on the h1.
+
+**Status:** ACTIVE.
+
+---
+
+## 065 — The card's image becomes the cover's image, starting on the click (supersedes 064's mechanism)
+
+**Decided 2026-10-26, task `002261026`, by Moataz**, after seeing 064 on preview: "this transition
+shouldn't have loading states, the transition should open immediately; we use the same image in
+card and cover project header. The card image should scale and begin the transition, then loading
+if needed."
+
+**Why 064 was wrong in kind:** a view transition starts at the commit, so the click was followed
+by a wait (and a loader), then the opening. The opening must be the click's answer, not the
+route's.
+
+**Decision:**
+1. **On the click, before any network**, the card's visual (its image, or its component cover) is
+   lifted into a fixed layer at its exact rectangle and grows toward the cover's visual position
+   (the content column, below the header). The gallery darkens and drifts behind it. Nothing waits
+   for the route.
+2. **On commit**, the lifted visual hands over to the real cover image in the same place: a shared
+   element (`view-transition-name`) morphs it into the cover image's actual rectangle, and the rest
+   of the cover resolves in around it. Same picture, so the hand-over is invisible.
+3. **No loader during this move.** The hairline runs as always. Only if the route is still pending
+   after the expansion has settled (and a further grace) does a small loading signal appear, and
+   it must not cover the lifted image.
+4. **Moving the picture is permitted here** as a shared-element transform of a media container
+   (an exception to "content never transforms", scoped to this one move). Text never scales.
+5. Behind `MOTION_LAYER`; reduced motion is an instant cut with focus on the h1. Back from cover to
+   gallery stays the short resolve. 064's clip reveal is retired.
+
+**Status:** RETIRED 2026-10-26, task `004261026`, by Moataz: "keep it as is [064, the reference]
+and build upon; don't make the loading on the transition." 065 answered the loader by replacing the
+transition; the loader came from ISR being broken (`003261026`), not from the transition. 064 is
+restored with one change: **no loader during this move**, the hairline only. With ISR fixed the
+cover commits in ~0.2-0.4s, or immediately when prefetched.
+
+---
+
+## 064 — Opening a project from the gallery: the card opens into the page (amends 063 item 5)
+
+**Decided 2026-10-26, task `001261026`, by Moataz**, from a reference he sent (CoffeeTech page
+transition, via Pinterest): "I want this transition when I open project from gallery".
+
+**The reference, read frame by frame:** the new page appears as a small rectangle inside the old
+one, grows until it fills the viewport (a clip reveal, not a scale of the content), while the old
+page drifts upward and darkens behind it. About 0.5 to 0.7s.
+
+**Decision:**
+1. **Gallery card → case-file cover** (and only that move): the new `<main>` is revealed by a
+   `clip-path: inset()` that starts at **the clicked card's rectangle** and expands to the full
+   viewport below the header. The old page drifts up a short distance and dims. The header stays
+   anchored. Duration within the 900ms ceiling (700ms). The reveal eases in and out
+   (`cubic-bezier(.65,0,.25,1)`) so its first frames visibly start at the card; the old page's
+   drift and darkening use an ease-out. Darkening is `brightness()`, so it darkens in both themes.
+2. **What moves is the container's clip, never the content inside it** (decision 048 boundary
+   holds): text inside the new page is not scaled or translated.
+3. **Back from a cover to the gallery** is the reverse in spirit, not a mirror: a short resolve
+   (≤400ms), not a collapsing window, so leaving never feels slower than arriving.
+4. Every other move stays as 063 item 5 defined it. Behind `MOTION_LAYER`; reduced motion is an
+   instant cut; focus still moves to the h1. Directional values flip in RTL where any exist.
+
+**Status:** ACTIVE. Amends 063 item 5 for this one move.
+
+---
+
+## 063 — Navigation feedback: press states, a pending hairline, the mark as loader, transitions
+
+**Decided 2026-10-25, task `013251026`, by Moataz:** "the website looks dead when I move from page
+to page or click any button... put animation and transition system for overall the website."
+
+**Decision:**
+1. **Press feedback is fixed and is MVP-1 legal** (a state change within the 150ms rule, tokens.md):
+   every link and button dims on press, including the four primary CTAs where a specificity bug
+   cancelled it. Not behind the flag.
+2. **A pending hairline** (2px, accent, top of viewport, grows along the reading direction, flips in
+   RTL) starts within 100ms of any internal navigation and completes on commit. CSS transform only.
+   Not behind the flag: it is feedback, not choreography.
+3. **The loader is Moataz's mark** (`public/motion/loader.json`, his Lottie), centred over `<main>`
+   only when a navigation is still pending after 300ms; it loops the draw and disappears the moment
+   the route commits, never padded. **This is an exception to motion-system §5.1/§5.3** ("no loader
+   between routes"): the field and camera remain the Layer 2 plan; this is a feedback device.
+4. **Quotes during a long wait** (pending over 2.5s): one sentence, Moataz's own, taken verbatim from
+   his published pages in both languages (`ui_strings` `wait_quote_N`). No numbers (§13).
+5. **Page transitions** with React `ViewTransition`, inside the spec's grammar and timings: header
+   anchored, content cross-resolves (≤400ms); previous/next chapter pans along the reading axis
+   (≤600ms, flips with `dir`). Containers move, content does not.
+6. Items 3 to 5 are behind `MOTION_LAYER` (decision 047). `prefers-reduced-motion` turns 3 to 5 off
+   and makes navigation an instant cut; focus moves to the destination heading.
+
+**Status:** ACTIVE.
+
+---
+
+## 062 — The hero mark is Moataz's Lottie: a recorded exception to the motion spec
+
+**Decided 2026-10-25, task `012251026`, by Moataz** ("do anything, I need the result on the
+website"), after the three conflicts with `motion-system` / `perf-budget` were put to him.
+
+**Decision:** the Home hero mark is the Lottie he supplied (`public/motion/hero-mark.json`),
+recoloured at render to `--color-accent` at the mark's existing 20% opacity. It is an
+**exception** to `motion-system.md` §8 (the mark forming from the shared field) and to
+`perf-budget`'s one-runtime rule: the field version stays the Layer 2 plan, and `lottie-web`'s
+light build is accepted for one element, lazy-loaded so it costs nothing when motion is off.
+
+**Guards that still hold:** one flag (decision 047), a code constant so it reverts in one
+commit, **on**; `prefers-reduced-motion` and the server render show the static `HeroMark`;
+aria-hidden; no text depends on it.
+
+**Status:** ACTIVE. Exception scoped to the Home hero only.
+
+---
+
+## 061 — Decisions of the 2026-10-25 grilling session (task `010251026`)
+
+**Decided 2026-10-25 by Moataz, one question at a time, against the Vision Tracker.** Each line is a
+decision; the tracker row carries its execution.
+
+1. **Mini case files are part of the site** (closes open question B): listed in `/work` and the
+   sitemap; each is published when its content is complete. Kshemam and PideTaxi stand; EAST and
+   AAM follow.
+2. **The `www` cutover was his decision and the old Webflow site is closed.** Non-negotiable 13 is
+   satisfied by that record. Lighthouse is run once for the record.
+3. **Analytics disclosure:** a "Privacy" line in the footer opening a short paragraph, both
+   languages. The orchestrator drafts; he approves the wording.
+4. **The "Not built yet" placeholder pages stay public** (`NEXT_PUBLIC_PREVIEW_STUBS` stays set);
+   those sections are built after all content is finished.
+5. **Google Analytics runs on production only;** preview stops reporting into the production
+   property.
+6. **Publishing revalidates immediately:** the sync workflow calls `/api/revalidate` with
+   `REVALIDATE_SECRET` (executes decision 009).
+7. **New share image (`og_image`):** three proposals from the orchestrator, his pick; stored as a
+   Cloudinary `public_id` so the decision 028/037 guard works again.
+8. **Home intro (EN)** becomes the translation of his existing Arabic line: *"I look for simple
+   solutions that make life easier."* About's H1 is unchanged.
+9. **"Errors are attributed, not prevented"** stays in full on Philosophy; Systems keeps only that
+   first sentence (deletion, no new copy). Both languages.
+10. **UAE cover map** gains the Application Tracking line (EN and AR as approved in the session);
+    "and the tracking layer" is removed from the first line.
+11. **UAE onboarding chapter ends at submission:** its "Tracking and exceptions" section is deleted;
+    the "5 exceptions raised" image and caption move to the Application Tracking chapter. Both
+    languages.
+12. **Components:** build the chapter close / next handoff (last chapters, comparison and
+    accessibility pages get a way out); build `FeatureStrip`, with feature lists written with him;
+    `ObjectiveHeader` is amended in `architecture.md` to what exists.
+13. **Cervello's five other chapters are deferred, not cancelled;** the blank duplicate cover page
+    is archived.
+14. **Job titles stay in English** inside the Arabic timeline; cities and domains are translated.
+15. **Employer names:** Mashreq stays in the About prose; employer names are added to the career
+    timeline after he verifies the transcribed dates.
+16. **NDA treatment: full grayscale is final** (question H closed).
+17. **Chapter header:** the chapter name becomes the H1; the objective stays at statement size
+    beneath it.
+18. **UAE gets a results table** with two declared targets, both achieved: (a) apply and track on
+    mobile, evidence live in production 18+ months; (b) apply from anywhere using the phone's
+    capabilities (camera capture, EFR), with the note that native share and UAE Pass were rejected.
+
+**Status:** ACTIVE.
+
+---
+
+## 060 — One database. Preview is a code preview only. Supersedes 059
+
+**Decided 2026-10-25, task `002251026`, by Moataz.**
+
+**Decision:** there is one Supabase project, and it stays one. `preview.moatazmustapha.com`
+(branch `nightly`) previews **code**, not content. Published content is live on production the
+moment it is synced, whatever branch the code is on. No staging database, no per-row preview
+status, no second sync target. His words: *"الداتابيز واحدة، البريفيو بس بيبقى في الكود."*
+
+**Why:** a second database is a second thing to keep in sync for a site with one author. The
+cost of the alternative (a published chapter showing on production with older code until
+`nightly` is merged) is accepted and handled by process, not by infrastructure.
+
+**Consequence:** when a sync publishes content that depends on code only `nightly` has (a new
+frame, a new layout), merging `nightly` to `main` is part of that task, not a separate decision:
+the orchestrator opens the PR and Moataz merges it. Preview now has environment variables (it
+serves data), so 059's "every branch build fails" no longer holds; what 059 said about who
+enters secrets still does.
+
+**Status:** ACTIVE. Supersedes 059.
+
+## 059 — Vercel's Preview environment stays unconfigured until MVP-2 (SUPERSEDED by 060)
 
 **Decided 2026-08-25, task `009250826`, by Moataz, in launch week.**
 

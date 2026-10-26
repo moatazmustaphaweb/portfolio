@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { MainTransition } from "@/components/motion/MainTransition";
 import type { Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
 
@@ -32,9 +33,11 @@ export default async function SiteLayout({
    */
   return (
     <>
-      <main id="main" className="flex-1">
-        {children}
-      </main>
+      <MainTransition>
+        <main id="main" className="flex-1">
+          {children}
+        </main>
+      </MainTransition>
       <SiteFooter locale={locale as Locale} />
     </>
   );

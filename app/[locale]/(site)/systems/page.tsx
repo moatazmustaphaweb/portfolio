@@ -2,6 +2,7 @@ import Link from "next/link";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { getChapter } from "@/lib/content/chapters";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
@@ -213,9 +214,9 @@ export default async function Systems({
               <Link
                 key={card.href}
                 href={card.href}
-                className="mt-6 flex max-w-measure items-center gap-4 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong"
+                className="group mt-6 flex max-w-measure items-center gap-4 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong"
               >
-                <span className="flex min-w-0 flex-col gap-1">
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
                   {ui.t("evidence") ? (
                     <span className="font-mono text-micro uppercase text-fg-dim">
                       {ui.t("evidence")}
@@ -226,12 +227,7 @@ export default async function Systems({
                     <span className="text-meta text-fg-muted">{card.caseFile}</span>
                   ) : null}
                 </span>
-                <span
-                  aria-hidden="true"
-                  className="ms-auto text-ui text-fg-muted rtl:rotate-180"
-                >
-                  →
-                </span>
+                <CardArrow glyph={ui.t("arrow_forward")} />
               </Link>
             ))}
           </section>

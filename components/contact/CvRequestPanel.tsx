@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { beginTask } from "@/components/motion/pending";
+
 /**
  * The CV request panel.
  *
@@ -150,6 +152,8 @@ export function CvRequestPanel({
     }
     setInvalid(false);
     setState("sending");
+    // The pending hairline while the request is in flight (decision 063).
+    const done = beginTask();
 
     const form = new FormData(event.currentTarget);
     const note = String(form.get("message") ?? "").trim();
@@ -171,6 +175,8 @@ export function CvRequestPanel({
       setState(res.ok ? "sent" : "failed");
     } catch {
       setState("failed");
+    } finally {
+      done();
     }
   }
 
@@ -189,7 +195,7 @@ export function CvRequestPanel({
         className={
           variant === "link"
             ? "text-ui text-fg-muted transition-colors hover:text-fg"
-            : "inline-flex h-control-h items-center gap-2 rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg"
+            : "inline-flex h-control-h items-center gap-2 rounded-control border border-strong px-5 text-ui text-fg transition-colors hover:border-fg active:border-fg"
         }
       >
         {strings.trigger}
@@ -314,9 +320,10 @@ export function CvRequestPanel({
                     <button
                       type="submit"
                       disabled={state === "sending"}
+                      aria-busy={state === "sending" || undefined}
                       className="inline-flex h-control-h min-w-control items-center justify-center rounded-control border border-strong bg-fg px-5 text-ui text-bg disabled:opacity-60"
                     >
-                      {state === "sending" ? strings.sending : strings.submit}
+                      {state === "sending" ? (strings.sending ?? strings.submit) : strings.submit}
                     </button>
                     {state === "failed" ? (
                       <p role="alert" className="text-body-sm text-fg-body">
