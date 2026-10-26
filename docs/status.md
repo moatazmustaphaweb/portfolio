@@ -37,6 +37,14 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 005261026 - 2026-10-26 - "Still slow and not as shown": measured, it is the live site running old code
+
+**Task id `005261026`.** Real clicks timed with Playwright. **Production (www):** header to /work
+3832ms, pages MISS at 1.2-3.3s, no transition code at all (main has none of 063-064 or the ISR fix).
+**Nightly preview:** header to work 401ms, gallery to cover 255ms, cover to chapter 490ms, about
+251ms, systems 233ms; pages PRERENDER/HIT ~0.2s. Stable preview link:
+`portfolio-git-nightly-moataz-portfolio.vercel.app`. Nothing changes until nightly is released.
+
 ## 004261026 - 2026-10-26 - Back to the 064 opening, without a loader; 065 retired
 
 **Task id `004261026`.** Moataz: keep the transition from the reference (064) and build on it; the
