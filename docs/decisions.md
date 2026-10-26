@@ -910,6 +910,37 @@ to do the work of a sentence.
 
 ---
 
+## 065 — The card's image becomes the cover's image, starting on the click (supersedes 064's mechanism)
+
+**Decided 2026-10-26, task `002261026`, by Moataz**, after seeing 064 on preview: "this transition
+shouldn't have loading states, the transition should open immediately; we use the same image in
+card and cover project header. The card image should scale and begin the transition, then loading
+if needed."
+
+**Why 064 was wrong in kind:** a view transition starts at the commit, so the click was followed
+by a wait (and a loader), then the opening. The opening must be the click's answer, not the
+route's.
+
+**Decision:**
+1. **On the click, before any network**, the card's visual (its image, or its component cover) is
+   lifted into a fixed layer at its exact rectangle and grows toward the cover's visual position
+   (the content column, below the header). The gallery darkens and drifts behind it. Nothing waits
+   for the route.
+2. **On commit**, the lifted visual hands over to the real cover image in the same place: a shared
+   element (`view-transition-name`) morphs it into the cover image's actual rectangle, and the rest
+   of the cover resolves in around it. Same picture, so the hand-over is invisible.
+3. **No loader during this move.** The hairline runs as always. Only if the route is still pending
+   after the expansion has settled (and a further grace) does a small loading signal appear, and
+   it must not cover the lifted image.
+4. **Moving the picture is permitted here** as a shared-element transform of a media container
+   (an exception to "content never transforms", scoped to this one move). Text never scales.
+5. Behind `MOTION_LAYER`; reduced motion is an instant cut with focus on the h1. Back from cover to
+   gallery stays the short resolve. 064's clip reveal is retired.
+
+**Status:** ACTIVE. Supersedes 064's mechanism; 064's intent stands.
+
+---
+
 ## 064 — Opening a project from the gallery: the card opens into the page (amends 063 item 5)
 
 **Decided 2026-10-26, task `001261026`, by Moataz**, from a reference he sent (CoffeeTech page
