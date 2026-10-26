@@ -37,6 +37,12 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 009261026 - 2026-10-26 - Answered: what content is left
+
+**Task id `009261026`.** Moataz asked what content remains. Answered from the Vision Tracker
+(rows not Done that need him or content): MVP-1 content in priority order, then the later layers'
+content. No code or content changed.
+
 ## 008261026 - 2026-10-26 - One small arrow on every internal card link
 
 **Task id `008261026`.** Moataz: the arrow is too big, and it must be on every clickable card of the
