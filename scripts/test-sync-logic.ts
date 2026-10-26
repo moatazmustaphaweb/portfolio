@@ -649,6 +649,10 @@ eq("select Grid -> grid", layoutOf(sel("Grid")), { layout: "grid", problem: null
 eq("select Stacked -> stacked", layoutOf(sel("Stacked")), { layout: "stacked", problem: null });
 eq("layout case-insensitive and trimmed", layoutOf(sel("  GRID ")).layout, "grid");
 eq("text grid -> grid", layoutOf(txt("grid")), { layout: "grid", problem: null });
+// Decision 068, task 012261026, migration 0066.
+eq("select Editorial -> editorial", layoutOf(sel("Editorial")), { layout: "editorial", problem: null });
+eq("editorial case-insensitive and trimmed", layoutOf(sel(" EDITORIAL ")).layout, "editorial");
+check("a typo (Editoral) is reported, not read as Editorial", layoutOf(sel("Editoral")).problem !== null);
 eq("empty layout select -> stacked, no notice", layoutOf(sel(null)), { layout: "stacked", problem: null });
 eq("empty layout text -> stacked, no notice", layoutOf(txt("")), { layout: "stacked", problem: null });
 
@@ -674,6 +678,7 @@ check("the layout notice names Image layout, not Device", layoutBox.problem?.sta
 eq("content: undefined layout column -> stacked", imageLayoutOrDefault(undefined), "stacked");
 eq("content: null layout -> stacked", imageLayoutOrDefault(null), "stacked");
 eq("content: grid kept", imageLayoutOrDefault("grid"), "grid");
+eq("content: editorial kept", imageLayoutOrDefault("editorial"), "editorial");
 eq("content: junk layout -> stacked", imageLayoutOrDefault("Grid"), "stacked");
 
 console.log("\nMedia dimensions from Cloudinary (007231026)");

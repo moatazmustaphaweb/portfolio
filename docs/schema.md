@@ -95,8 +95,8 @@ create table chapters (
   hero_media_id   uuid references media(id) on delete set null,
   device_frame    text not null default 'iphone'      -- 0062
                   check (device_frame in ('iphone', 'android')),
-  image_layout    text not null default 'stacked'     -- 0063
-                  check (image_layout in ('stacked', 'grid')),
+  image_layout    text not null default 'stacked'     -- 0063; editorial 0066
+                  check (image_layout in ('stacked', 'grid', 'editorial')),
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   unique (case_file_id, slug)
@@ -212,11 +212,16 @@ the sync and `lib/content`. The content layer exposes it as **`deviceFrame`** on
 **`chapters.image_layout` (migration 0063, task `004221026`)** — how a chapter's
 **consecutive** figures render: `stacked` (one under another, as every chapter rendered before
 the column) or `grid`. **Authored, not inferred:** it comes from the Notion property
-`Image layout` on the chapter page (`Stacked` | `Grid`, empty = `stacked`), via the sync, and
+`Image layout` on the chapter page (`Stacked` | `Grid` | `Editorial`, empty = `stacked`), via the sync, and
 from nowhere else — not from the number of images or their aspect ratios. Same shape as
 `device_frame`: `text` + CHECK, vocabulary in one place (`lib/media/image-layout.ts`), exposed
 by the content layer as **`imageLayout`** (type `ImageLayout`, exported from
 `lib/content/types`) on `Chapter` and `ChapterDetail`, never null.
+
+**`editorial` (migration 0066, decision 068, task `012261026`)** — a third value: each figure is
+paired with the prose that leads into it, beside it for a narrow figure (alternating logical
+sides) and full width for a wide one. Notion `Image layout` = `Editorial`. 0066 only drops and
+recreates `chapters_image_layout_valid` with the wider set; no backfill, no column change.
 
 **Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role`, and without a **decided** decision set, in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
 

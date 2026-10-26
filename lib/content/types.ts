@@ -140,8 +140,8 @@ export type Chapter = Tables<"chapters"> & {
    */
   deviceFrame: DeviceFrame;
   /**
-   * How this chapter's CONSECUTIVE figures render (task `004221026`, migration
-   * 0063). Authored in Notion as `Image layout`; never null here —
+   * How this chapter's figures render — stacked | grid | editorial (task
+   * `004221026`, migration 0063; `editorial` by 0066, decision 068). Authored in Notion as `Image layout`; never null here —
    * `imageLayoutOrDefault` turns a missing or NULL `image_layout` into
    * `"stacked"`, which is what an empty `Image layout` means by decision.
    *

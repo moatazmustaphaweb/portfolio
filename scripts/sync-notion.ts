@@ -179,7 +179,8 @@ type Row = {
   /**
    * The `Image layout` property, read but not yet decided on (task
    * `004221026`). `resolveImageLayout` in Pass 2 turns it into
-   * `chapters.image_layout` and reports anything that is not Stacked or Grid.
+   * `chapters.image_layout` and reports anything that is not Stacked, Grid or
+   * Editorial.
    */
   imageLayout: ImageLayoutRead;
   parent?: string;
@@ -2230,6 +2231,12 @@ async function main() {
   /*
    * `chapters.image_layout` (migration 0063), same guard and same reasoning as
    * `device_frame` above: a live run without the column exits before Pass 1.
+   *
+   * It proves the COLUMN, not the CHECK's allowed set: PostgREST does not expose
+   * `pg_constraint`, and a CHECK is only evaluated on a row actually written, so
+   * there is no side-effect-free probe. Without migration 0066 an `Editorial`
+   * chapter's upsert is refused by `chapters_image_layout_valid` and reported
+   * through `fail()` — loud, per row, never silent.
    */
   {
     const { error } = await (await db()).from("chapters").select("image_layout").limit(1);
@@ -2265,7 +2272,7 @@ async function main() {
   if (all.length > 0 && all.every((r) => r.imageLayout.state === "absent")) {
     notices.push(
       "No `Image layout` property on the Notion database — every chapter's image_layout is stacked. " +
-        "Expected until the property is added (select: Stacked | Grid).",
+        "Expected until the property is added (select: Stacked | Grid | Editorial).",
     );
   }
 
@@ -2546,7 +2553,8 @@ async function main() {
           // Migration 0062. Written on every run, so clearing `Device` in
           // Notion returns a chapter to iphone rather than leaving it stuck.
           device_frame: device.frame,
-          // Migration 0063. Written on every run for the same reason.
+          // Migration 0063 (`editorial` needs 0066). Written on every run for
+          // the same reason.
           image_layout: layout.layout,
         },
         { onConflict: "case_file_id,slug" },

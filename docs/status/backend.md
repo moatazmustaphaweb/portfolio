@@ -16,6 +16,43 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 012261026 — 2026-10-26 13:15 — `chapters.image_layout` gains `editorial` (migration 0066, NOT applied)
+
+**Brief:** add a third value, `editorial`, to `chapters.image_layout` per decision 068. That meant
+a migration that recreates the CHECK, the shared vocabulary, a Notion `Editorial` → `editorial`
+mapping in the sync that still reports unknown values, the type unions, the sync's start-up check,
+and the two docs.
+
+**Files:** `supabase/migrations/0066_image_layout_editorial.sql` (new). It drops the CHECK if it exists, recreates
+`chapters_image_layout_valid` with `('stacked','grid','editorial')`, and updates the column comment. ·
+`lib/media/image-layout.ts` (`IMAGE_LAYOUTS` gains `editorial`) · `lib/sync/image-layout.ts`
+(`Editorial` → `editorial`; unknown values still defaulted to stacked AND reported, message now
+"not Stacked/Grid/Editorial") · `lib/supabase/database.types.ts` (Row/Insert unions) ·
+`lib/content/types.ts` (doc comment; type flows from the vocabulary) · `scripts/sync-notion.ts`
+(comments and the run-level notice text only) · `scripts/test-sync-logic.ts` (4 new checks) ·
+`docs/schema.md` · `docs/sync-contract.md`. **No migration applied.**
+
+**Measured:** 0066 is the next free number, because `ls supabase/migrations` ends at 0065 and has no other 0066. The
+start-up check reads the column only (`select image_layout limit 1`). It does not validate the allowed set, so it
+needed no change. It cannot see the CHECK, because PostgREST does not expose `pg_constraint` and a CHECK
+only fires on a written row. Without 0066, an Editorial chapter's upsert is refused and reported
+through `fail()`, and the other chapters sync. That is written into the migration header, the guard comment and
+sync-contract.
+
+**Verified:** `rm -rf .next/types && npx tsc --noEmit` exited 0. eslint on the touched files gave 0 errors
+(`database.types.ts` is in the ignore pattern). `npm run test:sync`: all checks pass, including
+`select Editorial -> editorial`, the case/trim check, `Editoral` being reported, and `content: editorial kept`.
+
+**Not verified:** the migration has not been run against any database. The portfolio Supabase project
+is not visible to this session's Supabase MCP (it lists only the Dabbler projects), so the live
+constraint was not read. No sync was run, dry or live. Nothing renders `editorial` yet:
+`components/case-file/ChapterSections.tsx:187` branches only on `"grid"`, so an editorial chapter
+currently renders stacked. That is **frontend's**, per decision 068.
+
+**Open questions:** none.
+
+---
+
 ## 007261026 — 2026-10-26 07:25 — migration 0065 also seeds `arrow_forward` / `arrow_back` glyph keys, still NOT applied
 
 **Brief:** add two directional glyph rows (`arrow_forward` EN → AR ←, `arrow_back` EN ← AR →)
