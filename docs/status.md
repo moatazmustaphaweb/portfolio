@@ -37,6 +37,22 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 013261026 - 2026-10-26 - A finished mockup can opt out of its frame: `[frame] none` (decision 069)
+
+**Task id `013261026`.** Moataz, on the FATCA forms mockup in Egypt Acquisition / Onboarding
+Journey: "same instructions", then "this photo only remove the frame".
+
+- **Why per image:** that chapter mixes one finished mockup with a dozen raw web screens that keep
+  their laptop frame, so neither the layout nor the aspect ratio can carry it. Decision 069.
+- **Backend (`e3a85f2`):** image tag accepts an optional `[frame] none` span (other values reported,
+  duplicates invalid); stored on `chapter_paragraphs.frame` (migration 0067, per placement, not on
+  `media`); content layer exposes `frame?: "none"`; both sides tolerate 0067 not yet applied.
+  `npm run test:sync` all pass.
+- **Frontend (`0ed77d6`):** such a figure renders bare at full width with the plain caption below in
+  stacked, grid (splits the run) and editorial (never beside text). Unflagged figures unchanged.
+- **Notion:** `[frame] none` added to the `Old-fatca` tag on the English page and its Arabic child.
+- **Waiting on:** Moataz applying 0067, then a sync of `egypt-acquisition` and a check on preview.
+
 ## 012261026 - 2026-10-26 - Editorial image layout (decision 068), first on UAE Application Tracking
 
 **Task id `012261026`.** Moataz: Application Tracking's images are finished mockups; place each beside
