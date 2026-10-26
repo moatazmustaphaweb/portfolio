@@ -47,6 +47,18 @@ Two lines, not silence.
 **Not verified:** nothing was rendered. There is still no `.env.local` or Chrome in this container, so there is no :3000, no screenshot at 390/1440 in either locale, and no computed-style check of the caption's font or its vertical offset against the image. The 6px figure and its correction come from the grid arithmetic, not from a measurement. Preview was not inspected.
 **Open questions:** none.
 
+### 012261026 addendum 2 — 2026-10-26 — editorial: alternation flipped, caption-only column reads as a paragraph
+
+**Brief:** Moataz's review on preview. (1) Flip the alternation: the first narrow figure goes on the inline-start side with its text at inline end, the second on inline end, and so on. Keep logical columns so Arabic mirrors, and keep the offset across the two `ChapterSections` calls. (2) When a beside row's text column holds only the caption (no prose before the figure), render that caption with the prose paragraph's size, leading and measure, in `text-fg-muted`. Keep `<figcaption>`, no box. A caption with prose above it stays the small caption.
+**Files:** `components/case-file/ChapterSections.tsx` · this file.
+**Change:**
+- The counter is now even → `"start"` and odd → `"end"` (it was the reverse). The side still maps to `md:col-start-1/2`, which follows `direction`. `editorialOffset` and `countEditorialBesideFigures` are untouched: the count is the same, and only the parity-to-side mapping changed, so the second call continues the sequence. Comments updated.
+- New `ChapterFigure` prop `captionAsParagraph`, passed as `unit.prose.length === 0` on the beside branch only. When it is true, the editorial figcaption is `mt-3 whitespace-pre-line text-body text-fg-muted md:mt-0`. That is the `<p>`'s `whitespace-pre-line text-body` (17px token, 1.7 leading, no `max-w-measure`, since the paragraph has none) in the caption's colour. Grid placement (`md:row-start-3 md:self-start` + text column) is unchanged. Otherwise the caption is byte-for-byte the previous `mt-3 max-w-measure text-meta text-fg-muted md:mt-0`. Stacked, grid and non-beside editorial captions are untouched.
+- Below `md` the same caption-only figure also uses the paragraph style (image, then the caption at body size, 12px under it). The brief did not say which breakpoints; I applied it to the case, not to a width.
+**Verified:** `rm -rf .next/types && npx tsc --noEmit -p .`: exit 0. `npx eslint components/case-file/ChapterSections.tsx`: exit 0. Tailwind compile emits `.text-body` (font-size `var(--text-body)`, line-height 1.7), `.whitespace-pre-line` and `.text-fg-muted`.
+**Not verified:** nothing was rendered. There is still no `.env.local` or Chrome here, so there is no :3000, no screenshot at 390/1440 in either locale, and no DOM check that row 1's figure sits in column 1 (left in `/en`, right in `/ar`) or that the second row's caption computes to the paragraph's font-size and line-height. That Arabic picks up the Arabic body face on the caption relies on the figcaption's `lang`, which is unchanged. Preview was not inspected after the change.
+**Open questions:** none.
+
 ## 008261026 — 2026-10-26 07:47 — one `CardArrow` primitive, body-sm, on every internal card link
 
 **Brief:** follow-up to 007261026. The chapter-card arrow was too big (`text-h3`). Make it the description size, keep it vertically centred, and put the same arrow on every internal link that renders as a card or row surface: a bordered or surface panel with a hover state, where the whole block is the link. Extract it into one server component. Exclude gallery ProjectCards, inline text links, the header nav, and buttons/CTAs.

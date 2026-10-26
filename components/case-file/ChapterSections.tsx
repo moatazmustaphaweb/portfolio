@@ -216,16 +216,17 @@ export function ChapterSections({
   /*
    * Editorial only: how many side-placed figures came before this call in the
    * same chapter (see `countEditorialBesideFigures`). Default 0, so a single
-   * call starts with the figure on the inline-end side.
+   * call starts with the figure on the inline-start side.
    */
   editorialOffset?: number;
 }) {
   if (sections.length === 0) return null;
 
   /*
-   * Editorial alternation counter. Even → figure at inline-end (prose at
-   * inline-start), odd → figure at inline-start. Advanced only by figures that
-   * actually take a side, in render order.
+   * Editorial alternation counter. Even → figure at inline-start (prose at
+   * inline-end), odd → figure at inline-end (task `012261026`, flipped at
+   * Moataz's review: the first narrow figure leads from the reading edge).
+   * Advanced only by figures that actually take a side, in render order.
    */
   let besideCount = editorialOffset;
 
@@ -350,7 +351,7 @@ export function ChapterSections({
                           />,
                         ];
                       }
-                      const side: EditorialSide = besideCount++ % 2 === 0 ? "end" : "start";
+                      const side: EditorialSide = besideCount++ % 2 === 0 ? "start" : "end";
                       return [
                         /*
                          * NARROW: one grid per pair.
@@ -415,6 +416,7 @@ export function ChapterSections({
                             media={unit.media}
                             deviceFrame={deviceFrame}
                             editorialSide={side}
+                            captionAsParagraph={unit.prose.length === 0}
                           />
                         </div>,
                       ];
@@ -545,6 +547,7 @@ function ChapterFigure({
   deviceFrame,
   inGrid = false,
   editorialSide,
+  captionAsParagraph = false,
 }: {
   media: Media | null;
   deviceFrame: DeviceFrameKind;
@@ -558,6 +561,16 @@ function ChapterFigure({
    * "end" puts the figure in column 2 (inline end), "start" in column 1.
    */
   editorialSide?: EditorialSide;
+  /*
+   * Editorial beside rows only, and only when the text column holds the
+   * caption alone (no prose before the figure). The caption is then the
+   * row's only text, so it takes the PROSE paragraph's type — `text-body`,
+   * its 1.7 leading, no measure cap, `whitespace-pre-line` — in the caption's
+   * muted colour. It stays a <figcaption>: it is still this figure's caption,
+   * only its presentation changes. With prose beside it, it stays the small
+   * caption under the prose. Task `012261026`.
+   */
+  captionAsParagraph?: boolean;
   /*
    * Set only by the grid path. The grid owns the spacing (its own margin and
    * gap), so the figure drops its margins; and a framed figure fills its cell
@@ -850,7 +863,14 @@ function ChapterFigure({
                     sat 6px below the image's centre. Below `md` the caption
                     is under its image again and keeps `mt-3`.
                   */
-                  "mt-3 max-w-measure text-meta text-fg-muted md:mt-0",
+                  captionAsParagraph
+                    ? /*
+                        Caption-only column: the first row's paragraph type
+                        (see `renderBlock`'s <p>), muted. No measure cap, as
+                        the paragraph has none. No box, no background.
+                      */
+                      "mt-3 whitespace-pre-line text-body text-fg-muted md:mt-0"
+                    : "mt-3 max-w-measure text-meta text-fg-muted md:mt-0",
                   "md:row-start-3 md:self-start",
                   textCol,
                 ].join(" ")
