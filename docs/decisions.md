@@ -937,7 +937,11 @@ route's.
 5. Behind `MOTION_LAYER`; reduced motion is an instant cut with focus on the h1. Back from cover to
    gallery stays the short resolve. 064's clip reveal is retired.
 
-**Status:** ACTIVE. Supersedes 064's mechanism; 064's intent stands.
+**Status:** RETIRED 2026-10-26, task `004261026`, by Moataz: "keep it as is [064, the reference]
+and build upon; don't make the loading on the transition." 065 answered the loader by replacing the
+transition; the loader came from ISR being broken (`003261026`), not from the transition. 064 is
+restored with one change: **no loader during this move**, the hairline only. With ISR fixed the
+cover commits in ~0.2-0.4s, or immediately when prefetched.
 
 ---
 

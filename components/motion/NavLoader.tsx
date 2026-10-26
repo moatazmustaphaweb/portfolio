@@ -20,10 +20,6 @@ import { useEffect, useRef } from "react";
  *   animation is paused. It never pads to finish a cycle.
  * - Quote: after 2.5s, one of Moataz's own sentences (`wait_quote_N`), rotated
  *   per show through sessionStorage. None seeded, none rendered.
- * - Place (decision 065 item 3): `main` is the overlay above. `lift` is the
- *   small signal for a slow gallery → cover move: no scrim, a small mark and
- *   the quote in the region `lift.ts` measured above or below the lifted
- *   picture (`--nav-open-signal-top` / `-h`), so it never covers it.
  */
 
 const DRAW_END = 180;
@@ -95,7 +91,6 @@ export function nextQuoteIndex(count: number): number {
 export function NavLoader({
   phase,
   quote,
-  place = "main",
   lang,
   dir,
 }: {
@@ -103,8 +98,6 @@ export function NavLoader({
   phase: "off" | "mark" | "quote";
   /** Chosen by NavProgress when the quote phase begins. */
   quote: string | null;
-  /** Where it shows: over `<main>`, or beside the lifted cover picture. */
-  place?: "main" | "lift";
   lang: string;
   dir: "ltr" | "rtl";
 }) {
@@ -189,7 +182,7 @@ export function NavLoader({
   );
 
   return (
-    <div className="nav-loader" data-show={shown} data-place={place} aria-hidden="true">
+    <div className="nav-loader" data-show={shown} aria-hidden="true">
       <div
         ref={box}
         className="nav-loader-mark"

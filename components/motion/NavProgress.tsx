@@ -5,15 +5,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { MOTION_LAYER } from "@/lib/motion/flag";
 
-import {
-  cancelLift,
-  commitLift,
-  finishLift,
-  liftHasSignalRegion,
-  liftTarget,
-  readMs,
-  startLift,
-} from "./lift";
 import { NavLoader, nextQuoteIndex, prefetchLoader } from "./NavLoader";
 import { registerPendingListener } from "./pending";
 
@@ -42,8 +33,7 @@ import { registerPendingListener } from "./pending";
  *
  * ── THE LOADER AND QUOTES (`MOTION_LAYER`, off under reduced motion) ──────
  * Pending past 300ms: Moataz's mark over `<main>` (`NavLoader`). Past 2500ms:
- * one quote under it. Both go the moment the route commits. The `open` move
- * is the exception (065 item 3): see OPEN below.
+ * one quote under it. Both go the moment the route commits.
  *
  * ── PAGE TRANSITIONS (`MOTION_LAYER`, off under reduced motion) ──────────
  * The kind of move is decided here, from the two URLs, and written to
@@ -55,24 +45,22 @@ import { registerPendingListener } from "./pending";
  * After the commit, focus moves to the destination `h1` (motion-system §10),
  * only when a click, a key or history started the navigation.
  *
- * ── OPEN: GALLERY CARD → COVER (decision 065, superseding 064's mechanism) ─
+ * ── OPEN: GALLERY CARD → COVER (decision 064) ────────────────────────────
  * A click on a gallery card (`data-nav-open` on its link) from `/work` to a
- * cover is `open`, not `zoom-in`. The click itself is the answer: in this
- * handler, before any network, `startLift` (lift.ts) lifts the card's visual
- * into a fixed layer and grows it toward the cover's position while the
- * gallery darkens and drifts. On commit the view transition hands the layer
- * over to the cover's real visual (`case-cover`, globals.css). No loader at
- * 300ms during this move: only if the route is still pending at
- * `--duration-nav-open` + `--duration-nav-open-signal-grace` does a small
- * mark appear, in the space above or below the picture, never over it; the
- * 2.5s quote goes there too. A card with no visual, or none of it visible,
- * falls back to `zoom-in`. A second click on the same card during its lift
- * is ignored; any other navigation, back, or the 15s ceiling reverses the
- * lift and restores the card.
+ * cover is `open`, not `zoom-in`: the new `<main>` is revealed by a clip that
+ * starts at the clicked card and grows to the viewport. The card's rectangle
+ * is read here, at the click, clamped to the visible area below the header,
+ * and written to `<html>` in the NEW main's own coordinate space: that page
+ * lands at scroll 0, so its snapshot sits at `<main>`'s document top, and the
+ * card's viewport position minus that origin is where the clip starts. The
+ * rect is physical (`getBoundingClientRect`), and so is `clip-path: inset()`,
+ * so nothing here depends on `dir`. A card scrolled entirely out of the
+ * visible area has no rectangle to open from and falls back to `zoom-in`.
+ * Known limit: a scroll DURING a slow navigation is not re-read; the clip
+ * starts where the card was at the click, as `--nav-old-shift` already does.
  */
 
 type NavKind = "resolve" | "zoom-in" | "open" | "zoom-out" | "pop" | "cut";
-type Place = "main" | "lift";
 
 const APPEAR_MS = 100; // below this a commit shows nothing
 const LOADER_MS = 300;
@@ -80,6 +68,15 @@ const QUOTE_MS = 2500;
 const CEILING_MS = 15000;
 const COMPLETE_MS = 320; // 150 complete + 150 fade + a frame
 const CLEAR_NAV_MS = 900; // the navigation ceiling (tokens.md, 900ms)
+
+/** Written for `open` only; every one is removed with `data-nav`. */
+const OPEN_PROPS = [
+  "--nav-open-x0",
+  "--nav-open-y0",
+  "--nav-open-x1",
+  "--nav-open-y1",
+  "--nav-open-y-end",
+] as const;
 
 function segments(pathname: string): string[] {
   return pathname.split("/").filter(Boolean);
@@ -105,6 +102,45 @@ function isGalleryToCover(from: string, to: string): boolean {
   const x = segments(from).slice(1);
   const y = segments(to).slice(1);
   return x.length === 1 && x[0] === "work" && y.length === 2 && y[0] === "work";
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * Writes the clicked card's rectangle for the `open` reveal, in the new
+ * `<main>` snapshot's coordinates (see the header comment). Returns false when
+ * there is nothing visible to open from, and writes nothing.
+ */
+function writeOpenRect(root: HTMLElement, card: Element): boolean {
+  const main = document.getElementById("main");
+  if (!main) return false;
+  const vw = root.clientWidth;
+  const vh = window.innerHeight;
+  const headerBottom = document.querySelector(".site-header")?.getBoundingClientRect().bottom ?? 0;
+  const floor = clamp(headerBottom, 0, vh);
+  const r = card.getBoundingClientRect();
+  const x0 = clamp(r.left, 0, vw);
+  const x1 = clamp(r.right, 0, vw);
+  const y0 = clamp(r.top, floor, vh);
+  const y1 = clamp(r.bottom, floor, vh);
+  if (x1 - x0 < 1 || y1 - y0 < 1) return false;
+  // Where the new <main> will sit: its document position, at scroll 0.
+  const m = main.getBoundingClientRect();
+  const originX = m.left + window.scrollX;
+  const originY = m.top + window.scrollY;
+  const px = (n: number) => `${Math.round(n * 100) / 100}px`;
+  root.style.setProperty("--nav-open-x0", px(x0 - originX));
+  root.style.setProperty("--nav-open-y0", px(y0 - originY));
+  root.style.setProperty("--nav-open-x1", px(x1 - originX));
+  root.style.setProperty("--nav-open-y1", px(y1 - originY));
+  // The reveal ends at the viewport's bottom edge, not at the bottom of a
+  // page several screens tall, so the rectangle grows evenly on all sides.
+  root.style.setProperty("--nav-open-y-end", px(vh - originY));
+  return true;
+}
+
+function clearOpenRect(root: HTMLElement) {
+  OPEN_PROPS.forEach((p) => root.style.removeProperty(p));
 }
 
 function motionAllowed(): boolean {
@@ -137,9 +173,7 @@ export function NavProgress({
   const [loader, setLoaderState] = useState<{
     phase: "off" | "mark" | "quote";
     quote: string | null;
-    /** `main`: centred over <main>. `lift`: beside the lifted picture (065). */
-    place: Place;
-  }>({ phase: "off", quote: null, place: "main" });
+  }>({ phase: "off", quote: null });
 
   // Imperative state: none of it renders.
   const st = useRef({
@@ -147,8 +181,6 @@ export function NavProgress({
     kind: "nav" as "nav" | "task",
     startedAt: 0,
     timers: [] as number[],
-    /** The loader and quote timers, rescheduled when a navigation replaces another. */
-    waitTimers: [] as number[],
     completeTimer: 0,
     clearNavTimer: 0,
     busy: null as HTMLElement | null,
@@ -163,60 +195,22 @@ export function NavProgress({
     const root = document.documentElement;
     s.committed = location.pathname + location.search;
 
-    const setLoader = (phase: "off" | "mark", place?: Place) =>
+    const setLoader = (phase: "off" | "mark") =>
       setLoaderState((prev) =>
-        prev.phase === phase && (place === undefined || prev.place === place)
+        prev.phase === phase
           ? prev
-          : // Hiding keeps the quote and the place, so it fades out where it was.
-            {
-              phase,
-              quote: phase === "off" ? prev.quote : null,
-              place: place ?? prev.place,
-            },
+          : // Hiding keeps the quote, so it fades out with the overlay.
+            { phase, quote: phase === "off" ? prev.quote : null },
       );
-    const showQuote = (place: Place) => {
+    const showQuote = () => {
       const list = quotesRef.current;
       if (list.length === 0) return;
-      setLoaderState({
-        phase: "quote",
-        quote: list[nextQuoteIndex(list.length)] ?? null,
-        place,
-      });
+      setLoaderState({ phase: "quote", quote: list[nextQuoteIndex(list.length)] ?? null });
     };
 
-    const clearWaitTimers = () => {
-      s.waitTimers.forEach((t) => window.clearTimeout(t));
-      s.waitTimers = [];
-    };
     const clearTimers = () => {
       s.timers.forEach((t) => window.clearTimeout(t));
       s.timers = [];
-      clearWaitTimers();
-    };
-
-    /*
-     * The loader and the quote (063 items 3–4). During `open` (065 item 3)
-     * nothing shows at 300ms: the picture is the answer. Only once the lift
-     * has settled and a further grace has passed does a small mark appear,
-     * in the space the lift left beside the picture; the quote follows it
-     * there. A lift with no such space shows nothing but the hairline.
-     */
-    const scheduleWait = (open: boolean) => {
-      clearWaitTimers();
-      setLoader("off");
-      if (!motionAllowed()) return;
-      if (!open) {
-        s.waitTimers.push(window.setTimeout(() => setLoader("mark", "main"), LOADER_MS));
-        s.waitTimers.push(window.setTimeout(() => showQuote("main"), QUOTE_MS));
-        return;
-      }
-      if (!liftHasSignalRegion()) return;
-      const signalAt =
-        readMs("--duration-nav-open", 650) + readMs("--duration-nav-open-signal-grace", 600);
-      s.waitTimers.push(window.setTimeout(() => setLoader("mark", "lift"), signalAt));
-      s.waitTimers.push(
-        window.setTimeout(() => showQuote("lift"), Math.max(QUOTE_MS, signalAt)),
-      );
     };
 
     const setBar = (state: "idle" | "pending" | "done") => {
@@ -224,14 +218,10 @@ export function NavProgress({
       if (el) el.dataset.state = state;
     };
 
-    const start = (kind: "nav" | "task", open = false) => {
+    const start = (kind: "nav" | "task") => {
       if (s.pending) {
-        // A navigation that interrupts a form wait, or replaces another
-        // navigation, takes the bar over and restarts the wait feedback.
-        if (kind === "nav") {
-          s.kind = "nav";
-          scheduleWait(open);
-        }
+        // A navigation that interrupts a form wait takes the bar over.
+        if (kind === "nav") s.kind = "nav";
         return;
       }
       window.clearTimeout(s.completeTimer);
@@ -247,7 +237,12 @@ export function NavProgress({
       if (kind === "nav") {
         s.busy = document.getElementById("main");
         s.busy?.setAttribute("aria-busy", "true");
-        scheduleWait(open);
+        // Opening a project from the gallery has no loader (Moataz, 2026-10-26):
+        // the opening is the answer to the click; the hairline is enough.
+        if (motionAllowed() && root.dataset.nav !== "open") {
+          s.timers.push(window.setTimeout(() => setLoader("mark"), LOADER_MS));
+          s.timers.push(window.setTimeout(showQuote, QUOTE_MS));
+        }
       }
       s.timers.push(window.setTimeout(() => end(true), CEILING_MS));
     };
@@ -259,8 +254,6 @@ export function NavProgress({
       s.busy?.removeAttribute("aria-busy");
       s.busy = null;
       setLoader("off");
-      // The ceiling: a navigation that never committed puts the card back.
-      if (silent) cancelLift(true);
       const el = bar.current;
       if (!el) return;
       if (silent || performance.now() - s.startedAt < APPEAR_MS) {
@@ -277,19 +270,16 @@ export function NavProgress({
 
     const beginNav = (to: URL, how: "push" | "pop", origin?: HTMLAnchorElement) => {
       window.clearTimeout(s.clearNavTimer);
-      // Any new navigation (another link, back) reverses a running lift.
-      cancelLift(true);
-      let open = false;
+      clearOpenRect(root);
       if (motionAllowed()) {
         let kind: NavKind = how === "pop" ? "pop" : classify(location.pathname, to.pathname);
         if (
           kind === "zoom-in" &&
           origin?.hasAttribute("data-nav-open") &&
           isGalleryToCover(location.pathname, to.pathname) &&
-          startLift(origin, to.pathname)
+          writeOpenRect(root, origin)
         ) {
           kind = "open";
-          open = true;
         }
         root.dataset.nav = kind;
         // The old snapshot is taken at this scroll position and the new page
@@ -298,7 +288,7 @@ export function NavProgress({
         root.style.setProperty("--nav-old-shift", `${-window.scrollY}px`);
       }
       s.focusOnCommit = true;
-      start("nav", open);
+      start("nav");
     };
 
     const onClick = (e: MouseEvent) => {
@@ -320,10 +310,6 @@ export function NavProgress({
       if (url.pathname === location.pathname && url.search === location.search) return;
       // A file or an API route is not a page; the bar would wait on nothing.
       if (url.pathname.startsWith("/api/") || /\.[a-z0-9]+$/i.test(url.pathname)) return;
-      // A second click on a card that is already lifting: the lift and the
-      // route are already under way. Next's own handler still runs.
-      const lifting = liftTarget();
-      if (lifting !== null && lifting === url.pathname.replace(/\/+$/, "")) return;
       beginNav(url, "push", a);
     };
 
@@ -342,9 +328,6 @@ export function NavProgress({
     ctl.current = {
       settle: (navigated) => {
         s.committed = location.pathname + location.search;
-        // On the lift's destination the hand-over begins; anywhere else the
-        // lift goes at once.
-        commitLift(location.pathname);
         if (s.kind === "nav") end();
         if (navigated && s.focusOnCommit) {
           // After the commit's layout: the destination heading takes focus
@@ -362,10 +345,9 @@ export function NavProgress({
         // transition nobody classified is a cut.
         window.clearTimeout(s.clearNavTimer);
         s.clearNavTimer = window.setTimeout(() => {
-          // Before the attribute drops: the layer's hide rule keys off it.
-          finishLift();
           delete root.dataset.nav;
           root.style.removeProperty("--nav-old-shift");
+          clearOpenRect(root);
         }, CLEAR_NAV_MS);
       },
     };
@@ -381,7 +363,6 @@ export function NavProgress({
       unregister();
       clearTimers();
       window.clearTimeout(s.completeTimer);
-      cancelLift(false);
       s.busy?.removeAttribute("aria-busy");
       s.busy = null;
       s.pending = false;
@@ -402,13 +383,7 @@ export function NavProgress({
     <>
       <div ref={bar} className="nav-progress" data-state="idle" aria-hidden="true" />
       {MOTION_LAYER ? (
-        <NavLoader
-          phase={loader.phase}
-          quote={loader.quote}
-          place={loader.place}
-          lang={lang}
-          dir={dir}
-        />
+        <NavLoader phase={loader.phase} quote={loader.quote} lang={lang} dir={dir} />
       ) : null}
     </>
   );

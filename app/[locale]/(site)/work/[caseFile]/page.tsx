@@ -21,7 +21,6 @@ import {
 import { resolveCover } from "@/designs/registry";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
-import { MOTION_LAYER } from "@/lib/motion/flag";
 import { pageMetadata } from "@/lib/seo/metadata";
 import type { Locale } from "@/lib/content/types";
 import { dirForLocale } from "@/lib/content/types";
@@ -203,21 +202,8 @@ export default async function CaseFileCover({
         exists to dissolve. The gallery thumbnail is the opposite case: it has
         no room for the texture, so there the frame IS the treatment.
       */}
-      {/*
-        `data-case-cover`: the hand-over target for the gallery → cover lift
-        (decision 065). While `html[data-nav="open"]` is set, globals.css names
-        this wrapper `case-cover`, the same name the lifted card picture
-        carries, and the view transition morphs one into the other. `relative`
-        holds the lifted copy (`.nav-open-fallback`) over an image that is
-        still loading. Flag off: neither is rendered.
-      */}
       {detail.cover_kind === "component" && detail.cover_component ? (
-        <div
-          className={MOTION_LAYER ? "relative mt-8" : "mt-8"}
-          data-case-cover={MOTION_LAYER ? "" : undefined}
-        >
-          {resolveCover(detail.cover_component, "cover")}
-        </div>
+        <div className="mt-8">{resolveCover(detail.cover_component, "cover")}</div>
       ) : detail.cover ? (
         /*
           The media branch. This page rendered a component cover and nothing
@@ -232,10 +218,7 @@ export default async function CaseFileCover({
           with neither cover kind falls through to null and the page closes up
           cleanly, with no empty frame left behind.
         */
-        <div
-          className={MOTION_LAYER ? "relative mt-8" : "mt-8"}
-          data-case-cover={MOTION_LAYER ? "" : undefined}
-        >
+        <div className="mt-8">
           <CloudinaryImage
             media={detail.cover}
             preset="hero"
