@@ -465,9 +465,28 @@ Read from `annotations.code`, **not** by matching backticks. Notion's `plain_tex
 strips the backticks, so a regex over joined text is matching punctuation that is
 not there. A paragraph is a tag when its first code span opens with `[cld]`.
 
-- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below).
+- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below). A fourth, optional span, `[frame] none`, is described below.
 - Public IDs contain spaces, dots, parentheses and apostrophes. They are used verbatim — never slugified, never URL-encoded at this layer. Cloudinary resolves them as-is.
 - The tag paragraph is a **sibling** of the prose paragraphs, never inline within one. This is what lets a `<figure>` render between paragraphs rather than inside one.
+
+### The optional fourth span: `[frame] none` (decision 069, task `013261026`)
+
+```
+`[cld] <public id>`  `[alt] <alt text>`  `[caption] <caption>`  `[frame] none`
+```
+
+A finished mockup is already composed; framing it frames it twice. Nothing on the chapter or the
+picture can tell a mockup from a raw screen, so it is authored **per image**.
+
+- **`none`** (case-insensitive, trimmed) → the placement is stored with `chapter_paragraphs.frame = 'none'` and reaches the page as `frame: "none"` on the figure. Render: bare image, full container width, plain caption below.
+- **Absent** → NULL, the frame stays automatic by aspect ratio. This is every existing tag.
+- **Any other value** (including empty) → the tag is **still written** (the figure is fine), the value is **ignored**, and the sync raises a NOTICE naming the chapter, the public ID and the value. Never guessed.
+- **`[frame]` twice** → the tag is unusable and fails the chapter, the same as any repeated key.
+- The span may sit anywhere after `[cld]`; the first code span must still be `[cld]`.
+- **On the placement, never on `media`**: the same asset may be framed elsewhere.
+- **Before migration 0067 is applied** the sync does not stop: it probes `chapter_paragraphs.frame` at start-up, prints one run-level warning, writes everything else, and reports each `[frame] none` it could not store. Apply 0067 and re-run to store them.
+- The chapter shape line gains ` unframed en:N ar:M` when any figure carries the flag, so a flag that stops resolving shows as a changed line.
+- **Not an NDA control.** Grayscale stays driven by `case_files.nda` (rule 6).
 
 ### What the sync does with it
 

@@ -60,6 +60,7 @@ import {
 import {
   invalidTagMessage,
   parseImageTag,
+  tagWarningMessage,
   type ImageTag,
   type NotionRun,
 } from "@/lib/sync/image-tags";
@@ -127,6 +128,15 @@ const DATA_SOURCE_ID = "7a8ab2e1-08d1-4286-a4df-f2e87b85c219";
 const CELL_SEP = "\u001f";
 
 const DRY_RUN = process.argv.includes("--dry-run");
+
+/*
+ * Whether `chapter_paragraphs.frame` (migration 0067) exists. Probed once in
+ * `main()` before any write. Unlike `device_frame`, a missing column does NOT
+ * stop the run: Moataz applies 0067 by hand, and until he does every figure
+ * simply keeps its automatic frame — so the sync writes everything else, skips
+ * the field, and REPORTS each `[frame] none` it could not store.
+ */
+let paragraphFrameWritable = true;
 const ALL_LAYERS = process.argv.includes("--all");
 
 /*
@@ -718,7 +728,8 @@ function fieldsFromBody(
  */
 type BodyItem =
   | { kind: "prose"; text: string }
-  | { kind: "image"; tag: ImageTag }
+  /** `warnings`: see `TagParse` — reported by the chapter pass, never fatal. */
+  | { kind: "image"; tag: ImageTag; warnings: string[] }
   /*
    * A table, in its DOCUMENT POSITION. `tables` below keeps collecting them in
    * a separate bucket for the existing consumers, but that bucket has no idea
@@ -1123,9 +1134,19 @@ function resolveChapterSections(
   chapterTitle: string,
   blocks: readonly OrderedBlock[],
   aliases: ReadonlyMap<string, string>,
-): { sections: ChapterSection[]; failures: string[] } {
+): { sections: ChapterSection[]; failures: string[]; notices: string[] } {
   const sections: ChapterSection[] = [];
   const failures: string[] = [];
+  /*
+   * Warnings on USABLE tags (an unrecognised `[frame]` value). Collected for
+   * every image tag the chapter body carries — including one under a decision
+   * heading — so a value that was ignored is never ignored silently.
+   */
+  const notices: string[] = [];
+  const warn = (item: BodyItem) => {
+    if (item.kind !== "image") return;
+    for (const w of item.warnings) notices.push(tagWarningMessage(chapterTitle, item.tag.cld, w));
+  };
   const seen = new Map<string, string>();
 
   for (const block of blocks) {
@@ -1145,6 +1166,7 @@ function resolveChapterSections(
      */
     if (isDecisionHeading(block.heading)) {
       const images = block.items.filter((i) => i.kind === "image");
+      for (const item of images) warn(item);
       const last = sections[sections.length - 1];
       if (last) {
         for (const item of images) {
@@ -1204,6 +1226,7 @@ function resolveChapterSections(
           const text = item.text.trim();
           if (text) out.push({ kind: "prose", text });
         } else if (item.kind === "image") {
+          warn(item);
           out.push({ kind: "image", tag: item.tag });
         } else if (item.kind === "table") {
           out.push({ kind: "table", grid: item.grid });
@@ -1230,7 +1253,7 @@ function resolveChapterSections(
     });
   }
 
-  return { sections, failures };
+  return { sections, failures, notices };
 }
 
 /* ------------------------------------------------- media dimensions (007231026) */
@@ -1462,9 +1485,10 @@ async function writeChapterSections(opts: {
   const en = resolveChapterSections(rowTitle, enBlocks, aliases);
   const ar = arBlocks
     ? resolveChapterSections(`${rowTitle} (ar)`, arBlocks, aliases)
-    : { sections: [], failures: [] };
+    : { sections: [], failures: [], notices: [] };
 
   for (const f of [...en.failures, ...ar.failures]) fail(rowTitle, f);
+  for (const n of [...en.notices, ...ar.notices]) notice(rowTitle, n);
   if (en.failures.length > 0 || ar.failures.length > 0) return null;
 
   const prose = en.sections.filter((s) => isChapterProseSlot(s.slot));
@@ -1480,6 +1504,15 @@ async function writeChapterSections(opts: {
       (n, s) =>
         n +
         [...s.paragraphs, ...s.tail].filter((p) => p.kind === "image").length,
+      0,
+    );
+
+  const countUnframed = (ss: readonly ChapterSection[]) =>
+    ss.reduce(
+      (n, s) =>
+        n +
+        [...s.paragraphs, ...s.tail].filter((p) => p.kind === "image" && p.tag.frame === "none")
+          .length,
       0,
     );
 
@@ -1509,7 +1542,14 @@ async function writeChapterSections(opts: {
           `${imgs ? `/${imgs}img` : ""}${tbl ? `/${tbl}tbl` : ""} ${arPart})`
         );
       })
-      .join(" · ")}] images en:${countImages(en.sections)} ar:${countImages(ar.sections)}`;
+      .join(" · ")}] images en:${countImages(en.sections)} ar:${countImages(ar.sections)}` +
+    /*
+     * `[frame] none` figures (decision 069), printed only when there are any,
+     * so a flag that stops resolving shows as a line that changed.
+     */
+    (countUnframed(en.sections) + countUnframed(ar.sections) > 0
+      ? ` unframed en:${countUnframed(en.sections)} ar:${countUnframed(ar.sections)}`
+      : "");
 
   /*
    * An Arabic slot with no English counterpart is written nowhere — the loop
@@ -1672,6 +1712,20 @@ async function writeChapterSections(opts: {
       ];
 
       for (const [j, { para, part }] of units.entries()) {
+        /*
+         * `[frame] none` lives on THIS row — the placement — and not on
+         * `media`: the same asset may be framed in another chapter, and media
+         * rows are shared across locales and chapters (decision 069).
+         */
+        const unframed = para.kind === "image" && para.tag.frame === "none";
+        if (unframed && !paragraphFrameWritable) {
+          notice(rowTitle,
+            `${rowTitle}: slot "${section.slot}" ${locale} — [frame] none on ` +
+              `${JSON.stringify(para.tag.cld)} was NOT stored: chapter_paragraphs.frame ` +
+              "does not exist yet. Apply supabase/migrations/0067_image_frame_none.sql and " +
+              "re-run the sync; until then this figure renders with its automatic frame.",
+          );
+        }
         const { data: paraRow, error: paraError } = await (await db())
           .from("chapter_paragraphs")
           .insert({
@@ -1680,6 +1734,7 @@ async function writeChapterSections(opts: {
             kind: para.kind === "table" ? "table" : "prose",
             locale,
             part,
+            ...(unframed && paragraphFrameWritable ? { frame: "none" as const } : {}),
           })
           .select("id").single();
 
@@ -2011,7 +2066,7 @@ async function readOrderedBlocks(pageId: string, label: string): Promise<Ordered
       const target = blocks[blocks.length - 1];
 
       if (parsed.kind === "tag") {
-        target.items.push({ kind: "image", tag: parsed.tag });
+        target.items.push({ kind: "image", tag: parsed.tag, warnings: parsed.warnings });
         continue;
       }
       if (parsed.kind === "invalid") {
@@ -2225,6 +2280,25 @@ async function main() {
       }
       console.log(`WARNING — ${message}\n  (dry run: continuing; nothing is written)\n`);
       notices.push("chapters.device_frame is missing — apply migration 0062 before a live sync.");
+    }
+  }
+
+  /*
+   * `chapter_paragraphs.frame` (migration 0067, decision 069). NOT a run-level
+   * refusal like the two probes around it — see `paragraphFrameWritable`. A
+   * missing column means the `[frame] none` flags are skipped and reported per
+   * figure; everything else is written exactly as before.
+   */
+  {
+    const { error } = await (await db()).from("chapter_paragraphs").select("frame").limit(1);
+    if (error) {
+      paragraphFrameWritable = false;
+      const message =
+        `chapter_paragraphs.frame is not readable (${error.message}). ` +
+        "`[frame] none` flags will NOT be stored this run (each one is reported); " +
+        "apply supabase/migrations/0067_image_frame_none.sql in the Supabase SQL editor.";
+      console.log(`WARNING — ${message}\n`);
+      notices.push(message);
     }
   }
 

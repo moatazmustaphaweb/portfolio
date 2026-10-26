@@ -266,6 +266,20 @@ create table chapter_slot_aliases (
 
 ### A paragraph is a row, and it belongs to ONE locale
 
+**`chapter_paragraphs.frame` (migration 0067, decision 069, task `013261026`)** — a per-placement
+override of the automatic device frame. NULL (every existing row, and any figure whose tag has no
+`[frame]` span) = the frame stays automatic by aspect ratio; `'none'` = this figure renders
+unframed. It comes from the image tag span `` `[frame] none` `` via the sync, and from nowhere
+else. **On the paragraph row, not on `media`:** an image paragraph row IS the placement (one per
+figure, per locale, per position), while a `media` row is shared by public ID across locales and
+chapters, so a flag there would unframe the asset everywhere. Nullable `text` + CHECK, the
+`device_frame` shape. **Applied by Moataz in the SQL editor**, so both sides tolerate its absence:
+`lib/content/chapters.ts` reads `chapter_paragraphs` with `select("*")` (never naming `frame`) and
+treats a missing column as NULL; the sync probes it at start-up and, when missing, writes
+everything else and reports each `[frame] none` it could not store. Exposed by the content layer
+as **`frame?: "none"`** on the `{ kind: "image" }` member of `ChapterBlock` — present only when
+`'none'`, absent otherwise.
+
 ```sql
 create table chapter_paragraphs (
   id                 uuid primary key default gen_random_uuid(),
@@ -274,6 +288,8 @@ create table chapter_paragraphs (
   kind               text not null,      -- 'prose' | 'table'
   locale             locale_code not null,   -- 0045. NO DEFAULT
   part               text not null,          -- 0045. 'body' | 'tail'. NO DEFAULT
+  frame              text                    -- 0067. NULL | 'none'
+                     check (frame is null or frame = 'none'),
   unique (chapter_section_id, locale, sort_order)
 );
 

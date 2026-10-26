@@ -260,6 +260,13 @@ export type Database = {
            * for the English cross-chapter pointer that follows it.
            */
           part: string;
+          /**
+           * Migration 0067 (decision 069): NULL = automatic device frame;
+           * 'none' = this figure renders unframed. OPTIONAL because the column
+           * does not exist until Moataz applies 0067 — read it from a `*`
+           * select and treat absent as NULL, never name it in a select list.
+           */
+          frame?: "none" | null;
         };
         Insert: {
           id?: string;
@@ -268,6 +275,7 @@ export type Database = {
           kind?: string;
           locale: "en" | "ar";
           part: string;
+          frame?: "none" | null;
         };
         Update: Partial<Database["public"]["Tables"]["chapter_paragraphs"]["Insert"]>;
         Relationships: [];

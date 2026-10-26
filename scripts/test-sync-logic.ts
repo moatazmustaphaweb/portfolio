@@ -48,6 +48,12 @@ import {
   pathsForPage,
   postRevalidate,
 } from "@/lib/sync/revalidate";
+import {
+  invalidTagMessage,
+  parseImageTag,
+  tagWarningMessage,
+  type NotionRun,
+} from "@/lib/sync/image-tags";
 
 let failures = 0;
 
@@ -763,6 +769,89 @@ async function revalidatePostChecks() {
   const down = await postRevalidate("https://a.example", "s3cret", ["/"],
     (async () => { throw new Error("ECONNREFUSED"); }) as unknown as typeof fetch);
   check("post: network error -> not ok, no throw", !down.ok && down.detail === "ECONNREFUSED", down.detail);
+}
+
+/* --------------------------------- image tag [frame] none (decision 069) ---- */
+
+console.log("\nImage tag [frame] (task 013261026, decision 069)");
+
+{
+  const code = (t: string): NotionRun => ({ plain_text: t, annotations: { code: true } });
+  const gap: NotionRun = { plain_text: " ", annotations: { code: false } };
+  const tagOf = (...spans: string[]): NotionRun[] =>
+    spans.flatMap((sp, i) => (i === 0 ? [code(sp)] : [gap, code(sp)]));
+  const base = ["[cld] Egypt/FATCA forms (v2)", "[alt] The FATCA form", "[caption] FATCA, as a form"];
+
+  const plain = parseImageTag(tagOf(...base));
+  eq("three spans: still a usable tag", plain.kind, "tag");
+  if (plain.kind === "tag") {
+    check("three spans: no frame flag at all", !("frame" in plain.tag), JSON.stringify(plain.tag));
+    eq("three spans: no warnings", plain.warnings, []);
+  }
+
+  const none = parseImageTag(tagOf(...base, "[frame] none"));
+  eq("[frame] none -> frame: none", none.kind === "tag" ? none.tag.frame : none.kind, "none");
+  eq("[frame] none -> no warnings", none.kind === "tag" ? none.warnings : none.kind, []);
+  eq("[frame] none keeps cld/alt/caption verbatim", none.kind === "tag" ? none.tag : null, {
+    cld: "Egypt/FATCA forms (v2)", alt: "The FATCA form", caption: "FATCA, as a form", frame: "none",
+  });
+
+  for (const v of ["None", "NONE", "  none  ", "nOnE"]) {
+    const r = parseImageTag(tagOf(...base, `[frame] ${v}`));
+    eq(`case-insensitive and trimmed: ${JSON.stringify(v)}`, r.kind === "tag" ? r.tag.frame : r.kind, "none");
+  }
+
+  // Order of the spans after [cld] is free.
+  const early = parseImageTag(tagOf(base[0], "[frame] none", base[1], base[2]));
+  eq("[frame] between [cld] and [alt] is read", early.kind === "tag" ? early.tag.frame : early.kind, "none");
+
+  // Unrecognised value: tag still usable, flag absent, and REPORTED.
+  for (const v of ["laptop", "off", "no", ""]) {
+    const r = parseImageTag(tagOf(...base, `[frame] ${v}`.trimEnd()));
+    eq(`[frame] ${JSON.stringify(v)} -> still a usable tag`, r.kind, "tag");
+    if (r.kind === "tag") {
+      check(`[frame] ${JSON.stringify(v)} -> no frame flag`, r.tag.frame === undefined, JSON.stringify(r.tag));
+      check(
+        `[frame] ${JSON.stringify(v)} -> one warning naming the value`,
+        r.warnings.length === 1 && r.warnings[0].includes(JSON.stringify(v)),
+        JSON.stringify(r.warnings),
+      );
+    }
+  }
+
+  const odd = parseImageTag(tagOf(...base, "[frame] laptop"));
+  if (odd.kind === "tag") {
+    const msg = tagWarningMessage("Chapter — Egypt / Onboarding Journey", odd.tag.cld, odd.warnings[0]);
+    check("warning notice names the chapter", msg.includes("Chapter — Egypt / Onboarding Journey"), msg);
+    check("warning notice names the value", msg.includes('"laptop"'), msg);
+    check("warning notice names the image", msg.includes('"Egypt/FATCA forms (v2)"'), msg);
+  }
+
+  // Duplicate [frame]: same handling as any repeated key — the tag is unusable.
+  const dup = parseImageTag(tagOf(...base, "[frame] none", "[frame] none"));
+  eq("duplicate [frame] -> invalid", dup.kind, "invalid");
+  if (dup.kind === "invalid") {
+    check("duplicate [frame] names the key", dup.problems.some((p) => p.includes("[frame] appears twice")), JSON.stringify(dup.problems));
+    check("duplicate [frame] message keeps the cld", invalidTagMessage("X", dup).includes("Egypt/FATCA forms (v2)"));
+  }
+
+  // [frame] does not rescue a broken tag, and does not add noise to one.
+  const noAlt = parseImageTag(tagOf(base[0], base[2], "[frame] laptop"));
+  eq("missing [alt] with [frame] -> still invalid", noAlt.kind, "invalid");
+  if (noAlt.kind === "invalid") {
+    check("broken tag reports its real problem, not a frame warning",
+      noAlt.problems.every((p) => !p.includes("laptop")), JSON.stringify(noAlt.problems));
+  }
+
+  // [frame] alone is not a tag opener: the first code span must be [cld].
+  eq("a paragraph opening with [frame] is prose", parseImageTag(tagOf("[frame] none")).kind, "prose");
+
+  // An unknown key is still refused, and the message lists [frame] as known.
+  const junk = parseImageTag(tagOf(...base, "[device] laptop"));
+  eq("unknown key still invalid", junk.kind, "invalid");
+  if (junk.kind === "invalid") {
+    check("unknown-key message lists [frame]", junk.problems.some((p) => p.includes("[frame]")), JSON.stringify(junk.problems));
+  }
 }
 
 revalidatePostChecks().then(() => {

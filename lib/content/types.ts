@@ -275,7 +275,22 @@ export type ChapterBlock =
        */
       lang: Locale;
     }
-  | { kind: "image"; media: Media | null }
+  | {
+      kind: "image";
+      media: Media | null;
+      /**
+       * `"none"`: render this figure UNFRAMED — the bare image at full
+       * container width, plain caption below (decision 069). Absent: the
+       * device frame stays automatic by aspect ratio, as before.
+       *
+       * Per placement, not per asset: it comes from the image tag's
+       * `[frame] none` span via `chapter_paragraphs.frame`, so the same media
+       * can be framed in one chapter and bare in another. Never any other
+       * value, and absent (not null) whenever it does not apply — including
+       * before migration 0067 is applied.
+       */
+      frame?: "none";
+    }
   | {
       kind: "table";
       /**

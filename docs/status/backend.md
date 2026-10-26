@@ -16,6 +16,46 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 013261026 — 2026-10-26 17:15 — per-image `[frame] none` from the image tag to the figure (migration 0067, NOT applied)
+
+**Brief:** implement decision 069. An image tag may carry an optional fourth span `[frame] none`.
+Parse it, store it on the per-placement row, and expose it on the figure `ChapterSections` gets.
+Any other value is reported and treated as absent. Both sides must keep working before Moataz
+applies the migration. Components are not mine.
+
+**Files:** `lib/sync/image-tags.ts` (`[frame]` key; `ImageTag.frame?: "none"`; the usable-tag
+result gains `warnings: string[]`; new `tagWarningMessage`) · `scripts/sync-notion.ts` (warnings
+carried on body items and raised as NOTICEs naming chapter, public ID and value; a start-up probe of
+`chapter_paragraphs.frame` that sets `paragraphFrameWritable` and does NOT exit; the insert writes
+`frame: 'none'` only when the column exists, otherwise reports each one per figure; shape line
+gains ` unframed en:N ar:M` when non-zero) · `scripts/test-sync-logic.ts` (new "Image tag [frame]"
+block) · `supabase/migrations/0067_image_frame_none.sql` (new: `add column if not exists frame
+text`, CHECK `chapter_paragraphs_frame_valid` = `frame is null or frame = 'none'`, guarded by a
+`pg_constraint` lookup, plus a column comment) · `lib/supabase/database.types.ts` (`frame?: "none" | null`
+on Row/Insert) · `lib/content/types.ts` (`frame?: "none"` on the image member of `ChapterBlock`) ·
+`lib/content/chapters.ts` (`chapter_paragraphs` read with `select("*")` so a missing column cannot
+fail the query; the figure gets `frame: "none"` only when the row says `'none'`) · `docs/schema.md`
+· `docs/sync-contract.md`. **No migration applied.**
+
+**Measured:** `npm run test:sync`: all checks pass, 0 FAIL (the new block covers absent, none,
+4 case/whitespace variants, span order, 4 unrecognised values incl. empty, notice text, duplicate
+→ invalid, broken tag not masked, `[frame]`-first is prose, unknown key message).
+`rm -rf .next/types && npx tsc --noEmit`: no errors. eslint on the changed TS files: 0 errors (one
+warning: `database.types.ts` is in the ignore list).
+
+**Verified:** the tests and typecheck above, nothing else.
+
+**Not verified:** no live or dry-run sync. There is no `.env.local` in this checkout, and the Supabase
+MCP here lists only the Dabbler projects, not the portfolio. So nothing has been checked against the
+live database: not the column's absence, not the `select("*")` read, not a page on `:3000`. The
+probe-and-skip path and the read-as-NULL path are reasoned and typechecked, not exercised. Rendering
+belongs to frontend: `ChapterSections.tsx` rebuilds figures as `{ media, i }` and `pair` units, so
+it has to carry `block.frame` through itself.
+
+**Open questions:** none.
+
+---
+
 ## 012261026 — 2026-10-26 13:15 — `chapters.image_layout` gains `editorial` (migration 0066, NOT applied)
 
 **Brief:** add a third value, `editorial`, to `chapters.image_layout` per decision 068. That meant
