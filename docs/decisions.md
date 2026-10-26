@@ -910,6 +910,16 @@ to do the work of a sentence.
 
 ---
 
+## 067 — og_image stays as it is
+
+**Decided 2026-10-26, task `010261026`, by Moataz** on the Vision Tracker: "The current version is OK."
+The share image stays stored as a URL. No new image, no `public_id` migration. The redaction guard on
+that one field stays inert, accepted knowingly: the image is not an NDA screen. Closes 061 item 7.
+
+**Status:** ACTIVE.
+
+---
+
 ## 066 — Cover to chapter is a horizontal push; back to the cover is its reverse
 
 **Decided 2026-10-26, task `006261026`, by Moataz:** "a transition from cover to chapter from right

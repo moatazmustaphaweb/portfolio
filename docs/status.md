@@ -37,6 +37,23 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 010261026 - 2026-10-26 - Closing the In-progress rows from Moataz's Notion comments; nightly released to main
+
+**Task id `010261026`.** Moataz: "start to close the in progress, I added comments on Notion."
+
+- **"Need to publish on main" (two rows):** main merged into nightly first (one conflict,
+  `.github/workflows/sync-notion.yml`, nightly's superset kept; tree identical to nightly), then
+  PR #9 nightly to main, merged (`07d6e3e`). **Verified on www:** pages PRERENDER then HIT at
+  0.17-0.33s; real clicks 0.19-0.49s (3.8s before); all 33 sitemap routes 200; `/en/nope` 404;
+  production robots allow crawling. Rows: navigation feedback Done, ISR Done, release row Done.
+- **Analytics disclosure:** "postpone; will be built in how this website works". Row set to Decided
+  not to do; the /how-this-site-works row now carries it.
+- **og_image:** "The current version is OK". Decision 067; row Decided not to do.
+- **Lighthouse (gate row):** run on www, mobile throttling: accessibility 100, SEO 100, best
+  practices 96 on four pages; performance 85 (/en), 96 (/ar), 73 (/en/work), 77 (cover). Manifesto
+  box ticked with the numbers. **LCP 7.8s on /work and 6.0s on a cover**: opened as a new row.
+- **Not touched (no comment from him):** FeatureStrip lists and his Arabic reviews stay In progress.
+
 ## 009261026 - 2026-10-26 - Answered: what content is left
 
 **Task id `009261026`.** Moataz asked what content remains. Answered from the Vision Tracker

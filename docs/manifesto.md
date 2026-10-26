@@ -126,7 +126,7 @@ Site cannot render without these:
 - [ ] RTL verified on every page type
 - [ ] LLM summary test passes
 - [ ] Zero heading-level typos, both languages
-- [ ] Lighthouse: performance + accessibility acceptable
+- [x] Lighthouse: performance + accessibility acceptable — run 2026-10-26 on www after the ISR release (task `010261026`, mobile default throttling): accessibility 100, SEO 100, best practices 96 on `/en`, `/ar`, `/en/work`, `/en/work/cervello`; performance 85 / 96 / 73 / 77. LCP 2.7s on home, **7.8s on /work and 6.0s on a cover** (image-heavy pages): open as its own item, not a gate failure
 - [ ] Analytics confirmed writing to Supabase
 - [ ] Old Webflow site stays live until every box above is ticked
 
