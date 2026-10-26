@@ -44,7 +44,7 @@ our choice of place. Chosen: inline-end side of each card, vertically centred, `
 `text-fg` on hover and focus (`components/case-file/LivingMap.tsx`, `709b177`). No nudge: decision
 048 forbids transforms on content components (frontend stopped and asked, correctly). Glyph from
 `ui_strings` `arrow_forward` (EN →, AR ←), added to migration 0065 (`ac313ce`), still not applied,
-so **no arrow renders until Moataz runs 0065**. Not verified on screen for that reason. Separate
+**Moataz ran 0065 the same day; verified on preview** (en and ar, 1280 and 390): arrow at the inline-end side, → in EN, ← on the left in AR, dark on the hovered card. Quotes and arrow keys now in the database. Separate
 cleanup listed by frontend: 18 literal arrows in JSX still flipped with CSS (rtl-guard).
 
 ## 006261026 - 2026-10-26 - Cover to chapter is a horizontal push; back is its reverse (decision 066)
