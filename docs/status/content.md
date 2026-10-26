@@ -16,6 +16,23 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 012261026 — 2026-10-26 13:15 — Image layout gains Editorial; UAE Application Tracking set to Editorial, Device cleared (decision 068)
+
+**Brief:** Notion only. Add an `Editorial` option to the chapters database's `Image layout` select, in the style of Stacked and Grid; set UAE Acquisition / Application Tracking to Editorial; clear its Device (finished mockups, no frame). No other chapter, no text.
+**Read:** `docs/decisions.md` 068; my own 011261026 entry; `docs/sync-contract.md` (`Device`, `Image layout` rows); `lib/sync/image-layout.ts`. Notion: the `Portfolio — Pages & Content` data source schema (`collection://7a8ab2e1-…c219`), before and after; SQL over every row carrying either property, before and after; a full fetch of Chapter - UAE / Application Tracking (`3c4d…5b1a`) after the write.
+**Changed:**
+- `Image layout` select: options Stacked, Grid → Stacked, Grid, Editorial. Editorial is colour `default` like the other two. Stacked and Grid kept their option ids, so no row's value moved.
+- Chapter - UAE / Application Tracking: (Device iPhone, Image layout Grid) → (Device empty, Image layout Editorial).
+**Read back:** SQL after the writes returns the same 6 rows as before. 5 are unchanged: UAE Mobile Onboarding Journey (iPhone, Grid), Neobiz Mobile / Onboarding (iPhone, Grid), PideTaxi / iOS (iPhone, Grid), PideTaxi / Android (Android, Grid), Kshemam / Android (Android, Grid). Application Tracking reads Device null, Image layout Editorial; the page fetch shows the same. The page body was not touched; the fetch shows its five `[cld]` figures (44, 45, 59, 38, 01-welcome) and prose in place.
+**Gaps reported, not filled:** none. No text touched.
+**Belongs to someone else (backend):**
+- `lib/sync/image-layout.ts`, as it stands in the working tree, only accepts `Grid` and `Stacked`. Until it accepts `Editorial`, a sync will render this chapter **stacked** and print a NOTICE (`Image layout "Editorial" is not Stacked/Grid`). The `chapters.image_layout` column will also need to accept `editorial`.
+- `docs/sync-contract.md` says an empty `Device` resolves to `iphone` silently. So clearing Device in Notion writes `device_frame = iphone`, not "no frame". Decision 068 item 3 says frames follow the image's aspect ratio. Whether a portrait finished mockup renders in an iPhone frame depends on that rule, not on the empty Device. Clearing the property does not, by itself, remove a frame.
+**Not verified:** the sync, the database and the rendered page. The Arabic child page has no properties to change, so I did not open it.
+**Open questions:** none blocking.
+
+---
+
 ## 011261026 — 2026-10-26 — Bank mobile chapters set to Image layout = Grid, Device = iPhone (UAE and Egypt)
 
 **Brief:** Moataz, verbatim: "we need the grid in displaying UI in other mobile projects as we did in Kshemam and PideTaxi, all bank mobile projects for UAE and Egypt; display the mobile screens in grid with same criteria; all bank mobile projects are cross-platform so we can only display in iPhone frame." Set `Image layout = Grid` and `Device = iPhone` on the bank chapters that hold portrait mobile screens. Properties only, no text.
