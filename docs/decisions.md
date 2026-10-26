@@ -910,6 +910,29 @@ to do the work of a sentence.
 
 ---
 
+## 068 — A third image layout: Editorial (image beside its paragraph, alternating)
+
+**Decided 2026-10-26, task `012261026`, by Moataz**, on UAE Application Tracking, whose images are
+finished mockups: "make the page designed content, not a template where we put the picture."
+
+**Decision:**
+1. `chapters.image_layout` gains `editorial` (Notion `Image layout` = Editorial), alongside stacked
+   and grid. Authored per chapter.
+2. In an editorial chapter each figure is paired with the prose that leads into it (the paragraphs
+   since the previous figure in the same section) and its caption.
+   - **Narrow figure** (portrait or square, by the image's own aspect ratio): a two-column row on
+     `md` and up, prose and caption in one column, the figure in the other. The side alternates
+     figure by figure: the first figure on the inline-end side, the next on the inline-start side,
+     and so on. Logical sides, so Arabic mirrors.
+   - **Wide figure** (landscape): the full container width; prose before it, caption under it.
+   - Below `md`: everything stacks, prose then figure then caption.
+3. Device frames still follow the image's own aspect ratio; finished mockups carry no Device value.
+4. No motion; layout only.
+
+**Status:** ACTIVE.
+
+---
+
 ## 067 — og_image stays as it is
 
 **Decided 2026-10-26, task `010261026`, by Moataz** on the Vision Tracker: "The current version is OK."
