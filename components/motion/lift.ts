@@ -56,6 +56,16 @@ type LiftState = {
   layer: HTMLElement;
   backdrop: HTMLElement;
   from: { x: number; y: number };
+  /** The card visual's size: the layer's size until the lift settles. */
+  card: { w: number; h: number };
+  /** Where the lift lands, as a visual (post-scale) rect. */
+  target: { x: number; y: number; w: number; h: number };
+  /**
+   * True once the finished lift has been re-expressed as real size plus a
+   * translate (`settleLayer`). Before that the layer is card-sized and
+   * scaled up by its transform.
+   */
+  settled: boolean;
   radius: number;
   duration: number;
   move: Animation;
@@ -232,6 +242,9 @@ export function startLift(link: HTMLAnchorElement, to: string): boolean {
     layer,
     backdrop,
     from: { x: r.left, y: r.top },
+    card: { w: r.width, h: r.height },
+    target: { x: colLeft, y: targetTop, w: targetW, h: targetH },
+    settled: false,
     radius,
     duration,
     move,
@@ -240,7 +253,36 @@ export function startLift(link: HTMLAnchorElement, to: string): boolean {
     drift,
     phase: "lift",
   };
+  const L = active;
+  move.finished.then(
+    () => {
+      if (active === L && L.phase === "lift") settleLayer(L);
+    },
+    () => {},
+  );
   return true;
+}
+
+/*
+ * WHY THE LAYER IS RE-EXPRESSED WHEN THE LIFT ENDS (002261026, preview
+ * finding). A view transition captures a group's `width`/`height` and its
+ * `transform` separately and interpolates each linearly. A layer that is
+ * card-sized and scaled ~3x by its transform therefore morphs as
+ * (width growing) x (scale shrinking), and that product overshoots: the
+ * picture swelled to ~1.2-1.35x, edge to edge over the title, mid-morph, and
+ * shrank back onto the cover. Re-expressed as its real size and a plain
+ * translate, the layer gives the UA nothing to multiply. Same pixels on
+ * screen, in the same task, so no frame shows the change.
+ */
+function settleLayer(L: LiftState) {
+  const t = L.target;
+  L.layer.style.width = px(t.w);
+  L.layer.style.height = px(t.h);
+  L.layer.style.transform = `translate(${px(t.x)}, ${px(t.y)})`;
+  L.layer.style.borderRadius = "0px";
+  L.move.cancel();
+  L.round.cancel();
+  L.settled = true;
 }
 
 /** True when a lift has room for the slow-route signal. */
@@ -302,15 +344,21 @@ export function cancelLift(animated: boolean) {
   L.dim.cancel();
   L.drift?.cancel();
   const opts: KeyframeAnimationOptions = { duration: ms, easing: ease, fill: "forwards" };
+  // A settled layer is target-sized, so it goes back by scaling down to the
+  // card; an unsettled one is card-sized and goes back to scale 1.
+  const home = L.settled ? L.card.w / L.target.w : 1;
   const back = [
     L.layer.animate(
       [
         { transform: layerNow },
-        { transform: `translate(${px(L.from.x)}, ${px(L.from.y)}) scale(1)` },
+        { transform: `translate(${px(L.from.x)}, ${px(L.from.y)}) scale(${home})` },
       ],
       opts,
     ),
-    L.layer.animate([{ borderRadius: radiusNow }, { borderRadius: px(L.radius) }], opts),
+    L.layer.animate(
+      [{ borderRadius: radiusNow }, { borderRadius: px(L.radius / home) }],
+      opts,
+    ),
     L.backdrop.animate([{ opacity: dimNow }, { opacity: 0 }], opts),
   ];
   if (L.column) {
@@ -384,13 +432,28 @@ export function liftTransitionReady() {
     return !!fx?.pseudoElement && fx.pseudoElement.includes("(case-cover)");
   });
   if (anims.length === 0) return;
-  const elapsed = Number(L.move.currentTime ?? L.duration);
+  const group = anims.find((a) =>
+    (a.effect as KeyframeEffect).pseudoElement?.startsWith("::view-transition-group"),
+  );
+  // Captured mid-flight, the layer was still card-sized under a scale (see
+  // `settleLayer`). Restate the morph's start as the visual rect with no
+  // scale; the end stays implicit, i.e. the cover visual's own rect.
+  if (!L.settled && group?.effect instanceof KeyframeEffect) {
+    const v = L.layer.getBoundingClientRect();
+    if (v.width > 0 && v.height > 0) {
+      group.effect.setKeyframes([
+        {
+          transform: `translate(${px(v.left)}, ${px(v.top)})`,
+          width: px(v.width),
+          height: px(v.height),
+        },
+      ]);
+    }
+  }
+  const elapsed = L.settled ? L.duration : Number(L.move.currentTime ?? L.duration);
   const remaining = L.duration - (Number.isFinite(elapsed) ? elapsed : L.duration);
   const floor = readMs("--duration-nav-open-handover", 350);
   if (remaining > floor) {
-    const group = anims.find((a) =>
-      (a.effect as KeyframeEffect).pseudoElement?.startsWith("::view-transition-group"),
-    );
     group?.effect?.updateTiming({
       duration: remaining,
       easing: readEase("--ease-nav-open-recede", "ease-out"),

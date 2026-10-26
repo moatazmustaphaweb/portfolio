@@ -299,6 +299,9 @@
   --duration-nav-open-handover: 350ms;
   --ease-nav-open-handover: cubic-bezier(0.45, 0, 0.2, 1);
   --duration-nav-open-resolve: 300ms;
+  /* The gallery leaves faster than the cover arrives, so the two pages' h1s,
+   * which sit in the same place, never cross-fade readably (002261026). */
+  --duration-nav-open-resolve-out: 120ms;
   --duration-nav-open-signal-grace: 600ms;
   --duration-nav-open-cancel: 200ms;
   --nav-open-drift: 2rem;
@@ -515,6 +518,7 @@
     --duration-nav-open: 0ms;
     --duration-nav-open-handover: 0ms;
     --duration-nav-open-resolve: 0ms;
+    --duration-nav-open-resolve-out: 0ms;
     --duration-nav-open-signal-grace: 0ms;
     --duration-nav-open-cancel: 0ms;
     /* The hairline jumps to its resting width instead of trickling. */
@@ -1197,7 +1201,7 @@
  * the lifting scrim. ≤300ms (065 item 2). */
 :root[data-nav="open"]::view-transition-old(.nav-main) {
   opacity: 1;
-  animation: nav-fade-out var(--duration-nav-open-resolve) var(--ease) both;
+  animation: nav-fade-out var(--duration-nav-open-resolve-out) ease-out both;
 }
 :root[data-nav="open"]::view-transition-new(.nav-main) {
   animation: nav-fade-in var(--duration-nav-open-resolve) ease-out both;

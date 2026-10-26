@@ -40,6 +40,27 @@ the handoffs are in `docs/workflows.md`.
 2. The card shows a 1.6:1 crop (`card` preset, or `coverCard`); the cover shows the whole image (`hero`, `c_limit`). Where those aspects differ (a square master), the hand-over is not "the same picture": the morph changes aspect and the full image fades in over the crop. Invisible only where the card and cover aspects match.
 3. `docs/design/tokens.md` needs the 065 tokens, and the 064 ones it may list removed. Not frontend's file.
 
+**Correction (2026-10-26 05:58, orchestrator's preview recording, `scratchpad/crawl/lv-light/full.mp4`, light, 1280×800, Cervello):**
+- *The swell after the hand-over: diagnosed from the video, frame by frame at 25fps (16.5–17.5s).* I measured the picture box per frame (the first and last columns darker than 240 at y=700, and the top edge at x=1000):
+  - f011, mid-morph: 61–1218, top 310.
+  - f013–f016: 0–1279 (the full viewport), top 235 then 226. The content is enlarged about the picture's centre and covers the h1.
+  - f017: 53–1226, top 316.
+  - f019 onward: 64–1215, top 323 (the live page).
+  So it is not a box that snaps but a swell and a return, and it ends on the live rect. That rules out the fallback copy, which is clipped to the cover wrapper (`relative` + `overflow: hidden`) and cannot reach x=0. It also rules out the overlay after teardown (hidden by the `:has()` rule, then removed).
+- *Cause:* the `case-cover` group morph itself. A view transition captures a group's `width`/`height` and its `transform` separately and interpolates each linearly. My layer was card-sized (≈370px wide) and scaled ≈3.1× by its transform. Mid-morph its visual size is (width growing) × (scale shrinking), e.g. 761px × 2.05 ≈ 1560px at t=0.5 against 1152 at both ends. The ease-in-out kept the first frames near the right box, which is why the swell shows late.
+- *Fix (`components/motion/lift.ts`):*
+  - When the lift's `move` animation finishes, `settleLayer` re-expresses the layer as its real target size plus a plain `translate`, with radius 0, and cancels the scale animation in the same task (same pixels, no frame between). A commit after the lift has settled now captures a layer with no scale, so the group morph is size plus translate only.
+  - For a commit mid-flight, `liftTransitionReady` replaces the group's first keyframe with the layer's visual rect (`getBoundingClientRect`: translate, width, height, no scale). The end keyframe stays implicit, which is the cover visual's own rect.
+  - `cancelLift` returns a settled layer by scaling it down to the card (`scale(card.w / target.w)`, radius compensated).
+- *Double h1:* the old page now fades out in `--duration-nav-open-resolve-out` (new token, 120ms, ease-out, zeroed under reduced motion). The cover still arrives in 300ms and the scrim still lifts in 300ms.
+**Verified:** `npx tsc --noEmit -p .` exit 0. `npx eslint components/motion/` exit 0. `npx tailwindcss` compiles and emits the new token.
+**Not verified:**
+- Not rendered: no browser here.
+- The diagnosis is read from the recording's geometry. Whether the swell is gone needs a new recording.
+- The mid-flight path depends on `onUpdate` firing after the pseudo-elements exist, and on `setKeyframes` with an implicit end being honoured on the UA's group animation. If either fails, a commit that lands mid-lift still swells, though less than this one did.
+- The small offset between morph end and live picture seen in f011 → f019 (≈3px each side, 12px at the top) was measured mid-morph, so it is not established as a fault.
+**Open questions:** none new.
+
 ## 001261026 — 2026-10-26 05:20 — Gallery card opens into the cover: clip reveal from the clicked card (decision 064)
 
 **Brief:** Decision 064. A click on a gallery card (`/[locale]/work`) opens the case-file cover out of that card: the new `<main>` revealed by a `clip-path: inset()` growing from the card's rectangle to the viewport below the header, the old page drifting up and dimming behind it, ~700ms, one ease-out curve. Content never transforms. Cover → gallery stays the ≤400ms resolve. Flag off and reduced motion unchanged.
