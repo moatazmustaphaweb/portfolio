@@ -37,6 +37,19 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 006261026 - 2026-10-26 - Cover to chapter is a horizontal push; back is its reverse (decision 066)
+
+**Task id `006261026`.** Moataz: "a transition from cover to chapter from right to left, and reverse
+while back to cover." Decision 066.
+
+- **Built (frontend, `c96e686` on nightly):** new kinds `push` / `push-back` in `NavProgress.tsx` for
+  cover to chapter/all/results of the same case and back (links, breadcrumb and browser history).
+  Chapter enters from inline-end (600ms, `cubic-bezier(.65,0,.35,1)`); cover moves 30% toward
+  inline-start and darkens to 0.6. Reverse on the way back. No loader, hairline only.
+- **Verified on preview by real-time recordings, en and ar, light:** EN chapter enters from the right
+  and the cover leaves left; back reverses. AR mirrors (enters from the left). No loader at any frame.
+- **Not verified:** dark theme; Safari/Firefox; browser-back recorded but not reviewed frame by frame.
+
 ## 005261026 - 2026-10-26 - "Still slow and not as shown": measured, it is the live site running old code
 
 **Task id `005261026`.** Real clicks timed with Playwright. **Production (www):** header to /work
