@@ -37,6 +37,18 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 015261026 - 2026-10-26 - Release: nightly to main (PR #10)
+
+**Task id `015261026`.** Moataz: "ارفع التعديلات على main".
+
+- main had only the previous release's merge commit beyond nightly; PR #10 merged (`b923274`).
+  Ships decisions 068 (editorial), 069 (`[frame] none`), 070 (`[place] beside`); migrations
+  0066-0068 were already applied on the shared database.
+- **Verified on www** after the production deployment was READY: /en, /ar, /en/work 200, /en/nope
+  404; Egypt Onboarding en/ar matches preview to the pixel (FATCA 952 wide unframed; AOF and
+  sanctions beside their prose, mirrored in Arabic); Application Tracking 200 in both locales.
+- **Not verified:** dark theme.
+
 ## 014261026 - 2026-10-26 - One image beside its paragraph in any chapter: `[place] beside` (decision 070)
 
 **Task id `014261026`.** Moataz, on Egypt Onboarding: "make this photo with paragraph side to side"
