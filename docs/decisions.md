@@ -910,6 +910,23 @@ to do the work of a sentence.
 
 ---
 
+## 069 — A finished mockup can opt out of its frame, per image: `[frame] none`
+
+**Decided 2026-10-26, task `013261026`, by Moataz** ("also same instructions for this", on the FATCA
+forms mockup in Egypt Acquisition / Onboarding Journey, after the two wide Application Tracking
+mockups were unframed).
+
+The device frame stays automatic by aspect ratio (laptop on landscape, phone on portrait). A
+finished mockup is already composed, so a frame around it frames it twice. Neither the chapter nor
+the aspect ratio can tell a mockup from a raw screen: that chapter mixes one mockup with a dozen
+raw web screens that keep their laptop frame. So it is authored per image, in the image tag, as
+an optional fourth span: `[frame] none`. A figure carrying it renders as the bare image at full
+container width with the plain muted caption below (no chip, no box), the same treatment decision
+068 gives wide editorial figures. Any other `[frame]` value is reported by the sync, never guessed.
+Not an NDA control: grayscale stays driven by `case_files.nda` (rule 6).
+
+---
+
 ## 068 — A third image layout: Editorial (image beside its paragraph, alternating)
 
 **Decided 2026-10-26, task `012261026`, by Moataz**, on UAE Application Tracking, whose images are
