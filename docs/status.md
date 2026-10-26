@@ -37,6 +37,24 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001261026 - 2026-10-26 - Gallery card opens into the case-file cover (decision 064)
+
+**Task id `001261026`.** Moataz sent a reference (CoffeeTech page transition, Pinterest): "I want
+this transition when I open project from gallery". Read frame by frame: the new page grows out of
+a small rectangle inside the old one while the old page drifts up and darkens. Decision 064.
+
+- **Built (frontend), live on preview (`ae9da3e`, `5f7b8a7` on nightly).** Clicking a gallery card
+  clips the new `<main>` from the card's on-screen rectangle to the full viewport in 700ms; the
+  old page drifts up 14vh and darkens to 55% brightness; header anchored. Cover back to gallery
+  stays the 400ms resolve. Behind `MOTION_LAYER`; reduced motion is a cut.
+- **Verified on preview by frame capture (animations slowed 10x) and a real-time recording,
+  light and dark:** the first version had a transparent new page (double exposure), the loader
+  drawn over the opening, and opacity dimming that faded to white in light theme. All three fixed
+  and re-verified; the reveal curve changed so the start reads as the card.
+- **Not verified:** Safari and Firefox; `/ar` by eye; a scrolled gallery. On preview each cover
+  took about 2s to fetch (cold), so the loader showed before the opening every time; production
+  prefetch should make that rarer, unmeasured.
+
 ## 013251026 - 2026-10-25 - Navigation feedback and transitions (decision 063)
 
 **Task id `013251026`.** Moataz: the site feels dead on click. Research found the real cause: in

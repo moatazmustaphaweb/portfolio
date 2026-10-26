@@ -923,7 +923,9 @@ page drifts upward and darkens behind it. About 0.5 to 0.7s.
 1. **Gallery card → case-file cover** (and only that move): the new `<main>` is revealed by a
    `clip-path: inset()` that starts at **the clicked card's rectangle** and expands to the full
    viewport below the header. The old page drifts up a short distance and dims. The header stays
-   anchored. Duration within the 900ms ceiling (target 650 to 750ms), one ease-out curve.
+   anchored. Duration within the 900ms ceiling (700ms). The reveal eases in and out
+   (`cubic-bezier(.65,0,.25,1)`) so its first frames visibly start at the card; the old page's
+   drift and darkening use an ease-out. Darkening is `brightness()`, so it darkens in both themes.
 2. **What moves is the container's clip, never the content inside it** (decision 048 boundary
    holds): text inside the new page is not scaled or translated.
 3. **Back from a cover to the gallery** is the reverse in spirit, not a mirror: a short resolve
