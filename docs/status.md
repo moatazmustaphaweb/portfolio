@@ -37,6 +37,16 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 007261026 - 2026-10-26 - Chapter cards get a forward arrow
+
+**Task id `007261026`.** Moataz: chapter cards on the cover don't look clickable; add a small arrow,
+our choice of place. Chosen: inline-end side of each card, vertically centred, `text-fg-dim` to
+`text-fg` on hover and focus (`components/case-file/LivingMap.tsx`, `709b177`). No nudge: decision
+048 forbids transforms on content components (frontend stopped and asked, correctly). Glyph from
+`ui_strings` `arrow_forward` (EN →, AR ←), added to migration 0065 (`ac313ce`), still not applied,
+so **no arrow renders until Moataz runs 0065**. Not verified on screen for that reason. Separate
+cleanup listed by frontend: 18 literal arrows in JSX still flipped with CSS (rtl-guard).
+
 ## 006261026 - 2026-10-26 - Cover to chapter is a horizontal push; back is its reverse (decision 066)
 
 **Task id `006261026`.** Moataz: "a transition from cover to chapter from right to left, and reverse
