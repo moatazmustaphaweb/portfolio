@@ -37,6 +37,18 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 008261026 - 2026-10-26 - One small arrow on every internal card link
+
+**Task id `008261026`.** Moataz: the arrow is too big, and it must be on every clickable card of the
+same kind (he named "Three ways in"), not only chapters. Frontend extracted
+`components/primitives/CardArrow.tsx` (`text-body-sm`, `text-fg-dim` to `text-fg` on card hover and
+focus, glyph from `ui_strings`, nothing when missing) and applied it to: chapter cards, Three ways
+in, next-chapter card, next-case cards (results, all), Systems evidence cards, About onward cards.
+The literal `→` with `rtl:rotate-180` on those cards is gone. Excluded with reasons in
+`docs/status/frontend.md` (pills, inline links, CTAs, gallery cards, external links).
+**Verified on preview (`686b811`), en and ar at 1280:** arrows at the inline-end side, small,
+vertically centred, ← in Arabic, dark on the hovered card. Results page had no card on Cervello.
+
 ## 007261026 - 2026-10-26 - Chapter cards get a forward arrow
 
 **Task id `007261026`.** Moataz: chapter cards on the cover don't look clickable; add a small arrow,
