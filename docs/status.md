@@ -51,7 +51,10 @@ its paragraph and caption, alternating sides, wide ones full width, so the page 
   was `In MVP-1` = no, so every sync skipped it (one image had never reached the site). Ticked.
 - **Verified on preview.moatazmustapha.com (en, ar at 1280; en at 390):** figure 1 right, 2 left, 3
   right, two wide full width; Arabic mirrors; no horizontal scroll. Caption-style fix pushed after.
-- **Not verified:** dark theme; the caption fix on screen at the time of writing.
+- **Review round with Moataz (same day):** order flipped (first figure inline-start, text at
+  inline-end), and a figure with no prose shows its caption as a muted paragraph (`c679e9e`).
+  Verified on preview.moatazmustapha.com in en and ar after the build was READY.
+- **Not verified:** dark theme.
 
 ## 011261026 - 2026-10-26 - Bank mobile chapters: screens in a grid, iPhone frame
 
