@@ -288,6 +288,15 @@
   --duration-nav-open-fade: 70ms;
   --nav-open-drift: 14vh;
   --nav-open-dim: 0.55;
+  /* Decision 066: cover ⇄ its own chapters is a horizontal push. The page
+   * arriving slides in from the inline-end edge over the one it covers; the
+   * covered page moves toward inline-start by --nav-push-parallax of its width
+   * and darkens to --nav-push-dim. push-back plays the same thing in reverse.
+   * One ease-in-out curve, 600ms, inside the 900ms ceiling. */
+  --duration-nav-push: 600ms;
+  --ease-nav-push: cubic-bezier(0.65, 0, 0.35, 1);
+  --nav-push-parallax: 30%;
+  --nav-push-dim: 0.6;
   /* Amplitudes. Containers move; content never does. */
   --nav-pan-distance: 24px;
   --nav-settle-distance: 6px;
@@ -496,6 +505,7 @@
     --duration-nav-depth: 0ms;
     --duration-nav-open: 0ms;
     --duration-nav-open-fade: 0ms;
+    --duration-nav-push: 0ms;
     /* The hairline jumps to its resting width instead of trickling. */
     --duration-pending-trickle: 0ms;
     --duration-loader-cycle-out: 0ms;
@@ -1069,6 +1079,45 @@
     nav-fade-in var(--duration-nav-open-fade) linear both;
 }
 
+/* Push (decision 066): cover → one of its own chapters, `all` or `results`.
+ * The new <main> slides in from the inline-end edge (--nav-axis is -1 under
+ * dir=rtl, so it comes from the left there) and rests on top; the cover
+ * moves a third of the way toward inline-start and darkens beneath it.
+ * push-back is the exact reverse: the chapter, on top, leaves toward
+ * inline-end; the cover returns from -30% at 0.6 brightness.
+ *
+ * Both snapshots are made opaque with the page background: the one on top
+ * so the page under it never shows through, the one underneath so
+ * brightness() darkens the whole page and not only its ink (a transparent
+ * snapshot darkens text over an undimmed background). Normal compositing,
+ * as 064. The old image keeps the base `translate` by --nav-old-shift, which
+ * composes with the `transform` below, so a scrolled chapter leaves from
+ * where the reader was. Percentages in translateX are of the snapshot's own
+ * width, which is <main>'s, the full viewport width. */
+:root[data-nav="push"]::view-transition-old(.nav-main),
+:root[data-nav="push"]::view-transition-new(.nav-main),
+:root[data-nav="push-back"]::view-transition-old(.nav-main),
+:root[data-nav="push-back"]::view-transition-new(.nav-main) {
+  mix-blend-mode: normal;
+  background-color: var(--color-bg);
+}
+:root[data-nav="push"]::view-transition-old(.nav-main) {
+  opacity: 1;
+  animation: nav-push-recede var(--duration-nav-push) var(--ease-nav-push) both;
+}
+:root[data-nav="push"]::view-transition-new(.nav-main) {
+  animation: nav-push-enter var(--duration-nav-push) var(--ease-nav-push) both;
+}
+:root[data-nav="push-back"]::view-transition-old(.nav-main) {
+  opacity: 1;
+  /* The leaving chapter is the top image; old precedes new in the pair. */
+  z-index: 1;
+  animation: nav-push-exit var(--duration-nav-push) var(--ease-nav-push) both;
+}
+:root[data-nav="push-back"]::view-transition-new(.nav-main) {
+  animation: nav-push-return var(--duration-nav-push) var(--ease-nav-push) both;
+}
+
 /* Ascend: the reverse. The page being left recedes; the parent resolves. */
 :root[data-nav="zoom-out"]::view-transition-old(.nav-main) {
   animation:
@@ -1156,6 +1205,34 @@
   to {
     filter: brightness(var(--nav-open-dim));
     transform: translateY(calc(-1 * var(--nav-open-drift)));
+  }
+}
+@keyframes nav-push-enter {
+  from { transform: translateX(calc(var(--nav-axis) * 100%)); }
+  to { transform: none; }
+}
+@keyframes nav-push-recede {
+  from {
+    transform: none;
+    filter: brightness(1);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--nav-axis) * var(--nav-push-parallax)));
+    filter: brightness(var(--nav-push-dim));
+  }
+}
+@keyframes nav-push-exit {
+  from { transform: none; }
+  to { transform: translateX(calc(var(--nav-axis) * 100%)); }
+}
+@keyframes nav-push-return {
+  from {
+    transform: translateX(calc(-1 * var(--nav-axis) * var(--nav-push-parallax)));
+    filter: brightness(var(--nav-push-dim));
+  }
+  to {
+    transform: none;
+    filter: brightness(1);
   }
 }
 @keyframes nav-pan-out {

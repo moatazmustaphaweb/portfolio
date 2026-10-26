@@ -18,7 +18,7 @@ import { MOTION_LAYER } from "@/lib/motion/flag";
  *
  * The class is the only thing decided here: `nav-pan-forward` / `nav-pan-back`
  * when the navigation carries the prev/next chapter types, `nav-main`
- * otherwise. WHICH animation `nav-main` runs (cross-resolve, descend, ascend,
+ * otherwise. WHICH animation `nav-main` runs (cross-resolve, descend, open, push, ascend,
  * history) is decided by `html[data-nav]`, which `NavProgress` writes before
  * the transition starts; without it every rule in globals.css is a cut.
  *

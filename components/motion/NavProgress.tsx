@@ -58,9 +58,30 @@ import { registerPendingListener } from "./pending";
  * visible area has no rectangle to open from and falls back to `zoom-in`.
  * Known limit: a scroll DURING a slow navigation is not re-read; the clip
  * starts where the card was at the click, as `--nav-old-shift` already does.
+ *
+ * ── PUSH: COVER ⇄ ITS OWN CHAPTERS (decision 066) ─────────────────────────
+ * `/<l>/work/<case>` → `/<l>/work/<case>/<child>` (a chapter, `all` or
+ * `results` of the SAME case) is `push`; the reverse is `push-back`. Decided by
+ * the path pair alone, so browser back/forward between the same two pages gets
+ * the same move as the links (the pair says which way; the history direction
+ * is not read). Takes precedence over zoom-in / zoom-out for these pairs only;
+ * chapter ⇄ chapter keeps the 063 pan. The axis comes from `--nav-axis`
+ * (globals.css), never from `dir` here. No loader and no quote: the hairline
+ * only, like `open`.
  */
 
-type NavKind = "resolve" | "zoom-in" | "open" | "zoom-out" | "pop" | "cut";
+type NavKind =
+  | "resolve"
+  | "zoom-in"
+  | "open"
+  | "push"
+  | "push-back"
+  | "zoom-out"
+  | "pop"
+  | "cut";
+
+/** Moves that answer the click themselves: no loader, no quote (064, 066). */
+const NO_LOADER: ReadonlySet<string> = new Set<NavKind>(["open", "push", "push-back"]);
 
 const APPEAR_MS = 100; // below this a commit shows nothing
 const LOADER_MS = 300;
@@ -95,6 +116,23 @@ function classify(from: string, to: string): NavKind {
     if (x.length > y.length && y.every((s, i) => x[i] === s)) return "zoom-out";
   }
   return "resolve";
+}
+
+/**
+ * Decision 066: a cover and a page directly under the same case file. Same
+ * locale only; a locale switch stays a cut.
+ */
+function classifyPush(from: string, to: string): "push" | "push-back" | null {
+  const a = segments(from);
+  const b = segments(to);
+  if (a[0] !== b[0]) return null;
+  const x = a.slice(1);
+  const y = b.slice(1);
+  const isCover = (p: string[]) => p.length === 2 && p[0] === "work";
+  const isChild = (p: string[]) => p.length === 3 && p[0] === "work";
+  if (isCover(x) && isChild(y) && y[1] === x[1]) return "push";
+  if (isChild(x) && isCover(y) && x[1] === y[1]) return "push-back";
+  return null;
 }
 
 /** `/<locale>/work` → `/<locale>/work/<slug>`: the gallery opening a cover. */
@@ -239,7 +277,7 @@ export function NavProgress({
         s.busy?.setAttribute("aria-busy", "true");
         // Opening a project from the gallery has no loader (Moataz, 2026-10-26):
         // the opening is the answer to the click; the hairline is enough.
-        if (motionAllowed() && root.dataset.nav !== "open") {
+        if (motionAllowed() && !NO_LOADER.has(root.dataset.nav ?? "")) {
           s.timers.push(window.setTimeout(() => setLoader("mark"), LOADER_MS));
           s.timers.push(window.setTimeout(showQuote, QUOTE_MS));
         }
@@ -272,11 +310,15 @@ export function NavProgress({
       window.clearTimeout(s.clearNavTimer);
       clearOpenRect(root);
       if (motionAllowed()) {
-        let kind: NavKind = how === "pop" ? "pop" : classify(location.pathname, to.pathname);
+        // On popstate `location` is already the destination; the page being
+        // left is the last committed one.
+        const from = how === "pop" ? s.committed.split("?")[0] : location.pathname;
+        const push = classifyPush(from, to.pathname);
+        let kind: NavKind = push ?? (how === "pop" ? "pop" : classify(from, to.pathname));
         if (
           kind === "zoom-in" &&
           origin?.hasAttribute("data-nav-open") &&
-          isGalleryToCover(location.pathname, to.pathname) &&
+          isGalleryToCover(from, to.pathname) &&
           writeOpenRect(root, origin)
         ) {
           kind = "open";
