@@ -910,6 +910,31 @@ to do the work of a sentence.
 
 ---
 
+## 064 — Opening a project from the gallery: the card opens into the page (amends 063 item 5)
+
+**Decided 2026-10-26, task `001261026`, by Moataz**, from a reference he sent (CoffeeTech page
+transition, via Pinterest): "I want this transition when I open project from gallery".
+
+**The reference, read frame by frame:** the new page appears as a small rectangle inside the old
+one, grows until it fills the viewport (a clip reveal, not a scale of the content), while the old
+page drifts upward and darkens behind it. About 0.5 to 0.7s.
+
+**Decision:**
+1. **Gallery card → case-file cover** (and only that move): the new `<main>` is revealed by a
+   `clip-path: inset()` that starts at **the clicked card's rectangle** and expands to the full
+   viewport below the header. The old page drifts up a short distance and dims. The header stays
+   anchored. Duration within the 900ms ceiling (target 650 to 750ms), one ease-out curve.
+2. **What moves is the container's clip, never the content inside it** (decision 048 boundary
+   holds): text inside the new page is not scaled or translated.
+3. **Back from a cover to the gallery** is the reverse in spirit, not a mirror: a short resolve
+   (≤400ms), not a collapsing window, so leaving never feels slower than arriving.
+4. Every other move stays as 063 item 5 defined it. Behind `MOTION_LAYER`; reduced motion is an
+   instant cut; focus still moves to the h1. Directional values flip in RTL where any exist.
+
+**Status:** ACTIVE. Amends 063 item 5 for this one move.
+
+---
+
 ## 063 — Navigation feedback: press states, a pending hairline, the mark as loader, transitions
 
 **Decided 2026-10-25, task `013251026`, by Moataz:** "the website looks dead when I move from page
