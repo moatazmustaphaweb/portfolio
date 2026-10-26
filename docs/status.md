@@ -37,6 +37,26 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 002261026 - 2026-10-26 - The card's image becomes the cover's image, from the click (decision 065)
+
+**Task id `002261026`.** Moataz on 064: "this transition shouldn't have loading states... the card
+image should scale and begin the transition, then loading if needed." Decision 065 supersedes
+064's mechanism (a view transition starts at the commit, so the click waited).
+
+- **Built (frontend, `components/motion/lift.ts`), live on preview (`dbd436b`, `84b85ab`).** On the
+  click the card's picture lifts into a fixed layer and grows (650ms) to the cover image's place in
+  the content column; the gallery darkens and drifts up; no loader during the move (a small mark
+  only if still pending at 1.25s). On commit a shared element (`case-cover`) hands it to the real
+  cover image; the rest of the cover resolves in.
+- **Verified on preview by real-time recordings:** the lift starts on the click; it holds at the
+  cover image's real position; first build had a ~150ms swell after the hand-over (scale and size
+  interpolated together) and a doubled h1. Both fixed and re-recorded: the hand-over is clean.
+- **Found while measuring: ISR is not working.** Production and preview answer every page with
+  `cache-control: private, no-store` and `x-vercel-cache: MISS`, about 3s per page, every time.
+  That, not the transition, is why the site feels slow. Opened as `003261026`.
+- **Not verified:** Safari/Firefox; a commit landing mid-lift (needs a fast route, which today never
+  happens); a scrolled gallery; `/ar` recorded but not reviewed frame by frame.
+
 ## 001261026 - 2026-10-26 - Gallery card opens into the case-file cover (decision 064)
 
 **Task id `001261026`.** Moataz sent a reference (CoffeeTech page transition, Pinterest): "I want
