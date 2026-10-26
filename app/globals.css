@@ -273,21 +273,39 @@
   --duration-nav-resolve-in: 250ms;
   --duration-nav-depth: 400ms;
   --ease-nav-depth: ease-out;
-  /* Decision 064: gallery card → cover. The cover is revealed by a clip that
-   * grows from the clicked card to the viewport, one ease-out curve inside the
-   * 900ms ceiling (064 targets 650–750ms). The new page fades in over the
-   * first 10% only, so the card-sized window never pops; the old page drifts
-   * up and darkens behind it. Darkens with brightness(), not opacity: opacity
-   * recedes into --color-bg, which is white in the light theme, and the
-   * reference darkens in both. --nav-open-dim is the brightness factor. */
-  --duration-nav-open: 700ms;
-  /* The reveal starts slowly so the card-sized window is seen before it
-   * grows (orchestrator's call, 001261026); the old page keeps the ease-out. */
-  --ease-nav-open: cubic-bezier(0.65, 0, 0.25, 1);
+  /* Decision 065: gallery card → cover, answered on the click
+   * (components/motion/lift.ts). 064's clip reveal is retired; only its
+   * recede curve is kept.
+   * - The lift: the card's picture grows to the cover's position, ease-in-out,
+   *   650ms. The gallery drifts up and darkens behind it on the recede curve.
+   * - --nav-open-dim is the alpha of a BLACK scrim, so the gallery darkens in
+   *   both themes (opacity alone would recede into a white --color-bg). At
+   *   0.55, white text on the scrimmed light theme computes to ≈4.7:1 against
+   *   a #fff ground (#737373 behind it), which the slow-route quote needs.
+   *   Computed, not measured on a render.
+   * - --nav-open-offset: the lift's target top below the header. It
+   *   approximates the cover's breadcrumb + kicker + title stack (≈256px at
+   *   both 390 and 1440 by the type and spacing tokens); the hand-over morph
+   *   corrects whatever is left.
+   * - The hand-over: a shared-element morph into the real cover visual,
+   *   --duration-nav-open-handover when the lift had finished, otherwise the
+   *   lift's remaining time on the recede curve; the rest of the cover
+   *   resolves in --duration-nav-open-resolve (≤300ms, 065 item 2).
+   * - The slow-route signal waits the lift plus --duration-nav-open-signal-grace.
+   * - A lift that will not land reverses in --duration-nav-open-cancel. */
+  --duration-nav-open: 650ms;
+  --ease-nav-open: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-nav-open-recede: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --duration-nav-open-fade: 70ms;
-  --nav-open-drift: 14vh;
+  --duration-nav-open-handover: 350ms;
+  --ease-nav-open-handover: cubic-bezier(0.45, 0, 0.2, 1);
+  --duration-nav-open-resolve: 300ms;
+  --duration-nav-open-signal-grace: 600ms;
+  --duration-nav-open-cancel: 200ms;
+  --nav-open-drift: 2rem;
   --nav-open-dim: 0.55;
+  --nav-open-offset: 16rem;
+  /* The slow-route signal sits on the scrim, dark in both themes. */
+  --nav-open-ink: rgb(255 255 255);
   /* Amplitudes. Containers move; content never does. */
   --nav-pan-distance: 24px;
   --nav-settle-distance: 6px;
@@ -495,7 +513,10 @@
     --duration-nav-resolve-in: 0ms;
     --duration-nav-depth: 0ms;
     --duration-nav-open: 0ms;
-    --duration-nav-open-fade: 0ms;
+    --duration-nav-open-handover: 0ms;
+    --duration-nav-open-resolve: 0ms;
+    --duration-nav-open-signal-grace: 0ms;
+    --duration-nav-open-cancel: 0ms;
     /* The hairline jumps to its resting width instead of trickling. */
     --duration-pending-trickle: 0ms;
     --duration-loader-cycle-out: 0ms;
@@ -916,6 +937,77 @@
   animation: nav-fade-in var(--duration-loader-quote) var(--ease) both;
 }
 
+/* The slow-route signal during the gallery → cover lift (065 item 3): no
+ * scrim of its own (the lift's scrim is already there), a small mark, and
+ * the region lift.ts measured above or below the picture, so it never covers
+ * it. Above the scrim and the layer, below the header. */
+.nav-loader[data-place="lift"] {
+  inset-block-start: var(--nav-open-signal-top, var(--header-h));
+  inset-block-end: auto;
+  block-size: var(--nav-open-signal-h, 0px);
+  z-index: 49;
+  gap: 0.75rem;
+  background-color: transparent;
+  color: var(--nav-open-ink);
+}
+.nav-loader[data-place="lift"] .nav-loader-mark {
+  inline-size: 2.5rem;
+}
+.nav-loader[data-place="lift"] .nav-loader-quote {
+  color: var(--nav-open-ink);
+}
+
+/*
+ * The lift (MOTION_LAYER, decision 065). Both elements are created by
+ * components/motion/lift.ts on the click and removed after the hand-over.
+ * Below the header's z-50 (the header stays anchored and readable), above the
+ * page. Never interactive.
+ *
+ * The layer is placed by `transform` alone from the viewport's top-left
+ * corner, because the rects it moves between are `getBoundingClientRect()`
+ * values, which are physical in both directions. `inset` here is that
+ * origin, not a layout side: nothing mirrors under dir=rtl because nothing
+ * needs to. Its size is the card visual's; the scale is uniform, so the
+ * picture never distorts.
+ */
+.nav-open-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 47;
+  pointer-events: none;
+  background-color: rgb(0 0 0 / var(--nav-open-dim));
+  opacity: 0;
+}
+.nav-open-lift {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 48;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+/* Holds the lifted copy over a cover image still on the network. */
+.nav-open-fallback {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.nav-open-lift > *,
+.nav-open-fallback > * {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.nav-open-lift :is(img, svg),
+.nav-open-fallback :is(img, svg) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
 /*
  * ── PAGE TRANSITIONS (MOTION_LAYER, 063 item 5) ────────────────────────────
  *
@@ -1034,39 +1126,81 @@
     nav-depth-in var(--duration-nav-depth) var(--ease-nav-depth) both;
 }
 
-/* Open (decision 064): gallery card → cover. The new <main> is revealed by a
- * clip that starts at the clicked card and grows to the viewport below the
- * header; the content inside it is never scaled or moved (048). The old page
- * drifts up and dims underneath. NavProgress writes the card box as
- * --nav-open-x0/y0/x1/y1 in the new snapshot's own coordinates, and
- * --nav-open-y-end as the viewport's bottom edge in the same space. Right and
- * bottom insets are `100% - edge`: percentages in inset() resolve against the
- * snapshot box, so the height of a page not yet rendered never has to be
- * known. All four are physical, as the DOM rect is: correct in both
- * directions with nothing to flip.
+/* Open (decision 065): gallery card → cover. The lift itself runs on the
+ * live page before the commit (components/motion/lift.ts: a fixed layer with
+ * the card's picture, `.nav-open-lift`, over a black scrim,
+ * `.nav-open-backdrop`). At the commit these rules hand it over.
  *
- * mix-blend-mode: the UA pairs old and new with plus-lighter for a
- * cross-fade; here the new page is opaque OVER the old one, so the blend
- * would add the two images inside the window. Normal compositing, new on top
- * (it follows old in the image pair). */
-:root[data-nav="open"]::view-transition-old(.nav-main),
-:root[data-nav="open"]::view-transition-new(.nav-main) {
+ * Names exist only while `html[data-nav="open"]`, so they never collide on
+ * another move. The layer and the cover's visual wrapper are both
+ * `case-cover`; they are never named in the same state, because the layer
+ * and the scrim unname and hide themselves once `<main>` holds no gallery
+ * card, which is true in the new state only. One `case-cover` old, one new:
+ * the browser morphs the first into the second. */
+:root[data-nav="open"] .nav-open-lift {
+  view-transition-name: case-cover;
+}
+:root[data-nav="open"] .nav-open-backdrop {
+  view-transition-name: case-backdrop;
+}
+:root[data-nav="open"] #main [data-case-cover] {
+  view-transition-name: case-cover;
+}
+:root[data-nav="open"]:not(:has(#main [data-nav-open])) :is(.nav-open-lift, .nav-open-backdrop) {
+  view-transition-name: none;
+  visibility: hidden;
+}
+
+/* The picture: above the page and the scrim, below the anchored header, as
+ * the live layer is. The group morph is the UA's (position and size, old rect
+ * to new); its timing is ours, and lift.ts retimes it to the lift's remaining
+ * time when the commit lands mid-flight. Both images fill the group and crop
+ * to it, so a card crop and a full cover meet in the same box. The old image
+ * holds while the new one fades in over it (normal blending, not the UA's
+ * plus-lighter): the picture never thins out, even if the cover's own image
+ * is still loading at the capture. With no cover on the new page the old one
+ * fades alone. */
+::view-transition-group(case-cover) {
+  z-index: 50;
+  overflow: hidden;
+  animation-duration: var(--duration-nav-open-handover);
+  animation-timing-function: var(--ease-nav-open-handover);
+}
+::view-transition-old(case-cover),
+::view-transition-new(case-cover) {
+  block-size: 100%;
+  object-fit: cover;
   mix-blend-mode: normal;
 }
-:root[data-nav="open"]::view-transition-old(.nav-main) {
-  /* The base rule hides every old image; this one stays and darkens. */
+::view-transition-old(case-cover) {
+  animation: none;
   opacity: 1;
-  animation: nav-open-recede var(--duration-nav-open) var(--ease-nav-open-recede) both;
+}
+::view-transition-old(case-cover):only-child {
+  animation: nav-fade-out var(--duration-nav-open-resolve) var(--ease) both;
+}
+::view-transition-new(case-cover) {
+  animation: nav-fade-in var(--duration-nav-open-resolve) ease-out both;
+}
+
+/* The scrim exists in the old state only: it lifts as the cover resolves. */
+::view-transition-group(case-backdrop) {
+  z-index: 49;
+  animation: none;
+}
+::view-transition-old(case-backdrop) {
+  animation: nav-fade-out var(--duration-nav-open-resolve) var(--ease) both;
+}
+
+/* The rest of the cover resolves in around the picture; the drifted gallery
+ * (already drifted on the live page, so captured where it was) goes under
+ * the lifting scrim. ≤300ms (065 item 2). */
+:root[data-nav="open"]::view-transition-old(.nav-main) {
+  opacity: 1;
+  animation: nav-fade-out var(--duration-nav-open-resolve) var(--ease) both;
 }
 :root[data-nav="open"]::view-transition-new(.nav-main) {
-  /* <main> paints no background of its own, so its snapshot is transparent
-   * wherever the page is: the window would show the gallery through the
-   * cover. The snapshot gets the page's background; the live <main> is
-   * untouched. The clip below clips this background with the image. */
-  background-color: var(--color-bg);
-  animation:
-    nav-open-reveal var(--duration-nav-open) var(--ease-nav-open) both,
-    nav-fade-in var(--duration-nav-open-fade) linear both;
+  animation: nav-fade-in var(--duration-nav-open-resolve) ease-out both;
 }
 
 /* Ascend: the reverse. The page being left recedes; the parent resolves. */
@@ -1135,28 +1269,6 @@
 @keyframes nav-depth-out {
   from { transform: none; }
   to { transform: scale(var(--nav-depth-scale)); }
-}
-@keyframes nav-open-reveal {
-  from {
-    clip-path: inset(
-      var(--nav-open-y0, 0px) calc(100% - var(--nav-open-x1, 100%))
-        calc(100% - var(--nav-open-y1, 100%)) var(--nav-open-x0, 0px)
-        round var(--radius-panel)
-    );
-  }
-  to {
-    clip-path: inset(0px 0px calc(100% - var(--nav-open-y-end, 100%)) 0px round 0px);
-  }
-}
-@keyframes nav-open-recede {
-  from {
-    filter: brightness(1);
-    transform: none;
-  }
-  to {
-    filter: brightness(var(--nav-open-dim));
-    transform: translateY(calc(-1 * var(--nav-open-drift)));
-  }
 }
 @keyframes nav-pan-out {
   from { transform: none; }

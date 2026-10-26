@@ -40,9 +40,11 @@ export function ProjectCard({
   return (
     <li>
       {/*
-        `data-nav-open`: this link is the rectangle the cover opens out of
-        (decision 064). NavProgress reads the attribute and the link's box on
-        click; nothing here animates, and with the Motion Layer off it is inert.
+        `data-nav-open`: a click here opens the cover from this card (decision
+        065). `data-nav-open-visual` marks the one element that is lifted: the
+        image or component cover below, cloned on click by
+        `components/motion/lift.ts`. Nothing here animates, and with the Motion
+        Layer off both attributes are inert.
       */}
       <Link
         href={`/${locale}/work/${caseFile.slug}`}
@@ -63,9 +65,9 @@ export function ProjectCard({
           carries the signal here (decision 050).
         */}
         {caseFile.cover_kind === "component" && caseFile.cover_component ? (
-          <div>{resolveCover(caseFile.cover_component, "card")}</div>
+          <div data-nav-open-visual="">{resolveCover(caseFile.cover_component, "card")}</div>
         ) : caseFile.cover ? (
-          <div>
+          <div data-nav-open-visual="">
             {/*
               `coverCard` when a hand-made 1.6:1 crop exists, otherwise the
               cover itself. The card slot crops with `c_fill`, so a square

@@ -1,3 +1,5 @@
+"use client";
+
 /// <reference types="react/canary" />
 /*
  * `ViewTransition` ships in the React canary that Next vendors for the App
@@ -9,6 +11,8 @@
 import { ViewTransition } from "react";
 
 import { MOTION_LAYER } from "@/lib/motion/flag";
+
+import { liftTransitionReady } from "./lift";
 
 /**
  * The page-transition container (decision 063, item 5). Wraps `<main>` in both
@@ -22,6 +26,11 @@ import { MOTION_LAYER } from "@/lib/motion/flag";
  * history) is decided by `html[data-nav]`, which `NavProgress` writes before
  * the transition starts; without it every rule in globals.css is a cut.
  *
+ * `onUpdate` fires once the transition's pseudo-elements exist; it is where
+ * the gallery → cover lift (decision 065, `lift.ts`) retimes its hand-over
+ * and learns when the transition ends. A no-op on every other move. This is
+ * why the file is a client component: the callback is a function prop.
+ *
  * Flag off: the plain element, exactly the MVP-1 tree.
  */
 const CLASS = {
@@ -30,10 +39,14 @@ const CLASS = {
   default: "nav-main",
 };
 
+function onUpdate() {
+  liftTransitionReady();
+}
+
 export function MainTransition({ children }: { children: React.ReactNode }) {
   if (!MOTION_LAYER) return <>{children}</>;
   return (
-    <ViewTransition name="site-main" default={CLASS}>
+    <ViewTransition name="site-main" default={CLASS} onUpdate={onUpdate}>
       {children}
     </ViewTransition>
   );
