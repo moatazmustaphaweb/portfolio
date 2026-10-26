@@ -59,6 +59,22 @@ Two lines, not silence.
 **Not verified:** nothing was rendered. There is still no `.env.local` or Chrome here, so there is no :3000, no screenshot at 390/1440 in either locale, and no DOM check that row 1's figure sits in column 1 (left in `/en`, right in `/ar`) or that the second row's caption computes to the paragraph's font-size and line-height. That Arabic picks up the Arabic body face on the caption relies on the figcaption's `lang`, which is unchanged. Preview was not inspected after the change.
 **Open questions:** none.
 
+### 012261026 addendum 3 — 2026-10-26 16:59 — editorial: wide figures leave the laptop frame
+
+**Brief:** Moataz's review on preview. The two wide figures in UAE Application Tracking (the withdrawal mockup and the welcome-screen mockup) rendered inside the laptop frame, with the chip caption on or under it. They are finished mockups. In an `editorial` chapter a wide figure should have no device frame, panel or box: just the image at full container width, with the caption below it in the plain `text-meta text-fg-muted` style (no chip, border or mono font, not overlapping). Stacked and grid stay unchanged. Narrow editorial figures keep their current behaviour, and a portrait screen keeps its iPhone frame.
+**Files:** `components/case-file/ChapterSections.tsx` · this file.
+**Change:**
+- New `ChapterFigure` prop `editorialFullWidth`. It is passed only on the editorial non-beside branch: wide figures, and narrow figures with nothing to sit beside. In `ChapterFigure`, `landscape` is the old laptop test (h/w < 0.9) and `bareWide = editorialFullWidth && landscape`, so `laptop = landscape && !bareWide`. A bare wide figure is therefore not a `device`. The consequences follow from that: no `DeviceFrame`, no frame max-width style, and the figure takes the existing unframed class (`mt-8`). The caption takes the existing unframed branch, byte-for-byte `mt-3 max-w-measure text-meta text-fg-muted`, and is in flow under the image.
+- The bare wide image is `block h-auto w-full`, which is full container width with no `md:max-h-figure` cap. No rounding: unframed images on this site carry none, and I added none.
+- Phone-framed figures (h/w >= 1.7) are untouched on every branch. Beside figures, stacked and grid never get the prop, so their output is unchanged.
+**Verified:** `rm -rf .next/types && npx tsc --noEmit`: exit 0. `npx eslint components/case-file/ChapterSections.tsx`: exit 0. No new utility classes; every class used already exists in the file.
+**Not verified:**
+- **Nothing was rendered.** `npm run dev` started on :3000, but the page returns 500 because `NEXT_PUBLIC_SUPABASE_URL is not set` (there is no `.env.local` here). I stopped the server. There is no screenshot at 390/1440 in either locale and no DOM check that the two wide figures now contain no frame element.
+- I did not check the two figures' stored dimensions, so it is not confirmed that both measure h/w < 0.9. A wide figure with no stored dimensions was never framed and still renders under the old unframed rule (height capped at 600px from `md`, not full width).
+- Edge case, by construction: a figure with w/h between about 1.11 and 1.15 counts as narrow, so it sits beside its prose, and is also landscape by the frame test (h/w < 0.9), so it keeps the laptop frame in the beside row. The brief did not cover that case, so I left it unchanged.
+- Full-width images with no height cap: a very wide but short mockup, or a 4:3 mockup at about 750px tall in the 1000px container, now renders at its natural height. That was the request. How it reads is Moataz's to judge.
+**Open questions:** none.
+
 ## 008261026 — 2026-10-26 07:47 — one `CardArrow` primitive, body-sm, on every internal card link
 
 **Brief:** follow-up to 007261026. The chapter-card arrow was too big (`text-h3`). Make it the description size, keep it vertically centred, and put the same arrow on every internal link that renders as a card or row surface: a bordered or surface panel with a hover state, where the whole block is the link. Extract it into one server component. Exclude gallery ProjectCards, inline text links, the header nav, and buttons/CTAs.

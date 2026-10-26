@@ -348,6 +348,7 @@ export function ChapterSections({
                             key={`f-${section.id}-${unit.i}`}
                             media={unit.media}
                             deviceFrame={deviceFrame}
+                            editorialFullWidth
                           />,
                         ];
                       }
@@ -548,6 +549,7 @@ function ChapterFigure({
   inGrid = false,
   editorialSide,
   captionAsParagraph = false,
+  editorialFullWidth = false,
 }: {
   media: Media | null;
   deviceFrame: DeviceFrameKind;
@@ -571,6 +573,16 @@ function ChapterFigure({
    * caption under the prose. Task `012261026`.
    */
   captionAsParagraph?: boolean;
+  /*
+   * Editorial chapters only, on the figures that do NOT take a side (wide, or
+   * narrow with nothing to sit beside). A LANDSCAPE picture here is a finished
+   * mockup, so it gets no laptop frame: the image at the full container width,
+   * no height cap, and the plain caption under it (no chip, not floating).
+   * A portrait phone screen keeps its phone frame — this only removes the
+   * laptop. Stacked and grid chapters never set it. Task `012261026`,
+   * addendum, at Moataz's review.
+   */
+  editorialFullWidth?: boolean;
   /*
    * Set only by the grid path. The grid owns the spacing (its own margin and
    * gap), so the figure drops its margins; and a framed figure fills its cell
@@ -614,7 +626,14 @@ function ChapterFigure({
    */
   const ratio =
     media.width && media.height ? media.height / media.width : null;
-  const laptop = ratio !== null && ratio < 0.9;
+  const landscape = ratio !== null && ratio < 0.9;
+  /*
+   * A wide figure in an editorial chapter is shown bare at full width (see
+   * `editorialFullWidth`), so it is not a laptop for any rule below: no frame,
+   * no frame width cap, no chip caption.
+   */
+  const bareWide = editorialFullWidth && landscape;
+  const laptop = landscape && !bareWide;
   /*
    * The phone takes the other end of the same measurement. 1.7 rather than the
    * laptop's mirror image, because the frame is drawn around a 786x1704 screen
@@ -741,8 +760,13 @@ function ChapterFigure({
                 786x522 screen; that shape is gone, and `object-cover` with no
                 height to cover collapses the picture.
               */
-              device
-                ? "block h-auto w-full"
+              device || bareWide
+                ? /*
+                   * Bare wide (editorial): full container width, no
+                   * `max-h-figure` — the brief is the mockup at the column's
+                   * width. No rounding: unframed images carry none.
+                   */
+                  "block h-auto w-full"
                 : editorial
                   ? /*
                      * Centred in its column rather than hugging the start: a
