@@ -51,7 +51,7 @@ export const revalidate = 300;
  *
  * That distinction is the whole bug: a runtime notFound() from within a
  * rendered dynamic segment resolved to Next's built-in error shell — no lang,
- * no dir, no chrome — while an unmatched ROUTE resolves to app/not-found.tsx.
+ * no dir, no chrome — while an unmatched ROUTE resolves to app/global-not-found.tsx.
  * Every published slug is in generateStaticParams already, so nothing
  * reachable is lost; a draft slug like /work/east becomes a proper 404.
  */

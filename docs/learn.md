@@ -1065,6 +1065,22 @@ v4 writes it as a suffix). `display: contents` is the other fix and solves the o
 problem — it makes the child *take* the container's rhythm instead of stacking a second margin
 on top of it. Both appear in `ChapterSections.tsx`, a few lines apart, for opposite reasons.
 
+## One request-scoped read above `[locale]` makes every page dynamic, and nothing says so
+
+Added 2026-10-26, task `003261026`. For two months every page was served `private, no-store`
+while `revalidate = 300` sat in each file.
+
+A layout above `[locale]` has no locale param. `getLocale()` there falls back to `headers()`,
+and one `headers()` call anywhere in the shared tree turns every route under it into ƒ. The
+build does not fail and the pages look fine. The only signals are the `ƒ` column in the route
+table and the response's `cache-control`. A `revalidate` export is a request, not evidence.
+
+**Check the route table after any change to a layout, a not-found file or the proxy.** A
+locale page must show ●. Read the locale from `params` (after `setRequestLocale`) or from
+`next/root-params`, never from request headers, in anything that renders above or around a
+page. The one file allowed to read headers is `app/global-not-found.tsx`, because nothing is
+cached there anyway.
+
 
 ---
 

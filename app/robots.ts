@@ -31,7 +31,7 @@ import { siteUrl } from "@/lib/seo/site";
  * production does not already serve.
  *
  * The production branch below is unchanged and must stay so. The same
- * condition sets `noindex, nofollow` in `app/layout.tsx`.
+ * condition sets `noindex, nofollow` via `NOINDEX` in `components/layout/document.ts`.
  */
 export default function robots(): MetadataRoute.Robots {
   if (process.env.VERCEL_ENV !== "production") {

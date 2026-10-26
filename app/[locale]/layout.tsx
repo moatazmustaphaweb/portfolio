@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { Suspense } from "react";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
@@ -7,7 +8,8 @@ import { setRequestLocale } from "next-intl/server";
 import { Analytics } from "@/components/analytics/Analytics";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
-import { DocumentLanguage } from "@/components/layout/DocumentLanguage";
+import { fontVariables } from "@/app/fonts";
+import { NOINDEX, THEME_INIT, VIEWPORT } from "@/components/layout/document";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { NavProgress } from "@/components/motion/NavProgress";
 import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
@@ -15,6 +17,26 @@ import { getSettings } from "@/lib/content/settings";
 import { getUiStrings } from "@/lib/content/ui";
 import { dirForLocale, type Locale } from "@/lib/content/types";
 import { routing } from "@/i18n/routing";
+
+import "../globals.css";
+
+/*
+ * ── THIS IS THE ROOT LAYOUT ─────────────────────────────────────────────────
+ *
+ * Since task 003261026 there is no `app/layout.tsx`. This file renders
+ * `<html>` and `<body>`, the fonts and the pre-paint theme script — next-intl's
+ * documented layout. The old root layout sat above `[locale]`, so it had no
+ * route param and called `getLocale()`, which fell back to request headers and
+ * made every page on the site dynamic: `revalidate = 300` was never honoured,
+ * and every response was `private, no-store`.
+ *
+ * Here the locale comes from params, after `setRequestLocale`, so every page
+ * prerenders. Unmatched URLs, which have no locale segment to render inside,
+ * go to `app/global-not-found.tsx`; `notFound()` thrown inside a locale route
+ * goes to `app/[locale]/not-found.tsx`.
+ */
+
+export const viewport = VIEWPORT;
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -32,7 +54,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) return {};
+  if (!hasLocale(routing.locales, locale)) return { ...NOINDEX };
 
   const settings = await getSettings(locale as Locale);
   const name = settings.get("name");
@@ -57,6 +79,7 @@ export async function generateMetadata({
       type: "website",
       images: ogImage ? [ogImage] : undefined,
     },
+    ...NOINDEX,
   };
 }
 
@@ -105,20 +128,23 @@ export default async function LocaleLayout({
       ? process.env.NEXT_PUBLIC_GA_ID
       : undefined;
 
-  /*
-   * <html> and <body> live in app/layout.tsx now. They had to move: without a
-   * root layout, notFound() had no boundary that rendered a document and fell
-   * through to Next's built-in error shell. See that file.
-   */
   return (
-    <>
+    <html
+      lang={typedLocale}
+      dir={dirForLocale(typedLocale)}
+      className={fontVariables}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-screen flex-col">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT}
+        </Script>
+
         {/*
-          <html lang/dir> is emitted by the root layout, which sits above this
-          segment and is therefore NOT re-rendered when the locale changes.
-          This keeps the two attributes in step on client navigation. See the
-          component — it is a fix for a launch blocker, not a nicety.
+          No DocumentLanguage any more: <html> is rendered by this layout,
+          which re-renders on an /en ↔ /ar switch, so lang and dir follow the
+          locale on client navigation by themselves (measured, 003261026).
         */}
-        <DocumentLanguage locale={typedLocale} />
 
         <PersonJsonLd locale={typedLocale} />
 
@@ -171,6 +197,7 @@ export default async function LocaleLayout({
             decline={ui.t("consent_decline")}
           />
         </NextIntlClientProvider>
-    </>
+      </body>
+    </html>
   );
 }

@@ -83,6 +83,12 @@ const nextConfig = {
    * this machine talking to itself.
    */
   allowedDevOrigins: ["127.0.0.1"],
+  /*
+   * ⚠️ WRITTEN BY frontend, task 003261026 — this file is devops'. Enables
+   * `app/global-not-found.tsx`: the root layout is now `app/[locale]/layout.tsx`
+   * (so pages prerender), which leaves an unmatched URL no layout to render in.
+   */
+  experimental: { globalNotFound: true },
 };
 
 export default withNextIntl(nextConfig);
