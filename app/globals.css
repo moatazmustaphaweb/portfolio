@@ -277,13 +277,17 @@
    * grows from the clicked card to the viewport, one ease-out curve inside the
    * 900ms ceiling (064 targets 650–750ms). The new page fades in over the
    * first 10% only, so the card-sized window never pops; the old page drifts
-   * up and dims behind it. Opacity, not a brightness filter: it recedes into
-   * --color-bg in both themes and stays on the compositor. */
+   * up and darkens behind it. Darkens with brightness(), not opacity: opacity
+   * recedes into --color-bg, which is white in the light theme, and the
+   * reference darkens in both. --nav-open-dim is the brightness factor. */
   --duration-nav-open: 700ms;
-  --ease-nav-open: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* The reveal starts slowly so the card-sized window is seen before it
+   * grows (orchestrator's call, 001261026); the old page keeps the ease-out. */
+  --ease-nav-open: cubic-bezier(0.65, 0, 0.25, 1);
+  --ease-nav-open-recede: cubic-bezier(0.2, 0.8, 0.2, 1);
   --duration-nav-open-fade: 70ms;
-  --nav-open-drift: 6vh;
-  --nav-open-dim: 0.6;
+  --nav-open-drift: 14vh;
+  --nav-open-dim: 0.55;
   /* Amplitudes. Containers move; content never does. */
   --nav-pan-distance: 24px;
   --nav-settle-distance: 6px;
@@ -995,6 +999,13 @@
 ::view-transition-old(nav-loader) {
   display: none;
 }
+/* The loader is gone the moment the route commits (063 item 3), so it never
+ * sits over a move. Its live element may still be fading out when the new
+ * state is captured; without this the scrim and mark stayed anchored above
+ * `.nav-main` for the whole transition (seen on the 064 open, 001261026). */
+:root[data-nav]::view-transition-new(nav-loader) {
+  display: none;
+}
 ::view-transition-new(site-header),
 ::view-transition-new(nav-progress),
 ::view-transition-new(nav-loader) {
@@ -1043,9 +1054,16 @@
   mix-blend-mode: normal;
 }
 :root[data-nav="open"]::view-transition-old(.nav-main) {
-  animation: nav-open-recede var(--duration-nav-open) var(--ease-nav-open) both;
+  /* The base rule hides every old image; this one stays and darkens. */
+  opacity: 1;
+  animation: nav-open-recede var(--duration-nav-open) var(--ease-nav-open-recede) both;
 }
 :root[data-nav="open"]::view-transition-new(.nav-main) {
+  /* <main> paints no background of its own, so its snapshot is transparent
+   * wherever the page is: the window would show the gallery through the
+   * cover. The snapshot gets the page's background; the live <main> is
+   * untouched. The clip below clips this background with the image. */
+  background-color: var(--color-bg);
   animation:
     nav-open-reveal var(--duration-nav-open) var(--ease-nav-open) both,
     nav-fade-in var(--duration-nav-open-fade) linear both;
@@ -1132,11 +1150,11 @@
 }
 @keyframes nav-open-recede {
   from {
-    opacity: 1;
+    filter: brightness(1);
     transform: none;
   }
   to {
-    opacity: var(--nav-open-dim);
+    filter: brightness(var(--nav-open-dim));
     transform: translateY(calc(-1 * var(--nav-open-drift)));
   }
 }
