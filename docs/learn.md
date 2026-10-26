@@ -1312,3 +1312,12 @@ Learned 2026-08-22, task `001220826`. Two errors in one draft, in opposite direc
 **Both are the same failure: trusting the artefact over the person.** The design file is evidence of what was built. It is not evidence of why, of what it was called, or of what mattered. A frame name is a designer's filing label, not a claim about the product — and treating one as content is how inference gets published in his voice.
 
 **So: when a dictated word does not parse, assume it is a real word in the wrong place before assuming it is noise.** Ask where it belongs. And **never let a screen name become a sentence** — if the detail did not come from him, it is a question, not a fact.
+
+### Measure the slowness before designing for it (004261026)
+
+The loader, the wait quotes and a whole second transition (065) were built to cover pages that took
+3s, and nobody measured why they took 3s. One `curl -D -` showed `no-store` and `MISS` on every
+page: ISR had been broken since 2026-08-23. When something feels slow, the first command is the one
+that times it and reads its cache headers, not a design that hides it. And when Moataz says "remove
+the loading", remove the loading; do not replace what he approved.
+

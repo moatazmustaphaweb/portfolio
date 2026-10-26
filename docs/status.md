@@ -37,6 +37,22 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 004261026 - 2026-10-26 - Back to the 064 opening, without a loader; 065 retired
+
+**Task id `004261026`.** Moataz: keep the transition from the reference (064) and build on it; the
+only change asked was no loading before it. 065 had replaced the transition instead, which was the
+wrong reading. The loading came from ISR being broken (`003261026`), not from the transition.
+
+- **Done (`bd548fc`):** the 065 lift reverted (`dbd436b`, `84b85ab`); 064's clip reveal restored; for
+  the `open` move only, no loader and no quote, the hairline alone (one condition in
+  `components/motion/NavProgress.tsx`, written by the orchestrator). Decision 065 marked RETIRED.
+- **Verified on preview (`portfolio-8nki80k22`), real-time recording:** cover committed 0.24s after
+  the click; no loader at any frame; the window opens out of the card to full screen while the
+  gallery darkens behind it, as in the reference.
+- **Not verified:** Safari/Firefox; a prefetched open (the recording fetched the cover on click).
+- **Lesson (learn.md):** measure before building a remedy. The loader was built on top of a 3s
+  render nobody had measured; measuring first would have found the ISR bug a day earlier.
+
 ## 003261026 - 2026-10-26 - ISR was not working on any page since 2026-08-23; fixed on nightly
 
 **Task id `003261026`.** Found while recording 065: every page on production and preview answered
