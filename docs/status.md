@@ -54,6 +54,9 @@ its paragraph and caption, alternating sides, wide ones full width, so the page 
 - **Review round with Moataz (same day):** order flipped (first figure inline-start, text at
   inline-end), and a figure with no prose shows its caption as a muted paragraph (`c679e9e`).
   Verified on preview.moatazmustapha.com in en and ar after the build was READY.
+- **Second review round:** the two wide mockups come out of the laptop/panel frame. In an editorial
+  chapter, a full-width landscape figure is the bare image at container width with the plain muted
+  caption below (no chip, no box); narrow figures, stacked and grid chapters unchanged (`91f1f9d`).
 - **Not verified:** dark theme.
 
 ## 011261026 - 2026-10-26 - Bank mobile chapters: screens in a grid, iPhone frame
