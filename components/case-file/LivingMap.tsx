@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { CardArrow } from "@/components/primitives/CardArrow";
+
 import type { Chapter, Grammar, Locale } from "@/lib/content/types";
 import { dirForLocale } from "@/lib/content/types";
 
@@ -102,21 +104,7 @@ export function LivingMap({
                 ) : null}
               </span>
 
-              {/*
-                The affordance that says the card opens (task 007261026). On
-                the inline-end side because the flex row mirrors with `dir`; the
-                glyph itself comes per locale from ui_strings, never flipped.
-                Colour only on hover and focus: decision 048 forbids transform
-                on content-level components, so it does not nudge.
-              */}
-              {arrow ? (
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 text-h3 leading-none text-fg-dim transition-colors group-hover:text-fg group-focus-visible:text-fg"
-                >
-                  {arrow}
-                </span>
-              ) : null}
+              <CardArrow glyph={arrow} />
             </Link>
           </li>
         );

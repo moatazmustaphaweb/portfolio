@@ -11,6 +11,43 @@ never ahead of it.**
 A task that ends in a diagnosis, a refusal, or a question returned still gets an entry.
 Two lines, not silence.
 
+## 008261026 — 2026-10-26 07:47 — one `CardArrow` primitive, body-sm, on every internal card link
+
+**Brief:** follow-up to 007261026. The chapter-card arrow was too big (`text-h3`). Make it the description size, keep it vertically centred, and put the same arrow on every internal link that renders as a card or row surface: a bordered or surface panel with a hover state, where the whole block is the link. Extract it into one server component. Exclude gallery ProjectCards, inline text links, the header nav, and buttons/CTAs.
+**Files:** new `components/primitives/CardArrow.tsx` · `components/case-file/LivingMap.tsx` · `components/case-file/EntryHandles.tsx` · `app/[locale]/(site)/work/[caseFile]/page.tsx` (passes `arrow` to EntryHandles) · `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx` · `app/[locale]/(site)/work/[caseFile]/results/page.tsx` · `app/[locale]/(site)/work/[caseFile]/all/page.tsx` · `app/[locale]/(site)/systems/page.tsx` · `app/[locale]/(site)/about/page.tsx` · this file.
+**Change:** `CardArrow({ glyph })` returns null when the glyph is undefined. Otherwise it renders an `aria-hidden` span with `shrink-0 text-body-sm leading-none text-fg-dim transition-colors group-hover:text-fg group-focus-visible:text-fg`. No transform. Each card listed below is now `group flex items-center gap-4`, with its content in a `min-w-0 flex-1` column and `<CardArrow glyph={ui.t("arrow_forward")} />` as the last child. Every existing hover/active border and background class is unchanged. On the cards that already had an arrow, the literal `→` + `rtl:rotate-180` span is gone (rtl-guard).
+**Applied to:**
+- LivingMap chapter cards. `text-h3` became `text-body-sm`, matching the objective line.
+- EntryHandles, RESOLVED handles only. An unresolved handle is plain text and gets no arrow, because the arrow would promise a destination that does not exist.
+- The chapter page's next-chapter card. It was `text-h3 text-fg-muted` with a literal arrow, and `gap-5` became `gap-4`.
+- The results page's sibling "next case" card. It was `block` with the arrow `items-end` beside the h2 title. It is now a row: kicker, title and note in the column, arrow centred on the whole card. The title's old `mt-4` became the column's `gap-4`.
+- The all-page sibling card, restructured the same way.
+- The systems evidence cards. The arrow was `text-ui text-fg-muted`.
+- The about onward cards. The arrow was `text-ui text-fg-dim` and `gap-3` became `gap-4`.
+**Considered and excluded:**
+- `SiblingLinks.tsx`: `h-control-h rounded-control` chips are controls, not card surfaces.
+- The cover's extra-page chips (`detail.pages`, `rounded-control px-4 py-2`): the same reason.
+- The chapter page's previous-chapter and back-to-cover links: these are plain text links, not cards, so `arrow_back` is not used anywhere yet. The back link still carries a literal `←` + `rotate`, which belongs to the separate cleanup.
+- The contact LinkedIn row: an external `<a>`, not internal, with a literal arrow (`contact/page.tsx:170`).
+- The `rounded-control` "Work" links on the results and all pages, and on contact: controls.
+- The onward text links on systems and philosophy, the results-table links and "read more": inline text links.
+- CTAs on the cover, the chapter end and the 404: buttons.
+- `ProjectCard`: an image card, excluded by the brief.
+- `components/preview/PreviewIndex.tsx` and `StubPage.tsx`: the internal preview tool, English-only by design, not a visitor surface.
+- `CareerTimeline`: has no links.
+**Verified:**
+- `rm -rf .next/types && npx tsc --noEmit -p .`: exit 0.
+- `npx eslint` on all nine source files: exit 0.
+- `npx tailwindcss -c tailwind.config.ts -i app/globals.css`: compiles. The output has `.group:hover .group-hover\:text-fg` and `.group:focus-visible .group-focus-visible\:text-fg` (both `color: var(--color-fg)`). `.leading-none` (line 1803) comes after `.text-body-sm` (line 1699), so the arrow's box is the glyph height and `items-center` centres it.
+- No ancestor of any of these cards carries a `group` class.
+- A grep for `rtl:rotate-180` now finds only inline-text links, buttons, and the external contact row.
+**Not verified:**
+- Nothing rendered. Nothing answered on `localhost:3000`, and there is no `.env.local` in this checkout, so I could not start the dev server against data. There are no screenshots at 390 or 1440 in either locale and no `querySelectorAll` counts.
+- Not measured: the arrow's visual centring against multi-line titles (h2 on the sibling cards), its size relative to each card's text, and whether Geist serves `←` under Meral in `/ar`.
+- Not checked whether migration 0065 is applied. Until it is, no arrow renders on any card, including the five that showed a literal arrow before this change. Those cards now show nothing until `arrow_forward` exists in the database.
+- Contrast of `text-fg-dim` at rest not measured.
+**Open questions:** none.
+
 ## 007261026 — 2026-10-26 07:40 — chapter cards on the cover get an inline-end forward arrow (colour only)
 
 **Brief:** make the chapter cards on the case-file cover look clickable. Add an `aria-hidden` forward arrow from `ui_strings.arrow_forward`, on the inline-end side and vertically centred. It goes `text-fg-dim` to `text-fg` on card hover and focus-visible. I first stopped with two questions (the brief's 4px translate against decision 048, and whether 0065 has an AR row). Orchestrator rulings: no translate, because decision 048 stands; 0065 will have both rows (EN →, AR ←) plus `arrow_back`.

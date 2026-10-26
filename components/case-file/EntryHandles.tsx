@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CardArrow } from "@/components/primitives/CardArrow";
 import type { EntryHandle, Locale } from "@/lib/content/types";
 
 /**
@@ -30,12 +31,19 @@ export function EntryHandles({
   caseFileSlug,
   locale,
   heading,
+  arrow,
 }: {
   handles: EntryHandle[];
   caseFileSlug: string;
   locale: Locale;
   /** `ui_strings.entry_handles_heading`. */
   heading?: string;
+  /**
+   * `ui_strings.arrow_forward`, resolved for the locale. Shown on RESOLVED
+   * handles only: an unresolved handle is text, and an arrow would promise a
+   * destination it does not have.
+   */
+  arrow?: string;
 }) {
   const usable = handles.filter((h) => h.invitation && h.payoff);
   if (usable.length === 0) return null;
@@ -60,9 +68,10 @@ export function EntryHandles({
               {handle.target ? (
                 <Link
                   href={`/${locale}/work/${caseFileSlug}/${handle.target.slug}`}
-                  className="flex flex-col gap-2 bg-surface p-card-p transition-colors hover:bg-surface-raised"
+                  className="group flex items-center gap-4 bg-surface p-card-p transition-colors hover:bg-surface-raised"
                 >
-                  {inner}
+                  <span className="flex min-w-0 flex-1 flex-col gap-2">{inner}</span>
+                  <CardArrow glyph={arrow} />
                 </Link>
               ) : (
                 <div className="flex flex-col gap-2 bg-surface p-card-p">{inner}</div>

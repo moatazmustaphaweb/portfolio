@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { CareerTimeline } from "@/components/about/CareerTimeline";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { getCareerRoles } from "@/lib/content/career";
 import { getPageSections } from "@/lib/content/pages";
 import { getUiStrings } from "@/lib/content/ui";
@@ -173,15 +174,10 @@ export default async function About({
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="flex items-center gap-3 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
+                  className="group flex items-center gap-4 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
                 >
-                  <span className="text-statement text-fg">{link.label}</span>
-                  <span
-                    aria-hidden="true"
-                    className="ms-auto text-ui text-fg-dim rtl:rotate-180"
-                  >
-                    →
-                  </span>
+                  <span className="min-w-0 flex-1 text-statement text-fg">{link.label}</span>
+                  <CardArrow glyph={ui.t("arrow_forward")} />
                 </Link>
               </li>
             ))}

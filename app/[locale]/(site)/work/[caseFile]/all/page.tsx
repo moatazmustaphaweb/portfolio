@@ -5,6 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 import { ReadingProgress } from "@/components/case-file/ReadingProgress";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { getCaseFile, listCaseFileSlugs } from "@/lib/content/case-files";
 import { listChapterBodies } from "@/lib/content/chapters";
 import { getUiStrings } from "@/lib/content/ui";
@@ -435,19 +436,17 @@ export default async function LinearView({
           <section className="mt-18">
             <Link
               href={`/${l}/work/${sibling.slug}`}
-              className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg"
+              className="group flex items-center gap-4 rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg"
             >
-              {ui.t("sibling_case_files") ? (
-                <span className="font-mono text-label uppercase text-fg-dim">
-                  {ui.t("sibling_case_files")}
-                </span>
-              ) : null}
-              <span className="mt-4 flex flex-wrap items-end gap-5">
-                <span className="min-w-0 flex-1 text-h2 text-fg">{sibling.title}</span>
-                <span aria-hidden="true" className="text-h3 text-fg rtl:rotate-180">
-                  →
-                </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-4">
+                {ui.t("sibling_case_files") ? (
+                  <span className="font-mono text-label uppercase text-fg-dim">
+                    {ui.t("sibling_case_files")}
+                  </span>
+                ) : null}
+                <span className="text-h2 text-fg">{sibling.title}</span>
               </span>
+              <CardArrow glyph={ui.t("arrow_forward")} />
             </Link>
           </section>
         ) : null}

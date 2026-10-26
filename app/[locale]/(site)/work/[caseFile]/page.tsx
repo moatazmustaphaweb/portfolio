@@ -311,6 +311,7 @@ export default async function CaseFileCover({
         caseFileSlug={caseFile}
         locale={l}
         heading={ui.t("entry_handles_heading")}
+        arrow={ui.t("arrow_forward")}
       />
 
       {detail.chapters.length > 0 ? (

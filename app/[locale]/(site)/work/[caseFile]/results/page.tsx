@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { getCaseFile, listCaseFileSlugsWithTargets } from "@/lib/content/case-files";
 import { getUiStrings } from "@/lib/content/ui";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -237,24 +238,22 @@ export default async function ResultsTable({
         <section className="mt-18">
           <Link
             href={`/${l}/work/${sibling.slug}`}
-            className="block rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg hover:bg-surface-raised"
+            className="group flex items-center gap-4 rounded-panel border border-strong bg-surface p-card-p transition-colors hover:border-fg active:border-fg hover:bg-surface-raised"
           >
-            {ui.t("sibling_case_files") ? (
-              <span className="font-mono text-label uppercase text-fg-dim">
-                {ui.t("sibling_case_files")}
-              </span>
-            ) : null}
-            <span className="mt-4 flex flex-wrap items-end gap-6">
-              <span className="min-w-0 flex-1 text-h2 text-fg">{sibling.title}</span>
-              <span aria-hidden="true" className="text-h3 text-fg rtl:rotate-180">
-                →
-              </span>
+            <span className="flex min-w-0 flex-1 flex-col gap-4">
+              {ui.t("sibling_case_files") ? (
+                <span className="font-mono text-label uppercase text-fg-dim">
+                  {ui.t("sibling_case_files")}
+                </span>
+              ) : null}
+              <span className="text-h2 text-fg">{sibling.title}</span>
+              {sibling.note ? (
+                <span className="max-w-measure text-body text-fg-muted">
+                  {sibling.note}
+                </span>
+              ) : null}
             </span>
-            {sibling.note ? (
-              <span className="mt-4 block max-w-measure text-body text-fg-muted">
-                {sibling.note}
-              </span>
-            ) : null}
+            <CardArrow glyph={ui.t("arrow_forward")} />
           </Link>
         </section>
       ) : null}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { CardArrow } from "@/components/primitives/CardArrow";
 import { ChapterSections } from "@/components/case-file/ChapterSections";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { ProseSections } from "@/components/layout/ProseSections";
@@ -520,9 +521,9 @@ export default async function Chapter({
           <Link
             href={`/${l}/work/${caseFile}/${detail.next.slug}`}
             transitionTypes={MOTION_LAYER ? ["nav-forward"] : undefined}
-            className="flex items-center gap-5 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
+            className="group flex items-center gap-4 rounded-panel border border-DEFAULT bg-surface p-card-p transition-colors hover:border-strong hover:bg-surface-raised"
           >
-            <span className="flex flex-col gap-2">
+            <span className="flex min-w-0 flex-1 flex-col gap-2">
               {ui.t("next_chapter") ? (
                 <span className="font-mono text-micro uppercase text-fg-dim">
                   {ui.t("next_chapter")}
@@ -532,12 +533,7 @@ export default async function Chapter({
                 {detail.next.title}
               </span>
             </span>
-            <span
-              aria-hidden="true"
-              className="ms-auto text-h3 text-fg-muted rtl:rotate-180"
-            >
-              →
-            </span>
+            <CardArrow glyph={ui.t("arrow_forward")} />
           </Link>
         ) : null}
 
