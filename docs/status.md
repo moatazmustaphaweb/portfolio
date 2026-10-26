@@ -37,6 +37,23 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 011261026 - 2026-10-26 - Bank mobile chapters: screens in a grid, iPhone frame
+
+**Task id `011261026`.** Moataz: show the mobile screens of the UAE and Egypt bank projects in a grid
+with the iPhone frame, same criteria as Kshemam and PideTaxi (cross-platform, so iPhone only).
+
+- **Content (Notion only):** criteria read from Kshemam/PideTaxi (app-screen chapters get Grid plus
+  the platform frame; web chapters get neither). Set Image layout = Grid, Device = iPhone on UAE
+  Acquisition / Mobile Onboarding Journey, UAE Acquisition / Application Tracking, Neobiz Mobile /
+  Onboarding. Left alone with reasons: Neobiz Customer Portal (no screenshots), Egypt Acquisition (web
+  and tablet), comparison pages (mixed, no sync write path).
+- **Sync:** run 10 on nightly, success. **Verified on preview (1280, en; 390, ar):** UAE onboarding
+  shows 6 screens in a 3-column iPhone-framed grid plus one framed single; Neobiz onboarding shows 9
+  framed screens in a grid; both grayscale (NDA). **Application Tracking does not change:** its four
+  images are already finished mockups (angled phones, close-up crops, 1000x1000 and landscape), not
+  raw portrait screens, so no frame and no grid apply. Raw exports would be needed for that.
+- Live on www too (one database; main already has the grid and frame code).
+
 ## 010261026 - 2026-10-26 - Closing the In-progress rows from Moataz's Notion comments; nightly released to main
 
 **Task id `010261026`.** Moataz: "start to close the in progress, I added comments on Notion."
