@@ -910,6 +910,21 @@ to do the work of a sentence.
 
 ---
 
+## 070 — One image can sit beside its paragraph in any chapter: `[place] beside`
+
+**Decided 2026-10-26, task `014261026`, by Moataz** ("also make this photo with paragraph side to
+side", on the AOF cover page in Egypt Acquisition / Onboarding Journey).
+
+Switching that chapter to Editorial would also move every wide web screen out of its laptop frame
+(decision 068 amended, 012261026), so the chapter stays Stacked and the choice is authored per
+image, like 069: an optional span `[place] beside` in the image tag. Such a figure pairs with the
+prose since the previous figure and renders exactly like a narrow editorial pair on md+ (image at
+inline-start, text at inline-end; stacked below md; Arabic mirrors). It never takes a frame
+change of its own: frame stays automatic unless `[frame] none` is also set. Any other `[place]`
+value is reported by the sync. In an Editorial chapter the span is redundant and harmless.
+
+---
+
 ## 069 — A finished mockup can opt out of its frame, per image: `[frame] none`
 
 **Decided 2026-10-26, task `013261026`, by Moataz** ("also same instructions for this", on the FATCA
