@@ -922,8 +922,9 @@ finished mockups: "make the page designed content, not a template where we put t
    since the previous figure in the same section) and its caption.
    - **Narrow figure** (portrait or square, by the image's own aspect ratio): a two-column row on
      `md` and up, prose and caption in one column, the figure in the other. The side alternates
-     figure by figure: the first figure on the inline-end side, the next on the inline-start side,
-     and so on. Logical sides, so Arabic mirrors.
+     figure by figure: the first figure on the inline-start side (text at inline-end), the next on the
+     inline-end side, and so on (order flipped by Moataz on review, 2026-10-26). A figure with no prose
+     before it shows its caption at paragraph size in the muted colour. Logical sides, so Arabic mirrors.
    - **Wide figure** (landscape): the full container width; prose before it, caption under it.
    - Below `md`: everything stacks, prose then figure then caption.
 3. Device frames still follow the image's own aspect ratio; finished mockups carry no Device value.
