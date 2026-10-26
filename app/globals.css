@@ -273,6 +273,17 @@
   --duration-nav-resolve-in: 250ms;
   --duration-nav-depth: 400ms;
   --ease-nav-depth: ease-out;
+  /* Decision 064: gallery card → cover. The cover is revealed by a clip that
+   * grows from the clicked card to the viewport, one ease-out curve inside the
+   * 900ms ceiling (064 targets 650–750ms). The new page fades in over the
+   * first 10% only, so the card-sized window never pops; the old page drifts
+   * up and dims behind it. Opacity, not a brightness filter: it recedes into
+   * --color-bg in both themes and stays on the compositor. */
+  --duration-nav-open: 700ms;
+  --ease-nav-open: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-nav-open-fade: 70ms;
+  --nav-open-drift: 6vh;
+  --nav-open-dim: 0.6;
   /* Amplitudes. Containers move; content never does. */
   --nav-pan-distance: 24px;
   --nav-settle-distance: 6px;
@@ -479,6 +490,8 @@
     --duration-nav-lift: 0ms;
     --duration-nav-resolve-in: 0ms;
     --duration-nav-depth: 0ms;
+    --duration-nav-open: 0ms;
+    --duration-nav-open-fade: 0ms;
     /* The hairline jumps to its resting width instead of trickling. */
     --duration-pending-trickle: 0ms;
     --duration-loader-cycle-out: 0ms;
@@ -1010,6 +1023,34 @@
     nav-depth-in var(--duration-nav-depth) var(--ease-nav-depth) both;
 }
 
+/* Open (decision 064): gallery card → cover. The new <main> is revealed by a
+ * clip that starts at the clicked card and grows to the viewport below the
+ * header; the content inside it is never scaled or moved (048). The old page
+ * drifts up and dims underneath. NavProgress writes the card box as
+ * --nav-open-x0/y0/x1/y1 in the new snapshot's own coordinates, and
+ * --nav-open-y-end as the viewport's bottom edge in the same space. Right and
+ * bottom insets are `100% - edge`: percentages in inset() resolve against the
+ * snapshot box, so the height of a page not yet rendered never has to be
+ * known. All four are physical, as the DOM rect is: correct in both
+ * directions with nothing to flip.
+ *
+ * mix-blend-mode: the UA pairs old and new with plus-lighter for a
+ * cross-fade; here the new page is opaque OVER the old one, so the blend
+ * would add the two images inside the window. Normal compositing, new on top
+ * (it follows old in the image pair). */
+:root[data-nav="open"]::view-transition-old(.nav-main),
+:root[data-nav="open"]::view-transition-new(.nav-main) {
+  mix-blend-mode: normal;
+}
+:root[data-nav="open"]::view-transition-old(.nav-main) {
+  animation: nav-open-recede var(--duration-nav-open) var(--ease-nav-open) both;
+}
+:root[data-nav="open"]::view-transition-new(.nav-main) {
+  animation:
+    nav-open-reveal var(--duration-nav-open) var(--ease-nav-open) both,
+    nav-fade-in var(--duration-nav-open-fade) linear both;
+}
+
 /* Ascend: the reverse. The page being left recedes; the parent resolves. */
 :root[data-nav="zoom-out"]::view-transition-old(.nav-main) {
   animation:
@@ -1076,6 +1117,28 @@
 @keyframes nav-depth-out {
   from { transform: none; }
   to { transform: scale(var(--nav-depth-scale)); }
+}
+@keyframes nav-open-reveal {
+  from {
+    clip-path: inset(
+      var(--nav-open-y0, 0px) calc(100% - var(--nav-open-x1, 100%))
+        calc(100% - var(--nav-open-y1, 100%)) var(--nav-open-x0, 0px)
+        round var(--radius-panel)
+    );
+  }
+  to {
+    clip-path: inset(0px 0px calc(100% - var(--nav-open-y-end, 100%)) 0px round 0px);
+  }
+}
+@keyframes nav-open-recede {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: var(--nav-open-dim);
+    transform: translateY(calc(-1 * var(--nav-open-drift)));
+  }
 }
 @keyframes nav-pan-out {
   from { transform: none; }

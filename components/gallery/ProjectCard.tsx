@@ -39,8 +39,14 @@ export function ProjectCard({
 
   return (
     <li>
+      {/*
+        `data-nav-open`: this link is the rectangle the cover opens out of
+        (decision 064). NavProgress reads the attribute and the link's box on
+        click; nothing here animates, and with the Motion Layer off it is inert.
+      */}
       <Link
         href={`/${locale}/work/${caseFile.slug}`}
+        data-nav-open=""
         className="group flex h-full flex-col overflow-hidden rounded-panel border border-DEFAULT bg-surface transition-colors hover:border-strong"
       >
         {/*

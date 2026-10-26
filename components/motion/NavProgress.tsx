@@ -44,9 +44,23 @@ import { registerPendingListener } from "./pending";
  * `nav-forward` / `nav-back` types for the pan (the chapter page).
  * After the commit, focus moves to the destination `h1` (motion-system §10),
  * only when a click, a key or history started the navigation.
+ *
+ * ── OPEN: GALLERY CARD → COVER (decision 064) ────────────────────────────
+ * A click on a gallery card (`data-nav-open` on its link) from `/work` to a
+ * cover is `open`, not `zoom-in`: the new `<main>` is revealed by a clip that
+ * starts at the clicked card and grows to the viewport. The card's rectangle
+ * is read here, at the click, clamped to the visible area below the header,
+ * and written to `<html>` in the NEW main's own coordinate space: that page
+ * lands at scroll 0, so its snapshot sits at `<main>`'s document top, and the
+ * card's viewport position minus that origin is where the clip starts. The
+ * rect is physical (`getBoundingClientRect`), and so is `clip-path: inset()`,
+ * so nothing here depends on `dir`. A card scrolled entirely out of the
+ * visible area has no rectangle to open from and falls back to `zoom-in`.
+ * Known limit: a scroll DURING a slow navigation is not re-read; the clip
+ * starts where the card was at the click, as `--nav-old-shift` already does.
  */
 
-type NavKind = "resolve" | "zoom-in" | "zoom-out" | "pop" | "cut";
+type NavKind = "resolve" | "zoom-in" | "open" | "zoom-out" | "pop" | "cut";
 
 const APPEAR_MS = 100; // below this a commit shows nothing
 const LOADER_MS = 300;
@@ -54,6 +68,15 @@ const QUOTE_MS = 2500;
 const CEILING_MS = 15000;
 const COMPLETE_MS = 320; // 150 complete + 150 fade + a frame
 const CLEAR_NAV_MS = 900; // the navigation ceiling (tokens.md, 900ms)
+
+/** Written for `open` only; every one is removed with `data-nav`. */
+const OPEN_PROPS = [
+  "--nav-open-x0",
+  "--nav-open-y0",
+  "--nav-open-x1",
+  "--nav-open-y1",
+  "--nav-open-y-end",
+] as const;
 
 function segments(pathname: string): string[] {
   return pathname.split("/").filter(Boolean);
@@ -72,6 +95,52 @@ function classify(from: string, to: string): NavKind {
     if (x.length > y.length && y.every((s, i) => x[i] === s)) return "zoom-out";
   }
   return "resolve";
+}
+
+/** `/<locale>/work` → `/<locale>/work/<slug>`: the gallery opening a cover. */
+function isGalleryToCover(from: string, to: string): boolean {
+  const x = segments(from).slice(1);
+  const y = segments(to).slice(1);
+  return x.length === 1 && x[0] === "work" && y.length === 2 && y[0] === "work";
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * Writes the clicked card's rectangle for the `open` reveal, in the new
+ * `<main>` snapshot's coordinates (see the header comment). Returns false when
+ * there is nothing visible to open from, and writes nothing.
+ */
+function writeOpenRect(root: HTMLElement, card: Element): boolean {
+  const main = document.getElementById("main");
+  if (!main) return false;
+  const vw = root.clientWidth;
+  const vh = window.innerHeight;
+  const headerBottom = document.querySelector(".site-header")?.getBoundingClientRect().bottom ?? 0;
+  const floor = clamp(headerBottom, 0, vh);
+  const r = card.getBoundingClientRect();
+  const x0 = clamp(r.left, 0, vw);
+  const x1 = clamp(r.right, 0, vw);
+  const y0 = clamp(r.top, floor, vh);
+  const y1 = clamp(r.bottom, floor, vh);
+  if (x1 - x0 < 1 || y1 - y0 < 1) return false;
+  // Where the new <main> will sit: its document position, at scroll 0.
+  const m = main.getBoundingClientRect();
+  const originX = m.left + window.scrollX;
+  const originY = m.top + window.scrollY;
+  const px = (n: number) => `${Math.round(n * 100) / 100}px`;
+  root.style.setProperty("--nav-open-x0", px(x0 - originX));
+  root.style.setProperty("--nav-open-y0", px(y0 - originY));
+  root.style.setProperty("--nav-open-x1", px(x1 - originX));
+  root.style.setProperty("--nav-open-y1", px(y1 - originY));
+  // The reveal ends at the viewport's bottom edge, not at the bottom of a
+  // page several screens tall, so the rectangle grows evenly on all sides.
+  root.style.setProperty("--nav-open-y-end", px(vh - originY));
+  return true;
+}
+
+function clearOpenRect(root: HTMLElement) {
+  OPEN_PROPS.forEach((p) => root.style.removeProperty(p));
 }
 
 function motionAllowed(): boolean {
@@ -197,10 +266,19 @@ export function NavProgress({
       s.completeTimer = window.setTimeout(() => setBar("idle"), COMPLETE_MS);
     };
 
-    const beginNav = (to: URL, how: "push" | "pop") => {
+    const beginNav = (to: URL, how: "push" | "pop", origin?: HTMLAnchorElement) => {
       window.clearTimeout(s.clearNavTimer);
+      clearOpenRect(root);
       if (motionAllowed()) {
-        const kind = how === "pop" ? "pop" : classify(location.pathname, to.pathname);
+        let kind: NavKind = how === "pop" ? "pop" : classify(location.pathname, to.pathname);
+        if (
+          kind === "zoom-in" &&
+          origin?.hasAttribute("data-nav-open") &&
+          isGalleryToCover(location.pathname, to.pathname) &&
+          writeOpenRect(root, origin)
+        ) {
+          kind = "open";
+        }
         root.dataset.nav = kind;
         // The old snapshot is taken at this scroll position and the new page
         // lands at the top; the CSS moves the old image back by this much so
@@ -230,7 +308,7 @@ export function NavProgress({
       if (url.pathname === location.pathname && url.search === location.search) return;
       // A file or an API route is not a page; the bar would wait on nothing.
       if (url.pathname.startsWith("/api/") || /\.[a-z0-9]+$/i.test(url.pathname)) return;
-      beginNav(url, "push");
+      beginNav(url, "push", a);
     };
 
     const onPop = () => {
@@ -267,6 +345,7 @@ export function NavProgress({
         s.clearNavTimer = window.setTimeout(() => {
           delete root.dataset.nav;
           root.style.removeProperty("--nav-old-shift");
+          clearOpenRect(root);
         }, CLEAR_NAV_MS);
       },
     };
