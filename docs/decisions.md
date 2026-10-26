@@ -910,6 +910,27 @@ to do the work of a sentence.
 
 ---
 
+## 066 — Cover to chapter is a horizontal push; back to the cover is its reverse
+
+**Decided 2026-10-26, task `006261026`, by Moataz:** "a transition from cover to chapter from right
+to left, and reverse while back to cover."
+
+**Decision:**
+1. **Cover → chapter (any chapter, including "read linearly" and entry handles):** the chapter page
+   slides in from the inline-end edge to rest; the cover moves toward inline-start by a fraction
+   (parallax, about a third of the width) and darkens. Header anchored. In LTR the new page comes
+   from the right; in RTL it mirrors and comes from the left.
+2. **Chapter → cover (back link, breadcrumb, browser back):** the exact reverse. The chapter leaves
+   toward inline-end, and the cover returns from inline-start and brightens.
+3. Duration within the 900ms ceiling (about 550-650ms), one ease-in-out curve. No loader and no quote
+   on these moves; the hairline only. The new page snapshot is opaque.
+4. Chapter prev/next keep their pan (063). Gallery → cover keeps 064. Behind `MOTION_LAYER`; reduced
+   motion is an instant cut with focus on the h1.
+
+**Status:** ACTIVE.
+
+---
+
 ## 065 — The card's image becomes the cover's image, starting on the click (supersedes 064's mechanism)
 
 **Decided 2026-10-26, task `002261026`, by Moataz**, after seeing 064 on preview: "this transition
