@@ -1,4 +1,5 @@
--- 0065 — Quotes shown under the loader during a long navigation wait.
+-- 0065 — Quotes shown under the loader during a long navigation wait, and the
+-- two directional glyph keys (`arrow_forward`, `arrow_back`).
 --
 -- ── WHY ─────────────────────────────────────────────────────────────────────
 --
@@ -12,6 +13,15 @@
 -- published pages and supplied in the brief. None was written or edited here.
 -- No numbers (motion-system §13).
 --
+-- ── THE TWO GLYPH KEYS ──────────────────────────────────────────────────────
+--
+-- Task `007261026`. `arrow_forward` and `arrow_back` carry the directional
+-- glyphs for "go forward / open" and "go back" affordances. Under rtl-guard a
+-- directional glyph is content: never a literal in JSX, never flipped with CSS.
+-- Each locale stores the glyph that points the right way in its own reading
+-- direction, so EN → / ← and AR ← / →. No migration before this one seeds a key
+-- for either purpose (grep of supabase/migrations for arrow, glyph, →, ←).
+--
 -- ⚠️ THE SHAPE OF THIS FILE IS LOAD-BEARING. It must stay in the
 -- `with strings(key, context, en, ar) as (values …)` form, and the file must be
 -- listed in `SEED_FILES` in `scripts/check-seed-drift.ts` (it is). See 0052.
@@ -23,7 +33,9 @@ with strings(key, context, en, ar) as (values
   ('wait_quote_4', 'Shown under the loader during a long navigation wait (decision 063). Verbatim from Moataz''s published pages.', 'I trust behaviour over statements.', 'أثق بالسلوك قبل الأقوال.'),
   ('wait_quote_5', 'Shown under the loader during a long navigation wait (decision 063). Verbatim from Moataz''s published pages.', 'Art is a language, not a school subject.', 'الفن لغة، لا مادة دراسية.'),
   ('wait_quote_6', 'Shown under the loader during a long navigation wait (decision 063). Verbatim from Moataz''s published pages.', 'Structure serves whoever is doing the work.', 'البنية تخدم من يؤدي العمل.'),
-  ('wait_quote_7', 'Shown under the loader during a long navigation wait (decision 063). Verbatim from Moataz''s published pages.', 'What began as a language decision turned out to be an architectural one.', 'ما بدأ كقرار لغوي اتضح أنه قرار معماري.')
+  ('wait_quote_7', 'Shown under the loader during a long navigation wait (decision 063). Verbatim from Moataz''s published pages.', 'What began as a language decision turned out to be an architectural one.', 'ما بدأ كقرار لغوي اتضح أنه قرار معماري.'),
+  ('arrow_forward', 'Directional glyph for "go forward / open" affordances (chapter cards, CTAs). rtl-guard: never a literal in JSX, never flipped with CSS.', '→', '←'),
+  ('arrow_back', 'Directional glyph for "go back" affordances. rtl-guard.', '←', '→')
 ), upsert_keys as (
   insert into ui_strings (key, context)
   select key, context from strings

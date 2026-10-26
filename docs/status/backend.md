@@ -16,6 +16,37 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 007261026 — 2026-10-26 07:25 — migration 0065 also seeds `arrow_forward` / `arrow_back` glyph keys, still NOT applied
+
+**Brief:** add two directional glyph rows (`arrow_forward` EN → AR ←, `arrow_back` EN ← AR →)
+to the unapplied `0065_seed_wait_quotes.sql`, after checking that no migration already seeds a
+key with that name or purpose; update the header; keep it idempotent; confirm the drift checker parses it.
+
+**Files:** `supabase/migrations/0065_seed_wait_quotes.sql` (two tuples appended to the `strings`
+values list, header line and a "THE TWO GLYPH KEYS" comment block added). **No migration applied.**
+0065 is still unapplied as a whole, so applying it creates nine keys, not seven.
+
+**Measured:** `grep -rniE "arrow|glyph|→|←" supabase/migrations` turned up no seeded key for either
+purpose. The only matches were comments, the `context` text of `back_to_work` / `read_linear`
+(labels, not glyphs) and the `←` heading alias in 0043. `arrow_forward|arrow_back` appear nowhere
+in the repo. Codepoints written: U+2192 / U+2190 (EN forward/back), mirrored for AR. I extracted the
+drift checker's `parseTuple` and `parseSeed` from `scripts/check-seed-drift.ts` and ran them offline:
+0065 parses to **9** tuples (7 quotes + 2 glyphs). All 11 `SEED_FILES` give 109 tuples and 109
+unique keys, so nothing is duplicated.
+
+**Verified:** idempotence by reading the SQL. It uses the same CTE as before: `on conflict (key)` on
+`ui_strings` and `on conflict (entity_type, entity_id, locale, field)` on `translations`.
+
+**Not verified:** the live database. The Supabase MCP in this session lists only the Dabbler
+projects, so I could not confirm that no `arrow_*` key exists in `ui_strings` today. If one exists,
+the upsert overwrites it. I did not run the SQL. I did not run `npm run check:seed-drift` against the
+DB, and it will report both keys as "NOT in the database" until 0065 is applied. No component reads
+these keys yet; that is frontend's.
+
+**Open questions:** none.
+
+---
+
 ## 013251026 — 2026-10-25 — migration 0065 seeds the seven `wait_quote_N` ui_strings (decision 063 item 4), NOT applied
 
 **Brief:** write `supabase/migrations/0065_seed_wait_quotes.sql` seeding `wait_quote_1`…`wait_quote_7`
