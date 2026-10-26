@@ -51,7 +51,9 @@ Journey: "same instructions", then "this photo only remove the frame".
 - **Frontend (`0ed77d6`):** such a figure renders bare at full width with the plain caption below in
   stacked, grid (splits the run) and editorial (never beside text). Unflagged figures unchanged.
 - **Notion:** `[frame] none` added to the `Old-fatca` tag on the English page and its Arabic child.
-- **Waiting on:** Moataz applying 0067, then a sync of `egypt-acquisition` and a check on preview.
+- **0067 applied by Moataz; sync run 13 (`only=egypt-acquisition`) success.** Verified on
+  preview.moatazmustapha.com, en and ar at 1280: the FATCA figure is 952px wide (full container),
+  no frame, caption below in the plain muted style. **Not verified:** dark theme, 390 width.
 
 ## 012261026 - 2026-10-26 - Editorial image layout (decision 068), first on UAE Application Tracking
 
