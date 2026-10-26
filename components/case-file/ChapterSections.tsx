@@ -52,6 +52,91 @@ function groupFigureRuns(blocks: ChapterSection["blocks"]): BlockUnit[] {
 }
 
 /**
+ * ── EDITORIAL (decision 068, task `012261026`) ──────────────────────────────
+ *
+ * Within a section, each RENDERABLE figure is paired with the prose blocks
+ * written since the previous figure (or since the start of the section). Prose
+ * after the last figure stays a plain block. A table breaks the run: the prose
+ * before it renders as plain blocks and the table renders as it always has —
+ * only paragraphs (and lists, which are paragraphs here) are pulled into a
+ * pair. Decision cards are not section blocks at all; the page renders them
+ * between the two `ChapterSections` calls, untouched.
+ *
+ * A null-media figure renders nothing, so it cannot anchor a pair. The prose
+ * leading into it is flushed as plain blocks rather than carried forward to
+ * the NEXT figure — carrying it would attach a paragraph to a screen it was
+ * not written about.
+ *
+ * Pairing is by ADJACENCY in the order the database holds, never by index
+ * across two lists (docs/learn.md Part 5).
+ */
+type BlockRef = { block: ChapterSection["blocks"][number]; i: number };
+
+type EditorialUnit =
+  | { kind: "block"; block: ChapterSection["blocks"][number]; i: number }
+  | { kind: "pair"; prose: BlockRef[]; media: Media; i: number; beside: boolean };
+
+/**
+ * Narrow = portrait or square: width / height <= 1.15, from the media row's
+ * own stored dimensions. Unknown dimensions are treated as WIDE, which renders
+ * exactly as stacked — the safe reading when there is no evidence.
+ */
+const EDITORIAL_NARROW_MAX_RATIO = 1.15;
+
+function isNarrowFigure(media: Media): boolean {
+  if (!media.width || !media.height) return false;
+  return media.width / media.height <= EDITORIAL_NARROW_MAX_RATIO;
+}
+
+function groupEditorialUnits(blocks: ChapterSection["blocks"]): EditorialUnit[] {
+  const units: EditorialUnit[] = [];
+  let pending: BlockRef[] = [];
+  const flush = () => {
+    for (const p of pending) units.push({ kind: "block", ...p });
+    pending = [];
+  };
+  blocks.forEach((block, i) => {
+    if (block.kind === "prose") {
+      pending.push({ block, i });
+    } else if (block.kind === "image" && block.media) {
+      /*
+       * BESIDE only when the text column would hold something. A narrow figure
+       * with no prose before it and no caption would put the image beside an
+       * empty track (learn.md Part 5, "a container that loses a child keeps
+       * its tracks"), so that case renders stacked and takes no side.
+       */
+      const beside =
+        isNarrowFigure(block.media) && (pending.length > 0 || Boolean(block.media.fields.caption));
+      units.push({ kind: "pair", prose: pending, media: block.media, i, beside });
+      pending = [];
+    } else {
+      flush();
+      units.push({ kind: "block", block, i });
+    }
+  });
+  flush();
+  return units;
+}
+
+/**
+ * How many figures in these sections take a side. The page splits a chapter's
+ * sections around the decision cards and renders them with two
+ * `ChapterSections` calls; the second call starts its alternation from this
+ * count, so the sides alternate across the whole chapter rather than
+ * restarting after the decisions. Same grouping function as the renderer, so
+ * the count and the render cannot disagree.
+ */
+export function countEditorialBesideFigures(sections: ChapterSection[]): number {
+  let n = 0;
+  for (const section of sections)
+    for (const unit of groupEditorialUnits(section.blocks))
+      if (unit.kind === "pair" && unit.beside) n++;
+  return n;
+}
+
+type EditorialSide = "start" | "end";
+
+/**
  * A chapter's slots, rendered in the order the database holds them.
  *
  * The counterpart of `CoverSections`, and the render half of migration 0035.
@@ -100,6 +185,7 @@ export function ChapterSections({
   linkLabels,
   deviceFrame = "iphone",
   imageLayout = "stacked",
+  editorialOffset = 0,
 }: {
   sections: ChapterSection[];
   /*
@@ -123,11 +209,25 @@ export function ChapterSections({
    * `chapters.image_layout`, task `004221026`. Optional, default "stacked",
    * and "stacked" renders byte-for-byte what this component rendered before
    * the prop existed — the grid path is a separate branch, not a variation
-   * of the stacked one.
+   * of the stacked one. "editorial" (decision 068) is a third branch; its wide
+   * figures render item for item as stacked does.
    */
   imageLayout?: ImageLayout;
+  /*
+   * Editorial only: how many side-placed figures came before this call in the
+   * same chapter (see `countEditorialBesideFigures`). Default 0, so a single
+   * call starts with the figure on the inline-end side.
+   */
+  editorialOffset?: number;
 }) {
   if (sections.length === 0) return null;
+
+  /*
+   * Editorial alternation counter. Even → figure at inline-end (prose at
+   * inline-start), odd → figure at inline-start. Advanced only by figures that
+   * actually take a side, in render order.
+   */
+  let besideCount = editorialOffset;
 
   return (
     <>
@@ -230,7 +330,87 @@ export function ChapterSections({
                       </div>
                     ),
                   )
-                : section.blocks.map((block, i) => renderBlock(section, block, i, deviceFrame))}
+                : imageLayout === "editorial"
+                  ? groupEditorialUnits(section.blocks).flatMap((unit) => {
+                      if (unit.kind === "block")
+                        return [renderBlock(section, unit.block, unit.i, deviceFrame)];
+                      if (!unit.beside) {
+                        /*
+                         * WIDE (or narrow with nothing to sit beside): prose,
+                         * then the figure with its caption under it — exactly
+                         * the stacked render, item for item, so the spacing is
+                         * the stacked spacing.
+                         */
+                        return [
+                          ...unit.prose.map((p) => renderBlock(section, p.block, p.i, deviceFrame)),
+                          <ChapterFigure
+                            key={`f-${section.id}-${unit.i}`}
+                            media={unit.media}
+                            deviceFrame={deviceFrame}
+                          />,
+                        ];
+                      }
+                      const side: EditorialSide = besideCount++ % 2 === 0 ? "end" : "start";
+                      return [
+                        /*
+                         * NARROW: one grid per pair.
+                         *
+                         * Below `md` it is one column in DOM order — prose,
+                         * then the figure (image, then its caption) — with the
+                         * container's own 24px rhythm (`gap-y-6`), which is
+                         * what stacked gives.
+                         *
+                         * From `md`: two equal columns (`grid-cols-2` =
+                         * minmax(0,1fr) each) with a 40px gutter. Equal, not
+                         * 5/7: inside the 1000px prose container a 7/12 track
+                         * makes a square mockup ~530px and it outweighs the
+                         * text; at 1/1 it is ~456px, level with the prose.
+                         *
+                         * Four rows, `1fr auto auto 1fr`: prose in row 2,
+                         * caption in row 3, figure across all four. The two
+                         * `1fr` rows absorb the difference in height, so the
+                         * text group and the figure are BOTH vertically
+                         * centred on each other whichever is taller.
+                         *
+                         * The figure element goes `md:contents` (see
+                         * `ChapterFigure`) so its image and its <figcaption>
+                         * become cells of THIS grid and the caption can sit in
+                         * the text column while staying inside its <figure>.
+                         *
+                         * SIDES ARE GRID COLUMNS, NOT PHYSICAL SIDES. Column 1
+                         * is the inline start, because grid placement follows
+                         * `direction` — so in Arabic column 1 is on the right
+                         * and the whole row mirrors without this file knowing
+                         * the locale.
+                         *
+                         * `md:!my-10`: the same 40px a framed figure takes, and
+                         * the `!` for the same reason (learn.md Part 5,
+                         * `space-y-*` outranks `mt-*`). Below `md` the pair
+                         * keeps the container's 24px, as stacked does.
+                         */
+                        <div
+                          key={`e-${section.id}-${unit.i}`}
+                          data-editorial={side}
+                          className="grid grid-cols-1 gap-y-6 md:!my-10 md:grid-cols-2 md:grid-rows-[1fr_auto_auto_1fr] md:gap-x-10 md:gap-y-0"
+                        >
+                          {unit.prose.length > 0 ? (
+                            <div
+                              className={`min-w-0 space-y-6 md:row-start-2 ${
+                                side === "end" ? "md:col-start-1" : "md:col-start-2"
+                              }`}
+                            >
+                              {unit.prose.map((p) => renderBlock(section, p.block, p.i, deviceFrame))}
+                            </div>
+                          ) : null}
+                          <ChapterFigure
+                            media={unit.media}
+                            deviceFrame={deviceFrame}
+                            editorialSide={side}
+                          />
+                        </div>,
+                      ];
+                    })
+                  : section.blocks.map((block, i) => renderBlock(section, block, i, deviceFrame))}
             </div>
           </section>
         );
@@ -355,9 +535,20 @@ function ChapterFigure({
   media,
   deviceFrame,
   inGrid = false,
+  editorialSide,
 }: {
   media: Media | null;
   deviceFrame: DeviceFrameKind;
+  /*
+   * Set only by the editorial path, for a NARROW figure placed beside its
+   * prose. The <figure> becomes `display: contents` from `md`, so its image
+   * box and its <figcaption> are placed as cells of the pair's grid: the image
+   * in the figure column, the caption in the text column under the prose.
+   * Below `md` the figure is an ordinary block — image, then caption.
+   *
+   * "end" puts the figure in column 2 (inline end), "start" in column 1.
+   */
+  editorialSide?: EditorialSide;
   /*
    * Set only by the grid path. The grid owns the spacing (its own margin and
    * gap), so the figure drops its margins; and a framed figure fills its cell
@@ -412,6 +603,13 @@ function ChapterFigure({
    */
   const phone = ratio !== null && ratio >= 1.7;
   const device = laptop || phone;
+  const editorial = editorialSide !== undefined;
+  /*
+   * Literal class strings, one per side, so Tailwind's scanner sees each one.
+   * The text column is always the other one.
+   */
+  const figureCol = editorialSide === "end" ? "md:col-start-2" : "md:col-start-1";
+  const textCol = editorialSide === "end" ? "md:col-start-1" : "md:col-start-2";
 
   const caption = media.fields.caption;
   /*
@@ -459,7 +657,15 @@ function ChapterFigure({
     */
     <figure
       className={
-        inGrid
+        editorial
+          ? /*
+             * No margins: the pair's grid owns the spacing. `md:contents`
+             * dissolves the box so its two children become grid cells; a
+             * `style` on a `contents` box applies to nothing, which is why the
+             * frame's width cap moves to the image cell below.
+             */
+            "min-w-0 md:contents"
+          : inGrid
           ? device
             ? "relative mx-auto w-full min-w-0"
             : "min-w-0"
@@ -481,7 +687,9 @@ function ChapterFigure({
         exports its own and this reads it — one constant with two readers
         rather than 320 written down twice.
       */
-      style={device ? { maxWidth: phone ? PHONE_FRAME_MAX_W : LAPTOP_FRAME_MAX_W } : undefined}
+      style={
+        device && !editorial ? { maxWidth: phone ? PHONE_FRAME_MAX_W : LAPTOP_FRAME_MAX_W } : undefined
+      }
     >
       {(() => {
         /*
@@ -513,15 +721,43 @@ function ChapterFigure({
               */
               device
                 ? "block h-auto w-full"
-                : "me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
+                : editorial
+                  ? /*
+                     * Centred in its column rather than hugging the start: a
+                     * portrait that hits the height cap is narrower than the
+                     * column, and on the inline-end side a start-hugging image
+                     * would leave its gap between itself and the prose.
+                     */
+                    "mx-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
+                  : "me-auto block h-auto w-full max-w-full md:max-h-figure md:w-auto"
             }
           />
         );
-        if (phone)
-          return (
-            <PhoneFrame variant={deviceFrame === "android" ? "android" : "default"}>{img}</PhoneFrame>
-          );
-        return laptop ? <DeviceFrame>{img}</DeviceFrame> : img;
+        const visual = phone ? (
+          <PhoneFrame variant={deviceFrame === "android" ? "android" : "default"}>{img}</PhoneFrame>
+        ) : laptop ? (
+          <DeviceFrame>{img}</DeviceFrame>
+        ) : (
+          img
+        );
+        if (!editorial) return visual;
+        /*
+         * The image cell: rows 1 to 5 (all four tracks), centred vertically.
+         * A framed picture carries the frame's own width cap here, with
+         * `w-full mx-auto` — the same pairing the grid path uses, for the
+         * same reason (an auto-margined item with no width shrinks to
+         * fit-content, and the `w-full` frame inside collapses with it).
+         */
+        return (
+          <div
+            className={`min-w-0 md:row-start-1 md:row-end-5 md:self-center ${figureCol} ${
+              device ? "mx-auto w-full" : ""
+            }`}
+            style={device ? { maxWidth: phone ? PHONE_FRAME_MAX_W : LAPTOP_FRAME_MAX_W } : undefined}
+          >
+            {visual}
+          </div>
+        );
       })()}
       {caption ? (
         <figcaption
@@ -583,7 +819,22 @@ function ChapterFigure({
               Unframed captions are unchanged. This belongs to the device
               treatment, live on one chapter while its look is being agreed.
             */
-            device
+            /*
+              EDITORIAL: the caption is a cell of the pair's grid — row 3, the
+              text column, directly under the prose. Never floating: it is not
+              on a frame's edge any more, it is under a paragraph. A framed
+              figure keeps the chip treatment but hugs the inline start of the
+              text column instead of centring on a frame it no longer sits on.
+            */
+            editorial
+              ? [
+                  device
+                    ? "mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 font-mono text-micro text-fg-dim"
+                    : "mt-3 max-w-measure text-meta text-fg-muted",
+                  "md:row-start-3 md:self-start",
+                  textCol,
+                ].join(" ")
+              : device
               ? [
                   "mx-auto mt-3 w-fit max-w-measure rounded-control border border-DEFAULT bg-surface px-3 py-1 text-center font-mono text-micro text-fg-dim",
                   phone

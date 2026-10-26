@@ -4,7 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { CardArrow } from "@/components/primitives/CardArrow";
-import { ChapterSections } from "@/components/case-file/ChapterSections";
+import { ChapterSections, countEditorialBesideFigures } from "@/components/case-file/ChapterSections";
 import { SectionLink } from "@/components/layout/SectionLink";
 import { ProseSections } from "@/components/layout/ProseSections";
 import { SiblingLinks } from "@/components/case-file/SiblingLinks";
@@ -459,7 +459,12 @@ export default async function Chapter({
             </div>
           ) : null}
 
-          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} imageLayout={detail.imageLayout} /> : null}
+          {/*
+            Editorial (decision 068): the rest of the chapter continues the
+            side alternation from where the lead sections left off, so the
+            decision cards do not restart it.
+          */}
+          {hasSections ? <ChapterSections sections={restSections} linkLabels={sectionLinkLabels} deviceFrame={detail.deviceFrame} imageLayout={detail.imageLayout} editorialOffset={countEditorialBesideFigures(leadSections)} /> : null}
 
           {/*
             Evidence. The design pairs prose with masked figures; `media` is

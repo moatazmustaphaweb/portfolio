@@ -11,6 +11,30 @@ never ahead of it.**
 A task that ends in a diagnosis, a refusal, or a question returned still gets an entry.
 Two lines, not silence.
 
+## 012261026 — 2026-10-26 13:17 — `editorial` image layout in the chapter renderer (decision 068)
+
+**Brief:** build the third `imageLayout`, `editorial`, in `ChapterSections` along the same path as `grid`. Within each section, pair each figure with the prose since the previous figure and with its caption. A narrow figure (w/h <= 1.15 from the stored dimensions; unknown counts as wide) goes beside its prose on `md`+, alternating sides per narrow figure across the chapter, using logical sides only. A wide figure renders full width with the caption under it. Below `md`, everything stacks. Target: UAE Application Tracking.
+**Files:** `components/case-file/ChapterSections.tsx` · `app/[locale]/(site)/work/[caseFile]/[chapter]/page.tsx` (the second `ChapterSections` call passes `editorialOffset={countEditorialBesideFigures(leadSections)}` so the decision cards do not restart the alternation) · `lib/media/image-layout.ts` (`IMAGE_LAYOUTS` gains `"editorial"`: backend had not added it when I built, and this is outside my usual write area, done on the brief's instruction) · this file.
+**Change:**
+- `groupEditorialUnits` groups by adjacency. Prose blocks accumulate. A renderable figure takes the accumulated prose as a pair. A table flushes the prose as plain blocks and renders unchanged. A null-media figure flushes its prose as plain blocks (it is not carried forward to the next figure). Prose after the last figure stays plain.
+- A pair is "beside" only if the figure is narrow AND its text column would hold something (prose or a caption). Otherwise it renders exactly as stacked and takes no side, so a grid track can never be left empty.
+- The beside pair is a grid: `grid-cols-1 gap-y-6` below `md`. From `md` it is `md:grid-cols-2 md:gap-x-10 md:grid-rows-[1fr_auto_auto_1fr] md:!my-10`. Prose is in row 2 and the caption in row 3, both in the text column. The image cell spans `row-start-1`/`row-end-5` with `self-center`. The `<figure>` is `md:contents`, so its figcaption becomes a grid cell while staying inside the `<figure>`. Sides are `md:col-start-1/2`, which follow `direction`, so Arabic mirrors. The counter is even → figure at inline end, odd → inline start.
+- Columns are 1/1, not 5/7. Inside the 1000px prose container a square comes out about 456px at `lg`, against about 530px at 7/12.
+- Captions keep their current styles and never float. The chip (framed figures) hugs the inline start of the text column. An unframed image is `mx-auto` in its cell. A framed one carries the frame max-width on the cell (a `style` on a `contents` box applies to nothing).
+- Stacked and grid are unchanged. CloudinaryImage, the `gallery` preset, NDA grayscale (inside CloudinaryImage), the device-frame thresholds and the spacing tokens are all unchanged. No motion.
+**Verified:**
+- `rm -rf .next/types && npx tsc --noEmit -p .`: exit 0. That was with `"editorial"` added to `IMAGE_LAYOUTS` and before backend's change; `database.types.ts` still says `"stacked" | "grid"`, and tsc did not object.
+- `npx eslint` on the three source files: exit 0.
+- Tailwind compile (`npx tailwindcss -c tailwind.config.ts -i app/globals.css`): every new utility is emitted — `md:contents`, `md:col-start-1/2`, `md:row-start-1/2/3`, `md:row-end-5`, `md:self-center/start`, `md:grid-rows-[1fr_auto_auto_1fr]` → `grid-template-rows: 1fr auto auto 1fr`, `md:!my-10` → `var(--space-10) !important`, `md:gap-x-10`, `md:gap-y-0`, `gap-y-6`, `md:grid-cols-2`.
+- No physical-direction utility in the file; the only grep hit is an existing comment.
+**Not verified:**
+- **Nothing was rendered.** There is no `.env.local` in this container and no Chrome, so no dev server on :3000, no screenshot, and no DOM or computed-style measurement in either locale at 390 or 1440.
+- The target page's block order and captions were not read. The Supabase connector here lists only the Dabbler projects, not the portfolio's. The expected result (narrow on inline end, narrow on inline start, then two wide) assumes each 1000x1000 figure has prose before it or a caption. Without either, it renders stacked and takes no side.
+- The `1fr auto auto 1fr` vertical centring is reasoned from the grid spec, not measured.
+- `display: contents` on `<figure>`: screen-reader exposure of the figure/figcaption relationship was not tested.
+- Nothing renders as editorial until backend's migration and sync land and the chapter's Notion `Image layout` is set to Editorial.
+**Open questions:** none.
+
 ## 008261026 — 2026-10-26 07:47 — one `CardArrow` primitive, body-sm, on every internal card link
 
 **Brief:** follow-up to 007261026. The chapter-card arrow was too big (`text-h3`). Make it the description size, keep it vertically centred, and put the same arrow on every internal link that renders as a card or row surface: a bordered or surface panel with a hover state, where the whole block is the link. Extract it into one server component. Exclude gallery ProjectCards, inline text links, the header nav, and buttons/CTAs.
