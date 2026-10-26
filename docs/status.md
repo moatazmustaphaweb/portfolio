@@ -37,6 +37,23 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 014261026 - 2026-10-26 - One image beside its paragraph in any chapter: `[place] beside` (decision 070)
+
+**Task id `014261026`.** Moataz, on Egypt Onboarding: "make this photo with paragraph side to side"
+(AOF cover page), then "also this" (sanctions declaration).
+
+- **Why per image:** switching the chapter to Editorial would also unframe every wide web screen.
+- **Backend + frontend (`9cf4691`):** optional `[place] beside` span; `chapter_paragraphs.place`
+  (migration 0068, applied by Moataz); the figure pairs with the prose since the previous figure
+  using the editorial pair renderer (now shared), image at inline-start. tests and tsc pass.
+- **Notion:** span added to both tags on the English page and its Arabic child. (Briefly added and
+  removed while confirming which chapter the screenshot came from; net state as stated.)
+- **Sync run 14, success. Verified on preview** at 1280 (en: image x=180, text at end; ar: image
+  x=660-676, mirrored) and 390 (stacked full width), no horizontal scroll.
+- **Found, not fixed:** the AOF cover is used in Onboarding and Fulfilment, and its caption lives on
+  the shared `media` translation, so Onboarding shows Fulfilment's caption. New board row (backend).
+- **Not verified:** dark theme.
+
 ## 013261026 - 2026-10-26 - A finished mockup can opt out of its frame: `[frame] none` (decision 069)
 
 **Task id `013261026`.** Moataz, on the FATCA forms mockup in Egypt Acquisition / Onboarding
