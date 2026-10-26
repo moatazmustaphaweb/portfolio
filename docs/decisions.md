@@ -910,6 +910,72 @@ to do the work of a sentence.
 
 ---
 
+## 070 — One image can sit beside its paragraph in any chapter: `[place] beside`
+
+**Decided 2026-10-26, task `014261026`, by Moataz** ("also make this photo with paragraph side to
+side", on the AOF cover page in Egypt Acquisition / Onboarding Journey).
+
+Switching that chapter to Editorial would also move every wide web screen out of its laptop frame
+(decision 068 amended, 012261026), so the chapter stays Stacked and the choice is authored per
+image, like 069: an optional span `[place] beside` in the image tag. Such a figure pairs with the
+prose since the previous figure and renders exactly like a narrow editorial pair on md+ (image at
+inline-start, text at inline-end; stacked below md; Arabic mirrors). It never takes a frame
+change of its own: frame stays automatic unless `[frame] none` is also set. Any other `[place]`
+value is reported by the sync. In an Editorial chapter the span is redundant and harmless.
+
+---
+
+## 069 — A finished mockup can opt out of its frame, per image: `[frame] none`
+
+**Decided 2026-10-26, task `013261026`, by Moataz** ("also same instructions for this", on the FATCA
+forms mockup in Egypt Acquisition / Onboarding Journey, after the two wide Application Tracking
+mockups were unframed).
+
+The device frame stays automatic by aspect ratio (laptop on landscape, phone on portrait). A
+finished mockup is already composed, so a frame around it frames it twice. Neither the chapter nor
+the aspect ratio can tell a mockup from a raw screen: that chapter mixes one mockup with a dozen
+raw web screens that keep their laptop frame. So it is authored per image, in the image tag, as
+an optional fourth span: `[frame] none`. A figure carrying it renders as the bare image at full
+container width with the plain muted caption below (no chip, no box), the same treatment decision
+068 gives wide editorial figures. Any other `[frame]` value is reported by the sync, never guessed.
+Not an NDA control: grayscale stays driven by `case_files.nda` (rule 6).
+
+---
+
+## 068 — A third image layout: Editorial (image beside its paragraph, alternating)
+
+**Decided 2026-10-26, task `012261026`, by Moataz**, on UAE Application Tracking, whose images are
+finished mockups: "make the page designed content, not a template where we put the picture."
+
+**Decision:**
+1. `chapters.image_layout` gains `editorial` (Notion `Image layout` = Editorial), alongside stacked
+   and grid. Authored per chapter.
+2. In an editorial chapter each figure is paired with the prose that leads into it (the paragraphs
+   since the previous figure in the same section) and its caption.
+   - **Narrow figure** (portrait or square, by the image's own aspect ratio): a two-column row on
+     `md` and up, prose and caption in one column, the figure in the other. The side alternates
+     figure by figure: the first figure on the inline-start side (text at inline-end), the next on the
+     inline-end side, and so on (order flipped by Moataz on review, 2026-10-26). A figure with no prose
+     before it shows its caption at paragraph size in the muted colour. Logical sides, so Arabic mirrors.
+   - **Wide figure** (landscape): the full container width; prose before it, caption under it.
+   - Below `md`: everything stacks, prose then figure then caption.
+3. Device frames still follow the image's own aspect ratio; finished mockups carry no Device value.
+4. No motion; layout only.
+
+**Status:** ACTIVE.
+
+---
+
+## 067 — og_image stays as it is
+
+**Decided 2026-10-26, task `010261026`, by Moataz** on the Vision Tracker: "The current version is OK."
+The share image stays stored as a URL. No new image, no `public_id` migration. The redaction guard on
+that one field stays inert, accepted knowingly: the image is not an NDA screen. Closes 061 item 7.
+
+**Status:** ACTIVE.
+
+---
+
 ## 066 — Cover to chapter is a horizontal push; back to the cover is its reverse
 
 **Decided 2026-10-26, task `006261026`, by Moataz:** "a transition from cover to chapter from right

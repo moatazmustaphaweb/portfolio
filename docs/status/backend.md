@@ -16,6 +16,121 @@ the handoffs are in `docs/workflows.md`.
 
 ---
 
+## 014261026 — 2026-10-26 17:32 — per-image `[place] beside` from the image tag to the figure (migration 0068, NOT applied)
+
+**Brief:** implement decision 070 the way 069's `[frame] none` was done. An optional `[place]`
+span: `beside` (case-insensitive, trimmed) sets the flag; any other value is usable-but-reported;
+a duplicate makes the tag invalid. Store it on `chapter_paragraphs.place`, expose it as
+`place?: "beside"` on the image block. Both sides must tolerate the column being absent.
+Components are frontend's and were not touched.
+
+**Files:** `lib/sync/image-tags.ts` (`place` key; `ImageTag.place?: "beside"`, independent of
+`frame`; a bad `[place]` value raises a warning, not a flag) · `scripts/sync-notion.ts`
+(`paragraphPlaceWritable` start-up probe, which does not exit; the insert writes `place: 'beside'`
+only when the column exists, and otherwise reports each flag per figure; the shape line gains
+` beside en:N ar:M` when there are any) · `lib/content/chapters.ts` (emits `place: "beside"` only
+on the literal `'beside'`, still `select("*")`) · `lib/content/types.ts` (doc comment on `place`;
+see Open questions) · `lib/supabase/database.types.ts` (`place?: "beside" | null`, Row and Insert)
+· `supabase/migrations/0068_image_place_beside.sql` (new, idempotent: `add column if not exists`
+plus a guarded CHECK `chapter_paragraphs_place_valid`, no backfill) · `docs/schema.md` ·
+`docs/sync-contract.md` · `scripts/test-sync-logic.ts` (the `[place]` block). **No migration
+applied.**
+
+**Measured:** `npm run test:sync` passed every check, including the new `[place]` block: beside,
+four case/whitespace variants, span order, both flags in either order, four bad values each with one
+warning, one bad span alongside one good one, duplicate → invalid, a broken tag reporting no place
+noise, `[place]` first → prose, and the unknown-key message lists `[place]`.
+`rm -rf .next/types && npx tsc --noEmit` exit 0, with frontend's in-progress
+`components/case-file/ChapterSections.tsx` in the tree. eslint on the changed files: 0 errors (database.types.ts is lint-ignored).
+
+**Verified:** the tests and checks above. **Not verified:** whether 0067 or 0068 is live. The
+Supabase connector in this session lists only the Dabbler projects, and there is no `.env.local`,
+so no column probe could run. I ran no sync, dry or live, and opened no page.
+
+**Open questions:** none on the brief. **For the orchestrator:** another writer (presumably
+frontend) had already added a bare `place?: "beside";` to `lib/content/types.ts`, a backend file. It
+matches the agreed shape exactly, so I kept the line and documented it. Next: Moataz applies 0068,
+the `[place] beside` span goes into Notion (content's job), and then a live sync.
+
+---
+
+## 013261026 — 2026-10-26 17:15 — per-image `[frame] none` from the image tag to the figure (migration 0067, NOT applied)
+
+**Brief:** implement decision 069. An image tag may carry an optional fourth span `[frame] none`.
+Parse it, store it on the per-placement row, and expose it on the figure `ChapterSections` gets.
+Any other value is reported and treated as absent. Both sides must keep working before Moataz
+applies the migration. Components are not mine.
+
+**Files:** `lib/sync/image-tags.ts` (`[frame]` key; `ImageTag.frame?: "none"`; the usable-tag
+result gains `warnings: string[]`; new `tagWarningMessage`) · `scripts/sync-notion.ts` (warnings
+carried on body items and raised as NOTICEs naming chapter, public ID and value; a start-up probe of
+`chapter_paragraphs.frame` that sets `paragraphFrameWritable` and does NOT exit; the insert writes
+`frame: 'none'` only when the column exists, otherwise reports each one per figure; shape line
+gains ` unframed en:N ar:M` when non-zero) · `scripts/test-sync-logic.ts` (new "Image tag [frame]"
+block) · `supabase/migrations/0067_image_frame_none.sql` (new: `add column if not exists frame
+text`, CHECK `chapter_paragraphs_frame_valid` = `frame is null or frame = 'none'`, guarded by a
+`pg_constraint` lookup, plus a column comment) · `lib/supabase/database.types.ts` (`frame?: "none" | null`
+on Row/Insert) · `lib/content/types.ts` (`frame?: "none"` on the image member of `ChapterBlock`) ·
+`lib/content/chapters.ts` (`chapter_paragraphs` read with `select("*")` so a missing column cannot
+fail the query; the figure gets `frame: "none"` only when the row says `'none'`) · `docs/schema.md`
+· `docs/sync-contract.md`. **No migration applied.**
+
+**Measured:** `npm run test:sync`: all checks pass, 0 FAIL (the new block covers absent, none,
+4 case/whitespace variants, span order, 4 unrecognised values incl. empty, notice text, duplicate
+→ invalid, broken tag not masked, `[frame]`-first is prose, unknown key message).
+`rm -rf .next/types && npx tsc --noEmit`: no errors. eslint on the changed TS files: 0 errors (one
+warning: `database.types.ts` is in the ignore list).
+
+**Verified:** the tests and typecheck above, nothing else.
+
+**Not verified:** no live or dry-run sync. There is no `.env.local` in this checkout, and the Supabase
+MCP here lists only the Dabbler projects, not the portfolio. So nothing has been checked against the
+live database: not the column's absence, not the `select("*")` read, not a page on `:3000`. The
+probe-and-skip path and the read-as-NULL path are reasoned and typechecked, not exercised. Rendering
+belongs to frontend: `ChapterSections.tsx` rebuilds figures as `{ media, i }` and `pair` units, so
+it has to carry `block.frame` through itself.
+
+**Open questions:** none.
+
+---
+
+## 012261026 — 2026-10-26 13:15 — `chapters.image_layout` gains `editorial` (migration 0066, NOT applied)
+
+**Brief:** add a third value, `editorial`, to `chapters.image_layout` per decision 068. That meant
+a migration that recreates the CHECK, the shared vocabulary, a Notion `Editorial` → `editorial`
+mapping in the sync that still reports unknown values, the type unions, the sync's start-up check,
+and the two docs.
+
+**Files:** `supabase/migrations/0066_image_layout_editorial.sql` (new). It drops the CHECK if it exists, recreates
+`chapters_image_layout_valid` with `('stacked','grid','editorial')`, and updates the column comment. ·
+`lib/media/image-layout.ts` (`IMAGE_LAYOUTS` gains `editorial`) · `lib/sync/image-layout.ts`
+(`Editorial` → `editorial`; unknown values still defaulted to stacked AND reported, message now
+"not Stacked/Grid/Editorial") · `lib/supabase/database.types.ts` (Row/Insert unions) ·
+`lib/content/types.ts` (doc comment; type flows from the vocabulary) · `scripts/sync-notion.ts`
+(comments and the run-level notice text only) · `scripts/test-sync-logic.ts` (4 new checks) ·
+`docs/schema.md` · `docs/sync-contract.md`. **No migration applied.**
+
+**Measured:** 0066 is the next free number, because `ls supabase/migrations` ends at 0065 and has no other 0066. The
+start-up check reads the column only (`select image_layout limit 1`). It does not validate the allowed set, so it
+needed no change. It cannot see the CHECK, because PostgREST does not expose `pg_constraint` and a CHECK
+only fires on a written row. Without 0066, an Editorial chapter's upsert is refused and reported
+through `fail()`, and the other chapters sync. That is written into the migration header, the guard comment and
+sync-contract.
+
+**Verified:** `rm -rf .next/types && npx tsc --noEmit` exited 0. eslint on the touched files gave 0 errors
+(`database.types.ts` is in the ignore pattern). `npm run test:sync`: all checks pass, including
+`select Editorial -> editorial`, the case/trim check, `Editoral` being reported, and `content: editorial kept`.
+
+**Not verified:** the migration has not been run against any database. The portfolio Supabase project
+is not visible to this session's Supabase MCP (it lists only the Dabbler projects), so the live
+constraint was not read. No sync was run, dry or live. Nothing renders `editorial` yet:
+`components/case-file/ChapterSections.tsx:187` branches only on `"grid"`, so an editorial chapter
+currently renders stacked. That is **frontend's**, per decision 068.
+
+**Open questions:** none.
+
+---
+
 ## 007261026 — 2026-10-26 07:25 — migration 0065 also seeds `arrow_forward` / `arrow_back` glyph keys, still NOT applied
 
 **Brief:** add two directional glyph rows (`arrow_forward` EN → AR ←, `arrow_back` EN ← AR →)

@@ -95,8 +95,8 @@ create table chapters (
   hero_media_id   uuid references media(id) on delete set null,
   device_frame    text not null default 'iphone'      -- 0062
                   check (device_frame in ('iphone', 'android')),
-  image_layout    text not null default 'stacked'     -- 0063
-                  check (image_layout in ('stacked', 'grid')),
+  image_layout    text not null default 'stacked'     -- 0063; editorial 0066
+                  check (image_layout in ('stacked', 'grid', 'editorial')),
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   unique (case_file_id, slug)
@@ -212,11 +212,16 @@ the sync and `lib/content`. The content layer exposes it as **`deviceFrame`** on
 **`chapters.image_layout` (migration 0063, task `004221026`)** — how a chapter's
 **consecutive** figures render: `stacked` (one under another, as every chapter rendered before
 the column) or `grid`. **Authored, not inferred:** it comes from the Notion property
-`Image layout` on the chapter page (`Stacked` | `Grid`, empty = `stacked`), via the sync, and
+`Image layout` on the chapter page (`Stacked` | `Grid` | `Editorial`, empty = `stacked`), via the sync, and
 from nowhere else — not from the number of images or their aspect ratios. Same shape as
 `device_frame`: `text` + CHECK, vocabulary in one place (`lib/media/image-layout.ts`), exposed
 by the content layer as **`imageLayout`** (type `ImageLayout`, exported from
 `lib/content/types`) on `Chapter` and `ChapterDetail`, never null.
+
+**`editorial` (migration 0066, decision 068, task `012261026`)** — a third value: each figure is
+paired with the prose that leads into it, beside it for a narrow figure (alternating logical
+sides) and full width for a wide one. Notion `Image layout` = `Editorial`. 0066 only drops and
+recreates `chapters_image_layout_valid` with the wider set; no backfill, no column change.
 
 **Publish-time check (application-level, not a DB constraint):** a chapter cannot move to `published` without `role`, and without a **decided** decision set, in at least one locale. This is rule 3 of the non-negotiables — it prevents the "we" problem structurally.
 
@@ -261,6 +266,31 @@ create table chapter_slot_aliases (
 
 ### A paragraph is a row, and it belongs to ONE locale
 
+**`chapter_paragraphs.frame` (migration 0067, decision 069, task `013261026`)** — a per-placement
+override of the automatic device frame. NULL (every existing row, and any figure whose tag has no
+`[frame]` span) = the frame stays automatic by aspect ratio; `'none'` = this figure renders
+unframed. It comes from the image tag span `` `[frame] none` `` via the sync, and from nowhere
+else. **On the paragraph row, not on `media`:** an image paragraph row IS the placement (one per
+figure, per locale, per position), while a `media` row is shared by public ID across locales and
+chapters, so a flag there would unframe the asset everywhere. Nullable `text` + CHECK, the
+`device_frame` shape. **Applied by Moataz in the SQL editor**, so both sides tolerate its absence:
+`lib/content/chapters.ts` reads `chapter_paragraphs` with `select("*")` (never naming `frame`) and
+treats a missing column as NULL; the sync probes it at start-up and, when missing, writes
+everything else and reports each `[frame] none` it could not store. Exposed by the content layer
+as **`frame?: "none"`** on the `{ kind: "image" }` member of `ChapterBlock` — present only when
+`'none'`, absent otherwise.
+
+**`chapter_paragraphs.place` (migration 0068, decision 070, task `014261026`)** — the same shape
+and the same reasoning as `frame`, for position instead of frame. NULL (every existing row, and
+any figure whose tag has no `[place]` span) = the figure keeps its normal place in the chapter's
+layout; `'beside'` = it pairs with the prose since the previous figure and sits beside it on md+,
+in any layout. From the image tag span `` `[place] beside` `` via the sync, and from nowhere else.
+Independent of `frame`. Also applied by Moataz in the SQL editor, so both sides tolerate its
+absence the same way (`select("*")` in the content layer; a start-up probe in the sync that, when
+the column is missing, writes everything else and reports each `[place] beside` it could not
+store). Exposed as **`place?: "beside"`** on the `{ kind: "image" }` member of `ChapterBlock` —
+present only when `'beside'`, absent otherwise.
+
 ```sql
 create table chapter_paragraphs (
   id                 uuid primary key default gen_random_uuid(),
@@ -269,6 +299,10 @@ create table chapter_paragraphs (
   kind               text not null,      -- 'prose' | 'table'
   locale             locale_code not null,   -- 0045. NO DEFAULT
   part               text not null,          -- 0045. 'body' | 'tail'. NO DEFAULT
+  frame              text                    -- 0067. NULL | 'none'
+                     check (frame is null or frame = 'none'),
+  place              text                    -- 0068. NULL | 'beside'
+                     check (place is null or place = 'beside'),
   unique (chapter_section_id, locale, sort_order)
 );
 

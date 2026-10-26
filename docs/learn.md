@@ -1321,3 +1321,11 @@ page: ISR had been broken since 2026-08-23. When something feels slow, the first
 that times it and reads its cache headers, not a design that hides it. And when Moataz says "remove
 the loading", remove the loading; do not replace what he approved.
 
+
+## A red Vercel build on a docs-only commit can be Supabase, not the commit
+
+Added 2026-10-26, task `012261026`. The build prerenders every route against the live database.
+Supabase returned one Cloudflare 502 mid-build, `translate.ts` threw, and the deploy went ERROR on
+a commit that only touched `docs/status.md`. Read the build log before reacting: a 502 HTML page
+inside `Failed to resolve translations` is the database, and the alias stays on the last READY
+build, so the preview is not broken. The next push rebuilds it; nothing in the code needs fixing.

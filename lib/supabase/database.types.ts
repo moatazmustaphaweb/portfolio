@@ -260,6 +260,19 @@ export type Database = {
            * for the English cross-chapter pointer that follows it.
            */
           part: string;
+          /**
+           * Migration 0067 (decision 069): NULL = automatic device frame;
+           * 'none' = this figure renders unframed. OPTIONAL because the column
+           * does not exist until Moataz applies 0067 — read it from a `*`
+           * select and treat absent as NULL, never name it in a select list.
+           */
+          frame?: "none" | null;
+          /**
+           * Migration 0068 (decision 070): NULL = the figure keeps its normal
+           * place in the chapter layout; 'beside' = it sits beside the prose
+           * that leads into it. OPTIONAL for the same reason as `frame`.
+           */
+          place?: "beside" | null;
         };
         Insert: {
           id?: string;
@@ -268,6 +281,8 @@ export type Database = {
           kind?: string;
           locale: "en" | "ar";
           part: string;
+          frame?: "none" | null;
+          place?: "beside" | null;
         };
         Update: Partial<Database["public"]["Tables"]["chapter_paragraphs"]["Insert"]>;
         Relationships: [];
@@ -385,8 +400,8 @@ export type Database = {
           kind: Database["public"]["Enums"]["chapter_kind"];
           /** Migration 0062. From the Notion property `Device`; see lib/media/device-frame.ts. */
           device_frame: "iphone" | "android";
-          /** Migration 0063. From the Notion property `Image layout`; see lib/media/image-layout.ts. */
-          image_layout: "stacked" | "grid";
+          /** Migration 0063; `editorial` added by 0066. From the Notion property `Image layout`; see lib/media/image-layout.ts. */
+          image_layout: "stacked" | "grid" | "editorial";
           created_at: string;
           updated_at: string;
         };
@@ -396,7 +411,7 @@ export type Database = {
           slug: string;
           kind?: Database["public"]["Enums"]["chapter_kind"];
           device_frame?: "iphone" | "android";
-          image_layout?: "stacked" | "grid";
+          image_layout?: "stacked" | "grid" | "editorial";
           sort_order?: number;
           status?: Database["public"]["Enums"]["content_status"];
           hero_media_id?: string | null;

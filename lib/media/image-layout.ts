@@ -1,10 +1,12 @@
 /**
- * How a chapter's CONSECUTIVE figures render: one under another, or as a grid.
+ * How a chapter's figures render: one under another, as a grid, or editorial —
+ * each figure paired with the prose that leads into it (decision 068, task
+ * `012261026`, migration 0066).
  *
  * Decided by Moataz, task `004221026`: it is AUTHORED, per chapter, as the
  * Notion property `Image layout` on the chapter page — not inferred from the
  * images, their count or their aspect ratios. Stored in `chapters.image_layout`
- * (migration 0063). This file is the one vocabulary both the sync and the
+ * (migration 0063; `editorial` added by 0066). This file is the one vocabulary both the sync and the
  * content layer read, so the two cannot drift. Mirrors `device-frame.ts`.
  *
  * The default is `stacked`, because that is what an empty `Image layout` means
@@ -15,7 +17,7 @@
  * default and CHECK make unreachable once 0063 is applied.
  */
 
-export const IMAGE_LAYOUTS = ["stacked", "grid"] as const;
+export const IMAGE_LAYOUTS = ["stacked", "grid", "editorial"] as const;
 
 export type ImageLayout = (typeof IMAGE_LAYOUTS)[number];
 

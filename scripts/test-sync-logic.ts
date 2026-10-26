@@ -48,6 +48,12 @@ import {
   pathsForPage,
   postRevalidate,
 } from "@/lib/sync/revalidate";
+import {
+  invalidTagMessage,
+  parseImageTag,
+  tagWarningMessage,
+  type NotionRun,
+} from "@/lib/sync/image-tags";
 
 let failures = 0;
 
@@ -649,6 +655,10 @@ eq("select Grid -> grid", layoutOf(sel("Grid")), { layout: "grid", problem: null
 eq("select Stacked -> stacked", layoutOf(sel("Stacked")), { layout: "stacked", problem: null });
 eq("layout case-insensitive and trimmed", layoutOf(sel("  GRID ")).layout, "grid");
 eq("text grid -> grid", layoutOf(txt("grid")), { layout: "grid", problem: null });
+// Decision 068, task 012261026, migration 0066.
+eq("select Editorial -> editorial", layoutOf(sel("Editorial")), { layout: "editorial", problem: null });
+eq("editorial case-insensitive and trimmed", layoutOf(sel(" EDITORIAL ")).layout, "editorial");
+check("a typo (Editoral) is reported, not read as Editorial", layoutOf(sel("Editoral")).problem !== null);
 eq("empty layout select -> stacked, no notice", layoutOf(sel(null)), { layout: "stacked", problem: null });
 eq("empty layout text -> stacked, no notice", layoutOf(txt("")), { layout: "stacked", problem: null });
 
@@ -674,6 +684,7 @@ check("the layout notice names Image layout, not Device", layoutBox.problem?.sta
 eq("content: undefined layout column -> stacked", imageLayoutOrDefault(undefined), "stacked");
 eq("content: null layout -> stacked", imageLayoutOrDefault(null), "stacked");
 eq("content: grid kept", imageLayoutOrDefault("grid"), "grid");
+eq("content: editorial kept", imageLayoutOrDefault("editorial"), "editorial");
 eq("content: junk layout -> stacked", imageLayoutOrDefault("Grid"), "stacked");
 
 console.log("\nMedia dimensions from Cloudinary (007231026)");
@@ -758,6 +769,183 @@ async function revalidatePostChecks() {
   const down = await postRevalidate("https://a.example", "s3cret", ["/"],
     (async () => { throw new Error("ECONNREFUSED"); }) as unknown as typeof fetch);
   check("post: network error -> not ok, no throw", !down.ok && down.detail === "ECONNREFUSED", down.detail);
+}
+
+/* --------------------------------- image tag [frame] none (decision 069) ---- */
+
+console.log("\nImage tag [frame] (task 013261026, decision 069)");
+
+{
+  const code = (t: string): NotionRun => ({ plain_text: t, annotations: { code: true } });
+  const gap: NotionRun = { plain_text: " ", annotations: { code: false } };
+  const tagOf = (...spans: string[]): NotionRun[] =>
+    spans.flatMap((sp, i) => (i === 0 ? [code(sp)] : [gap, code(sp)]));
+  const base = ["[cld] Egypt/FATCA forms (v2)", "[alt] The FATCA form", "[caption] FATCA, as a form"];
+
+  const plain = parseImageTag(tagOf(...base));
+  eq("three spans: still a usable tag", plain.kind, "tag");
+  if (plain.kind === "tag") {
+    check("three spans: no frame flag at all", !("frame" in plain.tag), JSON.stringify(plain.tag));
+    eq("three spans: no warnings", plain.warnings, []);
+  }
+
+  const none = parseImageTag(tagOf(...base, "[frame] none"));
+  eq("[frame] none -> frame: none", none.kind === "tag" ? none.tag.frame : none.kind, "none");
+  eq("[frame] none -> no warnings", none.kind === "tag" ? none.warnings : none.kind, []);
+  eq("[frame] none keeps cld/alt/caption verbatim", none.kind === "tag" ? none.tag : null, {
+    cld: "Egypt/FATCA forms (v2)", alt: "The FATCA form", caption: "FATCA, as a form", frame: "none",
+  });
+
+  for (const v of ["None", "NONE", "  none  ", "nOnE"]) {
+    const r = parseImageTag(tagOf(...base, `[frame] ${v}`));
+    eq(`case-insensitive and trimmed: ${JSON.stringify(v)}`, r.kind === "tag" ? r.tag.frame : r.kind, "none");
+  }
+
+  // Order of the spans after [cld] is free.
+  const early = parseImageTag(tagOf(base[0], "[frame] none", base[1], base[2]));
+  eq("[frame] between [cld] and [alt] is read", early.kind === "tag" ? early.tag.frame : early.kind, "none");
+
+  // Unrecognised value: tag still usable, flag absent, and REPORTED.
+  for (const v of ["laptop", "off", "no", ""]) {
+    const r = parseImageTag(tagOf(...base, `[frame] ${v}`.trimEnd()));
+    eq(`[frame] ${JSON.stringify(v)} -> still a usable tag`, r.kind, "tag");
+    if (r.kind === "tag") {
+      check(`[frame] ${JSON.stringify(v)} -> no frame flag`, r.tag.frame === undefined, JSON.stringify(r.tag));
+      check(
+        `[frame] ${JSON.stringify(v)} -> one warning naming the value`,
+        r.warnings.length === 1 && r.warnings[0].includes(JSON.stringify(v)),
+        JSON.stringify(r.warnings),
+      );
+    }
+  }
+
+  const odd = parseImageTag(tagOf(...base, "[frame] laptop"));
+  if (odd.kind === "tag") {
+    const msg = tagWarningMessage("Chapter — Egypt / Onboarding Journey", odd.tag.cld, odd.warnings[0]);
+    check("warning notice names the chapter", msg.includes("Chapter — Egypt / Onboarding Journey"), msg);
+    check("warning notice names the value", msg.includes('"laptop"'), msg);
+    check("warning notice names the image", msg.includes('"Egypt/FATCA forms (v2)"'), msg);
+  }
+
+  // Duplicate [frame]: same handling as any repeated key — the tag is unusable.
+  const dup = parseImageTag(tagOf(...base, "[frame] none", "[frame] none"));
+  eq("duplicate [frame] -> invalid", dup.kind, "invalid");
+  if (dup.kind === "invalid") {
+    check("duplicate [frame] names the key", dup.problems.some((p) => p.includes("[frame] appears twice")), JSON.stringify(dup.problems));
+    check("duplicate [frame] message keeps the cld", invalidTagMessage("X", dup).includes("Egypt/FATCA forms (v2)"));
+  }
+
+  // [frame] does not rescue a broken tag, and does not add noise to one.
+  const noAlt = parseImageTag(tagOf(base[0], base[2], "[frame] laptop"));
+  eq("missing [alt] with [frame] -> still invalid", noAlt.kind, "invalid");
+  if (noAlt.kind === "invalid") {
+    check("broken tag reports its real problem, not a frame warning",
+      noAlt.problems.every((p) => !p.includes("laptop")), JSON.stringify(noAlt.problems));
+  }
+
+  // [frame] alone is not a tag opener: the first code span must be [cld].
+  eq("a paragraph opening with [frame] is prose", parseImageTag(tagOf("[frame] none")).kind, "prose");
+
+  // An unknown key is still refused, and the message lists [frame] as known.
+  const junk = parseImageTag(tagOf(...base, "[device] laptop"));
+  eq("unknown key still invalid", junk.kind, "invalid");
+  if (junk.kind === "invalid") {
+    check("unknown-key message lists [frame]", junk.problems.some((p) => p.includes("[frame]")), JSON.stringify(junk.problems));
+  }
+}
+
+/* ------------------------------- image tag [place] beside (decision 070) ---- */
+
+console.log("\nImage tag [place] (task 014261026, decision 070)");
+
+{
+  const code = (t: string): NotionRun => ({ plain_text: t, annotations: { code: true } });
+  const gap: NotionRun = { plain_text: " ", annotations: { code: false } };
+  const tagOf = (...spans: string[]): NotionRun[] =>
+    spans.flatMap((sp, i) => (i === 0 ? [code(sp)] : [gap, code(sp)]));
+  const base = ["[cld] Egypt/AOF cover (v1)", "[alt] The AOF cover", "[caption] The cover page"];
+
+  const plain = parseImageTag(tagOf(...base));
+  if (plain.kind === "tag") {
+    check("three spans: no place flag at all", !("place" in plain.tag), JSON.stringify(plain.tag));
+  }
+
+  const beside = parseImageTag(tagOf(...base, "[place] beside"));
+  eq("[place] beside -> place: beside", beside.kind === "tag" ? beside.tag.place : beside.kind, "beside");
+  eq("[place] beside -> no warnings", beside.kind === "tag" ? beside.warnings : beside.kind, []);
+  eq("[place] beside keeps cld/alt/caption verbatim, no frame", beside.kind === "tag" ? beside.tag : null, {
+    cld: "Egypt/AOF cover (v1)", alt: "The AOF cover", caption: "The cover page", place: "beside",
+  });
+
+  for (const v of ["Beside", "BESIDE", "  beside  ", "bEsIdE"]) {
+    const r = parseImageTag(tagOf(...base, `[place] ${v}`));
+    eq(`case-insensitive and trimmed: ${JSON.stringify(v)}`, r.kind === "tag" ? r.tag.place : r.kind, "beside");
+  }
+
+  const early = parseImageTag(tagOf(base[0], "[place] beside", base[1], base[2]));
+  eq("[place] between [cld] and [alt] is read", early.kind === "tag" ? early.tag.place : early.kind, "beside");
+
+  // Both spans, either order: independent flags.
+  for (const order of [["[frame] none", "[place] beside"], ["[place] beside", "[frame] none"]]) {
+    const r = parseImageTag(tagOf(...base, ...order));
+    eq(`both spans (${order.join(", ")}) -> both flags`, r.kind === "tag" ? [r.tag.frame, r.tag.place, r.warnings] : r.kind,
+      ["none", "beside", []]);
+  }
+  // [place] beside alone does not touch the frame.
+  if (beside.kind === "tag") check("[place] beside sets no frame", beside.tag.frame === undefined, JSON.stringify(beside.tag));
+
+  // Unrecognised value: usable, flag absent, REPORTED.
+  for (const v of ["left", "side", "inline", ""]) {
+    const r = parseImageTag(tagOf(...base, `[place] ${v}`.trimEnd()));
+    eq(`[place] ${JSON.stringify(v)} -> still a usable tag`, r.kind, "tag");
+    if (r.kind === "tag") {
+      check(`[place] ${JSON.stringify(v)} -> no place flag`, r.tag.place === undefined, JSON.stringify(r.tag));
+      check(
+        `[place] ${JSON.stringify(v)} -> one warning naming the value`,
+        r.warnings.length === 1 && r.warnings[0].includes("[place]") && r.warnings[0].includes(JSON.stringify(v)),
+        JSON.stringify(r.warnings),
+      );
+    }
+  }
+
+  // A bad [place] does not cost a good [frame], and vice versa.
+  const mixed = parseImageTag(tagOf(...base, "[frame] none", "[place] left"));
+  eq("[frame] none + [place] left -> frame kept, place absent, one warning",
+    mixed.kind === "tag" ? [mixed.tag.frame, mixed.tag.place, mixed.warnings.length] : mixed.kind, ["none", undefined, 1]);
+  const mixed2 = parseImageTag(tagOf(...base, "[frame] laptop", "[place] beside"));
+  eq("[frame] laptop + [place] beside -> place kept, frame absent, one warning",
+    mixed2.kind === "tag" ? [mixed2.tag.frame, mixed2.tag.place, mixed2.warnings.length] : mixed2.kind, [undefined, "beside", 1]);
+
+  const odd = parseImageTag(tagOf(...base, "[place] left"));
+  if (odd.kind === "tag") {
+    const msg = tagWarningMessage("Chapter — Egypt / Onboarding Journey", odd.tag.cld, odd.warnings[0]);
+    check("place warning notice names the chapter", msg.includes("Chapter — Egypt / Onboarding Journey"), msg);
+    check("place warning notice names the value", msg.includes('"left"'), msg);
+    check("place warning notice names the image", msg.includes('"Egypt/AOF cover (v1)"'), msg);
+  }
+
+  // Duplicate [place]: the tag is unusable.
+  const dup = parseImageTag(tagOf(...base, "[place] beside", "[place] beside"));
+  eq("duplicate [place] -> invalid", dup.kind, "invalid");
+  if (dup.kind === "invalid") {
+    check("duplicate [place] names the key", dup.problems.some((p) => p.includes("[place] appears twice")), JSON.stringify(dup.problems));
+  }
+
+  // [place] does not rescue a broken tag, and adds no noise to one.
+  const noAlt = parseImageTag(tagOf(base[0], base[2], "[place] left"));
+  eq("missing [alt] with [place] -> still invalid", noAlt.kind, "invalid");
+  if (noAlt.kind === "invalid") {
+    check("broken tag reports its real problem, not a place warning",
+      noAlt.problems.every((p) => !p.includes("left")), JSON.stringify(noAlt.problems));
+  }
+
+  eq("a paragraph opening with [place] is prose", parseImageTag(tagOf("[place] beside")).kind, "prose");
+
+  const junk = parseImageTag(tagOf(...base, "[side] beside"));
+  eq("unknown key still invalid", junk.kind, "invalid");
+  if (junk.kind === "invalid") {
+    check("unknown-key message lists [place]", junk.problems.some((p) => p.includes("[place]")), JSON.stringify(junk.problems));
+  }
 }
 
 revalidatePostChecks().then(() => {

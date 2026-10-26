@@ -52,7 +52,7 @@ The `Page` property encodes the entity type in its prefix. Parse it:
 | `Content ready` | `status` | `Done` → `published`; anything else → `draft` |
 | `Bilingual` | *(sync hint)* | `EN + AR full` → expect both; `EN first / AR later` → English only, no warning |
 | `Device` | `chapters.device_frame` | **Chapter rows only** (task `003221026`, migration 0062). Select (or text, status, a single multi-select option — any is read). Case-insensitive, trimmed: `Android` → `android`; `iPhone` → `iphone`; **empty → `iphone`, silently, by decision**. Any other value (`Pixel`, `iOS`, two options) → `iphone` **and a NOTICE naming the chapter and the value** — never silently mapped. A property missing from the database entirely is not an error: every chapter gets `iphone` and the run prints ONE notice saying the property is absent. Written on every upsert, so clearing it returns a chapter to `iphone`. The resolved value is printed on every chapter line, dry run and live: `chapter   kshemam/<slug>  device=android`. The sync checks for the column at start-up: a live run against a database without 0062 **exits before writing anything**, telling you to apply it; a dry run warns and continues |
-| `Image layout` | `chapters.image_layout` | **Chapter rows only** (task `004221026`, migration 0063). How the chapter's **consecutive** figures render. Read exactly as `Device` is (same reader): select, text, status, or a single multi-select option. Case-insensitive, trimmed: `Grid` → `grid`; `Stacked` → `stacked`; **empty → `stacked`, silently, by decision**. Any other value (`Carousel`, `Gird`, two options, a non-text property type) → `stacked` **and a NOTICE naming the chapter and the value**. A property missing from the database entirely is not an error: every chapter gets `stacked` and the run prints ONE notice. Written on every upsert. Printed on every chapter line next to the device, dry run and live: `chapter   kshemam/<slug>  device=android  layout=grid`. Start-up guard as for 0062: a live run against a database without 0063 **exits before writing anything**; a dry run warns and continues |
+| `Image layout` | `chapters.image_layout` | **Chapter rows only** (task `004221026`, migration 0063). How the chapter's **consecutive** figures render. Read exactly as `Device` is (same reader): select, text, status, or a single multi-select option. Case-insensitive, trimmed: `Grid` → `grid`; `Stacked` → `stacked`; `Editorial` → `editorial` (decision 068, task `012261026`, migration 0066); **empty → `stacked`, silently, by decision**. Any other value (`Carousel`, `Gird`, two options, a non-text property type) → `stacked` **and a NOTICE naming the chapter and the value**. A property missing from the database entirely is not an error: every chapter gets `stacked` and the run prints ONE notice. Written on every upsert. Printed on every chapter line next to the device, dry run and live: `chapter   kshemam/<slug>  device=android  layout=grid`. Start-up guard as for 0062: a live run against a database without 0063 **exits before writing anything**; a dry run warns and continues. ⚠️ The guard proves the column, not the CHECK's allowed set: against a database without **0066**, an `Editorial` chapter's upsert is refused by `chapters_image_layout_valid` and that chapter is reported as a failure (not written); every other chapter syncs. Apply 0066 before a live sync writes `editorial` |
 | `Est. Days`, `Blockers`, `Development Status`, `Header`, `Footer`, `Purpose`, `Required Content`, `Notes` | *(not synced)* | project-management metadata, stays in Notion |
 
 **`Required Content` is a checklist for the human, not content.** Never sync it as page copy.
@@ -465,9 +465,46 @@ Read from `annotations.code`, **not** by matching backticks. Notion's `plain_tex
 strips the backticks, so a regex over joined text is matching punctuation that is
 not there. A paragraph is a tag when its first code span opens with `[cld]`.
 
-- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below).
+- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below). Two optional spans, `[frame] none` and `[place] beside`, are described below.
 - Public IDs contain spaces, dots, parentheses and apostrophes. They are used verbatim — never slugified, never URL-encoded at this layer. Cloudinary resolves them as-is.
 - The tag paragraph is a **sibling** of the prose paragraphs, never inline within one. This is what lets a `<figure>` render between paragraphs rather than inside one.
+
+### The optional fourth span: `[frame] none` (decision 069, task `013261026`)
+
+```
+`[cld] <public id>`  `[alt] <alt text>`  `[caption] <caption>`  `[frame] none`
+```
+
+A finished mockup is already composed; framing it frames it twice. Nothing on the chapter or the
+picture can tell a mockup from a raw screen, so it is authored **per image**.
+
+- **`none`** (case-insensitive, trimmed) → the placement is stored with `chapter_paragraphs.frame = 'none'` and reaches the page as `frame: "none"` on the figure. Render: bare image, full container width, plain caption below.
+- **Absent** → NULL, the frame stays automatic by aspect ratio. This is every existing tag.
+- **Any other value** (including empty) → the tag is **still written** (the figure is fine), the value is **ignored**, and the sync raises a NOTICE naming the chapter, the public ID and the value. Never guessed.
+- **`[frame]` twice** → the tag is unusable and fails the chapter, the same as any repeated key.
+- The span may sit anywhere after `[cld]`; the first code span must still be `[cld]`.
+- **On the placement, never on `media`**: the same asset may be framed elsewhere.
+- **Before migration 0067 is applied** the sync does not stop: it probes `chapter_paragraphs.frame` at start-up, prints one run-level warning, writes everything else, and reports each `[frame] none` it could not store. Apply 0067 and re-run to store them.
+- The chapter shape line gains ` unframed en:N ar:M` when any figure carries the flag, so a flag that stops resolving shows as a changed line.
+- **Not an NDA control.** Grayscale stays driven by `case_files.nda` (rule 6).
+
+### The optional span `[place] beside` (decision 070, task `014261026`)
+
+```
+`[cld] <public id>`  `[alt] <alt text>`  `[caption] <caption>`  `[place] beside`
+```
+
+One figure sits beside its paragraph without switching the whole chapter to Editorial (which
+would also move every wide web screen out of its laptop frame). Authored **per image**, handled
+exactly like `[frame]`:
+
+- **`beside`** (case-insensitive, trimmed) → stored as `chapter_paragraphs.place = 'beside'`, reaches the page as `place: "beside"` on the figure. Render: paired with the prose since the previous figure, image at inline-start and text at inline-end on md+, stacked below md, in any chapter layout. Redundant and harmless in an Editorial chapter.
+- **Absent** → NULL, the figure keeps its normal place.
+- **Any other value** (including empty) → tag still written, value ignored, NOTICE naming chapter, public ID and value.
+- **`[place]` twice** → the tag is unusable and fails the chapter.
+- **Independent of `[frame]`**: either, both or neither, in any order after `[cld]`. `[place] beside` never changes the frame.
+- **Before migration 0068 is applied**: start-up probe of `chapter_paragraphs.place`, one run-level warning, everything else written, each `[place] beside` that could not be stored reported. Apply 0068 and re-run.
+- The chapter shape line gains ` beside en:N ar:M` when any figure carries the flag.
 
 ### What the sync does with it
 

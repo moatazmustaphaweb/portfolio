@@ -37,6 +37,97 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 014261026 - 2026-10-26 - One image beside its paragraph in any chapter: `[place] beside` (decision 070)
+
+**Task id `014261026`.** Moataz, on Egypt Onboarding: "make this photo with paragraph side to side"
+(AOF cover page), then "also this" (sanctions declaration).
+
+- **Why per image:** switching the chapter to Editorial would also unframe every wide web screen.
+- **Backend + frontend (`9cf4691`):** optional `[place] beside` span; `chapter_paragraphs.place`
+  (migration 0068, applied by Moataz); the figure pairs with the prose since the previous figure
+  using the editorial pair renderer (now shared), image at inline-start. tests and tsc pass.
+- **Notion:** span added to both tags on the English page and its Arabic child. (Briefly added and
+  removed while confirming which chapter the screenshot came from; net state as stated.)
+- **Sync run 14, success. Verified on preview** at 1280 (en: image x=180, text at end; ar: image
+  x=660-676, mirrored) and 390 (stacked full width), no horizontal scroll.
+- **Found, not fixed:** the AOF cover is used in Onboarding and Fulfilment, and its caption lives on
+  the shared `media` translation, so Onboarding shows Fulfilment's caption. New board row (backend).
+- **Not verified:** dark theme.
+
+## 013261026 - 2026-10-26 - A finished mockup can opt out of its frame: `[frame] none` (decision 069)
+
+**Task id `013261026`.** Moataz, on the FATCA forms mockup in Egypt Acquisition / Onboarding
+Journey: "same instructions", then "this photo only remove the frame".
+
+- **Why per image:** that chapter mixes one finished mockup with a dozen raw web screens that keep
+  their laptop frame, so neither the layout nor the aspect ratio can carry it. Decision 069.
+- **Backend (`e3a85f2`):** image tag accepts an optional `[frame] none` span (other values reported,
+  duplicates invalid); stored on `chapter_paragraphs.frame` (migration 0067, per placement, not on
+  `media`); content layer exposes `frame?: "none"`; both sides tolerate 0067 not yet applied.
+  `npm run test:sync` all pass.
+- **Frontend (`0ed77d6`):** such a figure renders bare at full width with the plain caption below in
+  stacked, grid (splits the run) and editorial (never beside text). Unflagged figures unchanged.
+- **Notion:** `[frame] none` added to the `Old-fatca` tag on the English page and its Arabic child.
+- **0067 applied by Moataz; sync run 13 (`only=egypt-acquisition`) success.** Verified on
+  preview.moatazmustapha.com, en and ar at 1280: the FATCA figure is 952px wide (full container),
+  no frame, caption below in the plain muted style. **Not verified:** dark theme, 390 width.
+
+## 012261026 - 2026-10-26 - Editorial image layout (decision 068), first on UAE Application Tracking
+
+**Task id `012261026`.** Moataz: Application Tracking's images are finished mockups; place each beside
+its paragraph and caption, alternating sides, wide ones full width, so the page reads as designed.
+
+- **Decision 068.** `chapters.image_layout` gains `editorial` (migration 0066, run by Moataz; sync
+  vocabulary, types, docs by backend). Frontend: in an editorial chapter each figure pairs with the
+  prose since the previous figure; narrow (w/h <= 1.15) figures sit in a two-column row on md+,
+  alternating inline-end / inline-start; wide figures full width; stacked below md; logical columns
+  so Arabic mirrors. Captions in the text column use one plain style.
+- **Notion:** option Editorial added; chapter set to Editorial, Device cleared. **Found:** the chapter
+  was `In MVP-1` = no, so every sync skipped it (one image had never reached the site). Ticked.
+- **Verified on preview.moatazmustapha.com (en, ar at 1280; en at 390):** figure 1 right, 2 left, 3
+  right, two wide full width; Arabic mirrors; no horizontal scroll. Caption-style fix pushed after.
+- **Review round with Moataz (same day):** order flipped (first figure inline-start, text at
+  inline-end), and a figure with no prose shows its caption as a muted paragraph (`c679e9e`).
+  Verified on preview.moatazmustapha.com in en and ar after the build was READY.
+- **Second review round:** the two wide mockups come out of the laptop/panel frame. In an editorial
+  chapter, a full-width landscape figure is the bare image at container width with the plain muted
+  caption below (no chip, no box); narrow figures, stacked and grid chapters unchanged (`91f1f9d`).
+- **Not verified:** dark theme.
+
+## 011261026 - 2026-10-26 - Bank mobile chapters: screens in a grid, iPhone frame
+
+**Task id `011261026`.** Moataz: show the mobile screens of the UAE and Egypt bank projects in a grid
+with the iPhone frame, same criteria as Kshemam and PideTaxi (cross-platform, so iPhone only).
+
+- **Content (Notion only):** criteria read from Kshemam/PideTaxi (app-screen chapters get Grid plus
+  the platform frame; web chapters get neither). Set Image layout = Grid, Device = iPhone on UAE
+  Acquisition / Mobile Onboarding Journey, UAE Acquisition / Application Tracking, Neobiz Mobile /
+  Onboarding. Left alone with reasons: Neobiz Customer Portal (no screenshots), Egypt Acquisition (web
+  and tablet), comparison pages (mixed, no sync write path).
+- **Sync:** run 10 on nightly, success. **Verified on preview (1280, en; 390, ar):** UAE onboarding
+  shows 6 screens in a 3-column iPhone-framed grid plus one framed single; Neobiz onboarding shows 9
+  framed screens in a grid; both grayscale (NDA). **Application Tracking does not change:** its four
+  images are already finished mockups (angled phones, close-up crops, 1000x1000 and landscape), not
+  raw portrait screens, so no frame and no grid apply. Raw exports would be needed for that.
+- Live on www too (one database; main already has the grid and frame code).
+
+## 010261026 - 2026-10-26 - Closing the In-progress rows from Moataz's Notion comments; nightly released to main
+
+**Task id `010261026`.** Moataz: "start to close the in progress, I added comments on Notion."
+
+- **"Need to publish on main" (two rows):** main merged into nightly first (one conflict,
+  `.github/workflows/sync-notion.yml`, nightly's superset kept; tree identical to nightly), then
+  PR #9 nightly to main, merged (`07d6e3e`). **Verified on www:** pages PRERENDER then HIT at
+  0.17-0.33s; real clicks 0.19-0.49s (3.8s before); all 33 sitemap routes 200; `/en/nope` 404;
+  production robots allow crawling. Rows: navigation feedback Done, ISR Done, release row Done.
+- **Analytics disclosure:** "postpone; will be built in how this website works". Row set to Decided
+  not to do; the /how-this-site-works row now carries it.
+- **og_image:** "The current version is OK". Decision 067; row Decided not to do.
+- **Lighthouse (gate row):** run on www, mobile throttling: accessibility 100, SEO 100, best
+  practices 96 on four pages; performance 85 (/en), 96 (/ar), 73 (/en/work), 77 (cover). Manifesto
+  box ticked with the numbers. **LCP 7.8s on /work and 6.0s on a cover**: opened as a new row.
+- **Not touched (no comment from him):** FeatureStrip lists and his Arabic reviews stay In progress.
+
 ## 009261026 - 2026-10-26 - Answered: what content is left
 
 **Task id `009261026`.** Moataz asked what content remains. Answered from the Vision Tracker

@@ -140,8 +140,8 @@ export type Chapter = Tables<"chapters"> & {
    */
   deviceFrame: DeviceFrame;
   /**
-   * How this chapter's CONSECUTIVE figures render (task `004221026`, migration
-   * 0063). Authored in Notion as `Image layout`; never null here —
+   * How this chapter's figures render — stacked | grid | editorial (task
+   * `004221026`, migration 0063; `editorial` by 0066, decision 068). Authored in Notion as `Image layout`; never null here —
    * `imageLayoutOrDefault` turns a missing or NULL `image_layout` into
    * `"stacked"`, which is what an empty `Image layout` means by decision.
    *
@@ -275,7 +275,34 @@ export type ChapterBlock =
        */
       lang: Locale;
     }
-  | { kind: "image"; media: Media | null }
+  | {
+      kind: "image";
+      media: Media | null;
+      /**
+       * `"none"`: render this figure UNFRAMED — the bare image at full
+       * container width, plain caption below (decision 069). Absent: the
+       * device frame stays automatic by aspect ratio, as before.
+       *
+       * Per placement, not per asset: it comes from the image tag's
+       * `[frame] none` span via `chapter_paragraphs.frame`, so the same media
+       * can be framed in one chapter and bare in another. Never any other
+       * value, and absent (not null) whenever it does not apply — including
+       * before migration 0067 is applied.
+       */
+      frame?: "none";
+      /**
+       * `"beside"`: this figure pairs with the prose since the previous
+       * figure and sits beside it on md+ — image at inline-start, text at
+       * inline-end, stacked below md — in ANY chapter layout (decision 070).
+       * Absent: the figure keeps its normal place for the chapter's layout.
+       *
+       * Per placement, from the image tag's `[place] beside` span via
+       * `chapter_paragraphs.place`. Independent of `frame`. Never any other
+       * value, and absent (not null) whenever it does not apply — including
+       * before migration 0068 is applied.
+       */
+      place?: "beside";
+    }
   | {
       kind: "table";
       /**
