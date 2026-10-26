@@ -37,6 +37,27 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 003261026 - 2026-10-26 - ISR was not working on any page since 2026-08-23; fixed on nightly
+
+**Task id `003261026`.** Found while recording 065: every page on production and preview answered
+`cache-control: private, no-store` and `x-vercel-cache: MISS`, about 3s per request, every time.
+
+- **Cause (frontend, proven by build route table):** `getLocale()` in `app/layout.tsx`, which sits
+  above `[locale]`, so `setRequestLocale` had not run; next-intl fell back to `headers()` and the
+  whole tree rendered dynamically. Introduced with the root layout in `334e4ee` (2026-08-23).
+- **Fix (`c5bd654`, option A, next-intl's documented layout):** `<html lang dir>` moved into
+  `app/[locale]/layout.tsx`, which is now the root layout; `app/layout.tsx`, `app/not-found.tsx` and
+  `DocumentLanguage` removed; unmatched URLs render the designed 404 through `app/global-not-found.tsx`
+  (`experimental.globalNotFound` in `next.config.mjs`, written by frontend under this brief).
+- **Verified on preview (`portfolio-icm67vcjp`):** `/en`, `/ar`, `/en/work`, covers in both locales,
+  `/en/about`: first request PRERENDER, then HIT, **~0.2s instead of ~3s**. All 33 sitemap routes plus
+  the mini case files return the same status as production. `/en/nope` and `/ar/nope` are 404 with
+  `lang="en" dir="ltr"` / `lang="ar" dir="rtl"` in the server HTML (this closes the board's 404
+  lang/dir item).
+- **Production is still slow** until `nightly` is released to `main`. That is Moataz's call.
+- **Side effect found:** with fast pages the 065 opening fails (the view transition freezes the lift
+  mid-growth, then the picture jumps). Opened as `004261026`.
+
 ## 002261026 - 2026-10-26 - The card's image becomes the cover's image, from the click (decision 065)
 
 **Task id `002261026`.** Moataz on 064: "this transition shouldn't have loading states... the card
