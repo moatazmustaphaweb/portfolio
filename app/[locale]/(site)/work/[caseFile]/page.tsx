@@ -321,6 +321,7 @@ export default async function CaseFileCover({
             grammar={detail.grammar}
             locale={l}
             chapterLabel={ui.t("chapter")}
+            arrow={ui.t("arrow_forward")}
           />
 
           {/*

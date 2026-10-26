@@ -34,6 +34,7 @@ export function LivingMap({
   grammar,
   locale,
   chapterLabel,
+  arrow,
 }: {
   chapters: Chapter[];
   caseFileSlug: string;
@@ -41,6 +42,12 @@ export function LivingMap({
   locale: Locale;
   /** `ui_strings.chapter` — the word, for the numbered form. */
   chapterLabel?: string;
+  /**
+   * `ui_strings.arrow_forward`, already resolved for the locale (EN →, AR ←).
+   * Undefined while the key is missing, and then no arrow renders: never the
+   * key name, never a literal glyph (rtl-guard: directional glyphs are content).
+   */
+  arrow?: string;
 }) {
   if (chapters.length === 0) return null;
 
@@ -64,32 +71,50 @@ export function LivingMap({
           <li key={chapter.id}>
             <Link
               href={`/${locale}/work/${caseFileSlug}/${chapter.slug}`}
-              className="flex flex-col gap-2 bg-surface p-card-p transition-colors hover:bg-surface-raised"
+              className="group flex items-center gap-4 bg-surface p-card-p transition-colors hover:bg-surface-raised"
             >
+              <span className="flex min-w-0 flex-1 flex-col gap-2">
+                {/*
+                  Numbering only where sequence is meaningful. An ecosystem
+                  numbered 01–03 would assert an order the work does not have.
+                */}
+                {shape.numbered ? (
+                  <span className="font-mono text-micro uppercase text-fg-dim">
+                    {chapterLabel ? `${chapterLabel} ` : ""}
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                ) : null}
+
+                <span className="text-h3 text-fg">{title}</span>
+
+                {chapter.fields.objective ? (
+                  <span
+                    className="max-w-measure text-body-sm text-fg-muted"
+                    lang={chapter.fieldLocales.objective}
+                    dir={
+                      chapter.fieldLocales.objective
+                        ? dirForLocale(chapter.fieldLocales.objective)
+                        : undefined
+                    }
+                  >
+                    {chapter.fields.objective}
+                  </span>
+                ) : null}
+              </span>
+
               {/*
-                Numbering only where sequence is meaningful. An ecosystem
-                numbered 01–03 would assert an order the work does not have.
+                The affordance that says the card opens (task 007261026). On
+                the inline-end side because the flex row mirrors with `dir`; the
+                glyph itself comes per locale from ui_strings, never flipped.
+                Colour only on hover and focus: decision 048 forbids transform
+                on content-level components, so it does not nudge.
               */}
-              {shape.numbered ? (
-                <span className="font-mono text-micro uppercase text-fg-dim">
-                  {chapterLabel ? `${chapterLabel} ` : ""}
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-              ) : null}
-
-              <span className="text-h3 text-fg">{title}</span>
-
-              {chapter.fields.objective ? (
+              {arrow ? (
                 <span
-                  className="max-w-measure text-body-sm text-fg-muted"
-                  lang={chapter.fieldLocales.objective}
-                  dir={
-                    chapter.fieldLocales.objective
-                      ? dirForLocale(chapter.fieldLocales.objective)
-                      : undefined
-                  }
+                  aria-hidden="true"
+                  className="shrink-0 text-h3 leading-none text-fg-dim transition-colors group-hover:text-fg group-focus-visible:text-fg"
                 >
-                  {chapter.fields.objective}
+                  {arrow}
                 </span>
               ) : null}
             </Link>

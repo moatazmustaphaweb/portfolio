@@ -11,8 +11,15 @@ never ahead of it.**
 A task that ends in a diagnosis, a refusal, or a question returned still gets an entry.
 Two lines, not silence.
 
-The shape of an entry is in `.claude/agents/frontend.md`. The structure is in `docs/agents.md`;
-the handoffs are in `docs/workflows.md`.
+## 007261026 — 2026-10-26 07:40 — chapter cards on the cover get an inline-end forward arrow (colour only)
+
+**Brief:** make the chapter cards on the case-file cover look clickable. Add an `aria-hidden` forward arrow from `ui_strings.arrow_forward`, on the inline-end side and vertically centred. It goes `text-fg-dim` to `text-fg` on card hover and focus-visible. I first stopped with two questions (the brief's 4px translate against decision 048, and whether 0065 has an AR row). Orchestrator rulings: no translate, because decision 048 stands; 0065 will have both rows (EN →, AR ←) plus `arrow_back`.
+**Files:** `components/case-file/LivingMap.tsx` · `app/[locale]/(site)/work/[caseFile]/page.tsx` (passes `arrow={ui.t("arrow_forward")}`).
+**Change:** the card `<Link>` (already one link per card, already `hover:bg-surface-raised`) is now `group flex items-center gap-4`. The existing kicker, title and objective are wrapped in a `flex min-w-0 flex-1 flex-col gap-2` span. The arrow is a sibling span: `aria-hidden`, `shrink-0 text-h3 leading-none text-fg-dim transition-colors group-hover:text-fg group-focus-visible:text-fg`. It renders only when `arrow` is truthy, and `t()` returns `undefined` for a missing key. No transform, no rotate or flip, no literal glyph. The flex row mirrors with `dir`, so inline-end needs no physical property.
+**Verified:** `rm -rf .next/types && npx tsc --noEmit` exit 0. `npx eslint` on both files exit 0. `npx tailwindcss -i app/globals.css` exit 0, and the output contains `.group:hover .group-hover\:text-fg` and `.group:focus-visible .group-focus-visible\:text-fg` (both `color: var(--color-fg)`), plus `.text-fg-dim`, `.leading-none` and `.shrink-0`. No ancestor of the card carries a `group` class, so the group variants bind to the card alone. `supabase/migrations/0065_seed_wait_quotes.sql` already contains `arrow_forward` on disk.
+**Not verified:** nothing rendered. No dev server was on `:3000` and I did not start one, so there are no screenshots at 390 or 1440 in either locale and no `querySelectorAll` count. I did not check whether 0065 is applied to the database. Until it is, no arrow renders, by design. Not measured: the arrow's vertical alignment against a two-line title, the arrow's size against the title's cap height, and whether Geist serves `←` under the Arabic faces in `/ar` (rtl-guard says Meral lacks U+2190 and Geist sits behind it). Contrast of `text-fg-dim` at rest not measured.
+**Open questions:** none.
+**Separate cleanup, not done here:** literal `→` / `←` in JSX remain in `components/layout/NotFoundView.tsx:103` · `app/[locale]/(site)/systems/page.tsx:233,277` · `work/[caseFile]/[chapter]/page.tsx:539,550,581` · `work/[caseFile]/page.tsx:302,339` · `work/[caseFile]/results/page.tsx:250,268` · `work/[caseFile]/all/page.tsx:354,427,448,461` · `contact/page.tsx:171` · `about/philosophy/page.tsx:184` · `about/page.tsx:183`.
 
 ## 006261026 — 2026-10-26 07:05 — Decision 066: cover ⇄ chapter is a horizontal push
 
