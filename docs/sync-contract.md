@@ -465,7 +465,7 @@ Read from `annotations.code`, **not** by matching backticks. Notion's `plain_tex
 strips the backticks, so a regex over joined text is matching punctuation that is
 not there. A paragraph is a tag when its first code span opens with `[cld]`.
 
-- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below). A fourth, optional span, `[frame] none`, is described below.
+- **All three parts are required.** A tag missing `[alt]` or `[caption]` fails the chapter (see below). Two optional spans, `[frame] none` and `[place] beside`, are described below.
 - Public IDs contain spaces, dots, parentheses and apostrophes. They are used verbatim — never slugified, never URL-encoded at this layer. Cloudinary resolves them as-is.
 - The tag paragraph is a **sibling** of the prose paragraphs, never inline within one. This is what lets a `<figure>` render between paragraphs rather than inside one.
 
@@ -487,6 +487,24 @@ picture can tell a mockup from a raw screen, so it is authored **per image**.
 - **Before migration 0067 is applied** the sync does not stop: it probes `chapter_paragraphs.frame` at start-up, prints one run-level warning, writes everything else, and reports each `[frame] none` it could not store. Apply 0067 and re-run to store them.
 - The chapter shape line gains ` unframed en:N ar:M` when any figure carries the flag, so a flag that stops resolving shows as a changed line.
 - **Not an NDA control.** Grayscale stays driven by `case_files.nda` (rule 6).
+
+### The optional span `[place] beside` (decision 070, task `014261026`)
+
+```
+`[cld] <public id>`  `[alt] <alt text>`  `[caption] <caption>`  `[place] beside`
+```
+
+One figure sits beside its paragraph without switching the whole chapter to Editorial (which
+would also move every wide web screen out of its laptop frame). Authored **per image**, handled
+exactly like `[frame]`:
+
+- **`beside`** (case-insensitive, trimmed) → stored as `chapter_paragraphs.place = 'beside'`, reaches the page as `place: "beside"` on the figure. Render: paired with the prose since the previous figure, image at inline-start and text at inline-end on md+, stacked below md, in any chapter layout. Redundant and harmless in an Editorial chapter.
+- **Absent** → NULL, the figure keeps its normal place.
+- **Any other value** (including empty) → tag still written, value ignored, NOTICE naming chapter, public ID and value.
+- **`[place]` twice** → the tag is unusable and fails the chapter.
+- **Independent of `[frame]`**: either, both or neither, in any order after `[cld]`. `[place] beside` never changes the frame.
+- **Before migration 0068 is applied**: start-up probe of `chapter_paragraphs.place`, one run-level warning, everything else written, each `[place] beside` that could not be stored reported. Apply 0068 and re-run.
+- The chapter shape line gains ` beside en:N ar:M` when any figure carries the flag.
 
 ### What the sync does with it
 

@@ -854,6 +854,100 @@ console.log("\nImage tag [frame] (task 013261026, decision 069)");
   }
 }
 
+/* ------------------------------- image tag [place] beside (decision 070) ---- */
+
+console.log("\nImage tag [place] (task 014261026, decision 070)");
+
+{
+  const code = (t: string): NotionRun => ({ plain_text: t, annotations: { code: true } });
+  const gap: NotionRun = { plain_text: " ", annotations: { code: false } };
+  const tagOf = (...spans: string[]): NotionRun[] =>
+    spans.flatMap((sp, i) => (i === 0 ? [code(sp)] : [gap, code(sp)]));
+  const base = ["[cld] Egypt/AOF cover (v1)", "[alt] The AOF cover", "[caption] The cover page"];
+
+  const plain = parseImageTag(tagOf(...base));
+  if (plain.kind === "tag") {
+    check("three spans: no place flag at all", !("place" in plain.tag), JSON.stringify(plain.tag));
+  }
+
+  const beside = parseImageTag(tagOf(...base, "[place] beside"));
+  eq("[place] beside -> place: beside", beside.kind === "tag" ? beside.tag.place : beside.kind, "beside");
+  eq("[place] beside -> no warnings", beside.kind === "tag" ? beside.warnings : beside.kind, []);
+  eq("[place] beside keeps cld/alt/caption verbatim, no frame", beside.kind === "tag" ? beside.tag : null, {
+    cld: "Egypt/AOF cover (v1)", alt: "The AOF cover", caption: "The cover page", place: "beside",
+  });
+
+  for (const v of ["Beside", "BESIDE", "  beside  ", "bEsIdE"]) {
+    const r = parseImageTag(tagOf(...base, `[place] ${v}`));
+    eq(`case-insensitive and trimmed: ${JSON.stringify(v)}`, r.kind === "tag" ? r.tag.place : r.kind, "beside");
+  }
+
+  const early = parseImageTag(tagOf(base[0], "[place] beside", base[1], base[2]));
+  eq("[place] between [cld] and [alt] is read", early.kind === "tag" ? early.tag.place : early.kind, "beside");
+
+  // Both spans, either order: independent flags.
+  for (const order of [["[frame] none", "[place] beside"], ["[place] beside", "[frame] none"]]) {
+    const r = parseImageTag(tagOf(...base, ...order));
+    eq(`both spans (${order.join(", ")}) -> both flags`, r.kind === "tag" ? [r.tag.frame, r.tag.place, r.warnings] : r.kind,
+      ["none", "beside", []]);
+  }
+  // [place] beside alone does not touch the frame.
+  if (beside.kind === "tag") check("[place] beside sets no frame", beside.tag.frame === undefined, JSON.stringify(beside.tag));
+
+  // Unrecognised value: usable, flag absent, REPORTED.
+  for (const v of ["left", "side", "inline", ""]) {
+    const r = parseImageTag(tagOf(...base, `[place] ${v}`.trimEnd()));
+    eq(`[place] ${JSON.stringify(v)} -> still a usable tag`, r.kind, "tag");
+    if (r.kind === "tag") {
+      check(`[place] ${JSON.stringify(v)} -> no place flag`, r.tag.place === undefined, JSON.stringify(r.tag));
+      check(
+        `[place] ${JSON.stringify(v)} -> one warning naming the value`,
+        r.warnings.length === 1 && r.warnings[0].includes("[place]") && r.warnings[0].includes(JSON.stringify(v)),
+        JSON.stringify(r.warnings),
+      );
+    }
+  }
+
+  // A bad [place] does not cost a good [frame], and vice versa.
+  const mixed = parseImageTag(tagOf(...base, "[frame] none", "[place] left"));
+  eq("[frame] none + [place] left -> frame kept, place absent, one warning",
+    mixed.kind === "tag" ? [mixed.tag.frame, mixed.tag.place, mixed.warnings.length] : mixed.kind, ["none", undefined, 1]);
+  const mixed2 = parseImageTag(tagOf(...base, "[frame] laptop", "[place] beside"));
+  eq("[frame] laptop + [place] beside -> place kept, frame absent, one warning",
+    mixed2.kind === "tag" ? [mixed2.tag.frame, mixed2.tag.place, mixed2.warnings.length] : mixed2.kind, [undefined, "beside", 1]);
+
+  const odd = parseImageTag(tagOf(...base, "[place] left"));
+  if (odd.kind === "tag") {
+    const msg = tagWarningMessage("Chapter — Egypt / Onboarding Journey", odd.tag.cld, odd.warnings[0]);
+    check("place warning notice names the chapter", msg.includes("Chapter — Egypt / Onboarding Journey"), msg);
+    check("place warning notice names the value", msg.includes('"left"'), msg);
+    check("place warning notice names the image", msg.includes('"Egypt/AOF cover (v1)"'), msg);
+  }
+
+  // Duplicate [place]: the tag is unusable.
+  const dup = parseImageTag(tagOf(...base, "[place] beside", "[place] beside"));
+  eq("duplicate [place] -> invalid", dup.kind, "invalid");
+  if (dup.kind === "invalid") {
+    check("duplicate [place] names the key", dup.problems.some((p) => p.includes("[place] appears twice")), JSON.stringify(dup.problems));
+  }
+
+  // [place] does not rescue a broken tag, and adds no noise to one.
+  const noAlt = parseImageTag(tagOf(base[0], base[2], "[place] left"));
+  eq("missing [alt] with [place] -> still invalid", noAlt.kind, "invalid");
+  if (noAlt.kind === "invalid") {
+    check("broken tag reports its real problem, not a place warning",
+      noAlt.problems.every((p) => !p.includes("left")), JSON.stringify(noAlt.problems));
+  }
+
+  eq("a paragraph opening with [place] is prose", parseImageTag(tagOf("[place] beside")).kind, "prose");
+
+  const junk = parseImageTag(tagOf(...base, "[side] beside"));
+  eq("unknown key still invalid", junk.kind, "invalid");
+  if (junk.kind === "invalid") {
+    check("unknown-key message lists [place]", junk.problems.some((p) => p.includes("[place]")), JSON.stringify(junk.problems));
+  }
+}
+
 revalidatePostChecks().then(() => {
   console.log(
     failures === 0 ? "\nAll sync-logic checks passed.\n" : `\n${failures} FAILED.\n`,

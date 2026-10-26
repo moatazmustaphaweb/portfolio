@@ -267,6 +267,12 @@ export type Database = {
            * select and treat absent as NULL, never name it in a select list.
            */
           frame?: "none" | null;
+          /**
+           * Migration 0068 (decision 070): NULL = the figure keeps its normal
+           * place in the chapter layout; 'beside' = it sits beside the prose
+           * that leads into it. OPTIONAL for the same reason as `frame`.
+           */
+          place?: "beside" | null;
         };
         Insert: {
           id?: string;
@@ -276,6 +282,7 @@ export type Database = {
           locale: "en" | "ar";
           part: string;
           frame?: "none" | null;
+          place?: "beside" | null;
         };
         Update: Partial<Database["public"]["Tables"]["chapter_paragraphs"]["Insert"]>;
         Relationships: [];

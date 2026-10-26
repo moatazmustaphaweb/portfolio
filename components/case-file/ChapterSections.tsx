@@ -47,7 +47,16 @@ function groupFigureRuns(blocks: ChapterSection["blocks"]): BlockUnit[] {
      * row and renders as a block — the stacked unframed render. A null-media
      * one renders nothing, so it does not break a run either.
      */
-    if (block.kind === "image" && !(block.frame === "none" && block.media)) run.push({ block, i });
+    /*
+     * A `[place] beside` figure (decision 070) ends a run the same way: it
+     * sits beside its own prose, so `pairBesideFigures` picks it up from the
+     * block units below.
+     */
+    if (
+      block.kind === "image" &&
+      !(block.media && (block.frame === "none" || block.place === "beside"))
+    )
+      run.push({ block, i });
     else {
       flush();
       units.push({ kind: "block", block, i });
@@ -137,6 +146,59 @@ function groupEditorialUnits(blocks: ChapterSection["blocks"]): EditorialUnit[] 
   });
   flush();
   return units;
+}
+
+/**
+ * ── `[place] beside` IN STACKED AND GRID (decision 070, task `014261026`) ────
+ *
+ * Takes the units a stacked or grid chapter would render and folds each
+ * renderable `place: "beside"` figure together with the prose blocks directly
+ * before it (since the previous figure, grid run or table) into the SAME pair
+ * unit the editorial path builds, so it renders through `renderBesidePair`,
+ * always with the figure at inline-start. Anything else — a figure without the
+ * flag, a grid run, a table — flushes the waiting prose as plain blocks, so
+ * nothing that is not flagged changes. Adjacency only, never index pairing.
+ *
+ * Same empty-track guard as editorial: a beside figure with no prose before
+ * it and no caption has nothing for the text column, so it stays a plain block.
+ */
+type BesideUnit = BlockUnit | Extract<EditorialUnit, { kind: "pair" }>;
+
+function pairBesideFigures(units: BlockUnit[]): BesideUnit[] {
+  const out: BesideUnit[] = [];
+  let pending: BlockRef[] = [];
+  const flush = () => {
+    for (const p of pending) out.push({ kind: "block", ...p });
+    pending = [];
+  };
+  for (const unit of units) {
+    if (unit.kind === "block" && unit.block.kind === "prose") {
+      pending.push({ block: unit.block, i: unit.i });
+      continue;
+    }
+    if (
+      unit.kind === "block" &&
+      unit.block.kind === "image" &&
+      unit.block.media &&
+      unit.block.place === "beside" &&
+      (pending.length > 0 || Boolean(unit.block.media.fields.caption))
+    ) {
+      out.push({
+        kind: "pair",
+        prose: pending,
+        media: unit.block.media,
+        i: unit.i,
+        beside: true,
+        unframed: unit.block.frame === "none",
+      });
+      pending = [];
+      continue;
+    }
+    flush();
+    out.push(unit);
+  }
+  flush();
+  return out;
 }
 
 /**
@@ -307,9 +369,12 @@ export function ChapterSections({
 
             <div className="mt-5 space-y-6">
               {imageLayout === "grid"
-                ? groupFigureRuns(section.blocks).map((unit) =>
+                ? pairBesideFigures(groupFigureRuns(section.blocks)).map((unit) =>
                     unit.kind === "block" ? (
                       renderBlock(section, unit.block, unit.i, deviceFrame)
+                    ) : unit.kind === "pair" ? (
+                      /* `[place] beside` (decision 070): always image at inline-start. */
+                      renderBesidePair(section, unit, "start", deviceFrame)
                     ) : (
                       /*
                        * A run of screenshots, side by side: 1 column below
@@ -376,7 +441,44 @@ export function ChapterSections({
                         ];
                       }
                       const side: EditorialSide = besideCount++ % 2 === 0 ? "start" : "end";
-                      return [
+                      return [renderBesidePair(section, unit, side, deviceFrame)];
+                    })
+                  : /*
+                     * STACKED. With no `[place] beside` figure in the section
+                     * every unit is a block with its original index, so this
+                     * renders exactly what `section.blocks.map(renderBlock)`
+                     * did. A flagged figure becomes the editorial narrow pair,
+                     * image at inline-start (decision 070).
+                     */
+                    pairBesideFigures(
+                      section.blocks.map((block, i) => ({ kind: "block" as const, block, i })),
+                    ).map((unit) =>
+                      unit.kind === "pair"
+                        ? renderBesidePair(section, unit, "start", deviceFrame)
+                        : unit.kind === "block"
+                          ? renderBlock(section, unit.block, unit.i, deviceFrame)
+                          : null,
+                    )}
+            </div>
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * One figure beside its prose: the editorial NARROW pair (decision 068), also
+ * used by a `[place] beside` figure in a stacked or grid chapter (decision
+ * 070). One renderer, so the two cannot drift apart.
+ */
+function renderBesidePair(
+  section: ChapterSection,
+  unit: Extract<EditorialUnit, { kind: "pair" }>,
+  side: EditorialSide,
+  deviceFrame: DeviceFrameKind,
+) {
+  return (
                         /*
                          * NARROW: one grid per pair.
                          *
@@ -441,16 +543,9 @@ export function ChapterSections({
                             deviceFrame={deviceFrame}
                             editorialSide={side}
                             captionAsParagraph={unit.prose.length === 0}
+                            unframed={unit.unframed}
                           />
-                        </div>,
-                      ];
-                    })
-                  : section.blocks.map((block, i) => renderBlock(section, block, i, deviceFrame))}
-            </div>
-          </section>
-        );
-      })}
-    </>
+                        </div>
   );
 }
 
@@ -798,7 +893,13 @@ function ChapterFigure({
                 786x522 screen; that shape is gone, and `object-cover` with no
                 height to cover collapses the picture.
               */
-              device || bare
+              /*
+               * `bare && !editorial`: a `[frame] none` figure placed beside its
+               * prose (decision 070) drops its frame but keeps the beside
+               * image's sizing below, like any unframed narrow pair. No other
+               * figure is both bare and editorial.
+               */
+              device || (bare && !editorial)
                 ? /*
                    * Bare wide (editorial): full container width, no
                    * `max-h-figure` — the brief is the mockup at the column's

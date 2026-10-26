@@ -280,6 +280,17 @@ everything else and reports each `[frame] none` it could not store. Exposed by t
 as **`frame?: "none"`** on the `{ kind: "image" }` member of `ChapterBlock` — present only when
 `'none'`, absent otherwise.
 
+**`chapter_paragraphs.place` (migration 0068, decision 070, task `014261026`)** — the same shape
+and the same reasoning as `frame`, for position instead of frame. NULL (every existing row, and
+any figure whose tag has no `[place]` span) = the figure keeps its normal place in the chapter's
+layout; `'beside'` = it pairs with the prose since the previous figure and sits beside it on md+,
+in any layout. From the image tag span `` `[place] beside` `` via the sync, and from nowhere else.
+Independent of `frame`. Also applied by Moataz in the SQL editor, so both sides tolerate its
+absence the same way (`select("*")` in the content layer; a start-up probe in the sync that, when
+the column is missing, writes everything else and reports each `[place] beside` it could not
+store). Exposed as **`place?: "beside"`** on the `{ kind: "image" }` member of `ChapterBlock` —
+present only when `'beside'`, absent otherwise.
+
 ```sql
 create table chapter_paragraphs (
   id                 uuid primary key default gen_random_uuid(),
@@ -290,6 +301,8 @@ create table chapter_paragraphs (
   part               text not null,          -- 0045. 'body' | 'tail'. NO DEFAULT
   frame              text                    -- 0067. NULL | 'none'
                      check (frame is null or frame = 'none'),
+  place              text                    -- 0068. NULL | 'beside'
+                     check (place is null or place = 'beside'),
   unique (chapter_section_id, locale, sort_order)
 );
 

@@ -137,6 +137,15 @@ const DRY_RUN = process.argv.includes("--dry-run");
  * the field, and REPORTS each `[frame] none` it could not store.
  */
 let paragraphFrameWritable = true;
+
+/*
+ * Whether `chapter_paragraphs.place` (migration 0068, decision 070) exists.
+ * Same treatment as `paragraphFrameWritable`: probed once in `main()`, a
+ * missing column does not stop the run, and each `[place] beside` that could
+ * not be stored is REPORTED. Until 0068 is applied the figure keeps its normal
+ * place in the chapter layout.
+ */
+let paragraphPlaceWritable = true;
 const ALL_LAYERS = process.argv.includes("--all");
 
 /*
@@ -1138,7 +1147,7 @@ function resolveChapterSections(
   const sections: ChapterSection[] = [];
   const failures: string[] = [];
   /*
-   * Warnings on USABLE tags (an unrecognised `[frame]` value). Collected for
+   * Warnings on USABLE tags (an unrecognised `[frame]` or `[place]` value). Collected for
    * every image tag the chapter body carries — including one under a decision
    * heading — so a value that was ignored is never ignored silently.
    */
@@ -1516,6 +1525,15 @@ async function writeChapterSections(opts: {
       0,
     );
 
+  const countBeside = (ss: readonly ChapterSection[]) =>
+    ss.reduce(
+      (n, s) =>
+        n +
+        [...s.paragraphs, ...s.tail].filter((p) => p.kind === "image" && p.tag.place === "beside")
+          .length,
+      0,
+    );
+
   /*
    * The tail is printed — `result(4¶+1tail↔ar 4¶+0tail)` — and so is what the
    * Arabic offered against it.
@@ -1549,6 +1567,10 @@ async function writeChapterSections(opts: {
      */
     (countUnframed(en.sections) + countUnframed(ar.sections) > 0
       ? ` unframed en:${countUnframed(en.sections)} ar:${countUnframed(ar.sections)}`
+      : "") +
+    /* `[place] beside` figures (decision 070), same reasoning. */
+    (countBeside(en.sections) + countBeside(ar.sections) > 0
+      ? ` beside en:${countBeside(en.sections)} ar:${countBeside(ar.sections)}`
       : "");
 
   /*
@@ -1726,6 +1748,16 @@ async function writeChapterSections(opts: {
               "re-run the sync; until then this figure renders with its automatic frame.",
           );
         }
+        /* `[place] beside` (decision 070): on the placement row, for the same reason. */
+        const beside = para.kind === "image" && para.tag.place === "beside";
+        if (beside && !paragraphPlaceWritable) {
+          notice(rowTitle,
+            `${rowTitle}: slot "${section.slot}" ${locale} — [place] beside on ` +
+              `${JSON.stringify(para.tag.cld)} was NOT stored: chapter_paragraphs.place ` +
+              "does not exist yet. Apply supabase/migrations/0068_image_place_beside.sql and " +
+              "re-run the sync; until then this figure keeps its normal place.",
+          );
+        }
         const { data: paraRow, error: paraError } = await (await db())
           .from("chapter_paragraphs")
           .insert({
@@ -1735,6 +1767,7 @@ async function writeChapterSections(opts: {
             locale,
             part,
             ...(unframed && paragraphFrameWritable ? { frame: "none" as const } : {}),
+            ...(beside && paragraphPlaceWritable ? { place: "beside" as const } : {}),
           })
           .select("id").single();
 
@@ -2297,6 +2330,23 @@ async function main() {
         `chapter_paragraphs.frame is not readable (${error.message}). ` +
         "`[frame] none` flags will NOT be stored this run (each one is reported); " +
         "apply supabase/migrations/0067_image_frame_none.sql in the Supabase SQL editor.";
+      console.log(`WARNING — ${message}\n`);
+      notices.push(message);
+    }
+  }
+
+  /*
+   * `chapter_paragraphs.place` (migration 0068, decision 070). Same as the
+   * `frame` probe above: not a refusal; flags are skipped and reported.
+   */
+  {
+    const { error } = await (await db()).from("chapter_paragraphs").select("place").limit(1);
+    if (error) {
+      paragraphPlaceWritable = false;
+      const message =
+        `chapter_paragraphs.place is not readable (${error.message}). ` +
+        "`[place] beside` flags will NOT be stored this run (each one is reported); " +
+        "apply supabase/migrations/0068_image_place_beside.sql in the Supabase SQL editor.";
       console.log(`WARNING — ${message}\n`);
       notices.push(message);
     }

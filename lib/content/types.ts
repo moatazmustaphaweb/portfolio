@@ -290,6 +290,18 @@ export type ChapterBlock =
        * before migration 0067 is applied.
        */
       frame?: "none";
+      /**
+       * `"beside"`: this figure pairs with the prose since the previous
+       * figure and sits beside it on md+ — image at inline-start, text at
+       * inline-end, stacked below md — in ANY chapter layout (decision 070).
+       * Absent: the figure keeps its normal place for the chapter's layout.
+       *
+       * Per placement, from the image tag's `[place] beside` span via
+       * `chapter_paragraphs.place`. Independent of `frame`. Never any other
+       * value, and absent (not null) whenever it does not apply — including
+       * before migration 0068 is applied.
+       */
+      place?: "beside";
     }
   | {
       kind: "table";
