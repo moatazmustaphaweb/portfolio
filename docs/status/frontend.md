@@ -11,6 +11,20 @@ never ahead of it.**
 A task that ends in a diagnosis, a refusal, or a question returned still gets an entry.
 Two lines, not silence.
 
+## 013261026 — 2026-10-26 17:16 — `[frame] none` renders a figure bare at full width, in every layout (decision 069)
+
+**Brief:** a chapter image block with `frame === "none"` (backend's new optional field on the image member of `ChapterBlock`) must render like the editorial wide figures: no laptop or phone frame, no box, image `block h-auto w-full`, the plain caption `mt-3 max-w-measure text-meta text-fg-muted` below. Stacked, grid and editorial alike. In grid it breaks out of the row at full width. In editorial it is full width, never beside text. Figures without the flag stay as they are.
+**Files:** `components/case-file/ChapterSections.tsx` · this file.
+**Change:**
+- `ChapterFigure` gains the prop `unframed`. When it is set, `phone` is forced false, and `laptop` is false through `bare = bareWide || unframed`. The image takes the `device || bare` class (`block h-auto w-full`, no `max-h-figure`). With `device` false, the figure is `mt-8` with no maxWidth style and the caption takes the plain unframed branch. That is the same output `editorialFullWidth` gives a landscape figure, and it now holds for portrait and square too.
+- Stacked: `renderBlock` passes `unframed={block.frame === "none"}`.
+- Grid: `groupFigureRuns` no longer puts a renderable `frame: "none"` figure in a run. It flushes the run and renders as a block through `renderBlock`, so `[A, B, none, C, D]` becomes grid(A,B), the bare figure, grid(C,D). A run split down to one figure renders as a lone stacked figure, as before. I split the run rather than using `col-span-full` inside the grid, so the bare figure gets the stacked spacing and none of the grid-cell sizing rules. A null-media `none` figure does not break a run, because it renders nothing.
+- Editorial: `EditorialUnit` pair carries `unframed`. `beside` is false whenever it is set, so the figure goes down the full-width path (`editorialFullWidth` + `unframed`) and does not advance the alternation. `countEditorialBesideFigures` uses the same grouping, so the offset across the two `ChapterSections` calls stays consistent.
+- Figures without the flag: every class string and branch is unchanged (`unframed` defaults to false, `bare === bareWide`).
+**Verified:** `rm -rf .next/types && npx tsc --noEmit -p .`: exit 0. `npx eslint components/case-file/ChapterSections.tsx`: exit 0. Read `lib/content/chapters.ts:320`: backend emits `frame: "none"` only when `para.frame === "none"`, matching the type.
+**Not verified:** nothing was rendered. There is no `.env.local` here, so there is no :3000, no screenshot at 390/1440 in either locale, and no DOM check that the FATCA mockup figure has no `[data-device-frame]`-style wrapper or that its image computes to the container width. Whether the FATCA chapter is stacked, grid or editorial was not checked. Nothing changes on the page until migration 0067 is applied and the sync runs with the tag.
+**Open questions:** none.
+
 ## 012261026 — 2026-10-26 13:17 — `editorial` image layout in the chapter renderer (decision 068)
 
 **Brief:** build the third `imageLayout`, `editorial`, in `ChapterSections` along the same path as `grid`. Within each section, pair each figure with the prose since the previous figure and with its caption. A narrow figure (w/h <= 1.15 from the stored dimensions; unknown counts as wide) goes beside its prose on `md`+, alternating sides per narrow figure across the chapter, using logical sides only. A wide figure renders full width with the caption under it. Below `md`, everything stacks. Target: UAE Application Tracking.

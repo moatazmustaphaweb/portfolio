@@ -41,7 +41,13 @@ function groupFigureRuns(blocks: ChapterSection["blocks"]): BlockUnit[] {
     run = [];
   };
   blocks.forEach((block, i) => {
-    if (block.kind === "image") run.push({ block, i });
+    /*
+     * An UNFRAMED figure (`[frame] none`, decision 069) never joins a run: it
+     * is a finished mockup shown at the full container width, so it breaks the
+     * row and renders as a block — the stacked unframed render. A null-media
+     * one renders nothing, so it does not break a run either.
+     */
+    if (block.kind === "image" && !(block.frame === "none" && block.media)) run.push({ block, i });
     else {
       flush();
       units.push({ kind: "block", block, i });
@@ -74,7 +80,15 @@ type BlockRef = { block: ChapterSection["blocks"][number]; i: number };
 
 type EditorialUnit =
   | { kind: "block"; block: ChapterSection["blocks"][number]; i: number }
-  | { kind: "pair"; prose: BlockRef[]; media: Media; i: number; beside: boolean };
+  | {
+      kind: "pair";
+      prose: BlockRef[];
+      media: Media;
+      i: number;
+      beside: boolean;
+      /* `[frame] none` on this figure (decision 069): never beside, never framed. */
+      unframed: boolean;
+    };
 
 /**
  * Narrow = portrait or square: width / height <= 1.15, from the media row's
@@ -105,9 +119,16 @@ function groupEditorialUnits(blocks: ChapterSection["blocks"]): EditorialUnit[] 
        * empty track (learn.md Part 5, "a container that loses a child keeps
        * its tracks"), so that case renders stacked and takes no side.
        */
+      /*
+       * An unframed figure (decision 069) is always full width: it takes no
+       * side and does not advance the alternation.
+       */
+      const unframed = block.frame === "none";
       const beside =
-        isNarrowFigure(block.media) && (pending.length > 0 || Boolean(block.media.fields.caption));
-      units.push({ kind: "pair", prose: pending, media: block.media, i, beside });
+        !unframed &&
+        isNarrowFigure(block.media) &&
+        (pending.length > 0 || Boolean(block.media.fields.caption));
+      units.push({ kind: "pair", prose: pending, media: block.media, i, beside, unframed });
       pending = [];
     } else {
       flush();
@@ -337,7 +358,8 @@ export function ChapterSections({
                         return [renderBlock(section, unit.block, unit.i, deviceFrame)];
                       if (!unit.beside) {
                         /*
-                         * WIDE (or narrow with nothing to sit beside): prose,
+                         * WIDE (or narrow with nothing to sit beside, or any
+                         * `[frame] none` figure, decision 069): prose,
                          * then the figure with its caption under it — exactly
                          * the stacked render, item for item, so the spacing is
                          * the stacked spacing.
@@ -349,6 +371,7 @@ export function ChapterSections({
                             media={unit.media}
                             deviceFrame={deviceFrame}
                             editorialFullWidth
+                            unframed={unit.unframed}
                           />,
                         ];
                       }
@@ -476,6 +499,7 @@ function renderBlock(
         key={`f-${section.id}-${i}`}
         media={block.media}
         deviceFrame={deviceFrame}
+        unframed={block.frame === "none"}
       />
     );
   }
@@ -550,6 +574,7 @@ function ChapterFigure({
   editorialSide,
   captionAsParagraph = false,
   editorialFullWidth = false,
+  unframed = false,
 }: {
   media: Media | null;
   deviceFrame: DeviceFrameKind;
@@ -583,6 +608,17 @@ function ChapterFigure({
    * addendum, at Moataz's review.
    */
   editorialFullWidth?: boolean;
+  /*
+   * `[frame] none` on this placement (decision 069, task `013261026`). A
+   * finished mockup is already composed, so a frame around it frames it twice:
+   * no laptop and no phone whatever the aspect ratio, the image at the full
+   * container width with no height cap, the plain muted caption under it.
+   * The same render `editorialFullWidth` gives a wide figure, in every layout.
+   * Never set on a beside or a grid-cell figure: both groupings route an
+   * unframed figure out to the full-width path first. NDA grayscale is
+   * untouched — it lives in `CloudinaryImage` (rule 6).
+   */
+  unframed?: boolean;
   /*
    * Set only by the grid path. The grid owns the spacing (its own margin and
    * gap), so the figure drops its margins; and a framed figure fills its cell
@@ -633,7 +669,9 @@ function ChapterFigure({
    * no frame width cap, no chip caption.
    */
   const bareWide = editorialFullWidth && landscape;
-  const laptop = landscape && !bareWide;
+  /* Bare at full width: an editorial wide figure, or any `[frame] none` one. */
+  const bare = bareWide || unframed;
+  const laptop = landscape && !bare;
   /*
    * The phone takes the other end of the same measurement. 1.7 rather than the
    * laptop's mirror image, because the frame is drawn around a 786x1704 screen
@@ -642,7 +680,7 @@ function ChapterFigure({
    * the two thresholds and stay plain, which is the intended outcome: neither
    * claim is supported by a square.
    */
-  const phone = ratio !== null && ratio >= 1.7;
+  const phone = ratio !== null && ratio >= 1.7 && !unframed;
   const device = laptop || phone;
   const editorial = editorialSide !== undefined;
   /*
@@ -760,7 +798,7 @@ function ChapterFigure({
                 786x522 screen; that shape is gone, and `object-cover` with no
                 height to cover collapses the picture.
               */
-              device || bareWide
+              device || bare
                 ? /*
                    * Bare wide (editorial): full container width, no
                    * `max-h-figure` — the brief is the mockup at the column's
