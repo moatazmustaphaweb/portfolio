@@ -37,6 +37,12 @@ For the queue, see `TASKS.md`; for why anything is the way it is, `docs/decision
 
 ---
 
+## 001271026 - 2026-10-27 - New short case study from Figma (OCTI): question asked
+
+**Task id `001271026`.** Moataz shared a Figma file (pages: Page 1, Components, Flows; dark/yellow
+iOS app, rewards in "OCTI") to add as a short case study like Kshemam and PideTaxi. Not in Notion.
+Read the file; asked him for the facts (rule 7: no invented content) before any brief.
+
 ## 015261026 - 2026-10-26 - Release: nightly to main (PR #10)
 
 **Task id `015261026`.** Moataz: "ارفع التعديلات على main".
